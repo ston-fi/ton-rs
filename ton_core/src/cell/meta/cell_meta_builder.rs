@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::meta::cell_meta::CellMeta;
 use crate::cell::meta::cell_type::CellType;
 use crate::cell::meta::level_mask::LevelMask;
@@ -54,17 +55,17 @@ impl<'a> CellMetaBuilder<'a> {
 
     fn validate_ordinary(&self) -> Result<(), TonCoreError> {
         if self.data_bits_len > TonCell::MAX_DATA_BITS_LEN {
-            return meta_builder_error("Ordinary cell data bits length is too big");
+            bail_ton_core_data!("Ordinary cell data bits length is too big");
         }
         Ok(())
     }
 
     fn validate_pruned(&self) -> Result<(), TonCoreError> {
         if !self.refs.is_empty() {
-            return meta_builder_error("Pruned cell can't have refs");
+            bail_ton_core_data!("Pruned cell can't have refs");
         }
         if self.data_bits_len < 16 {
-            return meta_builder_error("Pruned Branch require at least 16 bits data");
+            bail_ton_core_data!("Pruned Branch require at least 16 bits data");
         }
 
         if self.is_config_proof() {
@@ -74,8 +75,7 @@ impl<'a> CellMetaBuilder<'a> {
         let level_mask = self.calc_level_mask_pruned();
 
         if level_mask <= LevelMask::MIN_LEVEL || level_mask > LevelMask::MAX_LEVEL {
-            let err_msg = format!("Pruned Branch cell level must in range [1, 3] (got {level_mask})");
-            return meta_builder_error(err_msg);
+            bail_ton_core_data!("Pruned Branch cell level must in range [1, 3] (got {level_mask})");
         }
 
         let expected_size = (2 + level_mask.apply(level_mask.level() - 1u8).hash_count()
@@ -83,8 +83,7 @@ impl<'a> CellMetaBuilder<'a> {
             * 8;
 
         if self.data_bits_len != expected_size {
-            let err_msg = format!("PrunedBranch must have exactly {expected_size} bits, got {}", self.data_bits_len);
-            return meta_builder_error(&err_msg);
+            bail_ton_core_data!("PrunedBranch must have exactly {expected_size} bits, got {}", self.data_bits_len);
         }
 
         Ok(())
@@ -94,8 +93,7 @@ impl<'a> CellMetaBuilder<'a> {
         const LIB_CELL_BITS_LEN: usize = (1 + TonHash::BYTES_LEN) * 8;
 
         if self.data_bits_len != LIB_CELL_BITS_LEN {
-            let err_msg = format!("Lib cell must have exactly {LIB_CELL_BITS_LEN} bits, got {}", self.data_bits_len);
-            return meta_builder_error(err_msg);
+            bail_ton_core_data!("Lib cell must have exactly {LIB_CELL_BITS_LEN} bits, got {}", self.data_bits_len);
         }
 
         Ok(())
@@ -106,18 +104,20 @@ impl<'a> CellMetaBuilder<'a> {
         const MERKLE_PROOF_BITS_LEN: usize = (1 + TonHash::BYTES_LEN + CellMeta::DEPTH_BYTES) * 8;
 
         if self.data_bits_len != MERKLE_PROOF_BITS_LEN {
-            let err_msg = format!("MerkleProof must have {MERKLE_PROOF_BITS_LEN} bits, got {}", self.data_bits_len);
-            return meta_builder_error(err_msg);
+            bail_ton_core_data!(
+                "MerkleProof must have exactly {MERKLE_PROOF_BITS_LEN} bits, got {}",
+                self.data_bits_len
+            );
         }
 
         if self.refs.len() != 1 {
-            return meta_builder_error("Merkle Proof cell must have exactly 1 ref");
+            bail_ton_core_data!("Merkle Proof cell must have exactly 1 ref");
         }
 
         let mut data_slice = &self.data[1..];
         let _proof_hash = match TonHash::from_slice(&data_slice[..TonHash::BYTES_LEN]) {
             Ok(hash) => hash,
-            Err(err) => return meta_builder_error(format!("Can't parse proof hash from cell data: {err}")),
+            Err(err) => bail_ton_core_data!("Can't parse proof hash from cell data: {err}"),
         };
 
         data_slice = &data_slice[TonHash::BYTES_LEN..];
@@ -232,7 +232,7 @@ impl<'a> CellMetaBuilder<'a> {
         self.write_ref_hashes(&mut writer, level)?;
 
         if !writer.byte_aligned() {
-            return meta_builder_error("Stream for cell repr is not byte-aligned");
+            bail_ton_core_data!("Stream for cell repr is not byte-aligned");
         }
         Ok(writer.into_writer())
     }
@@ -347,10 +347,6 @@ fn write_data(writer: &mut CellBitWriter, data: &[u8], bit_len: usize) -> Result
     }
 
     Ok(())
-}
-
-fn meta_builder_error<T, M: Into<String>>(msg: M) -> Result<T, TonCoreError> {
-    Err(TonCoreError::data("CellMetaBuilder", msg))
 }
 
 #[cfg(test)]

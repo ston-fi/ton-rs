@@ -4,6 +4,7 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
+use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
@@ -34,7 +35,7 @@ impl ConfigParams {
         }
         let value = match self.config.get(&index) {
             Some(cell) => Arc::new(T::from_cell(cell)?),
-            None => return Err(TonCoreError::TLBWrongData(format!("Config param with index {index} not found"))),
+            None => bail_ton_core_data!("Config param with index {index} not found"),
         };
         *lock = Some(value.clone());
         Ok(value)

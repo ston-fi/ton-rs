@@ -10,14 +10,19 @@ macro_rules! bail_ton_core {
     };
 }
 
+#[macro_export]
+macro_rules! bail_ton_core_data {
+    ($($arg:tt)*) => {
+        return Err(TonCoreError::data(module_path!(), format!($($arg)*)))
+    };
+}
+
 #[derive(Error, Debug)]
 pub enum TonCoreError {
-    #[error("DataError: [{0}] {1}")]
-    DataError(String, String),
+    #[error("DataError: [{producer}] {msg}")]
+    DataError { producer: String, msg: String },
 
     // tlb
-    #[error("TLBWrongData: {0}")]
-    TLBWrongData(String),
     #[error("TLBWrongPrefix: expected={exp}, given={given}, exp_bits={bits_exp}, left_bits={bits_left}")]
     TLBWrongPrefix {
         exp: usize,
@@ -27,8 +32,6 @@ pub enum TonCoreError {
     },
     #[error("TLBEnumOutOfOptions: data doesn't match any variant of {0}")]
     TLBEnumOutOfOptions(String),
-    #[error("TLBObjectNoValue: No internal value found (method: {0})")]
-    TLBObjectNoValue(String),
 
     // contracts
     #[error("ContractError: {0}")]
@@ -37,8 +40,6 @@ pub enum TonCoreError {
     // General errors
     #[error("Custom: {0}")]
     Custom(String),
-    #[error("UnexpectedValue: expected: {expected}, actual: {actual}")]
-    UnexpectedValue { expected: String, actual: String },
 
     // handling external errors
     #[error("{0}")]
@@ -72,6 +73,27 @@ pub enum TonCoreError {
 
 impl TonCoreError {
     pub fn data<P: Into<String>, M: Into<String>>(producer: P, msg: M) -> Self {
-        Self::DataError(producer.into(), msg.into())
+        Self::DataError {
+            producer: producer.into(),
+            msg: msg.into(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio_test::assert_err;
+
+    fn make_data_error() -> Result<(), TonCoreError> {
+        let val = "42";
+        bail_ton_core_data!("some_error, val={val}");
+    }
+
+    #[test]
+    fn test_bail_ton_core_data() {
+        let rs = make_data_error();
+        let err = assert_err!(rs);
+        assert_eq!(err.to_string(), "DataError: [ton_lib_core::errors::tests] some_error, val=42");
     }
 }

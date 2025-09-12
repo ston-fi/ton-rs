@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
-use ton_lib_core::TLB;
+use ton_lib_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L593
 #[derive(Debug, Clone, PartialEq)]
@@ -87,10 +87,7 @@ impl TLB for MCBlockExtra {
         if self.key_block {
             match &self.config {
                 Some(config) => config.write(builder)?,
-                None => {
-                    let err_msg = "MCBlockExtra has key_block=true, but config_types is None".to_string();
-                    return Err(TonCoreError::TLBWrongData(err_msg));
-                }
+                None => bail_ton_core_data!("key_block=true, but config_types is None"),
             }
         }
         Ok(())

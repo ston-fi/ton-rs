@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::errors::TonCoreError;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,7 +18,7 @@ impl CellType {
             0x02 => Self::LibraryRef,
             0x03 => Self::MerkleProof,
             0x04 => Self::MerkleUpdate,
-            _ => return Err(TonCoreError::data("CellType", format!("Unknown exotic type with first byte={byte}"))),
+            _ => bail_ton_core_data!("Unknown exotic type with first byte={byte}"),
         };
         Ok(cell_type)
     }

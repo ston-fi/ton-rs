@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Display, Formatter};
-use ton_lib_core::bail_ton_core;
 use ton_lib_core::bits_utils::BitsUtils;
 use ton_lib_core::cell::{CellBuilder, CellParser};
 use ton_lib_core::constants::{TON_MASTERCHAIN, TON_MAX_SPLIT_DEPTH, TON_SHARD_FULL};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
 use ton_lib_core::types::tlb_core::MsgAddressInt;
+use ton_lib_core::{bail_ton_core, bail_ton_core_data};
 
 #[derive(Clone, Eq, Hash, PartialEq, Default)]
 pub struct ShardPfx {
@@ -85,9 +85,7 @@ impl TLB for ShardIdent {
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
         let pfx_bits_len: u32 = parser.read_num(6)?;
         if pfx_bits_len > TON_MAX_SPLIT_DEPTH as u32 {
-            return Err(TonCoreError::TLBWrongData(format!(
-                "expecting prefix_len <= {TON_MAX_SPLIT_DEPTH}, got {pfx_bits_len}"
-            )));
+            bail_ton_core_data!("expecting prefix_len <= {TON_MAX_SPLIT_DEPTH}, got {pfx_bits_len}");
         }
         let wc = parser.read_num(32)?;
         let shard_prefix: u64 = parser.read_num(64)?;
@@ -100,7 +98,7 @@ impl TLB for ShardIdent {
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         if self.shard == 0 {
-            return Err(TonCoreError::TLBWrongData("shard can't be 0".to_string()));
+            bail_ton_core_data!("shard can't be 0");
         }
         builder.write_num(&self.prefix_len(), 6)?;
         self.workchain.write(builder)?;

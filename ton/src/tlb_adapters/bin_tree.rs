@@ -2,6 +2,7 @@ use crate::block_tlb::ShardPfx;
 use crate::tlb_adapters::DictValAdapter;
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_lib_core::constants::TON_MAX_SPLIT_DEPTH;
 use ton_lib_core::errors::TonCoreError;
@@ -29,10 +30,7 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
         cur_val: &mut HashMap<ShardPfx, T>,
     ) -> Result<(), TonCoreError> {
         if cur_key.bits_len > TON_MAX_SPLIT_DEPTH as u32 {
-            return Err(TonCoreError::TLBWrongData(format!(
-                "[read] BinTree depth exceeded: {} > {TON_MAX_SPLIT_DEPTH}",
-                cur_key.bits_len
-            )));
+            bail_ton_core_data!("[read] BinTree depth exceeded: {} > {TON_MAX_SPLIT_DEPTH}", cur_key.bits_len);
         }
         if !parser.read_bit()? {
             cur_val.insert(cur_key, VA::read(parser)?);
@@ -56,7 +54,7 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
 
     pub fn write(builder: &mut CellBuilder, data: &HashMap<ShardPfx, T>) -> Result<(), TonCoreError> {
         if data.is_empty() {
-            return Err(TonCoreError::TLBWrongData("BinTree can't be empty".to_string()));
+            bail_ton_core_data!("BinTree can't be empty");
         }
         Self::write_impl(builder, ShardPfx::default(), data)
     }
@@ -67,10 +65,7 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
         data: &HashMap<ShardPfx, T>,
     ) -> Result<(), TonCoreError> {
         if cur_key.bits_len > TON_MAX_SPLIT_DEPTH as u32 {
-            return Err(TonCoreError::TLBWrongData(format!(
-                "[write] BinTree depth exceeded: {} > {TON_MAX_SPLIT_DEPTH}",
-                cur_key.bits_len
-            )));
+            bail_ton_core_data!("[write] BinTree depth exceeded: {} > {TON_MAX_SPLIT_DEPTH}", cur_key.bits_len);
         }
         if let Some(val) = data.get(&cur_key) {
             builder.write_bit(false)?;

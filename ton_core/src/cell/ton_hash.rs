@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::TonCellNum;
 use crate::errors::TonCoreError;
 use base64::prelude::BASE64_STANDARD;
@@ -97,8 +98,7 @@ fn from_base64<T: AsRef<[u8]>>(base64: T) -> Result<TonHash, TonCoreError> {
 
 fn check_bytes_len(bytes: &[u8]) -> Result<(), TonCoreError> {
     if bytes.len() != TonHash::BYTES_LEN {
-        let err_str = format!("expected bytes_len {}, but got {}", TonHash::BYTES_LEN, bytes.len());
-        return Err(TonCoreError::data("TonHash", err_str));
+        bail_ton_core_data!("expected bytes_len {}, but got {}", TonHash::BYTES_LEN, bytes.len());
     }
     Ok(())
 }

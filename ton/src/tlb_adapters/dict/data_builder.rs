@@ -5,6 +5,7 @@ use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use std::marker::PhantomData;
 use std::mem::swap;
+use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::CellBuilder;
 use ton_lib_core::cell::TonCell;
 use ton_lib_core::errors::TonCoreError;
@@ -160,9 +161,9 @@ fn prepare_keys(keys: &mut [BigUint], key_bits_len: usize) -> Result<(), TonCore
     for key in keys {
         let received_len_bits = key.bits() as usize;
         if received_len_bits > key_bits_len {
-            let err_str =
-                format!("dict key too long: expected max {key_bits_len} bits, got {received_len_bits} bits, key={key}");
-            return Err(TonCoreError::TLBWrongData(err_str));
+            bail_ton_core_data!(
+                "dict key too long: expected max {key_bits_len} bits, got {received_len_bits} bits, key={key}"
+            );
         }
 
         // add leading bit to maintain proper bits length

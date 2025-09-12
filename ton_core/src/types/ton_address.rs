@@ -2,11 +2,11 @@ use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::TonHash;
 
-use crate::bail_ton_core;
 use crate::bits_utils::BitsUtils;
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
 use crate::types::tlb_core::*;
+use crate::{bail_ton_core, bail_ton_core_data};
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use base64::Engine;
 use crc::Crc;
@@ -225,8 +225,7 @@ fn from_msg_address_int(msg_address: &MsgAddressInt) -> Result<TonAddress, TonCo
 }
 
 fn raise_address_error<T: AsRef<str>>(address: &str, msg: T) -> Result<(), TonCoreError> {
-    let err_msg = format!("Can't parse {address}, err: {}", msg.as_ref());
-    Err(TonCoreError::data("TonAddress", err_msg))
+    bail_ton_core_data!("Can't parse {address}, err: {}", msg.as_ref())
 }
 
 #[cfg(test)]

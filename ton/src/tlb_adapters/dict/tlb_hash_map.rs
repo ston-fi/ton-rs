@@ -5,6 +5,7 @@ use crate::tlb_adapters::{DictKeyAdapter, DictValAdapter};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
+use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::CellBuilder;
 use ton_lib_core::cell::CellParser;
 use ton_lib_core::errors::TonCoreError;
@@ -43,7 +44,7 @@ where
 
     pub fn write(&self, builder: &mut CellBuilder, data: &HashMap<K, V>) -> Result<(), TonCoreError> {
         if data.is_empty() {
-            return Err(TonCoreError::TLBWrongData("empty HashMap can't be written".to_string()));
+            bail_ton_core_data!("empty HashMap can't be written");
         }
         let mut key_value_pairs =
             data.iter().map(|(k, v)| Ok::<_, TonError>((KA::make_key(k)?, v))).collect::<Result<Vec<_>, _>>()?;

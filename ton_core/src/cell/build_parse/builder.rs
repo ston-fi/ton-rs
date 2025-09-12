@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::meta::CellMeta;
 use crate::cell::meta::CellType;
 use crate::cell::ton_cell::{TonCell, TonCellRef, TonCellStorage};
@@ -58,9 +59,11 @@ impl CellBuilder {
         let mut data_ref = data.as_ref();
 
         if (bits_len + bits_offset).div_ceil(8) > data_ref.len() {
-            let err_msg =
-                format!("Can't read {} bits from slice with only {} bytes", bits_len + bits_offset, data_ref.len());
-            return Err(TonCoreError::data("CellBuilder", err_msg));
+            bail_ton_core_data!(
+                "Can't read {} bits from slice with only {} bytes",
+                bits_len + bits_offset,
+                data_ref.len()
+            );
         }
 
         if bits_len == 0 {
@@ -101,8 +104,7 @@ impl CellBuilder {
 
     pub fn write_ref(&mut self, cell: TonCellRef) -> Result<(), TonCoreError> {
         if self.refs.len() >= TonCell::MAX_REFS_COUNT {
-            let msg = format!("Can't add more refs: {} refs are written already", TonCell::MAX_REFS_COUNT);
-            return Err(TonCoreError::data("CallBuilder", msg));
+            bail_ton_core_data!("Can't add more refs: {} refs are written already", TonCell::MAX_REFS_COUNT);
         }
         self.refs.push(cell);
         Ok(())
@@ -120,8 +122,7 @@ impl CellBuilder {
             if data_ref.tcn_is_zero() {
                 return Ok(());
             }
-            let err_msg = format!("Can't write number {data_ref} in 0 bits");
-            return Err(TonCoreError::data("CellBuilder", err_msg));
+            bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
 
         if let Some(unsigned) = data_ref.tcn_to_unsigned_primitive() {
@@ -132,8 +133,7 @@ impl CellBuilder {
 
         let min_bits_len = data_ref.tcn_min_bits_len();
         if min_bits_len > bits_len {
-            let err_msg = format!("Can't write number {data_ref} ({min_bits_len} bits) in {bits_len} bits");
-            return Err(TonCoreError::data("CellBuilder", err_msg));
+            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", data_ref, min_bits_len, bits_len);
         }
 
         let data_bytes = data_ref.tcn_to_bytes();
@@ -157,8 +157,7 @@ impl CellBuilder {
             self.data_bits_len = new_bits_len;
             return Ok(());
         }
-        let msg = format!("Can't write {bits_len} bits: only {} free bits available", self.data_bits_left());
-        Err(TonCoreError::data("CellBuilder", msg))
+        bail_ton_core_data!("Can't write {bits_len} bits: only {} free bits available", self.data_bits_left())
     }
 }
 

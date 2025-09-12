@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::types::tlb_core::VarLenBytes;
-use ton_lib_core::TLB;
+use ton_lib_core::{bail_ton_core_data, TLB};
 
 /// https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L116
 #[derive(Clone, Debug, PartialEq, Eq, TLB)]
@@ -36,26 +36,23 @@ impl Coins {
     pub fn from_signed<T: Into<i128>>(amount: T) -> Result<Self, TonCoreError> {
         let amount = amount.into();
         if amount < 0 {
-            return Err(TonCoreError::UnexpectedValue {
-                expected: "positive int".to_string(),
-                actual: format!("{amount}"),
-            });
+            bail_ton_core_data!("Amount must be positive, got {amount}");
         }
         Ok(Self::new(amount as u128))
     }
 
     pub fn to_u32(&self) -> Result<u32, TonCoreError> {
-        self.0.to_u32().ok_or(TonCoreError::UnexpectedValue {
-            expected: "u32".to_string(),
-            actual: format!("{}", self.0.data),
-        })
+        match self.0.to_u32() {
+            Some(v) => Ok(v),
+            None => bail_ton_core_data!("Can't convert {} to u32", self.0.data),
+        }
     }
 
     pub fn to_u64(&self) -> Result<u64, TonCoreError> {
-        self.0.to_u64().ok_or(TonCoreError::UnexpectedValue {
-            expected: "u64".to_string(),
-            actual: format!("{}", self.0.data),
-        })
+        match self.0.to_u64() {
+            Some(v) => Ok(v),
+            None => bail_ton_core_data!("Can't convert {} to u64", self.0.data),
+        }
     }
 
     pub fn to_u128(&self) -> u128 { self.0.data }

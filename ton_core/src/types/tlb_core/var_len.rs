@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::TonCellNum;
@@ -47,10 +48,7 @@ impl<T: TonCellNum, const LEN_BITS_LEN: usize, const LEN_IN_BYTES: bool> TLB for
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         if LEN_IN_BYTES && self.bits_len % 8 != 0 {
-            return Err(TonCoreError::TLBWrongData(format!(
-                "VarLen: len in bits must be multiple of 8, but got {}",
-                self.bits_len
-            )));
+            bail_ton_core_data!("VarLen: len in bits must be multiple of 8, but got {}", self.bits_len);
         }
         let len = if LEN_IN_BYTES { self.bits_len / 8 } else { self.bits_len };
         builder.write_num(&len, LEN_BITS_LEN)?;
@@ -70,10 +68,7 @@ impl<const LEN_BITS_LEN: usize, const LEN_IN_BYTES: bool> TLB for VarLen<Vec<u8>
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         if LEN_IN_BYTES && self.bits_len % 8 != 0 {
-            return Err(TonCoreError::TLBWrongData(format!(
-                "VarLen: len in bytes must be multiple of 8, but got {}",
-                self.bits_len
-            )));
+            bail_ton_core_data!("VarLen: len in bytes must be multiple of 8, but got {}", self.bits_len);
         }
         let len = if LEN_IN_BYTES { self.bits_len / 8 } else { self.bits_len };
         builder.write_num(&len, LEN_BITS_LEN)?;

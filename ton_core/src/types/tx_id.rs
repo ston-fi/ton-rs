@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::TonHash;
 use crate::errors::TonCoreError;
 use std::str::FromStr;
@@ -20,15 +21,12 @@ impl FromStr for TxLTHash {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (lt_str, hash_str) = match s.split_once(":") {
             Some(x) => x,
-            None => {
-                let err_msg = format!("Expecting 'lt:hash' format, got '{s}'");
-                return Err(TonCoreError::data("TxLtHash", err_msg));
-            }
+            None => bail_ton_core_data!("Expecting 'lt:hash' format, got '{s}'"),
         };
-        let lt = lt_str.parse::<i64>().map_err(|e| {
-            let err_msg = format!("Fail to extract lt from string '{s}': {e}");
-            TonCoreError::data("TxLtHash", err_msg)
-        })?;
+        let lt = match lt_str.parse::<i64>() {
+            Ok(x) => x,
+            Err(err) => bail_ton_core_data!("Failed to parse lt from '{lt_str}': {err}"),
+        };
         let hash = TonHash::from_str(hash_str)?;
         Ok(TxLTHash::new(lt, hash))
     }

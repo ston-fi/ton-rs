@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::ton_cell::{TonCell, TonCellRef};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
@@ -89,12 +90,11 @@ impl<'a> CellParser<'a> {
         end_ref: usize,
     ) -> Result<TonCell, TonCoreError> {
         if self.data_reader.position_in_bits()? != 0 && self.next_ref_pos != 0 {
-            let msg = format!(
+            bail_ton_core_data!(
                 "CellParser must be at the beginning of the cell to read a slice: bit_pos {}, next_ref_pos {}",
                 self.data_reader.position_in_bits()? as usize,
                 self.next_ref_pos
             );
-            return Err(TonCoreError::data("CellParser", msg));
         }
         self.read_bits(start_bit)?; // skip
         let slice_data_bits_len = end_bit - start_bit;
@@ -111,9 +111,11 @@ impl<'a> CellParser<'a> {
 
     pub fn read_next_ref(&mut self) -> Result<&TonCellRef, TonCoreError> {
         if self.next_ref_pos == self.cell.refs.len() {
-            let msg =
-                format!("No more refs in cell: next_ref_pos {}, refs_len {}", self.next_ref_pos, self.cell.refs.len());
-            return Err(TonCoreError::data("CellParser", msg));
+            bail_ton_core_data!(
+                "No more refs in cell: next_ref_pos {}, refs_len {}",
+                self.next_ref_pos,
+                self.cell.refs.len()
+            );
         }
         let cell_ref = &self.cell.refs[self.next_ref_pos];
         self.next_ref_pos += 1;
@@ -129,8 +131,7 @@ impl<'a> CellParser<'a> {
         let new_pos = self.data_reader.position_in_bits()? as i32 + offset;
         let data_bits_len = self.cell.data_bits_len;
         if new_pos < 0 || new_pos as usize > (data_bits_len - 1) {
-            let msg = format!("Bad seek position in cell: new_pos {new_pos}, data_bits_len {data_bits_len}");
-            return Err(TonCoreError::data("CellParser", msg));
+            bail_ton_core_data!("Bad seek position in cell: new_pos {new_pos}, data_bits_len {data_bits_len}");
         }
         self.data_reader.seek_bits(SeekFrom::Current(offset as i64))?;
         Ok(())
@@ -142,8 +143,7 @@ impl<'a> CellParser<'a> {
         if bits_left == 0 && refs_left == 0 {
             return Ok(());
         }
-        let msg = format!("Cell is not empty: {bits_left} bits left, {refs_left} refs left");
-        Err(TonCoreError::data("CellParser", msg))
+        bail_ton_core_data!("Cell is not empty: {bits_left} bits left, {refs_left} refs left");
     }
 
     // returns remaining bits
@@ -153,8 +153,7 @@ impl<'a> CellParser<'a> {
         if bit_len <= bits_left {
             return Ok(bits_left);
         }
-        let msg = format!("Not enough bits in cell: required {bit_len}, left {bits_left}");
-        Err(TonCoreError::data("CallParser", msg))
+        bail_ton_core_data!("Not enough bits in cell: required {bit_len}, left {bits_left}");
     }
 }
 

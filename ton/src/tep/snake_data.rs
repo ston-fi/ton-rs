@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::cmp::min;
 use std::str::FromStr;
-
+use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
@@ -61,7 +61,7 @@ impl SnakeData {
     fn read_chunk(parser: &mut CellParser, result: &mut Self) -> Result<(), TonCoreError> {
         let chunk_bits_len = parser.data_bits_remaining()?;
         if chunk_bits_len % 8 != 0 {
-            return Err(TonCoreError::TLBWrongData(format!("Expecting data_chunk_len % 8 == 0, got {chunk_bits_len}")));
+            bail_ton_core_data!("Expecting data_chunk_len % 8 == 0, got {chunk_bits_len}");
         }
         result.data.extend(parser.read_bits(chunk_bits_len)?);
         result.chunks_len.push(chunk_bits_len / 8);

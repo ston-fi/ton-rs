@@ -4,14 +4,14 @@ mod tlb_num;
 mod tlb_opt;
 mod tlb_ptr;
 
+use crate::bail_ton_core_data;
 use crate::boc::BoC;
 use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::CellType;
 use crate::cell::{TonCell, TonCellRef, TonHash};
 use crate::errors::TonCoreError;
-use crate::errors::TonCoreError::TLBWrongData;
-use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 
 pub trait TLB: Sized {
@@ -47,19 +47,18 @@ pub trait TLB: Sized {
         match BoC::from_bytes(boc).and_then(|x| x.single_root()).and_then(|x| Self::from_cell(&x)) {
             Ok(cell) => Ok(cell),
             Err(err) => {
-                let msg = format!(
+                bail_ton_core_data!(
                     "Fail to read {} from bytes: {}, err: {err}",
                     std::any::type_name::<Self>(),
                     hex::encode(boc)
                 );
-                Err(TLBWrongData(msg))
             }
         }
     }
 
     fn from_boc_hex(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&hex::decode(boc)?) }
 
-    fn from_boc_b64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&BASE64_STANDARD.decode(boc)?) }
+    fn from_boc_b64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&STANDARD.decode(boc)?) }
 
     /// Writing
     fn to_cell(&self) -> Result<TonCell, TonCoreError> {
@@ -87,7 +86,7 @@ pub trait TLB: Sized {
     }
 
     fn to_boc_base64_extra(&self, add_crc32: bool) -> Result<String, TonCoreError> {
-        Ok(BASE64_STANDARD.encode(self.to_boc_extra(add_crc32)?))
+        Ok(STANDARD.encode(self.to_boc_extra(add_crc32)?))
     }
 
     /// Helpers - mostly for internal use

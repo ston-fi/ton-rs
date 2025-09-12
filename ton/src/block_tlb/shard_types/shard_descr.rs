@@ -2,7 +2,7 @@ use crate::block_tlb::CurrencyCollection;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::TLB;
+use ton_lib_core::{bail_ton_core_data, TLB};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ShardDescrTag {
@@ -42,7 +42,7 @@ impl TLB for ShardDescr {
         let prefix = match parser.read_num::<u8>(4)? {
             0xb => ShardDescrTag::Old,
             0xa => ShardDescrTag::New,
-            x => return Err(TonCoreError::TLBWrongData(format!("Invalid ShardDescr prefix: {x}"))),
+            x => bail_ton_core_data!("Invalid ShardDescr prefix: {x}"),
         };
         let seqno = TLB::read(parser)?;
         let reg_mc_seqno = TLB::read(parser)?;

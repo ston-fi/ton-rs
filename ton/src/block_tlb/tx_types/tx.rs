@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::TLB;
+use ton_lib_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L291
 #[derive(Default, Clone, Debug, PartialEq, TLB)]
@@ -45,7 +45,7 @@ impl TLB for TxMsgs {
         for msg_index in 0..out_msgs_map.len() as u32 {
             let msg = match out_msgs_map.remove(&msg_index) {
                 Some(msg) => msg,
-                None => return Err(TonCoreError::TLBWrongData(format!("Missing out message with index {msg_index}"))),
+                None => bail_ton_core_data!("Missing out message with index {msg_index}"),
             };
             out_msgs.push(msg);
         }

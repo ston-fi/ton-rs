@@ -4,6 +4,7 @@
 ///
 mod raw_boc;
 
+use crate::bail_ton_core_data;
 use crate::boc::raw_boc::RawBoC;
 use crate::cell::{TonCell, TonCellRef, TonCellStorage};
 use crate::errors::TonCoreError;
@@ -33,7 +34,7 @@ impl BoC {
     pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self, TonCoreError> {
         let bytes_ref = bytes.as_ref();
         if bytes_ref.is_empty() {
-            return Err(TonCoreError::data("BOC", "Can't read BOC from empty slice"));
+            bail_ton_core_data!("Can't read BOC from empty slice");
         }
         Ok(Self {
             roots: RawBoC::from_bytes(bytes_ref)?.into_ton_cells()?,
@@ -58,8 +59,7 @@ impl BoC {
 
     pub fn single_root(mut self) -> Result<TonCellRef, TonCoreError> {
         if self.roots.len() != 1 {
-            let msg = format!("Expected 1 root cell, got {}", self.roots.len());
-            return Err(TonCoreError::data("BOC", msg));
+            bail_ton_core_data!("Expected 1 root cell, got {}", self.roots.len());
         }
         Ok(self.roots.pop().unwrap())
     }
