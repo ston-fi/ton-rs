@@ -4,7 +4,7 @@ use ton_lib::tlb_adapters::DictKeyAdapterInto;
 use ton_lib::tlb_adapters::DictValAdapterNum;
 use ton_lib::tlb_adapters::TLBHashMap;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::TLBDerive;
+use ton_lib_core::TLB;
 
 extern crate num_bigint;
 extern crate ton_lib;
@@ -13,9 +13,9 @@ extern crate tonlib_core;
 // const ITEMS_COUNT: usize = 40000000;
 const ITEMS_COUNT: usize = 400000;
 
-#[derive(TLBDerive)]
+#[derive(TLB)]
 struct MyDict {
-    #[tlb_derive(adapter = "TLBHashMap::<DictKeyAdapterInto, DictValAdapterNum<256>, _, _>::new(256)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto, DictValAdapterNum<256>, _, _>::new(256)")]
     pub data: HashMap<usize, BigUint>,
 }
 

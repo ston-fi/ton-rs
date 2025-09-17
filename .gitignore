@@ -1,6 +1,6 @@
 /target
 /benches/target
-ton_lib_macros/target
+ton_macros/target
 Cargo.lock
 .idea
 .vscode

@@ -2,7 +2,7 @@ use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::{hint::black_box, ops::Deref, sync::LazyLock};
-use ton_lib_core::boc::BOC;
+use ton_lib_core::boc::BoC;
 use tonlib_core::cell::BagOfCells;
 
 const ITERATIONS_COUNT: usize = 100;
@@ -12,7 +12,7 @@ static BOC_BYTES: LazyLock<Vec<u8>> = LazyLock::new(|| {
     BASE64_STANDARD.decode(boc_base64).unwrap()
 });
 
-static BOC_TOBLIB: LazyLock<BOC> = LazyLock::new(|| BOC::from_bytes(BOC_BYTES.deref()).unwrap());
+static BOC_TOBLIB: LazyLock<BoC> = LazyLock::new(|| BoC::from_bytes(BOC_BYTES.deref()).unwrap());
 
 static BOC_TOBLIB_CORE: LazyLock<BagOfCells> = LazyLock::new(|| BagOfCells::parse(&BOC_BYTES).unwrap());
 
@@ -25,7 +25,7 @@ fn boc_from_bytes_tonlib_core() {
 
 fn boc_from_bytes_tonlib() {
     for _ in 0..ITERATIONS_COUNT {
-        let boc = BOC::from_bytes(BOC_BYTES.deref()).unwrap();
+        let boc = BoC::from_bytes(BOC_BYTES.deref()).unwrap();
         black_box(boc);
     }
 }

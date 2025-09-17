@@ -25,6 +25,7 @@ jobs:
       - run: rustup toolchain install nightly
       - run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
       - run: cargo +nightly fmt --check
+      - run: cargo clippy
       - run: cargo test --lib --all --verbose --exclude examples
   build_all_features:
     runs-on: ubuntu-latest
@@ -39,5 +40,6 @@ jobs:
         fetch-depth: 0
     - uses: Swatinem/rust-cache@v2
     - run: cargo build --all --all-features --verbose
+    - run: cargo clippy --fix --all-features
     - run: cargo test --lib --all --all-features 
 

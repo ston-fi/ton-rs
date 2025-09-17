@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "ton_lib",
-    "ton_lib_core",
-    "ton_lib_macros",
+    "ton",
+    "ton_core",
+    "ton_macros",
     "benches",
     "examples",
 ]
@@ -21,15 +21,15 @@ publish = false
 
 [workspace.dependencies]
 # Internal (stonfi-managed)
-ton_lib_macros = {path = "./ton_lib_macros", version = "0"}
-ton_lib_core = {path = "./ton_lib_core", version = "0"}
-ton_lib = {path = "./ton_lib", version = "0"}
+ton_lib_macros = {path = "ton_macros", version = "0"}
+ton_lib_core = {path = "ton_core", version = "0"}
+ton_lib = {path = "ton", version = "0"}
 tonlib-sys = { version = "2025.7", features = ["with_debug_info"] }
 
 
 # External
 
-# ton_lib_core
+# ton_core
 bitstream-io = "4.3"
 thiserror = "2.0"
 log = "0.4"
@@ -42,7 +42,7 @@ async-trait = "0.1"
 sha2 = "0.10"
 once_cell = { version = "1.21", features = ["parking_lot"] }
 
-# ton_lib
+# ton
 moka = { version = "0.12", features = ["async-lock", "future"]}
 async-recursion = { version = "1" }
 parking_lot = "0.12"

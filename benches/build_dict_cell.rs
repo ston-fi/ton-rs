@@ -21,7 +21,7 @@ static DICT_DATA: LazyLock<HashMap<usize, usize>> = LazyLock::new(|| {
 fn build_dict_tonlib() {
     for _ in 0..ITERATIONS_COUNT {
         let mut builder = TonCell::builder();
-        let data_clone = DICT_DATA.clone(); // must do it to compare with ton_lib_core
+        let data_clone = DICT_DATA.clone(); // must do it to compare with ton_core
                                             // MyDict{data:data_clone}
         TLBHashMap::<DictKeyAdapterInto, DictValAdapterNum<2>, _, _>::new(256)
             .write(&mut builder, &data_clone)

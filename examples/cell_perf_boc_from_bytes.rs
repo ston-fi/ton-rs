@@ -1,6 +1,6 @@
 use std::ops::Deref;
 use std::sync::LazyLock;
-use ton_lib_core::boc::BOC;
+use ton_lib_core::boc::BoC;
 extern crate ton_lib_core;
 
 static BOC_BYTES: LazyLock<Vec<u8>> = LazyLock::new(|| {
@@ -11,7 +11,7 @@ static BOC_BYTES: LazyLock<Vec<u8>> = LazyLock::new(|| {
 fn main() -> anyhow::Result<()> {
     for _ in 0..10000000 {
         #[allow(unused)]
-        let boc = BOC::from_bytes(BOC_BYTES.deref())?;
+        let boc = BoC::from_bytes(BOC_BYTES.deref())?;
     }
     Ok(())
 }
