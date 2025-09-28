@@ -1,10 +1,10 @@
 use crate::clients::tl_client::tl::ser_de::serde_block_id_ext;
-use crate::clients::tl_client::tl::ser_de::serde_ton_hash_vec_base64;
-use crate::clients::tl_client::tl::ser_de::serde_tx_id_lt_hash;
 use crate::clients::tl_client::tl::types::{
     TLAccountAddress, TLAccountTxId, TLBlockId, TLOptions, TLSmcLibraryQueryExt,
 };
 use crate::clients::tl_client::tl::Base64Standard;
+use crate::ton_lib_core::cell::serde_ton_hash_vec_base64;
+use crate::ton_lib_core::types::serde_tx_lt_hash_json;
 
 use crate::block_tlb::BlockIdExt;
 use crate::errors::TonError;
@@ -51,7 +51,7 @@ pub enum TLRequest {
     RawGetAccountStateByTx {
         account_address: TLAccountAddress,
         #[serde(rename = "transaction_id")]
-        #[serde(with = "serde_tx_id_lt_hash")]
+        #[serde(with = "serde_tx_lt_hash_json")]
         tx_id: TxLTHash,
     },
 
@@ -60,7 +60,7 @@ pub enum TLRequest {
     RawGetTxs {
         account_address: TLAccountAddress,
         #[serde(rename = "from_transaction_id")]
-        #[serde(with = "serde_tx_id_lt_hash")]
+        #[serde(with = "serde_tx_lt_hash_json")]
         from_tx_id: TxLTHash,
     },
 
@@ -69,7 +69,7 @@ pub enum TLRequest {
     RawGetTxsV2 {
         account_address: TLAccountAddress,
         #[serde(rename = "from_transaction_id")]
-        #[serde(with = "serde_tx_id_lt_hash")]
+        #[serde(with = "serde_tx_lt_hash_json")]
         from_tx_id: TxLTHash,
         count: u32,
         try_decode_messages: bool,
@@ -112,7 +112,7 @@ pub enum TLRequest {
     SmcLoadByTransaction {
         account_address: TLAccountAddress,
         #[serde(rename = "transaction_id")]
-        #[serde(with = "serde_tx_id_lt_hash")]
+        #[serde(with = "serde_tx_lt_hash_json")]
         tx_id: TxLTHash,
     },
 

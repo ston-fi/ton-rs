@@ -228,6 +228,39 @@ fn raise_address_error<T: AsRef<str>>(address: &str, msg: T) -> Result<(), TonCo
     bail_ton_core_data!("Can't parse {address}, err: {}", msg.as_ref())
 }
 
+#[cfg(feature = "serde")]
+mod serde {
+    pub mod serde_ton_address_hex {
+        use crate::types::TonAddress;
+        use serde::de::Error;
+        use serde::{Deserialize, Deserializer, Serializer};
+        use std::str::FromStr;
+
+        pub fn serialize<S: Serializer>(hash: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
+            serializer.serialize_str(hash.to_hex().as_str())
+        }
+        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
+            TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
+        }
+    }
+
+    pub mod serde_ton_address_base64_url {
+        use crate::types::TonAddress;
+        use serde::de::Error;
+        use serde::{Deserialize, Deserializer, Serializer};
+        use std::str::FromStr;
+
+        pub fn serialize<S: Serializer>(hash: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
+            serializer.serialize_str(hash.to_string().as_str())
+        }
+        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
+            TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
+        }
+    }
+}
+#[cfg(feature = "serde")]
+pub use serde::*;
+
 #[cfg(test)]
 mod tests {
     use super::*;
