@@ -1,5 +1,5 @@
 [package]
-name = "benches"
+name = "benchmarks"
 rust-version.workspace = true
 edition.workspace = true
 publish = false
