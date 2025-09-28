@@ -8,7 +8,7 @@ use crate::clients::tl_client::config::{LiteNodeFilter, TLClientConfig};
 use crate::clients::tl_client::tl::client::TLClientTrait;
 use crate::clients::tl_client::tl::request::TLRequest;
 use crate::clients::tl_client::tl::response::TLResponse;
-use crate::clients::tl_client::tl::tonlibjson_wrapper::TonlibjsonWrapper;
+use crate::clients::tl_client::tl::tonlibjson_wrapper::TonLibJsonWrapper;
 use crate::clients::tl_client::tl::types::{TLBlockId, TLOptions, TLOptionsInfo};
 use crate::clients::tl_client::RetryStrategy;
 use crate::clients::tl_client::{
@@ -30,7 +30,7 @@ pub struct TLConnection {
 }
 
 struct Inner {
-    tonlibjson_wrapper: TonlibjsonWrapper,
+    tonlibjson_wrapper: TonLibJsonWrapper,
     active_requests: Mutex<HashMap<u64, TLRequestCtx>>,
     semaphore: Arc<Semaphore>,
     next_request_id: AtomicU64,
@@ -158,7 +158,7 @@ async fn new_connection(config: &TLClientConfig, semaphore: Arc<Semaphore>) -> R
     let tag = format!("ton-conn-{conn_id}");
 
     let inner = Arc::new(Inner {
-        tonlibjson_wrapper: TonlibjsonWrapper::new(tag.clone())?,
+        tonlibjson_wrapper: TonLibJsonWrapper::new(tag.clone())?,
         active_requests: Mutex::new(HashMap::new()),
         semaphore,
         next_request_id: AtomicU64::new(0),
