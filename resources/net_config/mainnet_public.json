@@ -444,9 +444,9 @@
     "init_block": {
       "workchain": -1,
       "shard": -9223372036854775808,
-      "seqno": 43792209,
-      "root_hash": "AvaCaskwbUZCAOkULgK9zqtArFavpqg/KMTu9qO4M1U=",
-      "file_hash": "mlMbjSH0ahszX7yNIQOOawmCJxzofpaTeqlsrQspqUk="
+      "seqno": 46894135,
+      "root_hash": "MEjmmhLPlG68mbTPnKYcP/Sz/MiMQBV2OsASBOzBv58=",
+      "file_hash": "u9rAtFQ+kUFEnOs3w8Y7punMTiyQTXf1bRfkSs8dG+0="
     },
     "hardforks": [
       {
