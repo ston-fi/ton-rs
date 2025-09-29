@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Other
+
+- add extra currency support
+
 ## [0.0.8](https://github.com/Sild/ton_lib_rs/compare/ton_lib_core-v0.0.7...ton_lib_core-v0.0.8) - 2025-08-20
 
 ### Fixed
