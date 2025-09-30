@@ -1,8 +1,6 @@
 use crate::block_tlb::BlockIdExt;
 use ton_lib_core::cell::TonHash;
 
-mod liteapi_serde;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BlockId {
     pub wc: i32,
