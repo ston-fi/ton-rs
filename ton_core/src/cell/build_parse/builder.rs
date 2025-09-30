@@ -8,18 +8,12 @@ use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
 use std::cmp::min;
 use std::ops::Deref;
 
-pub trait TonCellBitWriter {
-    // fn write_bit(&mut self, data: bool) -> Result<(), TonCoreError> ;
-}
-
 pub struct CellBuilder {
     cell_type: CellType,
     data_writer: BitWriter<Vec<u8>, BigEndian>,
     data_bits_len: usize,
     refs: TonCellStorage,
 }
-
-impl TonCellBitWriter for CellBuilder {}
 
 impl CellBuilder {
     pub fn new(cell_type: CellType) -> Self {
@@ -131,6 +125,8 @@ impl CellBuilder {
         D: Deref<Target = N>,
     {
         let data_ref = data.deref();
+        // handling it like ton-core
+        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
         if bits_len == 0 {
             if data_ref.tcn_is_zero() {
                 return Ok(());
