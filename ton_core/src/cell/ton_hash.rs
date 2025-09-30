@@ -71,6 +71,24 @@ impl TonHash {
             TonHashData::Vec(data) => data,
         }
     }
+
+    pub fn rewrite_first_bits<T: Into<u128>>(&mut self, value: T, bits_len: usize) -> Result<(), TonCoreError> {
+        if bits_len == 0 {
+            return Ok(());
+        }
+        if bits_len > 128 {
+            return Err(TonCoreError::data("TonHash", "bits_len must be in range 0..=128"));
+        }
+
+        let value_u128 = value.into();
+        let shifted = value_u128 << (128 - bits_len);
+        let value_bytes = shifted.to_be_bytes();
+
+        if !BitsUtils::rewrite(&value_bytes, 0, self.as_slice_mut(), 0, bits_len) {
+            bail_ton_core_data!("Failed to rewrite first {} bits of TonHash", bits_len);
+        }
+        Ok(())
+    }
 }
 
 impl Default for TonHash {
@@ -170,6 +188,7 @@ mod serde {
         }
     }
 }
+use crate::bits_utils::BitsUtils;
 #[cfg(feature = "serde")]
 pub use serde::*;
 
@@ -253,6 +272,44 @@ mod tests {
         assert_eq!(hash1, hash2);
         let storage = HashSet::from([hash1, hash2]);
         assert_eq!(storage.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_ton_hash_rewrite_first_bits() -> anyhow::Result<()> {
+        let hash_one = TonHash::from_slice_sized(&[255u8; 32]);
+        let mut hash = hash_one.clone();
+        hash.rewrite_first_bits(0u8, 0)?;
+        assert_eq!(hash, hash_one);
+
+        hash.rewrite_first_bits(0u8, 1)?;
+        assert_eq!(hash.as_slice_sized()[0], 0b0111_1111);
+
+        hash.rewrite_first_bits(1u8, 1)?;
+        assert_eq!(hash.as_slice_sized()[0], 0b1111_1111);
+
+        hash.rewrite_first_bits(0u8, 2)?;
+        assert_eq!(hash.as_slice_sized()[0], 0b0011_1111);
+
+        hash.rewrite_first_bits(5u8, 3)?;
+        assert_eq!(hash.as_slice_sized()[0], 0b1011_1111);
+
+        hash.rewrite_first_bits(0u8, 8)?;
+        assert_eq!(hash.as_slice_sized()[0], 0b0000_0000);
+
+        let mut hash = TonHash::ZERO;
+        hash.rewrite_first_bits(u16::MAX, 9)?;
+        assert_eq!(hash.as_slice_sized()[0], 0b1111_1111);
+        assert_eq!(hash.as_slice_sized()[1], 0b1000_0000);
+
+        let mut hash = TonHash::ZERO;
+        hash.rewrite_first_bits(u128::MAX, 128)?;
+        for i in 0..16 {
+            assert_eq!(hash.as_slice_sized()[i], 0xFF);
+        }
+
+        let mut hash = TonHash::ZERO;
+        assert_err!(hash.rewrite_first_bits(1u8, 129));
         Ok(())
     }
 
