@@ -4,9 +4,13 @@ use crate::cell::meta::CellType;
 use crate::cell::ton_cell::{TonCell, TonCellRef, TonCellStorage};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
 use std::cmp::min;
 use std::ops::Deref;
+
+pub trait TonCellBitWriter {
+    // fn write_bit(&mut self, data: bool) -> Result<(), TonCoreError> ;
+}
 
 pub struct CellBuilder {
     cell_type: CellType,
@@ -14,6 +18,8 @@ pub struct CellBuilder {
     data_bits_len: usize,
     refs: TonCellStorage,
 }
+
+impl TonCellBitWriter for CellBuilder {}
 
 impl CellBuilder {
     pub fn new(cell_type: CellType) -> Self {
@@ -39,16 +45,12 @@ impl CellBuilder {
         cell.meta.validate(&cell)?;
         Ok(cell)
     }
-
-    pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> { Ok(self.build()?.into_ref()) }
-
     pub fn write_bit(&mut self, data: bool) -> Result<(), TonCoreError> {
         self.ensure_capacity(1)?;
         self.data_writer.write_bit(data)?;
         Ok(())
     }
 
-    /// expecting data.len() * 8 >= (bits_offset + bits_len)
     pub fn write_bits_with_offset<T: AsRef<[u8]>>(
         &mut self,
         data: T,
@@ -92,6 +94,11 @@ impl CellBuilder {
         }
         Ok(())
     }
+    pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> {
+        Ok(self.build()?.into_ref())
+    }
+
+    /// expecting data.len() * 8 >= (bits_offset + bits_len)
 
     pub fn write_bits<T: AsRef<[u8]>>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
         self.write_bits_with_offset(data, bits_len, 0)
@@ -109,6 +116,14 @@ impl CellBuilder {
         self.refs.push(cell);
         Ok(())
     }
+    pub fn write_unsigned_number<N>(&mut self, value: N, bits_len: usize) -> Result<(), TonCoreError>
+    where
+        N: Integer,
+    {
+        self.ensure_capacity(bits_len)?;
+        self.data_writer.write_var(bits_len as u32, value)?;
+        Ok(())
+    }
 
     pub fn write_num<N, D>(&mut self, data: D, bits_len: usize) -> Result<(), TonCoreError>
     where
@@ -116,42 +131,20 @@ impl CellBuilder {
         D: Deref<Target = N>,
     {
         let data_ref = data.deref();
-        // handling it like ton-core
-        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
         if bits_len == 0 {
             if data_ref.tcn_is_zero() {
                 return Ok(());
             }
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
-
-        if let Some(unsigned) = data_ref.tcn_to_unsigned_primitive() {
-            self.ensure_capacity(bits_len)?;
-            self.data_writer.write_var(bits_len as u32, unsigned)?;
-            return Ok(());
-        }
-
-        let min_bits_len = data_ref.tcn_min_bits_len();
-        if min_bits_len > bits_len {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", data_ref, min_bits_len, bits_len);
-        }
-
-        let data_bytes = data_ref.tcn_to_bytes();
-        let padding_val: u8 = match (N::SIGNED, data_bytes[0] >> 7 != 0) {
-            (true, true) => 255,
-            _ => 0,
-        };
-        let padding_bits_len = bits_len.saturating_sub(min_bits_len);
-        let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
-        self.write_bits(padding_to_write, padding_bits_len)?;
-
-        let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
-        self.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+        data_ref.write_to(self, bits_len)
     }
 
-    pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_BITS_LEN - self.data_bits_len }
+    pub fn data_bits_left(&self) -> usize {
+        TonCell::MAX_DATA_BITS_LEN - self.data_bits_len
+    }
 
-    fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
+    pub fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_bits_len + bits_len;
         if new_bits_len <= TonCell::MAX_DATA_BITS_LEN {
             self.data_bits_len = new_bits_len;
