@@ -50,6 +50,7 @@ impl<'a> CellParser<'a> {
             bail_ton_core_data!("Can't write {bits_len} bits into {}-bytes buffer", dst.len());
         }
         self.ensure_enough_bits(bits_len)?;
+        let mut dst = vec![0; bits_len.div_ceil(8)];
         let full_bytes = bits_len / 8;
         let remaining_bits = bits_len % 8;
 
@@ -186,6 +187,8 @@ mod tests {
         assert_ok!(parser.seek_bits(1));
         assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit);
         assert_err!(parser.seek_bits(1));
+        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell_slice.data_bits_len - 1);
+
         assert_err!(parser.seek_bits(20));
         Ok(())
     }
@@ -205,8 +208,8 @@ mod tests {
 
     #[test]
     fn test_parser_read_bit() -> anyhow::Result<()> {
-        let cell = make_test_cell(&[0b10101010, 0b01010101], 16)?;
-        let mut parser = CellParser::new(&cell);
+        let cell_slice = make_test_cell(&[0b10101010, 0b01010101], 16)?;
+        let mut parser = CellParser::new(&cell_slice);
         for i in 0..8 {
             assert_eq!(assert_ok!(parser.read_bit()), i % 2 == 0);
         }
@@ -312,14 +315,14 @@ mod tests {
     }
 
     #[test]
-    fn test_parser_read_slice() -> anyhow::Result<()> {
+    fn test_builder_write_cell_slice() -> anyhow::Result<()> {
         let mut builder = TonCell::builder();
         builder.write_bits([255, 0, 255, 0], 24)?;
 
         for i in 0..3 {
             let mut ref_builder = TonCell::builder();
             ref_builder.write_bits([i], 8)?;
-            builder.write_ref(ref_builder.build()?)?;
+            builder.write_ref(ref_builder.build()?.into_ref())?;
         }
 
         let orig_cell = builder.build()?;
