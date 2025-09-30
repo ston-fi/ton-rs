@@ -5,8 +5,8 @@ use serde_json::Value;
 use std::fs::{exists, File};
 use std::io::Read;
 
-pub const TON_NET_CONF_MAINNET: &str = include_str!("../../resources/net_config/mainnet_public.json");
-pub const TON_NET_CONF_TESTNET: &str = include_str!("../../resources/net_config/testnet_public.json");
+pub const TON_NET_CONF_MAINNET_PUBLIC: &str = include_str!("../../resources/net_config/mainnet_public.json");
+pub const TON_NET_CONF_TESTNET_PUBLIC: &str = include_str!("../../resources/net_config/testnet_public.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TonNetConfig {
@@ -50,8 +50,8 @@ impl TonNetConfig {
             Err(err) => {
                 log::error!("Failed to load net config_types: {err}. Using default (mainnet: {mainnet})");
                 match mainnet {
-                    true => TON_NET_CONF_MAINNET.to_string(),
-                    false => TON_NET_CONF_TESTNET.to_string(),
+                    true => TON_NET_CONF_MAINNET_PUBLIC.to_string(),
+                    false => TON_NET_CONF_TESTNET_PUBLIC.to_string(),
                 }
             }
         }
@@ -88,8 +88,8 @@ fn get_default_net_conf_throw(mainnet: bool) -> Result<String, TonError> {
         false => "TON_NET_CONF_TESTNET_PATH",
     };
     let mut net_conf = match mainnet {
-        true => TON_NET_CONF_MAINNET.to_string(),
-        false => TON_NET_CONF_TESTNET.to_string(),
+        true => TON_NET_CONF_MAINNET_PUBLIC.to_string(),
+        false => TON_NET_CONF_TESTNET_PUBLIC.to_string(),
     };
 
     if let Ok(path) = std::env::var(env_var_name) {

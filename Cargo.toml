@@ -4,7 +4,7 @@ members = [
     "ton",
     "ton_core",
     "ton_macros",
-    "benches",
+    "benchmarks",
     "examples",
 ]
 
@@ -30,17 +30,17 @@ tonlib-sys = { version = "2025.7", features = ["with_debug_info"] }
 # External
 
 # ton_core
-bitstream-io = "4.3"
+bitstream-io = "4"
 thiserror = "2.0"
 log = "0.4"
-crc = "3.3"
+crc = "3"
 hex = "0.4"
 base64 = "0.22"
 num-bigint = "0.4"
 num-traits = "0.2"
 async-trait = "0.1"
 sha2 = "0.10"
-once_cell = { version = "1.21", features = ["parking_lot"] }
+once_cell = { version = "1", features = ["parking_lot"] }
 
 # ton
 moka = { version = "0.12", features = ["async-lock", "future"]}
@@ -50,7 +50,7 @@ hmac = "0.12"
 pbkdf2 = { version = "0.12", features = ["simple"] }
 nacl = "0.5"
 ton_liteapi = "0.2"
-tokio = "1.46"
+tokio = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 auto_pool = { version = "0.3", features = ["async"] }
@@ -59,12 +59,12 @@ tokio-tower = "0.6"
 tower = { version = "0.5", features = ["util"] }
 rand = "0.9"
 strum = { version = "0.27", features = ["derive"] }
-serde-aux = "4.7"
+serde-aux = "4"
 base64-serde = "0.8"
 futures-util = "0.3"
 libc = "0.2"
 tokio-retry = "0.3"
-reqwest = "0.12.22"
+reqwest = "0.12"
 
 
 
@@ -72,6 +72,3 @@ reqwest = "0.12.22"
 debug = true
 [profile.release]
 debug = true
-
-
-

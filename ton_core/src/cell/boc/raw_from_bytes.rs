@@ -1,5 +1,5 @@
-use super::{RawBoC, RawCell, GENERIC_BOC_MAGIC};
 use crate::bail_ton_core_data;
+use crate::cell::boc::raw_types::{RawBoC, RawCell, GENERIC_BOC_MAGIC};
 use crate::cell::CellType;
 use crate::cell::LevelMask;
 use crate::errors::TonCoreError;

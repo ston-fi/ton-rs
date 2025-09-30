@@ -13,14 +13,12 @@ mod example {
     use ton_lib::clients::tl_client::tl::client::TLClientTrait;
     use ton_lib::clients::tl_client::TLClient;
     use ton_lib::clients::tl_client::TLClientConfig;
-    use ton_lib::contracts::client::contract_client::{ContractClient, ContractClientConfig};
-    use ton_lib::contracts::client::tl_provider::TLProvider;
-    use ton_lib::contracts::ton_contract::TonContract;
-    use ton_lib::contracts::ton_wallet::TonWalletContract;
+    use ton_lib::contracts::contract_client::{ContractClient, ContractClientConfig};
+    use ton_lib::contracts::tl_provider::TLProvider;
+    use ton_lib::contracts::{TonContract, TonWalletContract, TonWalletMethods};
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
-    use ton_lib::wallet::Mnemonic;
-    use ton_lib::wallet::TonWallet;
     use ton_lib::wallet::WalletVersion;
+    use ton_lib::wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;
     use ton_lib_core::traits::tlb::TLB;
     use ton_lib_core::types::tlb_core::{MsgAddress, TLBEitherRef};

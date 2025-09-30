@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-use super::{RawBoC, RawCell};
+use crate::cell::boc::raw_types::{RawBoC, RawCell};
 
 #[derive(Debug, Clone)]
 struct IndexedCell<'a> {

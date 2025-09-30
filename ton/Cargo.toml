@@ -20,13 +20,12 @@ include = [
 ]
 
 [features]
-default = []
 tonlibjson = ["dep:tonlib-sys"]
 
 
 [dependencies]
 # Internal
-ton_lib_core.workspace = true
+ton_lib_core = {workspace = true, features = ["serde"] }
 tonlib-sys = { workspace = true, optional = true }
 
 
@@ -69,8 +68,3 @@ anyhow = "1.0"
 tokio-test = "0.4"
 tokio = { version = "1.43", features = ["rt", "macros"] }
 log4rs = "1.3"
-
-
-
-
-

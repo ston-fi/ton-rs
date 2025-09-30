@@ -4,18 +4,18 @@ use crate::errors::TonError;
 use tonlib_sys::*;
 // Wrapper around ton client with support for TL data types
 
-pub(crate) struct TonlibjsonWrapper {
+pub(crate) struct TonLibJsonWrapper {
     ptr: *mut std::os::raw::c_void,
     tag: String,
 }
 
-impl TonlibjsonWrapper {
-    pub fn new(tag: String) -> Result<TonlibjsonWrapper, TonError> {
+impl TonLibJsonWrapper {
+    pub fn new(tag: String) -> Result<TonLibJsonWrapper, TonError> {
         let client_ptr = unsafe { tonlib_client_json_create() };
         if client_ptr.is_null() {
             return Err(TonError::TLClientCreationFailed);
         }
-        Ok(TonlibjsonWrapper { ptr: client_ptr, tag })
+        Ok(TonLibJsonWrapper { ptr: client_ptr, tag })
     }
 
     pub fn tag(&self) -> &str { self.tag.as_str() }
@@ -36,22 +36,22 @@ impl TonlibjsonWrapper {
     }
 }
 
-impl Drop for TonlibjsonWrapper {
+impl Drop for TonLibJsonWrapper {
     fn drop(&mut self) { unsafe { tonlib_client_json_destroy(self.ptr) } }
 }
 
-unsafe impl Send for TonlibjsonWrapper {}
-unsafe impl Sync for TonlibjsonWrapper {}
+unsafe impl Send for TonLibJsonWrapper {}
+unsafe impl Sync for TonLibJsonWrapper {}
 
 #[cfg(test)]
 mod tests {
-    use crate::clients::tl_client::tl::{request::TLRequest, tonlibjson_wrapper::TonlibjsonWrapper};
+    use crate::clients::tl_client::tl::{request::TLRequest, tonlibjson_wrapper::TonLibJsonWrapper};
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
 
     #[test]
     fn it_executes_functions() -> anyhow::Result<()> {
         sys_tonlib_set_verbosity_level(1);
-        let client = TonlibjsonWrapper::new("test".to_string())?;
+        let client = TonLibJsonWrapper::new("test".to_string())?;
         client.send(&TLRequest::GetLogVerbosityLevel {}, "test2")?;
         Ok(())
     }

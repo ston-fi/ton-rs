@@ -5,7 +5,7 @@ mod tlb_opt;
 mod tlb_ptr;
 
 use crate::bail_ton_core_data;
-use crate::boc::BoC;
+use crate::cell::BoC;
 use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::CellType;

@@ -17,6 +17,9 @@ include = [
     "resources/*",
 ]
 
+[features]
+serde = ["dep:serde", "dep:serde_json"]
+
 [dependencies]
 # Internal
 ton_lib_macros.workspace = true
@@ -33,6 +36,8 @@ num-traits.workspace = true
 async-trait.workspace = true
 sha2.workspace = true
 once_cell.workspace = true
+serde = { version = "1.0.219", features = ["derive"], optional = true }
+serde_json = { version = "1.0.145", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0"

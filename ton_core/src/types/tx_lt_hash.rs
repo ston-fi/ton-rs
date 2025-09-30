@@ -32,6 +32,43 @@ impl FromStr for TxLTHash {
     }
 }
 
+#[cfg(feature = "serde")]
+mod serde {
+    pub mod serde_tx_lt_hash_json {
+        use crate::cell::TonHash;
+        use crate::types::TxLTHash;
+        use serde::de::Error;
+        use serde::{Deserialize, Deserializer, Serialize, Serializer};
+        use std::str::FromStr;
+
+        pub fn serialize<S: Serializer>(data: &TxLTHash, serializer: S) -> Result<S::Ok, S::Error> {
+            let json_val = serde_json::json!({
+                "lt": data.lt.to_string(),
+                "hash": data.hash.to_base64(),
+            });
+            json_val.serialize(serializer)
+        }
+
+        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TxLTHash, D::Error> {
+            let json_val: serde_json::Value = Deserialize::deserialize(deserializer)?;
+            let lt = json_val
+                .get("lt")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| Error::custom("Missing or invalid 'lt' field"))?
+                .parse::<i64>()
+                .map_err(Error::custom)?;
+            let hash = json_val
+                .get("hash")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| Error::custom("Missing or invalid 'hash' field"))?;
+            let hash = TonHash::from_str(hash).map_err(Error::custom)?;
+            Ok(TxLTHash { lt, hash })
+        }
+    }
+}
+#[cfg(feature = "serde")]
+pub use serde::*;
+
 #[cfg(test)]
 mod tests {
     use super::*;

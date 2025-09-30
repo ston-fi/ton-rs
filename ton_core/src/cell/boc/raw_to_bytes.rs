@@ -2,7 +2,7 @@ use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use crc::Crc;
 
-use super::{RawBoC, RawCell, GENERIC_BOC_MAGIC};
+use crate::cell::boc::raw_types::{RawBoC, RawCell, GENERIC_BOC_MAGIC};
 
 const CRC_32_ISCSI: Crc<u32> = Crc::<u32>::new(&crc::CRC_32_ISCSI);
 

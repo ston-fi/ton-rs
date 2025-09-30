@@ -1,5 +1,9 @@
 use crate::clients::tl_client::tl::ser_de::*;
+use crate::clients::tl_client::tl::types::serde_ton_hash_base64::serde_ton_hash_vec_base64;
 use crate::clients::tl_client::tl::Base64Standard;
+use crate::ton_lib_core::cell::serde_ton_hash_base64;
+use crate::ton_lib_core::types::serde_ton_address_hex;
+use crate::ton_lib_core::types::serde_tx_lt_hash_json;
 use std::borrow::Cow;
 use std::fmt::Debug;
 
@@ -84,7 +88,7 @@ pub struct TLRawFullAccountState {
     #[serde(with = "Base64Standard")]
     pub data: Vec<u8>,
     #[serde(rename = "last_transaction_id")]
-    #[serde(with = "serde_tx_id_lt_hash")]
+    #[serde(with = "serde_tx_lt_hash_json")]
     pub last_tx_id: TxLTHash,
     #[serde(with = "serde_block_id_ext")]
     pub block_id: BlockIdExt,
@@ -121,7 +125,7 @@ pub struct TLRawTx {
     #[serde(with = "Base64Standard")]
     pub data: Vec<u8>,
     #[serde(rename = "transaction_id")]
-    #[serde(with = "serde_tx_id_lt_hash")]
+    #[serde(with = "serde_tx_lt_hash_json")]
     pub tx_id: TxLTHash,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub fee: i64,
@@ -140,7 +144,7 @@ pub struct TLRawTxs {
     #[serde(rename = "transactions")]
     pub txs: Vec<TLRawTx>,
     #[serde(rename = "previous_transaction_id")]
-    #[serde(with = "serde_tx_id_lt_hash")]
+    #[serde(with = "serde_tx_lt_hash_json")]
     pub last_tx_id: TxLTHash,
 }
 // tonlib_api.tl_api, line 58
@@ -293,7 +297,7 @@ pub struct TLFullAccountState {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub balance: i64,
     #[serde(rename = "last_transaction_id")]
-    #[serde(with = "serde_tx_id_lt_hash")]
+    #[serde(with = "serde_tx_lt_hash_json")]
     pub last_tx_id: TxLTHash,
     #[serde(with = "serde_block_id_ext")]
     pub block_id: BlockIdExt,

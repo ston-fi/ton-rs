@@ -1,6 +1,6 @@
 use std::ops::Deref;
 use std::sync::LazyLock;
-use ton_lib_core::boc::BoC;
+use ton_lib_core::cell::BoC;
 extern crate ton_lib_core;
 
 static BOC_BYTES: LazyLock<Vec<u8>> = LazyLock::new(|| {
