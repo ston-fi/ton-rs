@@ -27,7 +27,7 @@ impl TLB for TonCell {
     fn from_boc(boc: &[u8]) -> Result<Self, TonCoreError> {
         // optimization - doesn't copy Cell, just takes ownership
         // unwrap is safe - only current scope has a reference because it's just created
-        Ok(Arc::try_unwrap(BoC::from_bytes(boc)?.single_root()?.0).unwrap())
+        Ok(Arc::try_unwrap(BoC::from_bytes(boc)?.single_root()?.into_arc()).unwrap())
     }
 
     fn to_cell(&self) -> Result<TonCell, TonCoreError> { Ok(self.clone()) }

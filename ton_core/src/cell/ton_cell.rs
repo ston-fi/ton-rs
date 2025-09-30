@@ -67,7 +67,11 @@ impl TonCell {
 
 // TonCelRef
 #[derive(Clone, PartialEq, Eq)]
-pub struct TonCellRef(pub Arc<TonCell>);
+pub struct TonCellRef(Arc<TonCell>);
+impl TonCellRef {
+    pub fn into_arc(self) -> Arc<TonCell> { self.0 }
+}
+
 pub type TonCellStorage = Vec<TonCellRef>;
 
 #[rustfmt::skip]
