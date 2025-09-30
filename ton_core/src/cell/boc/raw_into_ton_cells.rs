@@ -1,7 +1,7 @@
 use crate::cell::{CellMeta, TonCell, TonCellRef};
 use crate::errors::TonCoreError;
 
-use super::RawBoC;
+use crate::cell::boc::raw_types::RawBoC;
 
 impl RawBoC {
     //Based on https://github.com/toncenter/tonweb/blob/c2d5d0fc23d2aec55a0412940ce6e580344a288c/src/boc/Cell.js#L198

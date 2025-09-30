@@ -1,6 +1,6 @@
-use crate::boc::BoC;
 use crate::cell::build_parse::parser::CellParser;
 use crate::cell::ton_cell::TonCell;
+use crate::cell::BoC;
 use crate::cell::TonHash;
 use num_bigint::{BigInt, BigUint};
 use std::str::FromStr;
