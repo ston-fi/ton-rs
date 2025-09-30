@@ -15,6 +15,8 @@ macro_rules! bail_ton {
     };
 }
 
+pub type TonResult<T> = Result<T, TonError>;
+
 #[derive(Error, Debug)]
 pub enum TonError {
     #[error("TLCoreError: {0}")]

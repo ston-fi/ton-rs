@@ -1,8 +1,15 @@
-pub mod client;
-pub mod jetton_master;
-pub mod jetton_wallet;
-pub mod methods;
-pub mod nft_collection_contract;
-pub mod nft_item_contract;
-pub mod ton_contract;
-pub mod ton_wallet;
+mod client;
+mod jetton_master;
+mod jetton_wallet;
+mod nft_collection;
+mod nft_item;
+mod ton_contract;
+mod wallet;
+
+pub use client::*;
+pub use jetton_master::*;
+pub use jetton_wallet::*;
+pub use nft_collection::*;
+pub use nft_item::*;
+pub use ton_contract::*;
+pub use wallet::*;

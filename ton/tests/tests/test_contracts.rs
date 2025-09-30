@@ -4,20 +4,10 @@ use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use std::time::Duration;
 use tokio_test::assert_ok;
-use ton_lib::contracts::client::contract_client::{ContractClient, ContractClientConfig};
-use ton_lib::contracts::client::tl_provider::TLProvider;
-use ton_lib::contracts::jetton_master::JettonMaster;
-use ton_lib::contracts::jetton_wallet::JettonWallet;
-use ton_lib::contracts::methods::get_collection_data::GetCollectionData;
-use ton_lib::contracts::methods::get_jetton_data::GetJettonData;
-use ton_lib::contracts::methods::get_nft_address_by_index::GetNFTAddressByIndex;
-use ton_lib::contracts::methods::get_nft_data::GetNFTData;
-use ton_lib::contracts::methods::get_wallet_address::GetWalletAddress;
-use ton_lib::contracts::methods::get_wallet_data::GetWalletData;
-use ton_lib::contracts::nft_collection_contract::NFTCollectionContract;
-use ton_lib::contracts::nft_item_contract::NFTItemContract;
-use ton_lib::contracts::ton_contract::TonContract;
-use ton_lib::contracts::ton_wallet::TonWalletContract;
+use ton_lib::contracts::contract_client::{ContractClient, ContractClientConfig};
+use ton_lib::contracts::tl_provider::TLProvider;
+use ton_lib::contracts::NFTItemContract;
+use ton_lib::contracts::*;
 use ton_lib::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton_lib::tep::nft::NFTItemMetadata;
 use ton_lib::tep::snake_data::SnakeData;
@@ -46,14 +36,14 @@ async fn test_contracts() -> anyhow::Result<()> {
 
 async fn assert_jetton_wallet_get_wallet(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_wallet = TonAddress::from_str("EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM")?;
-    let contract = JettonWallet::new(ctr_cli, usdt_wallet, None).await?;
+    let contract = JettonWalletContract::new(ctr_cli, usdt_wallet, None).await?;
     assert_ok!(contract.get_wallet_data().await);
     Ok(())
 }
 
 async fn assert_jetton_master_get_jetton(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
-    let contract = JettonMaster::new(ctr_cli, usdt_master, None).await?;
+    let contract = JettonMasterContract::new(ctr_cli, usdt_master, None).await?;
     assert_ok!(contract.get_jetton_data().await);
     let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
     let wallet = assert_ok!(contract.get_wallet_address(&owner).await);
