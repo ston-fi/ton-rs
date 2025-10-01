@@ -40,7 +40,6 @@ pub trait TonCellNum: Display + Sized + Clone {
             bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
         }
 
-
         let data_bytes = self.tcn_to_bytes();
         let padding_val: u8 = match (Self::SIGNED, data_bytes[0] >> 7 != 0) {
             (true, true) => 255,
@@ -63,29 +62,15 @@ macro_rules! ton_cell_num_primitive_impl {
             const IS_PRIMITIVE: bool = true;
             type Primitive = $src;
             type UnsignedPrimitive = $unsign;
-            fn tcn_from_bytes(_bytes: &[u8]) -> Self {
-                unreachable!()
-            }
-            fn tcn_to_bytes(&self) -> Vec<u8> {
-                unreachable!()
-            }
+            fn tcn_from_bytes(_bytes: &[u8]) -> Self { unreachable!() }
+            fn tcn_to_bytes(&self) -> Vec<u8> { unreachable!() }
 
-            fn tcn_from_primitive(value: Self::Primitive) -> Self {
-                value
-            }
-            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> {
-                Some(*self as $unsign)
-            }
+            fn tcn_from_primitive(value: Self::Primitive) -> Self { value }
+            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { Some(*self as $unsign) }
 
-            fn tcn_is_zero(&self) -> bool {
-                *self == 0
-            }
-            fn tcn_min_bits_len(&self) -> usize {
-                unreachable!()
-            }
-            fn tcn_shr(&self, _bits: usize) -> Self {
-                unreachable!()
-            }
+            fn tcn_is_zero(&self) -> bool { *self == 0 }
+            fn tcn_min_bits_len(&self) -> usize { unreachable!() }
+            fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
         }
     };
 }
@@ -107,29 +92,15 @@ impl TonCellNum for usize {
     const IS_PRIMITIVE: bool = true;
     type Primitive = u128;
     type UnsignedPrimitive = u128;
-    fn tcn_from_bytes(_bytes: &[u8]) -> Self {
-        unreachable!()
-    }
-    fn tcn_to_bytes(&self) -> Vec<u8> {
-        unreachable!()
-    }
+    fn tcn_from_bytes(_bytes: &[u8]) -> Self { unreachable!() }
+    fn tcn_to_bytes(&self) -> Vec<u8> { unreachable!() }
 
-    fn tcn_from_primitive(value: Self::Primitive) -> Self {
-        value as Self
-    }
-    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> {
-        Some(*self as u128)
-    }
+    fn tcn_from_primitive(value: Self::Primitive) -> Self { value as Self }
+    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { Some(*self as u128) }
 
-    fn tcn_is_zero(&self) -> bool {
-        *self == 0
-    }
-    fn tcn_min_bits_len(&self) -> usize {
-        unreachable!()
-    } // extra bit for sign
-    fn tcn_shr(&self, _bits: usize) -> Self {
-        unreachable!()
-    }
+    fn tcn_is_zero(&self) -> bool { *self == 0 }
+    fn tcn_min_bits_len(&self) -> usize { unreachable!() } // extra bit for sign
+    fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
 }
 
 // Implementation for BigInt and BigUint
@@ -138,29 +109,15 @@ impl TonCellNum for BigInt {
     const IS_PRIMITIVE: bool = false;
     type Primitive = i128;
     type UnsignedPrimitive = u128;
-    fn tcn_from_bytes(bytes: &[u8]) -> Self {
-        BigInt::from_signed_bytes_be(bytes)
-    }
-    fn tcn_to_bytes(&self) -> Vec<u8> {
-        BigInt::to_signed_bytes_be(self)
-    }
+    fn tcn_from_bytes(bytes: &[u8]) -> Self { BigInt::from_signed_bytes_be(bytes) }
+    fn tcn_to_bytes(&self) -> Vec<u8> { BigInt::to_signed_bytes_be(self) }
 
-    fn tcn_from_primitive(value: Self::Primitive) -> Self {
-        value.into()
-    }
-    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> {
-        None
-    }
+    fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
+    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
 
-    fn tcn_is_zero(&self) -> bool {
-        Zero::is_zero(self)
-    }
-    fn tcn_min_bits_len(&self) -> usize {
-        self.bits() as usize + 1
-    } // extra bit for sign
-    fn tcn_shr(&self, bits: usize) -> Self {
-        self >> bits
-    }
+    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+    fn tcn_min_bits_len(&self) -> usize { self.bits() as usize + 1 } // extra bit for sign
+    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
 
 impl TonCellNum for BigUint {
@@ -168,29 +125,15 @@ impl TonCellNum for BigUint {
     const IS_PRIMITIVE: bool = false;
     type Primitive = u128;
     type UnsignedPrimitive = u128;
-    fn tcn_from_bytes(bytes: &[u8]) -> Self {
-        BigUint::from_bytes_be(bytes)
-    }
-    fn tcn_to_bytes(&self) -> Vec<u8> {
-        BigUint::to_bytes_be(self)
-    }
+    fn tcn_from_bytes(bytes: &[u8]) -> Self { BigUint::from_bytes_be(bytes) }
+    fn tcn_to_bytes(&self) -> Vec<u8> { BigUint::to_bytes_be(self) }
 
-    fn tcn_from_primitive(value: Self::Primitive) -> Self {
-        value.into()
-    }
-    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> {
-        None
-    }
+    fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
+    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
 
-    fn tcn_is_zero(&self) -> bool {
-        Zero::is_zero(self)
-    }
-    fn tcn_min_bits_len(&self) -> usize {
-        self.bits() as usize
-    }
-    fn tcn_shr(&self, bits: usize) -> Self {
-        self >> bits
-    }
+    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+    fn tcn_min_bits_len(&self) -> usize { self.bits() as usize }
+    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
 
 macro_rules! ton_cell_num_fastnum_impl {
@@ -201,9 +144,7 @@ macro_rules! ton_cell_num_fastnum_impl {
             type Primitive = $prim;
             type UnsignedPrimitive = u64;
 
-            fn tcn_from_bytes(bytes: &[u8]) -> Self {
-                Self::from_be_slice(bytes).expect("Could not convert bytes ")
-            }
+            fn tcn_from_bytes(bytes: &[u8]) -> Self { Self::from_be_slice(bytes).expect("Could not convert bytes ") }
             fn tcn_to_bytes(&self) -> Vec<u8> {
                 // Convert Tyoe to big-endian bytes
                 let mut bytes = vec![0u8; std::mem::size_of::<Self>()];
@@ -224,40 +165,34 @@ macro_rules! ton_cell_num_fastnum_impl {
                 let bytes = value.to_be_bytes();
                 Self::from_be_slice(&bytes).expect("Could not convert u128 to ")
             }
-            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> {
-                None
-            }
+            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
 
-            fn tcn_is_zero(&self) -> bool {
-                *self == Self::from(0u32)
-            }
+            fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
             fn tcn_min_bits_len(&self) -> usize {
                 // Calculate the minimum number of bits needed to represent this number
                 if self.tcn_is_zero() {
                     return if Self::SIGNED { 1 } else { 0 };
                 }
-                
+
                 // For fastnum types, we can use the bits() method if available
                 // Otherwise, find the position of the highest set bit
                 let mut temp = *self;
                 let mut bits = 0;
-                
+
                 // Find the position of the highest set bit
                 while temp > Self::from(0u32) {
                     temp = temp >> 1;
                     bits += 1;
                 }
-                
+
                 // Add sign bit for signed numbers
                 if Self::SIGNED {
                     bits += 1;
                 }
-                
+
                 bits
             }
-            fn tcn_shr(&self, bits: usize) -> Self {
-                *self >> bits
-            }
+            fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
         }
     };
 }
@@ -894,7 +829,6 @@ mod tests {
         let cell = builder.build()?;
         assert_eq!(cell.data.len(), 32); // 256 bits = 32 bytes
 
-
         // Test large negative I256 (use fixed bit count to avoid performance issues)
         let mut builder = TonCell::builder();
         let value = I256::from_str("-123456789012345678901234567890123456789").unwrap();
@@ -966,13 +900,13 @@ mod tests {
         // Write various fastnum number types from the test struct (use minimal bits)
         let i128_min_bits = test_values.i128_val.tcn_min_bits_len();
         test_values.i128_val.write_to(&mut builder, i128_min_bits + 8)?;
-        
+
         let u256_min_bits = test_values.u256_val.tcn_min_bits_len();
         test_values.u256_val.write_to(&mut builder, u256_min_bits + 8)?;
-        
+
         let i512_min_bits = test_values.i512_val.tcn_min_bits_len();
         test_values.i512_val.write_to(&mut builder, i512_min_bits + 8)?;
-        
+
         let u1024_min_bits = test_values.u1024_val.tcn_min_bits_len();
         test_values.u1024_val.write_to(&mut builder, u1024_min_bits + 8)?;
 

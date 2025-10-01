@@ -88,9 +88,7 @@ impl CellBuilder {
         }
         Ok(())
     }
-    pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> {
-        Ok(self.build()?.into_ref())
-    }
+    pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> { Ok(self.build()?.into_ref()) }
 
     /// expecting data.len() * 8 >= (bits_offset + bits_len)
 
@@ -136,9 +134,7 @@ impl CellBuilder {
         data_ref.write_to(self, bits_len)
     }
 
-    pub fn data_bits_left(&self) -> usize {
-        TonCell::MAX_DATA_BITS_LEN - self.data_bits_len
-    }
+    pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_BITS_LEN - self.data_bits_len }
 
     pub fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_bits_len + bits_len;
