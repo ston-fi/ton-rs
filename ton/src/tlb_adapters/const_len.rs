@@ -1,3 +1,4 @@
+use fastnum::U1024;
 use num_bigint::{BigInt, BigUint};
 use std::marker::PhantomData;
 use ton_lib_core::cell::CellBuilder;
@@ -57,6 +58,7 @@ const_len_num_impl!(i64);
 const_len_num_impl!(u64);
 const_len_num_impl!(i128);
 const_len_num_impl!(u128);
+const_len_num_impl!(U1024);
 const_len_num_impl!(BigInt);
 const_len_num_impl!(BigUint);
 

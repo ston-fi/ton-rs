@@ -7,9 +7,12 @@ use fastnum::{I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
 
 use crate::bail_ton_core_data;
-use crate::cell::CellBuilder;
+use crate::cell::{CellBuilder, CellParser};
 use crate::errors::TonCoreError;
 /// Allows generic read/write operation for any numeric type
+///
+/// Questions
+/// Split on Primitive and not Primitive?
 pub trait TonCellNum: Display + Sized + Clone {
     const SIGNED: bool;
     const IS_PRIMITIVE: bool;
@@ -51,6 +54,14 @@ pub trait TonCellNum: Display + Sized + Clone {
 
         let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
         builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+    }
+    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
+        let bytes = parser.read_bits(bits_len)?;
+        let res = Self::tcn_from_bytes(&bytes);
+        if bits_len % 8 != 0 {
+            return Ok(res.tcn_shr(8 - bits_len % 8));
+        }
+        Ok(res)
     }
 }
 
