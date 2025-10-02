@@ -1,8 +1,18 @@
-use crate::clients::tl_client::connection::TLConnection;
-use crate::clients::tl_client::env::prepare_client_env;
-use crate::clients::tl_client::RetryStrategy;
-use crate::clients::tl_client::{config::TLClientConfig, tl::client::TLClientTrait};
+pub mod env;
+
+pub mod tl;
+
+mod callback;
+mod config;
+mod connection;
+
+pub use callback::*;
+pub use config::*;
+pub use connection::*;
+
 use crate::errors::TonError;
+use crate::tl_client::env::prepare_client_env;
+use crate::tl_client::tl::client::TLClientTrait;
 use async_trait::async_trait;
 use futures_util::future::try_join_all;
 use rand::prelude::{IndexedRandom, StdRng};

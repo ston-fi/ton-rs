@@ -4,19 +4,19 @@ use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::clients::tl_client::config::{LiteNodeFilter, TLClientConfig};
-use crate::clients::tl_client::tl::client::TLClientTrait;
-use crate::clients::tl_client::tl::request::TLRequest;
-use crate::clients::tl_client::tl::response::TLResponse;
-use crate::clients::tl_client::tl::tonlibjson_wrapper::TonLibJsonWrapper;
-use crate::clients::tl_client::tl::types::{TLBlockId, TLOptions, TLOptionsInfo};
-use crate::clients::tl_client::RetryStrategy;
-use crate::clients::tl_client::{
+use crate::errors::TonError;
+use crate::sys_utils::sys_tonlib_set_verbosity_level;
+use crate::tl_client::config::{LiteNodeFilter, TLClientConfig};
+use crate::tl_client::tl::client::TLClientTrait;
+use crate::tl_client::tl::request::TLRequest;
+use crate::tl_client::tl::response::TLResponse;
+use crate::tl_client::tl::tonlibjson_wrapper::TonLibJsonWrapper;
+use crate::tl_client::tl::types::{TLBlockId, TLOptions, TLOptionsInfo};
+use crate::tl_client::RetryStrategy;
+use crate::tl_client::{
     callback::{TLCallback, TLCallbacksStore},
     tl::request_context::TLRequestCtx,
 };
-use crate::errors::TonError;
-use crate::sys_utils::sys_tonlib_set_verbosity_level;
 use crate::unwrap_tl_rsp;
 use async_trait::async_trait;
 use tokio::sync::{oneshot, Mutex, Semaphore};

@@ -10,13 +10,13 @@ mod example {
     use std::time::Duration;
     use ton_lib::block_tlb::{Coins, CommonMsgInfoInt, Msg};
     use ton_lib::block_tlb::{CommonMsgInfo, CurrencyCollection};
-    use ton_lib::clients::tl_client::tl::client::TLClientTrait;
-    use ton_lib::clients::tl_client::TLClient;
-    use ton_lib::clients::tl_client::TLClientConfig;
-    use ton_lib::contracts::contract_client::{ContractClient, ContractClientConfig};
     use ton_lib::contracts::tl_provider::TLProvider;
+    use ton_lib::contracts::{ContractClient, ContractClientConfig};
     use ton_lib::contracts::{TonContract, TonWalletContract, TonWalletMethods};
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
+    use ton_lib::tl_client::tl::client::TLClientTrait;
+    use ton_lib::tl_client::TLClient;
+    use ton_lib::tl_client::TLClientConfig;
     use ton_lib::wallet::WalletVersion;
     use ton_lib::wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;

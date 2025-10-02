@@ -7,6 +7,6 @@ pub mod request_context;
 pub(crate) mod tonlibjson_wrapper;
 
 pub mod response;
-pub(super) mod ser_de;
+pub(crate) mod ser_de;
 pub mod types;
 mod unwrap_tl_rsp;

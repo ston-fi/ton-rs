@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use crate::clients::net_config::TonNetConfig;
 use crate::errors::TonError;
+use crate::net_config::TonNetConfig;
 
 #[derive(Debug, Clone)]
 pub struct LiteClientConfig {

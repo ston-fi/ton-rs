@@ -1,9 +1,9 @@
 use crate::block_tlb::{BlockIdExt, BlockInfo};
-use crate::clients::lite_client::client::LiteClient;
-use crate::clients::lite_client::config::LiteClientConfig;
-use crate::clients::tl_client::config::TLClientConfig;
-use crate::clients::tl_client::tl::types::TLKeyStoreType;
 use crate::errors::TonError;
+use crate::lite_client::client::LiteClient;
+use crate::lite_client::config::LiteClientConfig;
+use crate::tl_client::config::TLClientConfig;
+use crate::tl_client::tl::types::TLKeyStoreType;
 use futures_util::future::join_all;
 use std::time::Duration;
 use ton_lib_core::cell::TonCell;

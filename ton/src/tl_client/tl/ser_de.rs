@@ -1,10 +1,10 @@
 use serde::de::IntoDeserializer;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
-pub(super) mod serde_block_id_ext {
+pub(crate) mod serde_block_id_ext {
     use super::*;
     use crate::block_tlb::{BlockIdExt, ShardIdent};
-    use crate::clients::tl_client::tl::Base64Standard;
+    use crate::tl_client::tl::Base64Standard;
     use serde_aux::prelude::deserialize_number_from_string;
     use ton_lib_core::cell::TonHash;
 
@@ -46,7 +46,7 @@ pub(super) mod serde_block_id_ext {
     }
 }
 
-pub(super) mod serde_block_id_ext_vec {
+pub(crate) mod serde_block_id_ext_vec {
     use super::*;
     use crate::block_tlb::BlockIdExt;
     pub fn serialize<S: Serializer>(data: &[BlockIdExt], serializer: S) -> Result<S::Ok, S::Error> {
@@ -64,7 +64,7 @@ pub(super) mod serde_block_id_ext_vec {
     }
 }
 
-pub(super) mod serde_block_id_ext_vec_opt {
+pub(crate) mod serde_block_id_ext_vec_opt {
     use super::*;
     use crate::block_tlb::BlockIdExt;
 

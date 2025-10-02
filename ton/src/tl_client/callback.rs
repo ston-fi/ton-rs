@@ -1,6 +1,6 @@
-use crate::clients::tl_client::tl::request::TLRequest;
-use crate::clients::tl_client::tl::{request_context::TLRequestCtx, response::TLResponse};
 use crate::errors::TonError;
+use crate::tl_client::tl::request::TLRequest;
+use crate::tl_client::tl::{request_context::TLRequestCtx, response::TLResponse};
 use std::sync::Arc;
 
 /// Check tl_conn_default (mostly `run_loop` method) for method execution flow

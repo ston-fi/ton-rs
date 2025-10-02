@@ -1,9 +1,9 @@
 use super::connection::Connection;
 use crate::block_tlb::{BlockIdExt, MaybeAccount};
-use crate::clients::client_types::MasterchainInfo;
-use crate::clients::lite_client::config::{LiteClientConfig, LiteReqParams};
 use crate::errors::TonError;
 use crate::libs_dict::LibsDict;
+use crate::lite_client::config::{LiteClientConfig, LiteReqParams};
+use crate::lite_client::lite_types::MasterchainInfo;
 use crate::unwrap_lite_rsp;
 use auto_pool::config::{AutoPoolConfig, PickStrategy};
 use auto_pool::pool::AutoPool;

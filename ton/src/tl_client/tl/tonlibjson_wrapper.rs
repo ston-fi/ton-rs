@@ -1,6 +1,6 @@
-use crate::clients::tl_client::tl::request::TLRequest;
-use crate::clients::tl_client::tl::response::TLResponse;
 use crate::errors::TonError;
+use crate::tl_client::tl::request::TLRequest;
+use crate::tl_client::tl::response::TLResponse;
 use tonlib_sys::*;
 // Wrapper around ton client with support for TL data types
 
@@ -45,8 +45,8 @@ unsafe impl Sync for TonLibJsonWrapper {}
 
 #[cfg(test)]
 mod tests {
-    use crate::clients::tl_client::tl::{request::TLRequest, tonlibjson_wrapper::TonLibJsonWrapper};
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
+    use crate::tl_client::tl::{request::TLRequest, tonlibjson_wrapper::TonLibJsonWrapper};
 
     #[test]
     fn it_executes_functions() -> anyhow::Result<()> {

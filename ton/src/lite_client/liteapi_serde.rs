@@ -1,5 +1,5 @@
 use crate::block_tlb::{BlockIdExt, ShardIdent};
-use crate::clients::client_types::{BlockId, MasterchainInfo, ZeroStateIdExt};
+use crate::lite_client::lite_types::{BlockId, MasterchainInfo, ZeroStateIdExt};
 use ton_liteapi::tl::common::Int256;
 // impl From<Int256> for TonHash {
 //     fn from(value: Int256) -> Self { TonHash::from_slice_sized(&value.0) }

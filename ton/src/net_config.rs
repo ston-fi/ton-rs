@@ -5,8 +5,8 @@ use serde_json::Value;
 use std::fs::{exists, File};
 use std::io::Read;
 
-pub const TON_NET_CONF_MAINNET_PUBLIC: &str = include_str!("../../resources/net_config/mainnet_public.json");
-pub const TON_NET_CONF_TESTNET_PUBLIC: &str = include_str!("../../resources/net_config/testnet_public.json");
+pub const TON_NET_CONF_MAINNET_PUBLIC: &str = include_str!("../resources/net_config/mainnet_public.json");
+pub const TON_NET_CONF_TESTNET_PUBLIC: &str = include_str!("../resources/net_config/testnet_public.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TonNetConfig {

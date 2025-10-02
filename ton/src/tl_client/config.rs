@@ -1,6 +1,6 @@
-use crate::clients::net_config::TonNetConfig;
-use crate::clients::tl_client::callback::TLCallbacksStore;
-use crate::clients::tl_client::tl::types::{TLConfig, TLKeyStoreType, TLOptions};
+use crate::net_config::TonNetConfig;
+use crate::tl_client::callback::TLCallbacksStore;
+use crate::tl_client::tl::types::{TLConfig, TLKeyStoreType, TLOptions};
 use std::fmt::Debug;
 use std::time::Duration;
 

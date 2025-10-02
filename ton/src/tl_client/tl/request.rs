@@ -1,8 +1,6 @@
-use crate::clients::tl_client::tl::ser_de::serde_block_id_ext;
-use crate::clients::tl_client::tl::types::{
-    TLAccountAddress, TLAccountTxId, TLBlockId, TLOptions, TLSmcLibraryQueryExt,
-};
-use crate::clients::tl_client::tl::Base64Standard;
+use crate::tl_client::tl::ser_de::serde_block_id_ext;
+use crate::tl_client::tl::types::{TLAccountAddress, TLAccountTxId, TLBlockId, TLOptions, TLSmcLibraryQueryExt};
+use crate::tl_client::tl::Base64Standard;
 use crate::ton_lib_core::cell::serde_ton_hash_vec_base64;
 use crate::ton_lib_core::types::serde_tx_lt_hash_json;
 
@@ -228,7 +226,7 @@ impl TLRequest {
 
 #[cfg(test)]
 mod tests {
-    use crate::clients::tl_client::tl::request::TLRequest;
+    use crate::tl_client::tl::request::TLRequest;
     use std::ffi::CString;
 
     #[test]
