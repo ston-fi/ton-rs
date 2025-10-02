@@ -1,17 +1,17 @@
-pub mod env;
-
-pub mod tl;
-
 mod callback;
 mod config;
 mod connection;
+mod env_setup;
+mod tl;
 
 pub use callback::*;
 pub use config::*;
 pub use connection::*;
+pub use env_setup::*;
+pub use tl::*;
 
 use crate::errors::TonError;
-use crate::tl_client::env::prepare_client_env;
+use crate::tl_client::env_setup::prepare_client_env;
 use crate::tl_client::tl::client::TLClientTrait;
 use async_trait::async_trait;
 use futures_util::future::try_join_all;

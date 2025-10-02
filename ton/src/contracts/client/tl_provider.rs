@@ -1,6 +1,6 @@
 use crate::block_tlb::BlockIdExt;
 use crate::errors::TonError;
-use crate::tl_client::tl::client::TLClientTrait;
+use crate::tl_client::client::TLClientTrait;
 use crate::tl_client::{TLClient, TLConnection};
 use async_recursion::async_recursion;
 use async_trait::async_trait;

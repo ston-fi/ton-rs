@@ -1,7 +1,7 @@
 use crate::block_tlb::{BlockIdExt, BlockInfo};
 use crate::errors::TonError;
-use crate::lite_client::client::LiteClient;
-use crate::lite_client::config::LiteClientConfig;
+use crate::lite_client::LiteClient;
+use crate::lite_client::LiteClientConfig;
 use crate::tl_client::config::TLClientConfig;
 use crate::tl_client::tl::tl_types::TLKeyStoreType;
 use futures_util::future::join_all;
