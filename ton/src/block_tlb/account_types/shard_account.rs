@@ -1,7 +1,7 @@
-use crate::block_tlb::{Coins, CurrencyCollection, StateInit};
+use crate::block_tlb::*;
 use crate::tlb_adapters::TLBRef;
 use ton_lib_core::cell::{TonCellRef, TonHash};
-use ton_lib_core::types::tlb_core::{MsgAddressInt, VarLenBytes};
+use ton_lib_core::types::tlb_core::MsgAddressInt;
 use ton_lib_core::TLB;
 
 #[derive(Default, Debug, Clone, PartialEq, TLB)]
@@ -33,101 +33,12 @@ pub struct Account {
     pub storage: AccountStorage,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
-pub struct StorageUsed {
-    pub cells: VarLenBytes<u64, 3>,
-    pub bits: VarLenBytes<u64, 3>,
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-pub struct StorageInfo {
-    pub used: StorageUsed,
-    pub storage_extra: MaybeStorageExtraInfo,
-    pub last_paid: u32,
-    pub due_payment: Option<Coins>,
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-pub struct AccountStorage {
-    pub last_tx_lt: u64,
-    pub balance: CurrencyCollection,
-    pub state: AccountState,
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-pub enum MaybeStorageExtraInfo {
-    None(StorageExtraInfoNone),
-    Info(StorageExtraInfo),
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b000, bits_len = 3)]
-pub struct StorageExtraInfoNone;
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b001, bits_len = 3)]
-pub struct StorageExtraInfo {
-    pub dict_hash: TonHash,
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-pub enum AccountState {
-    Uninit(AccountStateUninit),
-    Frozen(AccountStateFrozen),
-    Active(AccountStateActive),
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b00, bits_len = 2)]
-pub struct AccountStateUninit;
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b01, bits_len = 2)]
-pub struct AccountStateFrozen {
-    pub state_hash: TonHash,
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b1, bits_len = 1)]
-pub struct AccountStateActive {
-    pub state_init: StateInit,
-}
-
-// https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L271
-#[derive(Debug, Clone, PartialEq, TLB)]
-pub enum AccountStatus {
-    Uninit(AccountStatusUninit),
-    Frozen(AccountStatusFrozen),
-    Active(AccountStatusActive),
-    NonExist(AccountStatusNotExist),
-}
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b00, bits_len = 2)]
-pub struct AccountStatusUninit;
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b01, bits_len = 2)]
-pub struct AccountStatusFrozen;
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b10, bits_len = 2)]
-pub struct AccountStatusActive;
-
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b11, bits_len = 2)]
-pub struct AccountStatusNotExist;
-
 impl ShardAccount {
     pub const NON_EXIST: ShardAccount = ShardAccount {
         account: MaybeAccount::None(AccountNone),
         last_tx_hash: TonHash::ZERO,
         last_tx_lt: 0,
     };
-}
-
-impl Default for AccountStatus {
-    fn default() -> Self { AccountStatus::NonExist(AccountStatusNotExist) }
 }
 
 impl Default for MaybeAccount {
@@ -152,14 +63,16 @@ impl MaybeAccount {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block_tlb::{SimpleLib, TickTock};
+    use crate::block_tlb::{CurrencyCollection, SimpleLib, StateInit, TickTock};
     use std::collections::HashMap;
 
+    use crate::block_tlb::account_types::account_state::AccountState;
+    use crate::block_tlb::account_types::account_storage::{StorageExtraInfoNone, StorageUsed};
     use std::str::FromStr;
     use tokio_test::assert_ok;
     use ton_lib_core::cell::TonCell;
     use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::tlb_core::{MsgAddressIntStd, VarLen};
+    use ton_lib_core::types::tlb_core::{MsgAddressIntStd, VarLen, VarLenBytes};
 
     #[test]
     fn test_block_tlb_account_some() -> anyhow::Result<()> {

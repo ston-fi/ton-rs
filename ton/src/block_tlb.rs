@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod _test_block_data;
 
-mod account;
+mod account_types;
 mod block_types;
 mod coins;
 mod config_types;
@@ -13,7 +13,7 @@ mod state_init;
 mod tvm_types;
 mod tx_types;
 
-pub use account::*;
+pub use account_types::*;
 pub use block_types::*;
 pub use coins::*;
 pub use config_types::*;

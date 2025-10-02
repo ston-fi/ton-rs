@@ -12,7 +12,7 @@ pub trait DictKeyAdapter<K> {
     fn extract_key(dict_key: &BigUint) -> Result<K, TonError>;
 }
 
-pub struct DictKeyAdapterTonHash; // properly tested in LibsDict & account
+pub struct DictKeyAdapterTonHash; // properly tested in LibsDict & account_types
 pub struct DictKeyAdapterInto;
 pub struct DictKeyAdapterAddress;
 pub struct DictKeyAdapterString; // TODO is not covered by tests
