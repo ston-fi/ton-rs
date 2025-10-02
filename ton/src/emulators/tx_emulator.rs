@@ -1,7 +1,11 @@
+mod tx_emul_args;
+mod tx_emul_response;
+
+pub use tx_emul_args::*;
+pub use tx_emul_response::*;
+
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_b64_c_str, set_param_failed};
-use crate::emulators::tx::tx_emul_args::{TXEmulArgs, TXEmulOrdArgs, TXEmulTickTockArgs};
-use crate::emulators::tx::tx_emul_response::{TXEmulationResponse, TXEmulationSuccess};
 use crate::errors::TonError;
 use std::ffi::CString;
 use std::sync::Arc;
@@ -192,7 +196,7 @@ fn calc_hash<T: AsRef<[u8]> + std::hash::Hash>(data: T) -> u64 {
 mod tests {
     use super::*;
     use crate::block_tlb::{Msg, ShardAccount, Tx};
-    use crate::emulators::tx::tx_emul_args::TXEmulArgs;
+    use crate::emulators::tx_emulator::tx_emul_args::TXEmulArgs;
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
     use std::str::FromStr;
     use std::sync::LazyLock;
@@ -200,8 +204,7 @@ mod tests {
     use ton_lib_core::traits::tlb::TLB;
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
-        EmulBCConfig::from_boc_hex(include_str!("../../../../resources/tests/bc_config_key_block_42123611.hex"))
-            .unwrap()
+        EmulBCConfig::from_boc_hex(include_str!("../../../resources/tests/bc_config_key_block_42123611.hex")).unwrap()
     });
 
     #[test]

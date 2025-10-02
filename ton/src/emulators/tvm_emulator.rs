@@ -1,18 +1,17 @@
-use crate::emulators::emul_utils::{convert_emulator_response, make_b64_c_str, set_param_failed};
-use crate::emulators::tvm::tvm_c7::TVMEmulatorC7;
-use crate::emulators::tvm::tvm_method_id::TVMGetMethodID;
-use crate::emulators::tvm::tvm_response::{
-    TVMGetMethodResponse, TVMGetMethodSuccess, TVMSendMsgResponse, TVMSendMsgSuccess,
-};
+mod tvm_c7;
+mod tvm_method_id;
+mod tvm_response;
+
+pub use tvm_c7::*;
+pub use tvm_method_id::*;
+pub use tvm_response::*;
+
+use crate::emulators::emul_utils::*;
 use crate::errors::TonError;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use std::ffi::CString;
-use tonlib_sys::{
-    tvm_emulator_create, tvm_emulator_destroy, tvm_emulator_run_get_method, tvm_emulator_send_external_message,
-    tvm_emulator_send_internal_message, tvm_emulator_set_c7, tvm_emulator_set_debug_enabled,
-    tvm_emulator_set_gas_limit, tvm_emulator_set_libraries,
-};
+use tonlib_sys::*;
 
 #[derive(Debug)]
 pub struct TVMEmulator {
@@ -112,10 +111,10 @@ unsafe impl Sync for TVMEmulator {}
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::block_tlb::TVMStack;
     use crate::emulators::emul_bc_config::EmulBCConfig;
-    use crate::emulators::tvm::tvm_c7::TVMEmulatorC7;
-    use crate::emulators::tvm::tvm_emulator::TVMEmulator;
+    use crate::emulators::tvm_emulator::TVMEmulator;
     use crate::errors::TonError;
     use crate::libs_dict::LibsDict;
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
@@ -130,8 +129,7 @@ mod tests {
     use ton_lib_core::types::TonAddress;
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
-        EmulBCConfig::from_boc_hex(include_str!("../../../../resources/tests/bc_config_key_block_42123611.hex"))
-            .unwrap()
+        EmulBCConfig::from_boc_hex(include_str!("../../../resources/tests/bc_config_key_block_42123611.hex")).unwrap()
     });
 
     #[test]

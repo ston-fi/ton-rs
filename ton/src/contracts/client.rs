@@ -5,9 +5,7 @@ pub mod tl_provider;
 
 use crate::contracts::client::contract_client_cache::ContractClientCache;
 use crate::emulators::emul_bc_config::EmulBCConfig;
-use crate::emulators::tvm::tvm_c7::TVMEmulatorC7;
-use crate::emulators::tvm::tvm_emulator::TVMEmulator;
-use crate::emulators::tvm::tvm_response::TVMGetMethodSuccess;
+use crate::emulators::tvm_emulator::*;
 use crate::errors::TonError;
 use crate::libs_dict::LibsDict;
 use std::collections::HashMap;

@@ -68,7 +68,7 @@ fn calc_opcode(command: &str) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::emulators::tvm::tvm_method_id::TVMGetMethodID;
+    use crate::emulators::tvm_emulator::tvm_method_id::TVMGetMethodID;
 
     #[test]
     fn test_hex_format() -> anyhow::Result<()> {
