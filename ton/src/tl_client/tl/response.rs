@@ -1,11 +1,7 @@
 use crate::block_tlb::BlockIdExt;
 use crate::errors::TonError;
 use crate::tl_client::tl::ser_de::serde_block_id_ext;
-use crate::tl_client::tl::types::{
-    TLBlocksHeader, TLBlocksMCInfo, TLBlocksShards, TLBlocksTransactionsExt, TLBlocksTxs, TLConfigInfo,
-    TLFullAccountState, TLLiteServerInfo, TLLogVerbosityLevel, TLOptionsInfo, TLRawExtMessageInfo,
-    TLRawFullAccountState, TLRawTxs, TLSmcInfo, TLSmcLibraryResult, TLSmcLibraryResultExt, TLUpdateSyncState,
-};
+use crate::tl_client::tl::tl_types::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::ffi::CStr;

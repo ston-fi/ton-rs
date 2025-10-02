@@ -10,8 +10,8 @@ use crate::tl_client::config::{LiteNodeFilter, TLClientConfig};
 use crate::tl_client::tl::client::TLClientTrait;
 use crate::tl_client::tl::request::TLRequest;
 use crate::tl_client::tl::response::TLResponse;
+use crate::tl_client::tl::tl_types::{TLBlockId, TLOptions, TLOptionsInfo};
 use crate::tl_client::tl::tonlibjson_wrapper::TonLibJsonWrapper;
-use crate::tl_client::tl::types::{TLBlockId, TLOptions, TLOptionsInfo};
 use crate::tl_client::RetryStrategy;
 use crate::tl_client::{
     callback::{TLCallback, TLCallbacksStore},

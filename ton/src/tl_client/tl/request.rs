@@ -1,5 +1,5 @@
 use crate::tl_client::tl::ser_de::serde_block_id_ext;
-use crate::tl_client::tl::types::{TLAccountAddress, TLAccountTxId, TLBlockId, TLOptions, TLSmcLibraryQueryExt};
+use crate::tl_client::tl::tl_types::*;
 use crate::tl_client::tl::Base64Standard;
 use crate::ton_lib_core::cell::serde_ton_hash_vec_base64;
 use crate::ton_lib_core::types::serde_tx_lt_hash_json;

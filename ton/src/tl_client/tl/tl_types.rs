@@ -1,5 +1,5 @@
 use crate::tl_client::tl::ser_de::*;
-use crate::tl_client::tl::types::serde_ton_hash_base64::serde_ton_hash_vec_base64;
+use crate::tl_client::tl::tl_types::serde_ton_hash_base64::serde_ton_hash_vec_base64;
 use crate::tl_client::tl::Base64Standard;
 use crate::ton_lib_core::cell::serde_ton_hash_base64;
 use crate::ton_lib_core::types::serde_ton_address_hex;

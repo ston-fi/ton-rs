@@ -4,7 +4,7 @@ use ton_lib::block_tlb::{BlockIdExt, ShardIdent};
 use ton_lib::tl_client::tl::client::TLClientTrait;
 
 use crate::tests::utils::make_tl_client;
-use ton_lib::tl_client::tl::types::TLAccountState;
+use ton_lib::tl_client::tl::tl_types::TLAccountState;
 use ton_lib::tl_client::TLClient;
 use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::traits::tlb::TLB;

@@ -8,5 +8,5 @@ pub(crate) mod tonlibjson_wrapper;
 
 pub mod response;
 pub(crate) mod ser_de;
-pub mod types;
+pub mod tl_types;
 mod unwrap_tl_rsp;
