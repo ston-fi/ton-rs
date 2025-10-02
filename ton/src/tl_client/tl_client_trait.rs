@@ -1,12 +1,7 @@
 use crate::block_tlb::BlockIdExt;
 use crate::errors::TonError;
 use crate::tl_client::connection::TLConnection;
-use crate::tl_client::tl::request::TLRequest;
-use crate::tl_client::tl::response::TLResponse;
-use crate::tl_client::tl::tl_types::{
-    TLAccountTxId, TLBlockId, TLBlocksHeader, TLBlocksMCInfo, TLBlocksShards, TLFullAccountState,
-    TLRawFullAccountState, TLRawTxs, TLShortTxId, TLSmcLibraryEntry,
-};
+use crate::tl_client::tl::*;
 use crate::tl_client::RetryStrategy;
 use crate::unwrap_tl_rsp;
 use async_trait::async_trait;

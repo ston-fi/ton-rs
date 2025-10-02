@@ -2,17 +2,16 @@ mod callback;
 mod config;
 mod connection;
 mod env_setup;
-mod tl;
+pub mod tl;
+mod tl_client_trait;
 
 pub use callback::*;
 pub use config::*;
 pub use connection::*;
 pub use env_setup::*;
-pub use tl::*;
+pub use tl_client_trait::*;
 
 use crate::errors::TonError;
-use crate::tl_client::env_setup::prepare_client_env;
-use crate::tl_client::tl::client::TLClientTrait;
 use async_trait::async_trait;
 use futures_util::future::try_join_all;
 use rand::prelude::{IndexedRandom, StdRng};
