@@ -14,9 +14,8 @@ mod example {
     use ton_lib::contracts::{ContractClient, ContractClientConfig};
     use ton_lib::contracts::{TonContract, TonWalletContract, TonWalletMethods};
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
-    use ton_lib::tl_client::tl::client::TLClientTrait;
-    use ton_lib::tl_client::TLClient;
     use ton_lib::tl_client::TLClientConfig;
+    use ton_lib::tl_client::{TLClient, TLClientTrait};
     use ton_lib::wallet::WalletVersion;
     use ton_lib::wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;

@@ -1,11 +1,9 @@
+use crate::tests::utils::make_tl_client;
 use std::str::FromStr;
 use tokio_test::assert_ok;
 use ton_lib::block_tlb::{BlockIdExt, ShardIdent};
-use ton_lib::tl_client::tl::client::TLClientTrait;
-
-use crate::tests::utils::make_tl_client;
-use ton_lib::tl_client::tl::tl_types::TLAccountState;
-use ton_lib::tl_client::TLClient;
+use ton_lib::tl_client::tl::TLAccountState;
+use ton_lib::tl_client::{TLClient, TLClientTrait};
 use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::TonAddress;

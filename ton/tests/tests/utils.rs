@@ -4,8 +4,7 @@ use log4rs::config::{Appender, Root};
 use log4rs::Config;
 use std::sync::Once;
 use std::time::Duration;
-use ton_lib::lite_client::client::LiteClient;
-use ton_lib::lite_client::config::LiteClientConfig;
+use ton_lib::lite_client::*;
 use ton_lib::net_config::TonNetConfig;
 
 static LOG: Once = Once::new();
