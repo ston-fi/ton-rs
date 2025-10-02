@@ -1,4 +1,4 @@
-use crate::wallet::wallet_tlb::wallet_ext_msg_utils::{build_inner_request, parse_inner_request, InnerRequest};
+use crate::wallet::wallet_tlb::wallet_ext_msg_utils::*;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
