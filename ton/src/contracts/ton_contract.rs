@@ -1,6 +1,6 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::client::contract_client::ContractClient;
-use crate::emulators::tvm::tvm_method_id::TVMGetMethodID;
+use crate::contracts::client::ContractClient;
+use crate::emulators::tvm_emulator::TVMGetMethodID;
 use crate::errors::TonError;
 use std::sync::Arc;
 use ton_lib_core::traits::contract_provider::TonContractState;

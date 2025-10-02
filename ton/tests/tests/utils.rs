@@ -4,9 +4,9 @@ use log4rs::config::{Appender, Root};
 use log4rs::Config;
 use std::sync::Once;
 use std::time::Duration;
-use ton_lib::clients::lite_client::client::LiteClient;
-use ton_lib::clients::lite_client::config::LiteClientConfig;
-use ton_lib::clients::net_config::TonNetConfig;
+use ton_lib::lite_client::client::LiteClient;
+use ton_lib::lite_client::config::LiteClientConfig;
+use ton_lib::net_config::TonNetConfig;
 
 static LOG: Once = Once::new();
 
@@ -29,19 +29,16 @@ pub(crate) fn init_logging() {
 }
 
 #[cfg(feature = "tonlibjson")]
-pub(crate) async fn make_tl_client(
-    mainnet: bool,
-    archive_only: bool,
-) -> anyhow::Result<ton_lib::clients::tl_client::TLClient> {
+pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<ton_lib::tl_client::TLClient> {
     init_logging();
     log::info!("Initializing tl_client with mainnet={mainnet}...");
     let mut config = match mainnet {
-        true => ton_lib::clients::tl_client::TLClientConfig::new_mainnet(archive_only),
-        false => ton_lib::clients::tl_client::TLClientConfig::new_testnet(archive_only),
+        true => ton_lib::tl_client::TLClientConfig::new_mainnet(archive_only),
+        false => ton_lib::tl_client::TLClientConfig::new_testnet(archive_only),
     };
     config.connections_count = 10;
     config.retry_strategy.retry_count = 10;
-    let client = ton_lib::clients::tl_client::TLClient::new(config).await?;
+    let client = ton_lib::tl_client::TLClient::new(config).await?;
     ton_lib::sys_utils::sys_tonlib_set_verbosity_level(0);
     Ok(client)
 }

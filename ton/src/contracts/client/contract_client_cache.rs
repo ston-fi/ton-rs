@@ -1,5 +1,5 @@
 use crate::contracts::client::cache_stats::CacheStats;
-use crate::contracts::client::contract_client::ContractClientConfig;
+use crate::contracts::ContractClientConfig;
 use crate::errors::TonError;
 use futures_util::future::join_all;
 use moka::future::Cache;

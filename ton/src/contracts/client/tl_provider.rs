@@ -1,7 +1,7 @@
 use crate::block_tlb::BlockIdExt;
-use crate::clients::tl_client::tl::client::TLClientTrait;
-use crate::clients::tl_client::{TLClient, TLConnection};
 use crate::errors::TonError;
+use crate::tl_client::tl::client::TLClientTrait;
+use crate::tl_client::{TLClient, TLConnection};
 use async_recursion::async_recursion;
 use async_trait::async_trait;
 use futures_util::future::try_join_all;
@@ -15,7 +15,7 @@ use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::contract_provider::{TonContractState, TonProvider};
 use ton_lib_core::types::{TonAddress, TxLTHash};
 
-static BLOCK_IDS_CACHE_SIZE: u64 = 100;
+static BLOCK_IDS_CACHE_SIZE: u64 = 200;
 
 pub struct TLProvider {
     client: TLClient,
@@ -123,11 +123,16 @@ impl TonProvider for TLProvider {
 
 impl TLProvider {
     async fn find_connection(&self, mc_seqno: u32) -> Result<&TLConnection, TonError> {
+        let mut iter_start = tokio::time::Instant::now();
         loop {
             let conn = self.client.get_connection();
             let mc_info = conn.get_mc_info().await?;
             if mc_info.last.seqno >= mc_seqno {
                 return Ok(conn);
+            }
+            if iter_start.elapsed() > Duration::from_secs(10) {
+                log::warn!("[TLProvider][find_connection] Waiting for mc_seqno {mc_seqno}, got {}", mc_info.last.seqno);
+                iter_start = tokio::time::Instant::now();
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }

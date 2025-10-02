@@ -1,8 +1,8 @@
 use crate::tests::utils::make_tl_client;
 use std::str::FromStr;
 use std::time::Duration;
-use ton_lib::contracts::contract_client::{ContractClient, ContractClientConfig};
 use ton_lib::contracts::tl_provider::TLProvider;
+use ton_lib::contracts::{ContractClient, ContractClientConfig};
 use ton_lib::contracts::{JettonMasterContract, TonContract};
 use ton_lib_core::cell::TonHash;
 use ton_lib_core::traits::contract_provider::TonProvider;
