@@ -19,50 +19,57 @@ pub trait TonCellNum: Display + Sized + Clone {
     type Primitive: Zero + Integer;
     type UnsignedPrimitive: Integer;
 
-    fn tcn_from_bytes(bytes: &[u8]) -> Self;
-    fn tcn_to_bytes(&self) -> Vec<u8>;
-
-    fn tcn_from_primitive(value: Self::Primitive) -> Self;
-    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive>;
-
+    // fn tcn_from_bytes(bytes: &[u8]) -> Self;
+    // fn tcn_to_bytes(&self) -> Vec<u8>;
+    //
+    // fn tcn_from_primitive(value: Self::Primitive) -> Self;
+    // fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive>;
+    //
     fn tcn_is_zero(&self) -> bool;
     fn tcn_min_bits_len(&self) -> usize; // must includes sign bit if SIGNED=true
     fn tcn_shr(&self, bits: usize) -> Self;
 
-    fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> {
-        // handling it like ton-core
-        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
-
-        if let Some(unsigned) = self.tcn_to_unsigned_primitive() {
-            builder.write_unsigned_number(unsigned, bits_len)?;
-            return Ok(());
-        }
-
-        let min_bits_len = self.tcn_min_bits_len();
-        if min_bits_len > bits_len {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
-        }
-
-        let data_bytes = self.tcn_to_bytes();
-        let padding_val: u8 = match (Self::SIGNED, data_bytes[0] >> 7 != 0) {
-            (true, true) => 255,
-            _ => 0,
-        };
-        let padding_bits_len = bits_len.saturating_sub(min_bits_len);
-        let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
-        builder.write_bits(padding_to_write, padding_bits_len)?;
-
-        let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
-        builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
-    }
-    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
-        let bytes = parser.read_bits(bits_len)?;
-        let res = Self::tcn_from_bytes(&bytes);
-        if bits_len % 8 != 0 {
-            return Ok(res.tcn_shr(8 - bits_len % 8));
-        }
-        Ok(res)
-    }
+    fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError>;
+    // {
+    //     // handling it like ton-core
+    //     // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
+    //
+    //     let min_bits_len = self.tcn_min_bits_len();
+    //     if min_bits_len > bits_len {
+    //         bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+    //     }
+    //
+    //     if let Some(unsigned) = self.tcn_to_unsigned_primitive() {
+    //         builder.write_unsigned_number(unsigned, bits_len)?;
+    //         return Ok(());
+    //     }
+    //
+    //     let data_bytes = self.tcn_to_bytes();
+    //     let padding_val: u8 = match (Self::SIGNED, data_bytes[0] >> 7 != 0) {
+    //         (true, true) => 255,
+    //         _ => 0,
+    //     };
+    //     let padding_bits_len = bits_len.saturating_sub(min_bits_len);
+    //     let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
+    //     builder.write_bits(padding_to_write, padding_bits_len)?;
+    //
+    //     let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
+    //     builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+    // }
+    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError>;
+    // {
+    //     if Self::IS_PRIMITIVE {
+    //         // read_primitive
+    //         let primitive = parser.read_primitive::<Self::Primitive>(bits_len )?;
+    //         return Ok(Self::tcn_from_primitive(primitive));
+    //     }
+    //     let bytes = parser.read_bits(bits_len)?;
+    //     let res = Self::tcn_from_bytes(&bytes);
+    //     if bits_len % 8 != 0 {
+    //         return Ok(res.tcn_shr(8 - bits_len % 8));
+    //     }
+    //     Ok(res)
+    // }
 }
 
 // Implementation for primitive types
@@ -73,29 +80,96 @@ macro_rules! ton_cell_num_primitive_impl {
             const IS_PRIMITIVE: bool = true;
             type Primitive = $src;
             type UnsignedPrimitive = $unsign;
-            fn tcn_from_bytes(_bytes: &[u8]) -> Self { unreachable!() }
-            fn tcn_to_bytes(&self) -> Vec<u8> { unreachable!() }
+            fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
+                if bits_len==0
+                {
+                    return Ok(Self::Primitive::zero());
+                }
+
+                if $sign
+                {
+
+                     let type_size = std::mem::size_of::<$src>();
+                    let mut full_bytes = if bytes.len() > 0 && bytes[0] & 0x80 != 0 {
+                        vec![0xFF; type_size]  // Sign extend for negative
+                    } else {
+                        vec![0; type_size]  // Zero extend for positive
+                    };
+                    // Copy bytes to the end (big-endian)
+                    let start_pos = type_size.saturating_sub(bytes.len());
+                    full_bytes[start_pos..].copy_from_slice(bytes);
+
+                    <$src>::from_be_bytes(full_bytes.try_into().unwrap())
+                }
+                else {
+                    parser.read_primitive(bits_len )
+                }
+
+            }
+
+            fn tcn_to_bytes(&self) -> Vec<u8> {
+                if $sign {
+                    // For signed types, convert to big-endian bytes
+                    (*self as $unsign).to_be_bytes().to_vec()
+                } else {
+                    unreachable!()
+                }
+            }
 
             fn tcn_from_primitive(value: Self::Primitive) -> Self { value }
-            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { Some(*self as $unsign) }
+            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> {
+                if $sign {
+                    None  // Signed primitives use byte-based serialization
+                } else {
+                    Some(*self as $unsign)  // Unsigned primitives use direct write
+                }
+            }
 
             fn tcn_is_zero(&self) -> bool { *self == 0 }
-            fn tcn_min_bits_len(&self) -> usize { unreachable!() }
+            fn tcn_min_bits_len(&self) -> usize {
+                if *self == 0 {
+                    return  { 0 };
+                }
+                if $sign {
+                    // For signed numbers in two's complement
+                    let as_unsigned = *self as $unsign;
+                    if *self < 0 {
+                        // For negative numbers: -1 needs just 1 bit, others need more
+                        let leading_ones = as_unsigned.leading_ones() as usize;
+                        let size_bits = std::mem::size_of::<$src>() * 8;
+                        if leading_ones == size_bits {
+                            1  // -1 needs only 1 bit
+                        } else {
+                            size_bits - leading_ones + 1
+                        }
+                    } else {
+                        // For positive signed numbers
+                        let leading_zeros = as_unsigned.leading_zeros() as usize;
+                        let size_bits = std::mem::size_of::<$src>() * 8;
+                        size_bits - leading_zeros + 1
+                    }
+                } else {
+                    // For unsigned numbers
+                    let size_bits = std::mem::size_of::<$src>() * 8;
+                    let leading_zeros = (*self as $unsign).leading_zeros() as usize;
+                    size_bits - leading_zeros
+                }
+            }
             fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
         }
     };
 }
 
 ton_cell_num_primitive_impl!(i8, true, u8);
-ton_cell_num_primitive_impl!(u8, false, u8);
-ton_cell_num_primitive_impl!(i16, true, u16);
-ton_cell_num_primitive_impl!(u16, false, u16);
-ton_cell_num_primitive_impl!(i32, true, u32);
-ton_cell_num_primitive_impl!(u32, false, u32);
-ton_cell_num_primitive_impl!(i64, true, u64);
-ton_cell_num_primitive_impl!(u64, false, u64);
-ton_cell_num_primitive_impl!(i128, true, u128);
-ton_cell_num_primitive_impl!(u128, false, u128);
+// ton_cell_num_primitive_impl!(u8, false, u8);
+// ton_cell_num_primitive_impl!(i16, true, u16);
+// ton_cell_num_primitive_impl!(u16, false, u16);
+// ton_cell_num_primitive_impl!(i32, true, u32);
+// ton_cell_num_primitive_impl!(u32, false, u32);
+// ton_cell_num_primitive_impl!(i64, true, u64);
+// ton_cell_num_primitive_impl!(u64, false, u64);
+// ton_cell_num_primitive_impl!(i128, true, u128);
+// ton_cell_num_primitive_impl!(u128, false, u128);
 
 // Implementation for usize
 impl TonCellNum for usize {
@@ -110,116 +184,124 @@ impl TonCellNum for usize {
     fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { Some(*self as u128) }
 
     fn tcn_is_zero(&self) -> bool { *self == 0 }
-    fn tcn_min_bits_len(&self) -> usize { unreachable!() } // extra bit for sign
+    fn tcn_min_bits_len(&self) -> usize {
+        if *self == 0 {
+            return 0;
+        }
+        let size_bits = std::mem::size_of::<usize>() * 8;
+        let leading_zeros = self.leading_zeros() as usize;
+        size_bits - leading_zeros
+    }
     fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
 }
+//
+// // Implementation for BigInt and BigUint
+// impl TonCellNum for BigInt {
+//     const SIGNED: bool = true;
+//     const IS_PRIMITIVE: bool = false;
+//     type Primitive = i128;
+//     type UnsignedPrimitive = u128;
+//     fn tcn_from_bytes(bytes: &[u8]) -> Self { BigInt::from_signed_bytes_be(bytes) }
+//     fn tcn_to_bytes(&self) -> Vec<u8> { BigInt::to_signed_bytes_be(self) }
+//
+//     fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
+//     fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
+//
+//     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+//     fn tcn_min_bits_len(&self) -> usize { self.bits() as usize + 1 } // extra bit for sign
+//     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+// }
+//
+// impl TonCellNum for BigUint {
+//     const SIGNED: bool = false;
+//     const IS_PRIMITIVE: bool = false;
+//     type Primitive = u128;
+//     type UnsignedPrimitive = u128;
+//     fn tcn_from_bytes(bytes: &[u8]) -> Self { BigUint::from_bytes_be(bytes) }
+//     fn tcn_to_bytes(&self) -> Vec<u8> { BigUint::to_bytes_be(self) }
+//
+//     fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
+//     fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
+//
+//     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+//     fn tcn_min_bits_len(&self) -> usize { self.bits() as usize }
+//     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+// }
+//
+// macro_rules! ton_cell_num_fastnum_impl {
+//     ($src:ty, $sign:tt, $prim:ty) => {
+//         impl TonCellNum for $src {
+//             const SIGNED: bool = $sign;
+//             const IS_PRIMITIVE: bool = false;
+//             type Primitive = $prim;
+//             type UnsignedPrimitive = u64;
+//
+//             fn tcn_from_bytes(bytes: &[u8]) -> Self { Self::from_be_slice(bytes).expect("Could not convert bytes ") }
+//             fn tcn_to_bytes(&self) -> Vec<u8> {
+//                 // Convert Tyoe to big-endian bytes
+//                 let mut bytes = vec![0u8; std::mem::size_of::<Self>()];
+//
+//                 // Try to access the internal representation
+//                 // U256 is likely represented as 4 u64 words
+//                 // We need to convert to big-endian byte representation
+//                 let mut temp = *self;
+//                 for i in (0..bytes.len()).rev() {
+//                     bytes[i] = (temp & Self::from(0xFFu8)).to_u64().unwrap_or(0) as u8;
+//                     temp = temp >> 8;
+//                 }
+//                 bytes
+//             }
+//
+//             fn tcn_from_primitive(value: Self::Primitive) -> Self {
+//                 // Since U256 doesn't have from_words, we'll convert via bytes
+//                 let bytes = value.to_be_bytes();
+//                 Self::from_be_slice(&bytes).expect("Could not convert u128 to ")
+//             }
+//             fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
+//
+//             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+//             fn tcn_min_bits_len(&self) -> usize {
+//                 // Calculate the minimum number of bits needed to represent this number
+//                 if self.tcn_is_zero() {
+//                     return if Self::SIGNED { 1 } else { 0 };
+//                 }
+//
+//                 // For fastnum types, we can use the bits() method if available
+//                 // Otherwise, find the position of the highest set bit
+//                 let mut temp = *self;
+//                 let mut bits = 0;
+//
+//                 // Find the position of the highest set bit
+//                 while temp > Self::from(0u32) {
+//                     temp = temp >> 1;
+//                     bits += 1;
+//                 }
+//
+//                 // Add sign bit for signed numbers
+//                 if Self::SIGNED {
+//                     bits += 1;
+//                 }
+//
+//                 bits
+//             }
+//             fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
+//         }
+//     };
+// }
+//
+// ton_cell_num_fastnum_impl!(U128, false, u64);
+// ton_cell_num_fastnum_impl!(I128, true, i64);
+//
+// ton_cell_num_fastnum_impl!(U256, false, u64);
+// ton_cell_num_fastnum_impl!(I256, true, i64);
+//
+// ton_cell_num_fastnum_impl!(U512, false, u64);
+// ton_cell_num_fastnum_impl!(I512, true, i64);
+//
+// ton_cell_num_fastnum_impl!(U1024, false, u64);
+// ton_cell_num_fastnum_impl!(I1024, true, i64);
 
-// Implementation for BigInt and BigUint
-impl TonCellNum for BigInt {
-    const SIGNED: bool = true;
-    const IS_PRIMITIVE: bool = false;
-    type Primitive = i128;
-    type UnsignedPrimitive = u128;
-    fn tcn_from_bytes(bytes: &[u8]) -> Self { BigInt::from_signed_bytes_be(bytes) }
-    fn tcn_to_bytes(&self) -> Vec<u8> { BigInt::to_signed_bytes_be(self) }
-
-    fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
-    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
-
-    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
-    fn tcn_min_bits_len(&self) -> usize { self.bits() as usize + 1 } // extra bit for sign
-    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
-}
-
-impl TonCellNum for BigUint {
-    const SIGNED: bool = false;
-    const IS_PRIMITIVE: bool = false;
-    type Primitive = u128;
-    type UnsignedPrimitive = u128;
-    fn tcn_from_bytes(bytes: &[u8]) -> Self { BigUint::from_bytes_be(bytes) }
-    fn tcn_to_bytes(&self) -> Vec<u8> { BigUint::to_bytes_be(self) }
-
-    fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
-    fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
-
-    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
-    fn tcn_min_bits_len(&self) -> usize { self.bits() as usize }
-    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
-}
-
-macro_rules! ton_cell_num_fastnum_impl {
-    ($src:ty, $sign:tt, $prim:ty) => {
-        impl TonCellNum for $src {
-            const SIGNED: bool = $sign;
-            const IS_PRIMITIVE: bool = false;
-            type Primitive = $prim;
-            type UnsignedPrimitive = u64;
-
-            fn tcn_from_bytes(bytes: &[u8]) -> Self { Self::from_be_slice(bytes).expect("Could not convert bytes ") }
-            fn tcn_to_bytes(&self) -> Vec<u8> {
-                // Convert Tyoe to big-endian bytes
-                let mut bytes = vec![0u8; std::mem::size_of::<Self>()];
-
-                // Try to access the internal representation
-                // U256 is likely represented as 4 u64 words
-                // We need to convert to big-endian byte representation
-                let mut temp = *self;
-                for i in (0..bytes.len()).rev() {
-                    bytes[i] = (temp & Self::from(0xFFu8)).to_u64().unwrap_or(0) as u8;
-                    temp = temp >> 8;
-                }
-                bytes
-            }
-
-            fn tcn_from_primitive(value: Self::Primitive) -> Self {
-                // Since U256 doesn't have from_words, we'll convert via bytes
-                let bytes = value.to_be_bytes();
-                Self::from_be_slice(&bytes).expect("Could not convert u128 to ")
-            }
-            fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
-
-            fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
-            fn tcn_min_bits_len(&self) -> usize {
-                // Calculate the minimum number of bits needed to represent this number
-                if self.tcn_is_zero() {
-                    return if Self::SIGNED { 1 } else { 0 };
-                }
-
-                // For fastnum types, we can use the bits() method if available
-                // Otherwise, find the position of the highest set bit
-                let mut temp = *self;
-                let mut bits = 0;
-
-                // Find the position of the highest set bit
-                while temp > Self::from(0u32) {
-                    temp = temp >> 1;
-                    bits += 1;
-                }
-
-                // Add sign bit for signed numbers
-                if Self::SIGNED {
-                    bits += 1;
-                }
-
-                bits
-            }
-            fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
-        }
-    };
-}
-
-ton_cell_num_fastnum_impl!(U128, false, u64);
-ton_cell_num_fastnum_impl!(I128, true, i64);
-
-ton_cell_num_fastnum_impl!(U256, false, u64);
-ton_cell_num_fastnum_impl!(I256, true, i64);
-
-ton_cell_num_fastnum_impl!(U512, false, u64);
-ton_cell_num_fastnum_impl!(I512, true, i64);
-
-ton_cell_num_fastnum_impl!(U1024, false, u64);
-ton_cell_num_fastnum_impl!(I1024, true, i64);
-
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -934,3 +1016,4 @@ mod tests {
         Ok(())
     }
 }
+*/

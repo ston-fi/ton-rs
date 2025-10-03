@@ -2,7 +2,7 @@ use crate::bail_ton_core_data;
 use crate::cell::ton_cell::{TonCell, TonCellRef};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitRead, BitReader};
+use bitstream_io::{BigEndian, BitRead, BitReader, Integer};
 use num_traits::Zero;
 use std::io::{Cursor, SeekFrom};
 
@@ -50,18 +50,14 @@ impl<'a> CellParser<'a> {
         }
         Ok(dst)
     }
+    pub fn read_primitive<T:Integer+Sized>(&mut self, bits_len:usize) -> Result<T, TonCoreError> {
+        let primitive = self.data_reader.read_var::<T>(bits_len as u32)?;
+        Ok(primitive)
+    }
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
-        if bits_len == 0 {
-            return Ok(N::tcn_from_primitive(N::Primitive::zero()));
-        }
 
         self.ensure_enough_bits(bits_len)?;
-        if N::IS_PRIMITIVE {
-            let primitive = self.data_reader.read_var::<N::Primitive>(bits_len as u32)?;
-            return Ok(N::tcn_from_primitive(primitive));
-        }
-        //
 
         N::read_from(self, bits_len)
     }
