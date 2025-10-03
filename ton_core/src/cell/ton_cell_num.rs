@@ -19,7 +19,8 @@ pub trait TonCellNum: Display + Sized + Clone {
     type Primitive: Zero + Integer;
     type UnsignedPrimitive: Integer;
 
-    fn tcn_to_bytes(&self) -> Vec<u8> { unreachable!() }
+    // deprecated
+    fn tcn_to_bytes(&self) -> Vec<u8>;
 
     fn highest_bit_pos_ignore_sign(&self) -> Option<u32>;
     fn tcn_is_zero(&self) -> bool;
@@ -27,46 +28,9 @@ pub trait TonCellNum: Display + Sized + Clone {
     fn tcn_shr(&self, bits: usize) -> Self;
 
     fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError>;
-    // {
-    //     // handling it like ton-core
-    //     // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
-    //
-    //     let min_bits_len = self.tcn_min_bits_len();
-    //     if min_bits_len > bits_len {
-    //         bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
-    //     }
-    //
-    //     if let Some(unsigned) = self.tcn_to_unsigned_primitive() {
-    //         builder.write_unsigned_number(unsigned, bits_len)?;
-    //         return Ok(());
-    //     }
-    //
-    //     let data_bytes = self.tcn_to_bytes();
-    //     let padding_val: u8 = match (Self::SIGNED, data_bytes[0] >> 7 != 0) {
-    //         (true, true) => 255,
-    //         _ => 0,
-    //     };
-    //     let padding_bits_len = bits_len.saturating_sub(min_bits_len);
-    //     let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
-    //     builder.write_bits(padding_to_write, padding_bits_len)?;
-    //
-    //     let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
-    //     builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
-    // }
+
     fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError>;
-    // {
-    //     if Self::IS_PRIMITIVE {
-    //         // read_primitive
-    //         let primitive = parser.read_primitive::<Self::Primitive>(bits_len )?;
-    //         return Ok(Self::tcn_from_primitive(primitive));
-    //     }
-    //     let bytes = parser.read_bits(bits_len)?;
-    //     let res = Self::tcn_from_bytes(&bytes);
-    //     if bits_len % 8 != 0 {
-    //         return Ok(res.tcn_shr(8 - bits_len % 8));
-    //     }
-    //     Ok(res)
-    // }
+
     fn tcn_min_bits_len(&self) -> u32 {
         if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
             value += 1u32; // bit pos to bit size
@@ -112,6 +76,7 @@ macro_rules! ton_cell_num_primitive_impl {
             type UnsignedPrimitive = $unsign;
 
             ton_highest_bit_pos_ignore_sign_impl!($sign, $unsign);
+            fn tcn_to_bytes(&self) -> Vec<u8> { self.to_be_bytes().to_vec() }
 
             fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
@@ -164,7 +129,7 @@ impl TonCellNum for usize {
     const IS_PRIMITIVE: bool = true;
     type Primitive = u128;
     type UnsignedPrimitive = u128;
-
+    fn tcn_to_bytes(&self) -> Vec<u8> { self.to_be_bytes().to_vec() }
     fn tcn_is_zero(&self) -> bool { *self == 0 }
 
     fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
@@ -205,6 +170,8 @@ impl TonCellNum for BigInt {
     const IS_PRIMITIVE: bool = false;
     type Primitive = i128;
     type UnsignedPrimitive = u128;
+
+    fn tcn_to_bytes(&self) -> Vec<u8> { BigInt::to_signed_bytes_be(self) }
 
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
@@ -262,6 +229,8 @@ impl TonCellNum for BigUint {
     type Primitive = u128;
     type UnsignedPrimitive = u128;
 
+    fn tcn_to_bytes(&self) -> Vec<u8> { BigUint::to_bytes_be(self) }
+
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
     fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
@@ -309,39 +278,6 @@ impl TonCellNum for BigUint {
     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
 
-//
-// // Implementation for BigInt and BigUint
-// impl TonCellNum for BigInt {
-//     const SIGNED: bool = true;
-//     const IS_PRIMITIVE: bool = false;
-//     type Primitive = i128;
-//     type UnsignedPrimitive = u128;
-//     fn tcn_from_bytes(bytes: &[u8]) -> Self { BigInt::from_signed_bytes_be(bytes) }
-//     fn tcn_to_bytes(&self) -> Vec<u8> { BigInt::to_signed_bytes_be(self) }
-//
-//     fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
-//     fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
-//
-//     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
-//     fn tcn_min_bits_len(&self) -> usize { self.bits() as usize + 1 } // extra bit for sign
-//     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
-// }
-//
-// impl TonCellNum for BigUint {
-//     const SIGNED: bool = false;
-//     const IS_PRIMITIVE: bool = false;
-//     type Primitive = u128;
-//     type UnsignedPrimitive = u128;
-//     fn tcn_from_bytes(bytes: &[u8]) -> Self { BigUint::from_bytes_be(bytes) }
-//     fn tcn_to_bytes(&self) -> Vec<u8> { BigUint::to_bytes_be(self) }
-//
-//     fn tcn_from_primitive(value: Self::Primitive) -> Self { value.into() }
-//     fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
-//
-//     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
-//     fn tcn_min_bits_len(&self) -> usize { self.bits() as usize }
-//     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
-// }
 //
 // macro_rules! ton_cell_num_fastnum_impl {
 //     ($src:ty, $sign:tt, $prim:ty) => {
@@ -470,7 +406,7 @@ mod tests {
     fn test_toncellnum_store_and_parse_bigint() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
         let mut builder = TonCell::builder();
-        let test_value = BigInt::from(-12);
+        let test_value = BigInt::from(-900);
 
         let test_bit = 14;
         builder.write_num(&test_value, test_bit)?;
@@ -491,9 +427,9 @@ mod tests {
     fn test_toncellnum_store_and_parse_biguint() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
         let mut builder = TonCell::builder();
-        let test_value: BigUint = BigUint::from(12u64);
+        let test_value: BigUint = BigUint::from(64000u64);
 
-        let test_bit = 14;
+        let test_bit = 32;
         builder.write_num(&test_value, test_bit)?;
 
         // Build the cell
