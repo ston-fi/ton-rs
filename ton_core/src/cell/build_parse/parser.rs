@@ -3,7 +3,6 @@ use crate::cell::ton_cell::{TonCell, TonCellRef};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader, Integer};
-use num_traits::Zero;
 use std::io::{Cursor, SeekFrom};
 
 #[derive(Debug)]
