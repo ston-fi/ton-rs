@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_parser_read_ref() -> anyhow::Result<()> {
         let mut ref_builder = TonCell::builder();
-        ref_builder.write_num(&0b11110000, 8)?;
+        ref_builder.write_num(&0b11110000u32, 8)?;
         let cell_ref = ref_builder.build()?.into_ref();
 
         let mut cell_builder = TonCell::builder();

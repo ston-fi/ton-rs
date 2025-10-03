@@ -228,8 +228,8 @@ mod tests {
     #[test]
     fn test_builder_write_num_positive() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_num(&0b1010_1010, 8)?;
-        cell_builder.write_num(&0b0000_0101, 4)?;
+        cell_builder.write_num(&0b1010_1010u32, 8)?;
+        cell_builder.write_num(&0b0000_0101u32, 4)?;
         let cell = cell_builder.build()?;
         assert_eq!(cell.data, vec![0b1010_1010, 0b0101_0000]);
         Ok(())
@@ -257,12 +257,14 @@ mod tests {
     #[test]
     fn test_builder_write_num_negative() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert!(cell_builder.write_num(&-3i32, 3).is_err());
-        assert!(cell_builder.write_num(&-3i32, 31).is_err());
+        assert!(cell_builder.write_num(&-3i32, 2).is_err());
+
         cell_builder.write_num(&-3i16, 16)?;
         cell_builder.write_num(&-3i8, 8)?;
+
         let cell = cell_builder.build()?;
         assert_eq!(cell.data, vec![0b1111_1111, 0b1111_1101, 0b1111_1101]);
+
         Ok(())
     }
 
