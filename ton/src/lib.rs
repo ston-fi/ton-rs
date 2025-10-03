@@ -6,7 +6,7 @@ pub mod lite_client;
 pub mod net_config;
 pub mod tep;
 pub mod tlb_adapters;
-pub mod wallet;
+pub mod ton_wallet;
 
 #[cfg(feature = "tonlibjson")]
 pub mod contracts;

@@ -16,8 +16,8 @@ mod example {
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
     use ton_lib::tl_client::TLClientConfig;
     use ton_lib::tl_client::{TLClient, TLClientTrait};
-    use ton_lib::wallet::WalletVersion;
-    use ton_lib::wallet::{Mnemonic, TonWallet};
+    use ton_lib::ton_wallet::WalletVersion;
+    use ton_lib::ton_wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;
     use ton_lib_core::traits::tlb::TLB;
     use ton_lib_core::types::tlb_core::{MsgAddress, TLBEitherRef};
@@ -25,7 +25,7 @@ mod example {
     // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
     // How external and internal messages work: https://docs.ton.org/v3/guidelines/smart-contracts/howto/wallet#-external-and-internal-messages
     /* Plan:
-        - Ton transfer (We will use wallet v4)
+        - Ton transfer (We will use ton_wallet v4)
             - make an internal message with empty sell. It will signal that it is transfer
             - make an correct external message, and put there an internal message
             - send message to ton blockchain
@@ -68,7 +68,7 @@ mod example {
         // ---------- Wallet initialization ----------
         let mnemonic_str = std::env::var("MNEMONIC_STR")?;
         let key_pair = Mnemonic::from_str(&mnemonic_str, None)?.to_key_pair()?;
-        // To create w5 wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
+        // To create w5 ton_wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
         let wallet = TonWallet::new(WalletVersion::V4R2, key_pair)?;
 
         // Make testnet client
@@ -98,7 +98,7 @@ mod example {
         let expired_at_time = std::time::SystemTime::now() + Duration::from_secs(600);
         let expire_at = expired_at_time.duration_since(std::time::UNIX_EPOCH)?.as_secs() as u32;
 
-        // Get current wallet seqno
+        // Get current ton_wallet seqno
         let wallet_ctr = TonWalletContract::new(&ctr_cli, wallet.address.clone(), None).await?;
         let seqno = wallet_ctr.seqno().await?;
 

@@ -1,5 +1,5 @@
-use crate::wallet::WalletVersion;
-use crate::wallet::WalletVersion::*;
+use crate::ton_wallet::WalletVersion;
+use crate::ton_wallet::WalletVersion::*;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use ton_lib_core::cell::{TonCellRef, TonHash};

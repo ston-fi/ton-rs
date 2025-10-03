@@ -17,7 +17,7 @@ pub struct JettonTransferMsg {
     pub amount: Coins, // amount of transferred jettons in elementary units
     pub dst: MsgAddress,
     pub response_dst: MsgAddress, // address where to send a response with confirmation of a successful transfer and the rest of the incoming message Toncoins.
-    pub custom_payload: Option<TonCellRef>, // optional custom data (which is used by either sender or receiver jetton wallet for inner logic).
+    pub custom_payload: Option<TonCellRef>, // optional custom data (which is used by either sender or receiver jetton ton_wallet for inner logic).
     pub forward_ton_amount: Coins,          // the amount of nano-tons to be sent to the destination address.
     pub forward_payload: TLBEitherRef<TonCell>, // optional custom data that should be sent to the destination address.
 }
