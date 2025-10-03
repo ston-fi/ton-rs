@@ -88,10 +88,9 @@ impl CellBuilder {
         }
         Ok(())
     }
+
+
     pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> { Ok(self.build()?.into_ref()) }
-
-    /// expecting data.len() * 8 >= (bits_offset + bits_len)
-
     pub fn write_bits<T: AsRef<[u8]>>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
         self.write_bits_with_offset(data, bits_len, 0)
     }
@@ -108,14 +107,7 @@ impl CellBuilder {
         self.refs.push(cell);
         Ok(())
     }
-    pub fn write_unsigned_number<N>(&mut self, value: N, bits_len: usize) -> Result<(), TonCoreError>
-    where
-        N: Integer,
-    {
-        self.ensure_capacity(bits_len)?;
-        self.data_writer.write_var(bits_len as u32, value)?;
-        Ok(())
-    }
+
     pub fn write_primitive<T: Integer + Sized>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
         self.ensure_capacity(bits_len)?;
         self.data_writer.write_var(bits_len as u32, data)?;
