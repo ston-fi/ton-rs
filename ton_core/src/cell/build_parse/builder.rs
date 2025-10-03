@@ -39,6 +39,8 @@ impl CellBuilder {
         cell.meta.validate(&cell)?;
         Ok(cell)
     }
+
+    pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> { Ok(self.build()?.into_ref()) }
     pub fn write_bit(&mut self, data: bool) -> Result<(), TonCoreError> {
         self.ensure_capacity(1)?;
         self.data_writer.write_bit(data)?;
@@ -89,8 +91,6 @@ impl CellBuilder {
         Ok(())
     }
 
-
-    pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> { Ok(self.build()?.into_ref()) }
     pub fn write_bits<T: AsRef<[u8]>>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
         self.write_bits_with_offset(data, bits_len, 0)
     }

@@ -8,7 +8,7 @@ use crate::cell::{CellBuilder, CellParser};
 use crate::errors::TonCoreError;
 use fastnum::{I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
-use num_traits::real::Real;
+
 /// Allows generic read/write operation for any numeric type
 ///
 /// Questions
@@ -278,7 +278,6 @@ impl TonCellNum for BigUint {
     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
 
-
 macro_rules! ton_cell_num_fastnum_impl {
     ($src:ty, $sign:tt, $usigned_type:ty) => {
         impl TonCellNum for $src {
@@ -317,7 +316,7 @@ macro_rules! ton_cell_num_fastnum_impl {
                 // Return position (0-indexed), so subtract 1
                 Some(bits - 1)
             }
-            
+
             fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> {
                 let min_bits_len = self.tcn_min_bits_len();
                 if min_bits_len > (bits_len as u32) {
@@ -341,7 +340,7 @@ macro_rules! ton_cell_num_fastnum_impl {
                 } else {
                     0
                 };
-                
+
                 let padding_bits_len = bits_len.saturating_sub(min_bits_len as usize);
                 let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
                 builder.write_bits(padding_to_write, padding_bits_len)?;
@@ -349,13 +348,13 @@ macro_rules! ton_cell_num_fastnum_impl {
                 let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len as usize);
                 builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
             }
-            
+
             fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
                 let bytes = parser.read_bits(bits_len)?;
-                
+
                 // Pad bytes to the size of Self
                 let type_size = std::mem::size_of::<Self>();
                 let mut padded_bytes = if Self::SIGNED && !bytes.is_empty() && (bytes[0] & 0x80) != 0 {
@@ -365,16 +364,16 @@ macro_rules! ton_cell_num_fastnum_impl {
                     // Positive or unsigned: pad with 0x00
                     vec![0x00; type_size]
                 };
-                
+
                 // Copy the bytes to the end of the padded array
                 let offset = type_size.saturating_sub(bytes.len());
                 padded_bytes[offset..].copy_from_slice(&bytes);
-                
+
                 let mut result = Self::from(0u32);
                 for &byte in &padded_bytes {
                     result = (result << 8) | Self::from(byte);
                 }
-                
+
                 if bits_len % 8 != 0 {
                     return Ok(result.tcn_shr(8 - bits_len % 8));
                 }
@@ -385,7 +384,7 @@ macro_rules! ton_cell_num_fastnum_impl {
             fn tcn_min_bits_len(&self) -> u32 {
                 // Calculate the minimum number of bits needed to represent this number
                 if self.tcn_is_zero() {
-                    return  { 0 };
+                    return { 0 };
                 }
 
                 // For fastnum types, we can use the bits() method if available
@@ -411,25 +410,24 @@ macro_rules! ton_cell_num_fastnum_impl {
     };
 }
 
-// ton_cell_num_fastnum_impl!(U128, false, u64);
-// ton_cell_num_fastnum_impl!(I128, true, i64);
-//
-// ton_cell_num_fastnum_impl!(U256, false, u64);
-// ton_cell_num_fastnum_impl!(I256, true, i64);
+ton_cell_num_fastnum_impl!(U128, false, U128);
+ton_cell_num_fastnum_impl!(I128, true, U128);
+
+ton_cell_num_fastnum_impl!(U256, false, U256);
+ton_cell_num_fastnum_impl!(I256, true, U256);
 //
 ton_cell_num_fastnum_impl!(U512, false, U512);
 ton_cell_num_fastnum_impl!(I512, true, U512);
 //
-// ton_cell_num_fastnum_impl!(U1024, false, u64);
-// ton_cell_num_fastnum_impl!(I1024, true, i64);
+ton_cell_num_fastnum_impl!(U1024, false, U1024);
+ton_cell_num_fastnum_impl!(I1024, true, U1024);
 
 #[cfg(test)]
 mod tests {
-    use fastnum::{U512,I512};
-use crate::cell::{CellParser, TonCell};
+    use crate::cell::{CellParser, TonCell};
+    use fastnum::{I512, U512};
     use num_bigint::BigInt;
     use num_bigint::BigUint;
-    use num_traits::Signed;
 
     #[test]
     fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
@@ -538,7 +536,6 @@ use crate::cell::{CellParser, TonCell};
 
         Ok(())
     }
-
 
     #[test]
     fn test_toncellnum_store_and_parse_u512() -> anyhow::Result<()> {
