@@ -278,83 +278,155 @@ impl TonCellNum for BigUint {
     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
 
-//
-// macro_rules! ton_cell_num_fastnum_impl {
-//     ($src:ty, $sign:tt, $prim:ty) => {
-//         impl TonCellNum for $src {
-//             const SIGNED: bool = $sign;
-//             const IS_PRIMITIVE: bool = false;
-//             type Primitive = $prim;
-//             type UnsignedPrimitive = u64;
-//
-//             fn tcn_from_bytes(bytes: &[u8]) -> Self { Self::from_be_slice(bytes).expect("Could not convert bytes ") }
-//             fn tcn_to_bytes(&self) -> Vec<u8> {
-//                 // Convert Tyoe to big-endian bytes
-//                 let mut bytes = vec![0u8; std::mem::size_of::<Self>()];
-//
-//                 // Try to access the internal representation
-//                 // U256 is likely represented as 4 u64 words
-//                 // We need to convert to big-endian byte representation
-//                 let mut temp = *self;
-//                 for i in (0..bytes.len()).rev() {
-//                     bytes[i] = (temp & Self::from(0xFFu8)).to_u64().unwrap_or(0) as u8;
-//                     temp = temp >> 8;
-//                 }
-//                 bytes
-//             }
-//
-//             fn tcn_from_primitive(value: Self::Primitive) -> Self {
-//                 // Since U256 doesn't have from_words, we'll convert via bytes
-//                 let bytes = value.to_be_bytes();
-//                 Self::from_be_slice(&bytes).expect("Could not convert u128 to ")
-//             }
-//             fn tcn_to_unsigned_primitive(&self) -> Option<Self::UnsignedPrimitive> { None }
-//
-//             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
-//             fn tcn_min_bits_len(&self) -> usize {
-//                 // Calculate the minimum number of bits needed to represent this number
-//                 if self.tcn_is_zero() {
-//                     return if Self::SIGNED { 1 } else { 0 };
-//                 }
-//
-//                 // For fastnum types, we can use the bits() method if available
-//                 // Otherwise, find the position of the highest set bit
-//                 let mut temp = *self;
-//                 let mut bits = 0;
-//
-//                 // Find the position of the highest set bit
-//                 while temp > Self::from(0u32) {
-//                     temp = temp >> 1;
-//                     bits += 1;
-//                 }
-//
-//                 // Add sign bit for signed numbers
-//                 if Self::SIGNED {
-//                     bits += 1;
-//                 }
-//
-//                 bits
-//             }
-//             fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
-//         }
-//     };
-// }
-//
+
+macro_rules! ton_cell_num_fastnum_impl {
+    ($src:ty, $sign:tt, $usigned_type:ty) => {
+        impl TonCellNum for $src {
+            const SIGNED: bool = $sign;
+            const IS_PRIMITIVE: bool = false;
+            type Primitive = u64;
+            type UnsignedPrimitive = u64;
+            //Self::from_be_slice(bytes)
+
+            fn tcn_to_bytes(&self) -> Vec<u8> {
+                // Convert Tyoe to big-endian bytes
+                let mut bytes = vec![0u8; std::mem::size_of::<Self>()];
+
+                // Try to access the internal representation
+                // U256 is likely represented as 4 u64 words
+                // We need to convert to big-endian byte representation
+                let mut temp = *self;
+                for i in (0..bytes.len()).rev() {
+                    bytes[i] = (temp & Self::from(0xFFu8)).to_u64().unwrap_or(0) as u8;
+                    temp = temp >> 8;
+                }
+                bytes
+            }
+
+            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+                if self.tcn_is_zero() {
+                    return None;
+                }
+                // Find the position of the highest set bit
+                let mut temp = *self;
+                let mut bits = 0;
+                while temp > Self::from(0u32) {
+                    temp = temp >> 1;
+                    bits += 1;
+                }
+                // Return position (0-indexed), so subtract 1
+                Some(bits - 1)
+            }
+            
+            fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> {
+                let min_bits_len = self.tcn_min_bits_len();
+                if min_bits_len > (bits_len as u32) {
+                    let tmp_str = if Self::SIGNED { "signed" } else { "unsigned" };
+                    bail_ton_core_data!(
+                        "Can't write {} fastnum number {} ({} bits) in {} bits",
+                        tmp_str,
+                        self,
+                        min_bits_len,
+                        bits_len
+                    );
+                }
+
+                let data_bytes = self.tcn_to_bytes();
+                let padding_val: u8 = if Self::SIGNED {
+                    // For signed numbers, check if negative (high bit set)
+                    match data_bytes.first() {
+                        Some(&first_byte) if first_byte >> 7 != 0 => 255,
+                        _ => 0,
+                    }
+                } else {
+                    0
+                };
+                
+                let padding_bits_len = bits_len.saturating_sub(min_bits_len as usize);
+                let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
+                builder.write_bits(padding_to_write, padding_bits_len)?;
+
+                let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len as usize);
+                builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+            }
+            
+            fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
+                if bits_len == 0 {
+                    return Ok(Self::from(0u32));
+                }
+                let bytes = parser.read_bits(bits_len)?;
+                
+                // Pad bytes to the size of Self
+                let type_size = std::mem::size_of::<Self>();
+                let mut padded_bytes = if Self::SIGNED && !bytes.is_empty() && (bytes[0] & 0x80) != 0 {
+                    // Negative number: pad with 0xFF
+                    vec![0xFF; type_size]
+                } else {
+                    // Positive or unsigned: pad with 0x00
+                    vec![0x00; type_size]
+                };
+                
+                // Copy the bytes to the end of the padded array
+                let offset = type_size.saturating_sub(bytes.len());
+                padded_bytes[offset..].copy_from_slice(&bytes);
+                
+                let mut result = Self::from(0u32);
+                for &byte in &padded_bytes {
+                    result = (result << 8) | Self::from(byte);
+                }
+                
+                if bits_len % 8 != 0 {
+                    return Ok(result.tcn_shr(8 - bits_len % 8));
+                }
+                Ok(result)
+            }
+
+            fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+            fn tcn_min_bits_len(&self) -> u32 {
+                // Calculate the minimum number of bits needed to represent this number
+                if self.tcn_is_zero() {
+                    return  { 0 };
+                }
+
+                // For fastnum types, we can use the bits() method if available
+                // Otherwise, find the position of the highest set bit
+                let mut temp = *self;
+                let mut bits = 0;
+
+                // Find the position of the highest set bit
+                while temp > Self::from(0u32) {
+                    temp = temp >> 1;
+                    bits += 1;
+                }
+
+                // Add sign bit for signed numbers
+                if Self::SIGNED {
+                    bits += 1;
+                }
+
+                bits
+            }
+            fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
+        }
+    };
+}
+
 // ton_cell_num_fastnum_impl!(U128, false, u64);
 // ton_cell_num_fastnum_impl!(I128, true, i64);
 //
 // ton_cell_num_fastnum_impl!(U256, false, u64);
 // ton_cell_num_fastnum_impl!(I256, true, i64);
 //
-// ton_cell_num_fastnum_impl!(U512, false, u64);
-// ton_cell_num_fastnum_impl!(I512, true, i64);
+ton_cell_num_fastnum_impl!(U512, false, U512);
+ton_cell_num_fastnum_impl!(I512, true, U512);
 //
 // ton_cell_num_fastnum_impl!(U1024, false, u64);
 // ton_cell_num_fastnum_impl!(I1024, true, i64);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::{CellParser, TonCell};
+    use fastnum::{U512,I512};
+use crate::cell::{CellParser, TonCell};
     use num_bigint::BigInt;
     use num_bigint::BigUint;
     use num_traits::Signed;
@@ -460,6 +532,51 @@ mod tests {
         // Create a parser and read back the usize value
         let mut parser = CellParser::new(&cell);
         let parsed_value = parser.read_num::<usize>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+
+
+    #[test]
+    fn test_toncellnum_store_and_parse_u512() -> anyhow::Result<()> {
+        // Create a builder and store a usize value
+        let mut builder = TonCell::builder();
+        let test_value: U512 = 1234u64.into();
+
+        let test_bit = 30;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the usize value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<U512>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_toncellnum_store_and_parse_i512() -> anyhow::Result<()> {
+        // Create a builder and store a usize value
+        let mut builder = TonCell::builder();
+        let test_value: I512 = (-1234i64).into();
+
+        let test_bit = 30;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the usize value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<I512>(test_bit)?;
 
         // Verify the value matches
         assert_eq!(parsed_value, test_value);
