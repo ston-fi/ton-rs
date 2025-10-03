@@ -4,7 +4,7 @@ use crate::cell::meta::CellType;
 use crate::cell::ton_cell::{TonCell, TonCellRef, TonCellStorage};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
 use std::cmp::min;
 use std::ops::Deref;
 
@@ -41,14 +41,12 @@ impl CellBuilder {
     }
 
     pub fn build_ref(self) -> Result<TonCellRef, TonCoreError> { Ok(self.build()?.into_ref()) }
-
     pub fn write_bit(&mut self, data: bool) -> Result<(), TonCoreError> {
         self.ensure_capacity(1)?;
         self.data_writer.write_bit(data)?;
         Ok(())
     }
 
-    /// expecting data.len() * 8 >= (bits_offset + bits_len)
     pub fn write_bits_with_offset<T: AsRef<[u8]>>(
         &mut self,
         data: T,
@@ -110,6 +108,12 @@ impl CellBuilder {
         Ok(())
     }
 
+    pub fn write_primitive<T: Integer + Sized>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
+        self.ensure_capacity(bits_len)?;
+        self.data_writer.write_var(bits_len as u32, data)?;
+        Ok(())
+    }
+
     pub fn write_num<N, D>(&mut self, data: D, bits_len: usize) -> Result<(), TonCoreError>
     where
         N: TonCellNum,
@@ -124,34 +128,12 @@ impl CellBuilder {
             }
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
-
-        if let Some(unsigned) = data_ref.tcn_to_unsigned_primitive() {
-            self.ensure_capacity(bits_len)?;
-            self.data_writer.write_var(bits_len as u32, unsigned)?;
-            return Ok(());
-        }
-
-        let min_bits_len = data_ref.tcn_min_bits_len();
-        if min_bits_len > bits_len {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", data_ref, min_bits_len, bits_len);
-        }
-
-        let data_bytes = data_ref.tcn_to_bytes();
-        let padding_val: u8 = match (N::SIGNED, data_bytes[0] >> 7 != 0) {
-            (true, true) => 255,
-            _ => 0,
-        };
-        let padding_bits_len = bits_len.saturating_sub(min_bits_len);
-        let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
-        self.write_bits(padding_to_write, padding_bits_len)?;
-
-        let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
-        self.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+        data_ref.write_to(self, bits_len)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_BITS_LEN - self.data_bits_len }
 
-    fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
+    pub fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_bits_len + bits_len;
         if new_bits_len <= TonCell::MAX_DATA_BITS_LEN {
             self.data_bits_len = new_bits_len;
@@ -238,8 +220,8 @@ mod tests {
     #[test]
     fn test_builder_write_num_positive() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_num(&0b1010_1010, 8)?;
-        cell_builder.write_num(&0b0000_0101, 4)?;
+        cell_builder.write_num(&0b1010_1010u32, 8)?;
+        cell_builder.write_num(&0b0000_0101u32, 4)?;
         let cell = cell_builder.build()?;
         assert_eq!(cell.data, vec![0b1010_1010, 0b0101_0000]);
         Ok(())
@@ -267,12 +249,14 @@ mod tests {
     #[test]
     fn test_builder_write_num_negative() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert!(cell_builder.write_num(&-3i32, 3).is_err());
-        assert!(cell_builder.write_num(&-3i32, 31).is_err());
+        assert!(cell_builder.write_num(&-3i32, 2).is_err());
+
         cell_builder.write_num(&-3i16, 16)?;
         cell_builder.write_num(&-3i8, 8)?;
+
         let cell = cell_builder.build()?;
         assert_eq!(cell.data, vec![0b1111_1111, 0b1111_1101, 0b1111_1101]);
+
         Ok(())
     }
 
