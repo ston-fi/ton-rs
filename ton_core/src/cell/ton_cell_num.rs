@@ -102,3 +102,30 @@ impl TonCellNum for BigUint {
     fn tcn_min_bits_len(&self) -> usize { self.bits() as usize }
     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::cell::{CellParser, TonCell};
+
+    #[test]
+    fn test_store_and_parse_int16() -> anyhow::Result<()> {
+        // Create a builder and store an int16 value
+        let mut builder = TonCell::builder();
+        let test_value: i16 = -12;
+
+        let test_bit = 14;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the int16 value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<i16>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+}
