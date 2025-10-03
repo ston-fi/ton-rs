@@ -1,6 +1,6 @@
 use crate::errors::TonError;
-use crate::wallet::WalletVersion::*;
-use crate::wallet::*;
+use crate::ton_wallet::WalletVersion::*;
+use crate::ton_wallet::*;
 use ton_lib_core::bail_ton_core;
 use ton_lib_core::cell::{TonCell, TonCellRef, TonHash};
 use ton_lib_core::errors::TonCoreError;

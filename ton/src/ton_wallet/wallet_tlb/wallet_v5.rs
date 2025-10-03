@@ -1,4 +1,4 @@
-use crate::wallet::wallet_tlb::wallet_ext_msg_utils::*;
+use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::*;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
@@ -78,7 +78,7 @@ impl WalletV5ExtMsgBody {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::wallet::{WALLET_V5R1_DEFAULT_ID, WALLET_V5R1_DEFAULT_ID_TESTNET};
+    use crate::ton_wallet::{WALLET_V5R1_DEFAULT_ID, WALLET_V5R1_DEFAULT_ID_TESTNET};
     use std::str::FromStr;
     use ton_lib_core::cell::TonCell;
 
