@@ -67,7 +67,7 @@ impl WalletV3ExtMsgBody {
 
 #[cfg(test)]
 mod tests {
-    use crate::ton_wallet::{WalletV3Data, WalletV3ExtMsgBody, WALLET_DEFAULT_ID};
+    use crate::ton_wallet::{WalletV3Data, WalletV3ExtMsgBody, WALLET_ID_DEFAULT};
     use std::str::FromStr;
     use ton_lib_core::cell::{TonCell, TonHash};
     use ton_lib_core::traits::tlb::TLB;
@@ -78,7 +78,7 @@ mod tests {
         let src_boc_hex = "b5ee9c7241010101002a0000500000000129a9a317cbf377c9b73604c70bf73488ddceba14f763baef2ac70f68d1d6032a120149f4b6de3f10";
         let wallet_data = WalletV3Data::from_boc_hex(src_boc_hex)?;
         assert_eq!(wallet_data.seqno, 1);
-        assert_eq!(wallet_data.wallet_id, WALLET_DEFAULT_ID);
+        assert_eq!(wallet_data.wallet_id, WALLET_ID_DEFAULT);
         assert_eq!(
             wallet_data.public_key,
             TonHash::from_str("cbf377c9b73604c70bf73488ddceba14f763baef2ac70f68d1d6032a120149f4")?
@@ -98,7 +98,7 @@ mod tests {
         let body_no_sign = parser.read_cell()?;
 
         let body = WalletV3ExtMsgBody::read_signed(&mut body_signed_cell.parser())?.0;
-        assert_eq!(body.subwallet_id, WALLET_DEFAULT_ID);
+        assert_eq!(body.subwallet_id, WALLET_ID_DEFAULT);
         assert_eq!(body.msg_seqno, 0);
         assert_eq!(body.valid_until, 4294967295);
         assert_eq!(body.msgs_modes, vec![3]);
