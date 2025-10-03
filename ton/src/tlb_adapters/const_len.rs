@@ -58,7 +58,7 @@ const_len_num_impl!(i64);
 const_len_num_impl!(u64);
 const_len_num_impl!(i128);
 const_len_num_impl!(u128);
-const_len_num_impl!(U1024);
+// const_len_num_impl!(U1024);
 const_len_num_impl!(BigInt);
 const_len_num_impl!(BigUint);
 

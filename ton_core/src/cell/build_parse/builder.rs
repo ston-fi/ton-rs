@@ -116,6 +116,11 @@ impl CellBuilder {
         self.data_writer.write_var(bits_len as u32, value)?;
         Ok(())
     }
+    pub fn write_primitive<T: Integer + Sized>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
+        self.ensure_capacity(bits_len)?;
+        self.data_writer.write_var(bits_len as u32, data)?;
+        Ok(())
+    }
 
     pub fn write_num<N, D>(&mut self, data: D, bits_len: usize) -> Result<(), TonCoreError>
     where
