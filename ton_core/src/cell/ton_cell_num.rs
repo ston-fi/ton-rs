@@ -125,7 +125,9 @@ macro_rules! ton_cell_num_primitive_impl {
 
                 let min_bits_len = self.tcn_min_bits_len();
                 if min_bits_len > (bits_len as u32) {
-                    bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+                    let tmp_str= if Self::SIGNED { "signed"} else {"unsigned"};
+                    panic!("");
+                    bail_ton_core_data!("Can't write {} number {} ({} bits) in {} bits",tmp_str, self, min_bits_len, bits_len);
                 }
 
                 builder.write_primitive(*self, bits_len)?;
@@ -139,15 +141,19 @@ macro_rules! ton_cell_num_primitive_impl {
 }
 
 ton_cell_num_primitive_impl!(i8, true, u8);
-ton_cell_num_primitive_impl!(u8, false, u8);
 ton_cell_num_primitive_impl!(i16, true, u16);
-ton_cell_num_primitive_impl!(u16, false, u16);
 ton_cell_num_primitive_impl!(i32, true, u32);
-ton_cell_num_primitive_impl!(u32, false, u32);
 ton_cell_num_primitive_impl!(i64, true, u64);
+
+
+ton_cell_num_primitive_impl!(u8, false, u8);
+ton_cell_num_primitive_impl!(u16, false, u16);
+ton_cell_num_primitive_impl!(u32, false, u32);
 ton_cell_num_primitive_impl!(u64, false, u64);
+
 ton_cell_num_primitive_impl!(i128, true, u128);
 ton_cell_num_primitive_impl!(u128, false, u128);
+
 
 // Implementation for usize
 impl TonCellNum for usize {
@@ -180,14 +186,14 @@ impl TonCellNum for usize {
 
         let min_bits_len = self.tcn_min_bits_len();
         if min_bits_len > (bits_len as u32) {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+            bail_ton_core_data!("Can't write usize nm {} ({} bits) in {} bits", self, min_bits_len, bits_len);
         }
 
         builder.write_primitive(*self as u128, bits_len)?;
         return Ok(());
     }
 
-    fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
+    fn tcn_shr(&self, _bits: usize) -> Self { *self >>_bits }
 }
 
 // Implementation for BigInt
@@ -215,7 +221,7 @@ impl TonCellNum for BigInt {
         
         let min_bits_len = self.tcn_min_bits_len();
         if min_bits_len > (bits_len as u32) {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+            bail_ton_core_data!("Can't write BigInt {} ({} bits) in {} bits", self, min_bits_len, bits_len);
         }
         
         let data_bytes = BigInt::to_signed_bytes_be(self);
@@ -271,7 +277,7 @@ impl TonCellNum for BigUint {
         
         let min_bits_len = self.tcn_min_bits_len();
         if min_bits_len > (bits_len as u32) {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+            bail_ton_core_data!("Can't write BigUint {} ({} bits) in {} bits", self, min_bits_len, bits_len);
         }
         
         let data_bytes = BigUint::to_bytes_be(self);
@@ -414,13 +420,36 @@ use num_bigint::BigInt;
     use num_traits::Signed;
     use crate::cell::{CellParser, TonCell};
 
+
+    #[test]
+    fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
+        // Create a builder and store an int16 value
+        let mut builder = TonCell::builder();
+        let test_value: u16 = 12;
+
+        let test_bit = 5;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the int16 value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<u16>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+
     #[test]
     fn test_toncellnum_store_and_parse_int16() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
         let mut builder = TonCell::builder();
         let test_value: i16 = -12;
 
-        let test_bit = 14;
+        let test_bit = 5;
         builder.write_num(&test_value, test_bit)?;
 
         // Build the cell
