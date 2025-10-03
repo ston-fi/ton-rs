@@ -158,31 +158,147 @@ impl TonCellNum for usize {
 
     fn tcn_is_zero(&self) -> bool { *self == 0 }
 
-    fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
-
-    fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> { unreachable!() }
-    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> { unreachable!() }
-    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> { todo!() }
-}
-macro_rules! ton_cell_num_bigint_impl {
-    ($src_type:ty, $sign:tt, $primitive_type:ty) => {
-        impl TonCellNum for $src_type {
-            const SIGNED: bool = $sign;
-            const IS_PRIMITIVE: bool = false;
-            type Primitive = $primitive_type;
-            type UnsignedPrimitive = u128;
-            fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
-            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> { todo!() }
-
-            fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> { todo!() }
-            fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> { todo!() }
-            fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+        if self.tcn_is_zero() {
+            return None;
         }
-    };
+        let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
+        return Some(max_bit_id - self.leading_zeros())
+    }
+
+    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
+        if bits_len == 0 {
+            return Ok(0);
+        }
+        let value = parser.read_primitive::<u128>(bits_len)?;
+        Ok(value as usize)
+    }
+
+    fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> {
+        // handling it like ton-core
+        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
+
+        let min_bits_len = self.tcn_min_bits_len();
+        if min_bits_len > (bits_len as u32) {
+            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+        }
+
+        builder.write_primitive(*self as u128, bits_len)?;
+        return Ok(());
+    }
+
+    fn tcn_shr(&self, _bits: usize) -> Self { unreachable!() }
 }
 
-ton_cell_num_bigint_impl!(BigInt, true, i128);
-ton_cell_num_bigint_impl!(BigUint, true, u128);
+// Implementation for BigInt
+impl TonCellNum for BigInt {
+    const SIGNED: bool = true;
+    const IS_PRIMITIVE: bool = false;
+    type Primitive = i128;
+    type UnsignedPrimitive = u128;
+    
+    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+    
+    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+        if self.tcn_is_zero() {
+            return None;
+        }
+        // For BigInt, use bits() which returns the number of bits needed
+        // The highest bit position is bits - 1
+        let bits = self.bits();
+        Some((bits - 1) as u32)
+    }
+
+    fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> {
+        // handling it like ton-core
+        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
+        
+        let min_bits_len = self.tcn_min_bits_len();
+        if min_bits_len > (bits_len as u32) {
+            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+        }
+        
+        let data_bytes = BigInt::to_signed_bytes_be(self);
+        let padding_val: u8 = match data_bytes.first() {
+            Some(&first_byte) if first_byte >> 7 != 0 => 255,
+            _ => 0,
+        };
+        let padding_bits_len = bits_len.saturating_sub(min_bits_len as usize);
+        let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
+        builder.write_bits(padding_to_write, padding_bits_len)?;
+        
+        let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len as usize);
+        builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+    }
+    
+    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
+        if bits_len == 0 {
+            return Ok(BigInt::from(0));
+        }
+        let bytes = parser.read_bits(bits_len)?;
+        let res = BigInt::from_signed_bytes_be(&bytes);
+        if bits_len % 8 != 0 {
+            return Ok(res.tcn_shr(8 - bits_len % 8));
+        }
+        Ok(res)
+    }
+    
+    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+}
+
+// Implementation for BigUint
+impl TonCellNum for BigUint {
+    const SIGNED: bool = false;
+    const IS_PRIMITIVE: bool = false;
+    type Primitive = u128;
+    type UnsignedPrimitive = u128;
+    
+    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+    
+    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+        if self.tcn_is_zero() {
+            return None;
+        }
+        // For BigUint, use bits() which returns the number of bits needed
+        // The highest bit position is bits - 1
+        let bits = self.bits();
+        Some((bits - 1) as u32)
+    }
+
+    fn write_to(&self, builder: &mut CellBuilder, bits_len: usize) -> Result<(), TonCoreError> {
+        // handling it like ton-core
+        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
+        
+        let min_bits_len = self.tcn_min_bits_len();
+        if min_bits_len > (bits_len as u32) {
+            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", self, min_bits_len, bits_len);
+        }
+        
+        let data_bytes = BigUint::to_bytes_be(self);
+        // For unsigned, always pad with 0
+        let padding_val: u8 = 0;
+        let padding_bits_len = bits_len.saturating_sub(min_bits_len as usize);
+        let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
+        builder.write_bits(padding_to_write, padding_bits_len)?;
+        
+        let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len as usize);
+        builder.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+    }
+    
+    fn read_from(parser: &mut CellParser, bits_len: usize) -> Result<Self, TonCoreError> {
+        if bits_len == 0 {
+            return Ok(BigUint::from(0u32));
+        }
+        let bytes = parser.read_bits(bits_len)?;
+        let res = BigUint::from_bytes_be(&bytes);
+        if bits_len % 8 != 0 {
+            return Ok(res.tcn_shr(8 - bits_len % 8));
+        }
+        Ok(res)
+    }
+    
+    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+}
 
 //
 // // Implementation for BigInt and BigUint
@@ -293,10 +409,13 @@ ton_cell_num_bigint_impl!(BigUint, true, u128);
 
 #[cfg(test)]
 mod tests {
+    use num_bigint::BigUint;
+use num_bigint::BigInt;
+    use num_traits::Signed;
     use crate::cell::{CellParser, TonCell};
 
     #[test]
-    fn test_store_and_parse_int16() -> anyhow::Result<()> {
+    fn test_toncellnum_store_and_parse_int16() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
         let mut builder = TonCell::builder();
         let test_value: i16 = -12;
@@ -310,6 +429,70 @@ mod tests {
         // Create a parser and read back the int16 value
         let mut parser = CellParser::new(&cell);
         let parsed_value = parser.read_num::<i16>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+    #[test]
+    fn test_toncellnum_store_and_parse_bigint() -> anyhow::Result<()> {
+        // Create a builder and store an int16 value
+        let mut builder = TonCell::builder();
+        let test_value =BigInt::from( -12);
+
+        let test_bit = 14;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the int16 value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<BigInt>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+    #[test]
+    fn test_toncellnum_store_and_parse_biguint() -> anyhow::Result<()> {
+        // Create a builder and store an int16 value
+        let mut builder = TonCell::builder();
+        let test_value:BigUint =BigUint::from( 12u64);
+
+        let test_bit = 14;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the int16 value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<BigUint>(test_bit)?;
+
+        // Verify the value matches
+        assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+    
+    #[test]
+    fn test_toncellnum_store_and_parse_usize() -> anyhow::Result<()> {
+        // Create a builder and store a usize value
+        let mut builder = TonCell::builder();
+        let test_value: usize = 12345;
+
+        let test_bit = 32;
+        builder.write_num(&test_value, test_bit)?;
+
+        // Build the cell
+        let cell = builder.build()?;
+
+        // Create a parser and read back the usize value
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<usize>(test_bit)?;
 
         // Verify the value matches
         assert_eq!(parsed_value, test_value);
