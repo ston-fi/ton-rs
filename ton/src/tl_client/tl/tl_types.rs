@@ -195,25 +195,25 @@ pub enum TLAccountState {
         #[serde(with = "Base64Standard")]
         frozen_hash: Vec<u8>,
     },
-    #[serde(rename = "wallet.v3.accountState")]
+    #[serde(rename = "ton_wallet.v3.accountState")]
     WalletV3 {
         #[serde(deserialize_with = "deserialize_number_from_string")]
         wallet_id: i64,
         seqno: i32,
     },
-    #[serde(rename = "wallet.v4.accountState")]
+    #[serde(rename = "ton_wallet.v4.accountState")]
     WalletV4 {
         #[serde(deserialize_with = "deserialize_number_from_string")]
         wallet_id: i64,
         seqno: i32,
     },
-    #[serde(rename = "wallet.highload.v1.accountState")]
+    #[serde(rename = "ton_wallet.highload.v1.accountState")]
     WalletHighloadV1 {
         #[serde(deserialize_with = "deserialize_number_from_string")]
         wallet_id: i64,
         seqno: i32,
     },
-    #[serde(rename = "wallet.highload.v2.accountState")]
+    #[serde(rename = "ton_wallet.highload.v2.accountState")]
     WalletHighloadV2 {
         #[serde(deserialize_with = "deserialize_number_from_string")]
         wallet_id: i64,

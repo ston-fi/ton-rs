@@ -14,7 +14,6 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - TonContract Derive - Automatically derive TonContract trait for your contract wrappers
 
 ## ton_core
-
 - [TonCell](ton_core/src/cell/ton_cell.rs)
 - [TonAddress](ton_core/src/types/ton_address.rs)
 - [TLB](ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
@@ -23,10 +22,10 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 ## ton
 - `tonlibjson` feature: Disabled by default. Enable it if you need `TLClient`, `Emulator` or `TonContract` functionality.
 - Use `TON_NET_CONF_MAINNET_PATH` or `TON_NET_CONF_TESTNET_PATH` env variables to override `netconfig.json` and use your own TON nodes.
-- [TLBAdapters](ton/src/tlb_adapters) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
-- [BlockTLB](ton/src/block_tlb) - Bunch of types to interact with raw blockchain data (However it's not fully covered)
-- [TonWallet](ton/src/wallet/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
-- [TLClient](ton/src/clients/tl_client/client.rs) - Using `tonlibjson` to interact with TON network
+- [TLBAdapters](ton/src/tlb_adapters.rs) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
+- [BlockTLB](ton/src/block_tlb.rs) - Bunch of types to interact with raw blockchain data (However it's not fully covered)
+- [TonWallet](ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
+- [TLClient](ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
 - [TonContract](ton/src/contracts/ton_contract.rs) - Use it to get data or execute methods on TON contracts
 
 

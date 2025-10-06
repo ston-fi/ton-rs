@@ -1,3 +1,15 @@
+mod mnemonic;
+mod wallet_code;
+mod wallet_constants;
+mod wallet_tlb;
+mod wallet_version;
+
+pub use mnemonic::*;
+pub use wallet_code::*;
+pub use wallet_constants::*;
+pub use wallet_tlb::*;
+pub use wallet_version::*;
+
 use super::*;
 use crate::block_tlb::*;
 use crate::errors::TonError;
@@ -18,8 +30,8 @@ pub struct TonWallet {
 impl TonWallet {
     pub fn new(version: WalletVersion, key_pair: KeyPair) -> Result<Self, TonError> {
         let wallet_id = match version {
-            WalletVersion::V5R1 => WALLET_V5R1_DEFAULT_ID,
-            _ => WALLET_DEFAULT_ID,
+            WalletVersion::V5R1 => WALLET_V5R1_ID_DEFAULT,
+            _ => WALLET_ID_DEFAULT,
         };
         Self::new_with_params(version, key_pair, 0, wallet_id)
     }
@@ -160,7 +172,7 @@ mod tests {
         let ext_body_cell = wallet.create_ext_in_body(13, 7, vec![int_msg.clone()])?;
         let body = WalletV3ExtMsgBody::from_cell(&ext_body_cell)?;
         let expected = WalletV3ExtMsgBody {
-            subwallet_id: WALLET_DEFAULT_ID,
+            subwallet_id: WALLET_ID_DEFAULT,
             msg_seqno: 7,
             valid_until: 13,
             msgs_modes: vec![3],
@@ -180,7 +192,7 @@ mod tests {
         let ext_body_cell = wallet.create_ext_in_body(13, 7, vec![int_msg.clone()])?;
         let body = WalletV4ExtMsgBody::from_cell(&ext_body_cell)?;
         let expected = WalletV4ExtMsgBody {
-            subwallet_id: WALLET_DEFAULT_ID,
+            subwallet_id: WALLET_ID_DEFAULT,
             msg_seqno: 7,
             opcode: 0,
             valid_until: 13,
@@ -208,7 +220,7 @@ mod tests {
         let ext_body_cell = wallet.create_ext_in_body(13, 7, int_msgs.clone())?;
         let body = WalletV5ExtMsgBody::from_cell(&ext_body_cell)?;
         let expected = WalletV5ExtMsgBody {
-            wallet_id: WALLET_V5R1_DEFAULT_ID,
+            wallet_id: WALLET_V5R1_ID_DEFAULT,
             msg_seqno: 7,
             valid_until: 13,
             msgs_modes: vec![3; msgs_cnt],

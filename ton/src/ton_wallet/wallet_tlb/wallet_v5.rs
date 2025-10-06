@@ -1,4 +1,4 @@
-use crate::wallet::wallet_tlb::wallet_ext_msg_utils::*;
+use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::*;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
@@ -78,7 +78,7 @@ impl WalletV5ExtMsgBody {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::wallet::{WALLET_V5R1_DEFAULT_ID, WALLET_V5R1_DEFAULT_ID_TESTNET};
+    use crate::ton_wallet::{WALLET_V5R1_ID_DEFAULT, WALLET_V5R1_ID_DEFAULT_TESTNET};
     use std::str::FromStr;
     use ton_lib_core::cell::TonCell;
 
@@ -88,7 +88,7 @@ mod test {
         let src_boc_hex = "b5ee9c7241010101002b00005180000000bfffff88e5f9bbe4db9b026385fb9a446ee75d0a7bb1dd77956387b468eb01950900a4fa20cbe13a2a";
         let wallet_data = WalletV5Data::from_boc_hex(src_boc_hex)?;
         assert_eq!(wallet_data.seqno, 1);
-        assert_eq!(wallet_data.wallet_id, WALLET_V5R1_DEFAULT_ID);
+        assert_eq!(wallet_data.wallet_id, WALLET_V5R1_ID_DEFAULT);
         assert_eq!(
             wallet_data.public_key,
             TonHash::from_str("cbf377c9b73604c70bf73488ddceba14f763baef2ac70f68d1d6032a120149f4")?
@@ -107,7 +107,7 @@ mod test {
         let src_boc_hex = "b5ee9c7201010101002b000051800000013ffffffed2b31b23dbe5144a626b9d5d1d4208e36d97e4adb472d42c073bfff85b3107e4a0";
         let wallet_data = WalletV5Data::from_boc_hex(src_boc_hex)?;
         assert_eq!(wallet_data.seqno, 2);
-        assert_eq!(wallet_data.wallet_id, WALLET_V5R1_DEFAULT_ID_TESTNET);
+        assert_eq!(wallet_data.wallet_id, WALLET_V5R1_ID_DEFAULT_TESTNET);
         Ok(())
     }
 
@@ -121,7 +121,7 @@ mod test {
 
         let body = WalletV5ExtMsgBody::read_signed(&mut body_signed_cell.parser())?.0;
 
-        assert_eq!(body.wallet_id, WALLET_V5R1_DEFAULT_ID);
+        assert_eq!(body.wallet_id, WALLET_V5R1_ID_DEFAULT);
         assert_eq!(body.valid_until, 4294967295);
         assert_eq!(body.msg_seqno, 0);
         assert_eq!(body.msgs_modes, vec![3]);
