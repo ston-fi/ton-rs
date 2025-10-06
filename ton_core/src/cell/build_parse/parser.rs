@@ -49,14 +49,12 @@ impl<'a> CellParser<'a> {
         }
         Ok(dst)
     }
-    pub fn read_primitive<T: Integer + Sized>(&mut self, bits_len: usize) -> Result<T, TonCoreError> {
-        let primitive = self.data_reader.read_var::<T>(bits_len as u32)?;
-        Ok(primitive)
-    }
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
         self.ensure_enough_bits(bits_len)?;
-        N::read_from(self, bits_len)
+        let data = self.read_bits(bits_len)?;
+
+        N::tcn_from_bytes(data, bits_len)
     }
 
     pub fn read_cell(&mut self) -> Result<TonCell, TonCoreError> {

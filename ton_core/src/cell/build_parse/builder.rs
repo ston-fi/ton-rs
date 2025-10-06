@@ -128,7 +128,8 @@ impl CellBuilder {
             }
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
-        data_ref.write_to(self, bits_len)
+        let data = data_ref.tcn_to_bytes(bits_len)?;
+        self.write_bits(data, bits_len)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_BITS_LEN - self.data_bits_len }
