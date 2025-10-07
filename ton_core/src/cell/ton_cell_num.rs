@@ -51,12 +51,12 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                 }
 
                 // Calculate number of bytes needed
-                let num_bytes = (bits_len + 7) / 8;
+                let num_bytes = bits_len.div_ceil(8);
 
                 // Adjust value if bits_len is not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
-                    value = value << (8 - bits_len % 8);
+                    value <<= 8 - bits_len % 8;
                 }
 
                 // Extract bytes in big-endian order
@@ -80,13 +80,13 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                     let shift_amount = (data.len() - 1 - i) * 8;
                     // Only shift if it won't overflow
                     if shift_amount < type_bits {
-                        result = result | ((byte as $src) << shift_amount);
+                        result |= (byte as $src) << shift_amount;
                     }
                 }
 
                 // Shift right if bits_len is not byte-aligned
                 if bits_len % 8 != 0 {
-                    result = result >> (8 - bits_len % 8);
+                    result >>= 8 - bits_len % 8;
                 }
 
                 // Sign-extend if the MSB of the read bits is set
@@ -96,7 +96,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                     if (result & sign_bit_mask) != 0 {
                         // Negative number - sign extend by setting all higher bits to 1
                         let extension_mask = !((1 << bits_len) - 1);
-                        result = result | extension_mask;
+                        result |= extension_mask;
                     }
                 }
 
@@ -114,7 +114,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                 let type_bits = (std::mem::size_of::<$src>() * 8) as u32;
 
                 if *self >= 0 {
-                    // For non-negative values, need bits for value + 1 for sign bit
+                    // For non-negative values, need bits for value + 1 for sign bit but 0  needs 0 bit
                     if *self == 0 {
                         0
                     } else {
@@ -122,10 +122,6 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                         bits_for_value + 1 // +1 for sign bit
                     }
                 } else {
-                    // For negative values in two's complement:
-                    // -1 needs 1 bit (1), -2 needs 2 bits (10), -3 needs 3 bits (101), -4 needs 3 bits (100), etc.
-                    // Formula: we need enough bits so that when sign-extended, we get the correct value
-                    // This is: (magnitude - 1).bit_length() + 1
                     let magnitude = self.unsigned_abs();
                     if magnitude == 1 {
                         1 // -1 needs just 1 bit (1)
@@ -163,12 +159,12 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 }
 
                 // Calculate number of bytes needed
-                let num_bytes = (bits_len + 7) / 8;
+                let num_bytes = bits_len.div_ceil(8);
 
                 // Adjust value if bits_len is not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
-                    value = value << (8 - bits_len % 8);
+                    value <<= 8 - bits_len % 8;
                 }
 
                 // Extract bytes in big-endian order
@@ -200,13 +196,13 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                     let shift_amount = (data.len() - 1 - i) * 8;
                     // Only shift if it won't overflow
                     if shift_amount < type_bits {
-                        result = result | ((byte as $src) << shift_amount);
+                        result |= (byte as $src) << shift_amount;
                     }
                 }
 
                 // Shift right if bits_len is not byte-aligned
                 if bits_len % 8 != 0 {
-                    result = result >> (8 - bits_len % 8);
+                    result >>= 8 - bits_len % 8;
                 }
                 Ok(result)
             }
@@ -250,7 +246,7 @@ impl TonCellNum for BigUint {
         }
 
         // Calculate how many bytes we need for bits_len
-        let required_bytes = (bits_len + 7) / 8;
+        let required_bytes = bits_len.div_ceil(8);
 
         // Left-align the value if not byte-aligned (to match write_bits expectations)
         let value_to_serialize = if bits_len % 8 != 0 {
@@ -285,7 +281,7 @@ impl TonCellNum for BigUint {
         // Compensate for read_bits left-aligning the last partial byte
         // read_bits shifts left by (8 - bits_len % 8) when bits_len % 8 != 0
         if bits_len % 8 != 0 {
-            result = result >> (8 - bits_len % 8);
+            result >>= 8 - bits_len % 8;
         }
 
         Ok(result)
@@ -324,7 +320,7 @@ impl TonCellNum for BigInt {
         let mut bytes = self.to_signed_bytes_be();
 
         // Calculate required bytes
-        let required_bytes = (bits_len + 7) / 8;
+        let required_bytes = bits_len.div_ceil(8);
 
         // Pad with sign extension if needed
         let pad_byte = if self.is_negative() { 0xFF } else { 0x00 };
@@ -426,12 +422,12 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     );
                 }
                 // Calculate number of bytes needed
-                let num_bytes = (bits_len + 7) / 8;
+                let num_bytes = bits_len.div_ceil(8);
 
                 // Adjust value if bits_len is not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
-                    value = value << (8 - bits_len % 8);
+                    value <<= 8 - bits_len % 8;
                 }
 
                 // Extract bytes in big-endian order
@@ -461,7 +457,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 
                 // Shift right if bits_len is not byte-aligned
                 if bits_len % 8 != 0 {
-                    result = result >> (8 - bits_len % 8);
+                    result >>= 8 - bits_len % 8;
                 }
                 Ok(result)
             }
@@ -506,7 +502,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 for _ in 0..bytes_count {
                     let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
                     bytes_vec.push(byte_val);
-                    temp = temp >> 8;
+                    temp >>= 8;
                 }
                 bytes_vec.reverse(); // Make it big-endian
 
@@ -517,9 +513,9 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
 
                 // Encode sign
-                uval = uval << 1u32;
+                uval <<= 1u32;
                 if sign {
-                    uval = uval + <$u_src>::ONE;
+                    uval += <$u_src>::ONE;
                 }
 
                 // Use the unsigned implementation to serialize
@@ -541,7 +537,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let byte_val =
                         (magnitude_uint.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
                     bytes_vec.push(byte_val);
-                    magnitude_uint = magnitude_uint >> 8;
+                    magnitude_uint >>= 8;
                 }
                 bytes_vec.reverse(); // Make it big-endian
 
