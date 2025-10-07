@@ -589,7 +589,7 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::{CellParser, TonCell};
+    use crate::cell::{CellParser, TonCell, TonCellNum};
     use fastnum::{I512, U512};
     use num_bigint::{BigInt, BigUint};
     #[test]
