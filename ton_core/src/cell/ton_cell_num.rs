@@ -289,35 +289,35 @@ pub fn bigint_unsigned_to_signed(value: &BigUint) -> BigInt {
 }
 
 // Implementation for BigUint
+// Note: BigUint is used for BigInt sign encoding
+// Must left-align values for non-byte-aligned sizes to match write_bits expectations
 impl TonCellNum for BigUint {
     fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
         if bits_len == 0 {
             return Ok(vec![]);
         }
 
-        // Calculate number of bytes needed
-        let num_bytes = (bits_len + 7) / 8;
+        // Calculate how many bytes we need for bits_len
+        let required_bytes = (bits_len + 7) / 8;
 
-        // Get the big-endian bytes
-        let mut bytes = self.to_bytes_be();
+        // Left-align the value if not byte-aligned (to match write_bits expectations)
+        let value_to_serialize = if bits_len % 8 != 0 {
+            self << (8 - bits_len % 8)
+        } else {
+            self.clone()
+        };
 
-        // If not byte-aligned, shift left
-        if bits_len % 8 != 0 {
-            let shift = 8 - (bits_len % 8);
-            let mut carry = 0u16;
-            for byte in bytes.iter_mut().rev() {
-                let temp = (*byte as u16) << shift;
-                *byte = (temp | carry) as u8;
-                carry = temp >> 8;
-            }
-            if carry > 0 {
-                bytes.insert(0, carry as u8);
-            }
-        }
+        // Get big-endian bytes
+        let mut bytes = value_to_serialize.to_bytes_be();
 
         // Pad with leading zeros if needed
-        while bytes.len() < num_bytes {
+        while bytes.len() < required_bytes {
             bytes.insert(0, 0);
+        }
+
+        // Trim if we have extra bytes from the shift operation
+        if bytes.len() > required_bytes {
+            bytes = bytes[(bytes.len() - required_bytes)..].to_vec();
         }
 
         Ok(bytes)
@@ -330,7 +330,8 @@ impl TonCellNum for BigUint {
 
         let mut result = BigUint::from_bytes_be(&data);
 
-        // Shift right if bits_len is not byte-aligned
+        // Compensate for read_bits left-aligning the last partial byte
+        // read_bits shifts left by (8 - bits_len % 8) when bits_len % 8 != 0
         if bits_len % 8 != 0 {
             result = result >> (8 - bits_len % 8);
         }
@@ -729,6 +730,103 @@ mod tests {
 
         // Verify the value matches
         assert_eq!(parsed_value, test_value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_bigint_257_bits_serialization() -> anyhow::Result<()> {
+        // This test demonstrates the BigInt serialization issue with non-byte-aligned sizes
+        // BigInt uses sign encoding: (magnitude << 1) | sign_bit
+        // For 257 bits (33 bytes with 1 bit in last byte), the alignment matters
+
+        use num_bigint::BigInt;
+        use std::str::FromStr;
+
+        let mut builder = TonCell::builder();
+
+        // This is the actual value from test_get_nft_data_result
+        let test_value =
+            BigInt::from_str("17026683442852985036293000817890672620529067535828542797724775561309021470835")?;
+
+        // BigInt in TVM stack uses 257 bits (int257)
+        let bits_len = 257;
+        builder.write_num(&test_value, bits_len)?;
+
+        let cell = builder.build()?;
+
+        // Read back
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<BigInt>(bits_len)?;
+
+        println!("Original:  {}", test_value);
+        println!("Parsed:    {}", parsed_value);
+        println!("Match: {}", test_value == parsed_value);
+
+        // This should pass but currently fails due to alignment issues
+        assert_eq!(parsed_value, test_value, "BigInt round-trip failed for 257 bits");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_bigint_simple_non_byte_aligned() -> anyhow::Result<()> {
+        // Simpler test: 9 bits (2 bytes with 1 bit in second byte)
+        use num_bigint::BigInt;
+
+        let mut builder = TonCell::builder();
+        let test_value = BigInt::from(42);
+
+        let bits_len = 9; // Not byte-aligned
+
+        // Debug: check what bytes are generated
+        let encoded_bytes = test_value.tcn_to_bytes(bits_len)?;
+        println!("Value 42 encoded as BigInt:");
+        println!("  Bytes: {:02x?}", encoded_bytes);
+        println!("  Length: {} bytes for {} bits", encoded_bytes.len(), bits_len);
+
+        builder.write_num(&test_value, bits_len)?;
+
+        let cell = builder.build()?;
+
+        let mut parser = CellParser::new(&cell);
+
+        // Debug: check what bytes we read back
+        let read_bytes = parser.read_bits(bits_len)?;
+        println!("Read back bytes: {:02x?}", read_bytes);
+        parser.seek_bits(-(bits_len as i32))?;
+
+        let parsed_value = parser.read_num::<BigInt>(bits_len)?;
+
+        println!("Original (9 bits):  {}", test_value);
+        println!("Parsed (9 bits):    {}", parsed_value);
+
+        assert_eq!(parsed_value, test_value, "BigInt round-trip failed for 9 bits");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_biguint_150_bits() -> anyhow::Result<()> {
+        // Test BigUint with 150 bits (the size used in test_dict_key_bits_len_bigger_than_key)
+        use num_bigint::BigUint;
+
+        let mut builder = TonCell::builder();
+        let test_value = BigUint::from(4u32);
+
+        let bits_len = 150;
+
+        println!("Testing BigUint value 4 with 150 bits:");
+        builder.write_num(&test_value, bits_len)?;
+        let cell = builder.build()?;
+
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<BigUint>(bits_len)?;
+
+        println!("  Original: {}", test_value);
+        println!("  Parsed:   {}", parsed_value);
+
+        assert_eq!(parsed_value, test_value, "BigUint round-trip failed for 150 bits");
 
         Ok(())
     }
