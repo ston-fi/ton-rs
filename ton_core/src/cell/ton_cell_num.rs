@@ -1,6 +1,6 @@
 use bitstream_io::Integer;
 use num_bigint::{BigInt, BigUint};
-use num_traits::Zero;
+use num_traits::{Signed, Zero};
 use std::fmt::Display;
 // fastnum support temporarily disabled due to API compatibility issues
 use crate::bail_ton_core_data;
@@ -44,83 +44,56 @@ pub trait TonCellNum: Display + Sized + Clone {
         }
     }
 }
+macro_rules! abs_it {
+    ($val:expr, $tp:ty) => {{
+        if $val < <$tp>::from(0i8) {
+            $val * <$tp>::from(-1i8)
+        } else {
+            $val
+        }
+    }};
+}
 
-macro_rules! ton_cell_num_signed_from_unsigned_impl {
-    ($src:ty,$src_usinged:ty) => {
+pub trait TonFrom<T> {
+    fn ton_from(val: T) -> Self;
+}
+
+macro_rules! ton_cell_num_primitive_signed_from_unsigned_impl {
+    ($src:ty, $src_usinged:ty) => {
         impl TonCellNum for $src {
             fn tcn_from_bytes(mut data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
                 let is_positive = toncell_data_set_bit(&mut data, bits_len - 1, false)?;
-                let mut result: Self = <$src_usinged>::tcn_from_bytes(data, bits_len - 1)? as Self;
+                let unsigned_val = <$src_usinged>::tcn_from_bytes(data, bits_len - 1)?;
+                let mut result: Self = unsigned_val as $src;
+
                 if !is_positive {
-                    result *= -1;
+                    let zero: $src = unsafe { std::mem::zeroed() };
+                    result = zero - result;
                 }
                 Ok(result)
             }
-            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> { self.unsigned_abs().highest_bit_pos_ignore_sign() }
+            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+                let val = self.abs();
+                val.highest_bit_pos_ignore_sign()
+            }
             fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
-                let sign = *self < 0;
-                let mut bytes = self.unsigned_abs().tcn_to_bytes(bits_len)?;
+                let zero: $src = unsafe { std::mem::zeroed() };
+                let sign = *self < zero;
+                let val = abs_it!(*self, $src);
+                let mut bytes = self.tcn_to_bytes(bits_len)?;
                 let ret_val = toncell_data_set_bit(&mut bytes, bits_len - 1, sign)?;
-                if (sign) {
+                if sign {
                     assert!(ret_val == false, "to_error");
                 } else {
                     assert!(ret_val == true, "to_error");
                 }
                 Ok(bytes)
             }
-            fn tcn_is_zero(&self) -> bool { self.unsigned_abs().is_zero() }
+            fn tcn_is_zero(&self) -> bool { *self == 0 }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
         }
     };
 }
-
-// pub trait TonCellNum: Display + Sized + Clone {
-//
-//     type UnsignedSibling: Integer;
-//
-//
-//     fn tcn_to_bytes(&self,bits_len:usize) -> Vec<u8>;
-//     fn tcn_from_bytes(&self,data:Vec<u8>,bits_len:usize) -> Result<Self, TonCoreError>;
-//     fn highest_bit_pos_ignore_sign(&self) -> Option<u32>;
-//
-//     fn tcn_is_zero(&self) -> bool;
-//
-//     fn tcn_shr(&self, bits: usize) -> Self;
-//
-//     fn tcn_min_bits_len(&self) -> u32 {
-//         if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
-//             value += 1u32; // bit pos to bit size
-//             if Self::SIGNED {
-//                 value += 1u32; // 1 for sign
-//             }
-//             value
-//         } else {
-//             0u32
-//         }
-//     }
-// }
-
-// macro_rules! ton_highest_bit_pos_ignore_sign_impl {
-//     (true, $unsign:ty) => {
-//         fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-//             if self.tcn_is_zero() {
-//                 return None;
-//             }
-//             let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-//             let uval = self.abs() as $unsign;
-//             return Some(max_bit_id - (uval.leading_zeros()))
-//         }
-//     };
-//     (false, $unsign:ty) => {
-//         fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-//             if self.tcn_is_zero() {
-//                 return None;
-//             }
-//             let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-//             return Some(max_bit_id - (*self as $unsign).leading_zeros())
-//         }
-//     };
-// }
 
 // Implementation for primitive types
 macro_rules! ton_cell_num_primitive_unsigned_impl {
@@ -171,11 +144,11 @@ ton_cell_num_primitive_unsigned_impl!(u32);
 ton_cell_num_primitive_unsigned_impl!(u64);
 ton_cell_num_primitive_unsigned_impl!(u128);
 
-ton_cell_num_signed_from_unsigned_impl!(i16, u16);
-ton_cell_num_signed_from_unsigned_impl!(i32, u32);
-ton_cell_num_signed_from_unsigned_impl!(i64, u64);
-ton_cell_num_signed_from_unsigned_impl!(i128, u128);
-ton_cell_num_signed_from_unsigned_impl!(i8, u8);
+ton_cell_num_primitive_signed_from_unsigned_impl!(i8, u8);
+ton_cell_num_primitive_signed_from_unsigned_impl!(i16, u16);
+ton_cell_num_primitive_signed_from_unsigned_impl!(i32, u32);
+ton_cell_num_primitive_signed_from_unsigned_impl!(i64, u64);
+ton_cell_num_primitive_signed_from_unsigned_impl!(i128, u128);
 
 // Implementation for usize
 impl TonCellNum for usize {
@@ -329,45 +302,66 @@ impl TonCellNum for BigUint {
     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 }
 
-ton_cell_num_signed_from_unsigned_impl!(BigInt, BigUint);
+// Custom implementation for BigInt (doesn't have unsigned_abs method like primitives)
+impl TonCellNum for BigInt {
+    fn tcn_from_bytes(mut data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+        let is_positive = toncell_data_set_bit(&mut data, bits_len - 1, false)?;
+        let unsigned_val = BigUint::tcn_from_bytes(data, bits_len - 1)?;
+        let mut result: BigInt = unsigned_val.into();
+        if !is_positive {
+            result *= -1;
+        }
+        Ok(result)
+    }
+
+    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+        if self.tcn_is_zero() {
+            return None;
+        }
+        let bits = self.bits();
+        Some((bits - 1) as u32)
+    }
+
+    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+        use num_traits::Signed;
+        let sign = self.is_negative();
+        let magnitude = self.magnitude();
+        let mut bytes = magnitude.tcn_to_bytes(bits_len)?;
+        let ret_val = toncell_data_set_bit(&mut bytes, bits_len - 1, sign)?;
+        if sign {
+            assert!(ret_val == false, "to_error");
+        } else {
+            assert!(ret_val == true, "to_error");
+        }
+        Ok(bytes)
+    }
+
+    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+
+    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+}
+
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
-            //Self::from_be_slice(bytes)
-
             fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
-                // Convert Tyoe to big-endian bytes
-                let mut bytes = vec![0u8; std::mem::size_of::<Self>()];
-
-                // Try to access the internal representation
-                // U256 is likely represented as 4 u64 words
-                // We need to convert to big-endian byte representation
-                let mut temp = *self;
-                for i in (0..bytes.len()).rev() {
-                    bytes[i] = (temp & Self::from(0xFFu8)).to_u64().unwrap_or(0) as u8;
-                    temp = temp >> 8;
-                }
-                Ok(bytes)
+                todo!();
             }
+
             fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
 
-                let type_size = std::mem::size_of::<Self>();
-                let mut padded_bytes = vec![0x00; type_size];
-
-                // Copy the bytes to the end of the padded array
-                let offset = type_size.saturating_sub(data.len());
-                padded_bytes[offset..].copy_from_slice(&data);
-
+                // Reconstruct number from bytes
                 let mut result = Self::from(0u32);
-                for &byte in &padded_bytes {
+                for &byte in &data {
                     result = (result << 8) | Self::from(byte);
                 }
 
+                // Shift right if bits_len is not byte-aligned
                 if bits_len % 8 != 0 {
-                    return Ok(result.tcn_shr(8 - bits_len % 8));
+                    result = result >> (8 - bits_len % 8);
                 }
                 Ok(result)
             }
@@ -377,7 +371,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     return None;
                 }
                 let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-                return Some(max_bit_id - self.leading_zeros());
+                Some(max_bit_id - self.leading_zeros())
             }
 
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
@@ -387,13 +381,37 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
     };
 }
 
-ton_cell_num_fastnum_unsigned_impl!(U128);
+macro_rules! ton_cell_num_fastnum_signed_impl {
+    ($src:ty) => {
+        impl TonCellNum for $src {
+            fn tcn_from_bytes(mut data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+                todo!();
+            }
+            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> { todo!() }
+            fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+                todo!();
+            }
+            fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+            fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
+        }
+    };
+}
+
 // ton_cell_num_fastnum_impl!(I128, true, U128);
 //
 // ton_cell_num_fastnum_impl!(U256, false, U256);
 // ton_cell_num_fastnum_impl!(I256, true, U256);
 // //
-// ton_cell_num_fastnum_impl!(U512, false, U512);
+ton_cell_num_fastnum_unsigned_impl!(U128);
+ton_cell_num_fastnum_unsigned_impl!(U256);
+ton_cell_num_fastnum_unsigned_impl!(U512);
+ton_cell_num_fastnum_unsigned_impl!(U1024);
+
+ton_cell_num_fastnum_signed_impl!(I128);
+ton_cell_num_fastnum_signed_impl!(I256);
+ton_cell_num_fastnum_signed_impl!(I512);
+ton_cell_num_fastnum_signed_impl!(I1024);
+
 // ton_cell_num_fastnum_impl!(I512, true, U512);
 // //
 // ton_cell_num_fastnum_impl!(U1024, false, U1024);
