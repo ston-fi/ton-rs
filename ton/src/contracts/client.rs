@@ -57,12 +57,15 @@ impl ContractClient {
         self.0.cache.get_or_load_contract(address, tx_id).await
     }
 
-    pub async fn emulate_get_method(
+    pub async fn emulate_get_method<M>(
         &self,
         state: &TonContractState,
-        method_id: i32,
+        method_id: M,
         stack_boc: &[u8],
-    ) -> Result<TVMGetMethodSuccess, TonError> {
+    ) -> Result<TVMGetMethodSuccess, TonError>
+    where
+        M: Into<TVMGetMethodID>,
+    {
         let code_boc = match &state.code_boc {
             Some(boc) => boc,
             None => {

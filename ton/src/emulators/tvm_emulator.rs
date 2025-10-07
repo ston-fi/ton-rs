@@ -70,9 +70,9 @@ impl TVMEmulator {
         }
     }
 
-    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> Result<TVMGetMethodSuccess, TonError>
+    pub fn run_get_method<M>(&mut self, method: M, stack_boc: &[u8]) -> Result<TVMGetMethodSuccess, TonError>
     where
-        T: Into<TVMGetMethodID>,
+        M: Into<TVMGetMethodID>,
     {
         let tvm_method = method.into();
         log::trace!("[TVMEmulator][run_get_method]: method: {tvm_method}, stack: {stack_boc:?}");
