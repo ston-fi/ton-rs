@@ -764,10 +764,6 @@ mod tests {
         let mut parser = CellParser::new(&cell);
         let parsed_value = parser.read_num::<BigInt>(bits_len)?;
 
-        println!("Original:  {}", test_value);
-        println!("Parsed:    {}", parsed_value);
-        println!("Match: {}", test_value == parsed_value);
-
         // This should pass but currently fails due to alignment issues
         assert_eq!(parsed_value, test_value, "BigInt round-trip failed for 257 bits");
 
@@ -786,10 +782,6 @@ mod tests {
 
         // Debug: check what bytes are generated
         let encoded_bytes = test_value.tcn_to_bytes(bits_len)?;
-        println!("Value 42 encoded as BigInt:");
-        println!("  Bytes: {:02x?}", encoded_bytes);
-        println!("  Length: {} bytes for {} bits", encoded_bytes.len(), bits_len);
-
         builder.write_num(&test_value, bits_len)?;
 
         let cell = builder.build()?;
@@ -798,13 +790,9 @@ mod tests {
 
         // Debug: check what bytes we read back
         let read_bytes = parser.read_bits(bits_len)?;
-        println!("Read back bytes: {:02x?}", read_bytes);
         parser.seek_bits(-(bits_len as i32))?;
 
         let parsed_value = parser.read_num::<BigInt>(bits_len)?;
-
-        println!("Original (9 bits):  {}", test_value);
-        println!("Parsed (9 bits):    {}", parsed_value);
 
         assert_eq!(parsed_value, test_value, "BigInt round-trip failed for 9 bits");
 
@@ -821,15 +809,11 @@ mod tests {
 
         let bits_len = 150;
 
-        println!("Testing BigUint value 4 with 150 bits:");
         builder.write_num(&test_value, bits_len)?;
         let cell = builder.build()?;
 
         let mut parser = CellParser::new(&cell);
         let parsed_value = parser.read_num::<BigUint>(bits_len)?;
-
-        println!("  Original: {}", test_value);
-        println!("  Parsed:   {}", parsed_value);
 
         assert_eq!(parsed_value, test_value, "BigUint round-trip failed for 150 bits");
 
