@@ -1,13 +1,10 @@
-use num_bigint::{BigInt, BigUint, Sign};
-use num_traits::{One, Signed, Zero};
+use num_bigint::{BigInt, BigUint};
+use num_traits::{Signed, Zero};
 
-use bitstream_io::Integer;
 use std::fmt::Display;
-// fastnum support temporarily disabled due to API compatibility issues
 
 use crate::bail_ton_core_data;
 use crate::errors::TonCoreError;
-use fastnum::bint::{Int, UInt};
 use fastnum::{I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
 
@@ -26,45 +23,6 @@ pub trait TonCellNum: Display + Sized + Clone {
     fn tcn_shr(&self, bits: usize) -> Self;
 
     fn tcn_min_bits_len(&self) -> u32;
-}
-
-macro_rules! unsigned_to_signed {
-    ($src_ty:ty, $dst_ty:ty, $val:expr) => {{
-        let mut uval: $src_ty = $val;
-        let sign_bit = (uval & 1) != 0;
-        uval >>= 1;
-        let mut sval = uval as $dst_ty;
-        if sign_bit {
-            sval = -sval;
-        }
-        sval
-    }};
-}
-
-macro_rules! primitive_signed_to_unsigned {
-    ($src_ty:ty, $dst_ty:ty, $val:expr) => {{
-        let value: $src_ty = $val;
-        let sign = value < 0;
-        let mut uval = value.unsigned_abs();
-        uval <<= 1;
-        if sign {
-            uval += 1;
-        }
-        uval as $dst_ty
-    }};
-}
-
-macro_rules! primitive_unsigned_to_signed {
-    ($src_ty:ty, $dst_ty:ty, $val:expr) => {{
-        let mut uval: $src_ty = $val;
-        let sign_bit = (uval & 1) != 0;
-        uval >>= 1;
-        let mut sval = uval as $dst_ty;
-        if sign_bit {
-            sval = -sval;
-        }
-        sval
-    }};
 }
 
 macro_rules! ton_cell_num_primitive_signed_impl {
@@ -281,34 +239,6 @@ ton_cell_num_primitive_signed_impl!(i16);
 ton_cell_num_primitive_signed_impl!(i32);
 ton_cell_num_primitive_signed_impl!(i64);
 ton_cell_num_primitive_signed_impl!(i128);
-
-fn bigint_signed_to_unsigned(value: &BigInt) -> BigUint {
-    let sign = value.is_negative();
-    let mut uval = value.magnitude().clone(); // get |value|
-
-    // Shift left 1 bit to make room for sign
-    uval <<= 1u8;
-
-    // Add 1 if negative
-    if sign {
-        uval += BigUint::one();
-    }
-
-    uval
-}
-
-/// Convert `BigUint` → `BigInt`
-/// Decodes sign from least significant bit (LSB = 1 if negative).
-pub fn bigint_unsigned_to_signed(value: &BigUint) -> BigInt {
-    let sign_bit = value.bit(0);
-    let mut mag = value >> 1u8; // shift right to remove sign bit
-
-    if sign_bit {
-        BigInt::from_biguint(Sign::Minus, mag)
-    } else {
-        BigInt::from_biguint(Sign::Plus, mag)
-    }
-}
 
 // Implementation for BigUint
 // Note: BigUint is used for BigInt sign encoding
@@ -659,12 +589,9 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use fastnum::U128;
-
-    use crate::cell::{CellParser, TonCell, TonCellNum};
+    use crate::cell::{CellParser, TonCell};
     use fastnum::{I512, U512};
-    use num_bigint::{BigInt, BigUint, Sign};
-    use num_traits::{One, Signed, Zero};
+    use num_bigint::{BigInt, BigUint};
     #[test]
     fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
