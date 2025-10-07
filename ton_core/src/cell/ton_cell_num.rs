@@ -105,7 +105,11 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                     return Ok(vec![]);
                 }
                 if (bits_len > std::mem::size_of::<$src>() * 8) {
-                    bail_ton_core_data!("Requested bits {} more than sizeof {}", bits_len, std::mem::size_of::<$src>() * 8);
+                    bail_ton_core_data!(
+                        "Requested bits {} more than sizeof {}",
+                        bits_len,
+                        std::mem::size_of::<$src>() * 8
+                    );
                 }
                 if (bits_len < self.tcn_min_bits_len() as usize) {
                     bail_ton_core_data!(
@@ -115,20 +119,20 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                         self.tcn_min_bits_len()
                     );
                 }
-                
+
                 // Calculate number of bytes needed
                 let num_bytes = (bits_len + 7) / 8;
-                
+
                 // Adjust value if bits_len is not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
                     value = value << (8 - bits_len % 8);
                 }
-                
+
                 // Extract bytes in big-endian order
                 let all_bytes = value.to_be_bytes();
                 let type_bytes = std::mem::size_of::<$src>();
-                
+
                 // Return only the needed bytes from the end (big-endian)
                 Ok(all_bytes[(type_bytes - num_bytes)..].to_vec())
             }
@@ -224,17 +228,17 @@ pub fn bigint_unsigned_to_signed(value: &BigUint) -> BigInt {
 
 // Implementation for BigUint
 impl TonCellNum for BigUint {
-    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> { 
+    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
         if bits_len == 0 {
             return Ok(vec![]);
         }
-        
+
         // Calculate number of bytes needed
         let num_bytes = (bits_len + 7) / 8;
-        
+
         // Get the big-endian bytes
         let mut bytes = self.to_bytes_be();
-        
+
         // If not byte-aligned, shift left
         if bits_len % 8 != 0 {
             let shift = 8 - (bits_len % 8);
@@ -248,12 +252,12 @@ impl TonCellNum for BigUint {
                 bytes.insert(0, carry as u8);
             }
         }
-        
+
         // Pad with leading zeros if needed
         while bytes.len() < num_bytes {
             bytes.insert(0, 0);
         }
-        
+
         Ok(bytes)
     }
 
@@ -261,14 +265,14 @@ impl TonCellNum for BigUint {
         if bits_len == 0 {
             return Ok(BigUint::zero());
         }
-        
+
         let mut result = BigUint::from_bytes_be(&data);
-        
+
         // Shift right if bits_len is not byte-aligned
         if bits_len % 8 != 0 {
             result = result >> (8 - bits_len % 8);
         }
-        
+
         Ok(result)
     }
 
@@ -417,60 +421,61 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 let zero: $src = Self::from(0u32);
                 let sign = *self < zero;
                 let magnitude = self.abs();
-                
+
                 // Convert magnitude to unsigned and encode sign in LSB
                 // We need to manually convert Int to UInt by building it byte by byte
                 let bytes_count = std::mem::size_of::<$src>();
                 let mut bytes_vec = Vec::with_capacity(bytes_count);
                 let mut temp = magnitude;
-                
+
                 for _ in 0..bytes_count {
                     let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
                     bytes_vec.push(byte_val);
                     temp = temp >> 8;
                 }
                 bytes_vec.reverse(); // Make it big-endian
-                
+
                 // Now construct the UInt from these bytes
                 let mut uval = <$u_src>::from(0u32);
                 for byte in bytes_vec {
                     uval = (uval << 8) | <$u_src>::from(byte);
                 }
-                
+
                 // Encode sign
                 uval = uval << 1u32;
                 if sign {
                     uval = uval + <$u_src>::ONE;
                 }
-                
+
                 // Use the unsigned implementation to serialize
                 uval.tcn_to_bytes(bits_len)
             }
 
             fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
                 let unsigned_val = <$u_src>::tcn_from_bytes(data, bits_len)?;
-                
+
                 // Decode sign from LSB
                 let sign_bit = (unsigned_val.clone() & <$u_src>::ONE) == <$u_src>::ONE;
                 let mut magnitude_uint = unsigned_val >> 1u32;
-                
+
                 // Convert UInt magnitude back to Int
                 let bytes_count = std::mem::size_of::<$src>();
                 let mut bytes_vec = Vec::with_capacity(bytes_count);
-                
+
                 for _ in 0..bytes_count {
-                    let byte_val = (magnitude_uint.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                    let byte_val =
+                        (magnitude_uint.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
                     bytes_vec.push(byte_val);
                     magnitude_uint = magnitude_uint >> 8;
                 }
                 bytes_vec.reverse(); // Make it big-endian
-                
+
                 // Construct Int from bytes
                 let mut result = Self::from(0u32);
                 for byte in bytes_vec {
                     result = (result << 8) | Self::from(byte);
                 }
-                
+
                 if sign_bit {
                     result = -result;
                 }
