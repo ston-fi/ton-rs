@@ -67,20 +67,76 @@ macro_rules! primitive_unsigned_to_signed {
     }};
 }
 
-macro_rules! ton_cell_num_primitive_signed_from_unsigned_impl {
-    ($src:ty, $src_usinged:ty) => {
+macro_rules! ton_cell_num_primitive_signed_impl {
+    ($src:ty) => {
         impl TonCellNum for $src {
             fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
-                let uval: $src_usinged = primitive_signed_to_unsigned!($src, $src_usinged, *self);
-                let bytes = uval.tcn_to_bytes(bits_len)?;
-                Ok(bytes)
+                // Signed integers use standard two's complement representation in TON
+                // Just serialize the raw bytes like unsigned integers
+                if bits_len == 0 {
+                    return Ok(vec![]);
+                }
+                if (bits_len > std::mem::size_of::<$src>() * 8) {
+                    bail_ton_core_data!(
+                        "Requested bits {} more than sizeof {}",
+                        bits_len,
+                        std::mem::size_of::<$src>() * 8
+                    );
+                }
+
+                // Calculate number of bytes needed
+                let num_bytes = (bits_len + 7) / 8;
+
+                // Adjust value if bits_len is not byte-aligned
+                let mut value = *self;
+                if bits_len % 8 != 0 {
+                    value = value << (8 - bits_len % 8);
+                }
+
+                // Extract bytes in big-endian order
+                let all_bytes = value.to_be_bytes();
+                let type_bytes = std::mem::size_of::<$src>();
+
+                // Return only the needed bytes from the end (big-endian)
+                Ok(all_bytes[(type_bytes - num_bytes)..].to_vec())
             }
 
             fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
-                let mut unsigned_val = <$src_usinged>::tcn_from_bytes(data, bits_len)?;
+                if bits_len == 0 {
+                    return Ok(0);
+                }
 
-                Ok(primitive_unsigned_to_signed!($src_usinged, $src, unsigned_val))
+                // Reconstruct number from bytes as unsigned first
+                let mut result: $src = 0;
+                let type_bits = std::mem::size_of::<$src>() * 8;
+
+                for (i, &byte) in data.iter().enumerate() {
+                    let shift_amount = (data.len() - 1 - i) * 8;
+                    // Only shift if it won't overflow
+                    if shift_amount < type_bits {
+                        result = result | ((byte as $src) << shift_amount);
+                    }
+                }
+
+                // Shift right if bits_len is not byte-aligned
+                if bits_len % 8 != 0 {
+                    result = result >> (8 - bits_len % 8);
+                }
+
+                // Sign-extend if the MSB of the read bits is set
+                if bits_len < type_bits {
+                    let sign_bit_pos = bits_len - 1;
+                    let sign_bit_mask = 1 << sign_bit_pos;
+                    if (result & sign_bit_mask) != 0 {
+                        // Negative number - sign extend by setting all higher bits to 1
+                        let extension_mask = !((1 << bits_len) - 1);
+                        result = result | extension_mask;
+                    }
+                }
+
+                Ok(result)
             }
+
             fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
                 let val = self.unsigned_abs();
                 val.highest_bit_pos_ignore_sign()
@@ -89,9 +145,15 @@ macro_rules! ton_cell_num_primitive_signed_from_unsigned_impl {
             fn tcn_is_zero(&self) -> bool { *self == 0 }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
-                let rz = self.unsigned_abs().tcn_min_bits_len() - 1;
-                assert_ne!(rz, 0);
-                rz
+                if *self >= 0 {
+                    // For non-negative values, same as unsigned
+                    let val = *self as u64; // safe cast for determining bit length
+                    let rz = val.leading_zeros();
+                    (64 - rz) as u32 + 1 // +1 for sign bit
+                } else {
+                    // For negative values in two's complement, we need all bits
+                    (std::mem::size_of::<$src>() * 8) as u32
+                }
             }
         }
     };
@@ -192,11 +254,11 @@ ton_cell_num_primitive_unsigned_impl!(u64);
 ton_cell_num_primitive_unsigned_impl!(u128);
 ton_cell_num_primitive_unsigned_impl!(usize);
 
-ton_cell_num_primitive_signed_from_unsigned_impl!(i8, u8);
-ton_cell_num_primitive_signed_from_unsigned_impl!(i16, u16);
-ton_cell_num_primitive_signed_from_unsigned_impl!(i32, u32);
-ton_cell_num_primitive_signed_from_unsigned_impl!(i64, u64);
-ton_cell_num_primitive_signed_from_unsigned_impl!(i128, u128);
+ton_cell_num_primitive_signed_impl!(i8);
+ton_cell_num_primitive_signed_impl!(i16);
+ton_cell_num_primitive_signed_impl!(i32);
+ton_cell_num_primitive_signed_impl!(i64);
+ton_cell_num_primitive_signed_impl!(i128);
 
 fn bigint_signed_to_unsigned(value: &BigInt) -> BigUint {
     let sign = value.is_negative();
