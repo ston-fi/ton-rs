@@ -256,6 +256,7 @@ mod tests {
         cell_builder.write_num(&-3i8, 8)?;
 
         let cell = cell_builder.build()?;
+
         assert_eq!(cell.data, vec![0b1111_1111, 0b1111_1101, 0b1111_1101]);
 
         Ok(())

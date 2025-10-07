@@ -83,6 +83,14 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                         std::mem::size_of::<$src>() * 8
                     );
                 }
+                if (bits_len < self.tcn_min_bits_len() as usize) {
+                    bail_ton_core_data!(
+                        "Not enough bits for write num {} in {} bits signed, min len {}",
+                        *self,
+                        bits_len,
+                        self.tcn_min_bits_len()
+                    );
+                }
 
                 // Calculate number of bytes needed
                 let num_bytes = (bits_len + 7) / 8;
@@ -145,14 +153,28 @@ macro_rules! ton_cell_num_primitive_signed_impl {
             fn tcn_is_zero(&self) -> bool { *self == 0 }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
+                let type_bits = (std::mem::size_of::<$src>() * 8) as u32;
+
                 if *self >= 0 {
-                    // For non-negative values, same as unsigned
-                    let val = *self as u64; // safe cast for determining bit length
-                    let rz = val.leading_zeros();
-                    (64 - rz) as u32 + 1 // +1 for sign bit
+                    // For non-negative values, need bits for value + 1 for sign bit
+                    if *self == 0 {
+                        0
+                    } else {
+                        let bits_for_value = type_bits - self.leading_zeros();
+                        bits_for_value + 1 // +1 for sign bit
+                    }
                 } else {
-                    // For negative values in two's complement, we need all bits
-                    (std::mem::size_of::<$src>() * 8) as u32
+                    // For negative values in two's complement:
+                    // -1 needs 1 bit (1), -2 needs 2 bits (10), -3 needs 3 bits (101), -4 needs 3 bits (100), etc.
+                    // Formula: we need enough bits so that when sign-extended, we get the correct value
+                    // This is: (magnitude - 1).bit_length() + 1
+                    let magnitude = self.unsigned_abs();
+                    if magnitude == 1 {
+                        1 // -1 needs just 1 bit (1)
+                    } else {
+                        let bits_needed = type_bits - (magnitude - 1).leading_zeros();
+                        bits_needed + 1 // +1 for sign bit
+                    }
                 }
             }
         }
@@ -364,18 +386,78 @@ impl TonCellNum for BigUint {
 
 impl TonCellNum for BigInt {
     fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
-        let zero = BigInt::from(0i8);
-        let sign = *self < zero;
-        let uval = bigint_signed_to_unsigned(self);
-        let bytes = uval.tcn_to_bytes(bits_len)?;
+        if bits_len == 0 {
+            return Ok(vec![]);
+        }
+
+        // Use two's complement encoding (standard for TVM int257 and signed integers)
+        let mut bytes = self.to_signed_bytes_be();
+
+        // Calculate required bytes
+        let required_bytes = (bits_len + 7) / 8;
+
+        // Pad with sign extension if needed
+        let pad_byte = if self.is_negative() { 0xFF } else { 0x00 };
+        while bytes.len() < required_bytes {
+            bytes.insert(0, pad_byte);
+        }
+
+        // Trim if too many bytes
+        if bytes.len() > required_bytes {
+            bytes = bytes[(bytes.len() - required_bytes)..].to_vec();
+        }
+
+        // Left-align if not byte-aligned
+        if bits_len % 8 != 0 {
+            let shift = 8 - (bits_len % 8);
+            let mut carry = 0u16;
+            for i in (0..bytes.len()).rev() {
+                let val = (bytes[i] as u16) << shift;
+                bytes[i] = (val | carry) as u8;
+                carry = val >> 8;
+            }
+        }
+
         Ok(bytes)
     }
 
     fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
-        let mut unsigned_val = BigUint::tcn_from_bytes(data, bits_len)?;
-        let result = bigint_unsigned_to_signed(&unsigned_val);
+        if bits_len == 0 {
+            return Ok(BigInt::zero());
+        }
 
-        Ok(result)
+        let mut bytes = data;
+
+        // Undo left-alignment if not byte-aligned
+        if bits_len % 8 != 0 {
+            let shift = 8 - (bits_len % 8);
+            let mut carry = 0u16;
+            for byte in &mut bytes {
+                let val = (*byte as u16) | (carry << 8);
+                *byte = (val >> shift) as u8;
+                carry = val & ((1 << shift) - 1);
+            }
+        }
+
+        // Check the sign bit at the correct position for bits_len
+        let sign_bit_byte_idx = 0;
+        let sign_bit_pos_in_byte = if bits_len % 8 == 0 {
+            7 // MSB of first byte
+        } else {
+            (bits_len % 8) - 1
+        };
+
+        let is_negative = (bytes[sign_bit_byte_idx] & (1 << sign_bit_pos_in_byte)) != 0;
+
+        // Sign-extend if necessary
+        if is_negative && bits_len % 8 != 0 {
+            // Set all bits above the significant bits to 1
+            let mask = 0xFF << (bits_len % 8);
+            bytes[0] |= mask;
+        }
+
+        // Use two's complement deserialization
+        Ok(BigInt::from_signed_bytes_be(&bytes))
     }
     fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
     fn tcn_shr(&self, _bits: usize) -> Self { self >> _bits }
