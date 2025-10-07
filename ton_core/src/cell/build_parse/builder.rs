@@ -4,7 +4,7 @@ use crate::cell::meta::CellType;
 use crate::cell::ton_cell::{TonCell, TonCellRef, TonCellStorage};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
+use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::cmp::min;
 use std::ops::Deref;
 
@@ -108,12 +108,6 @@ impl CellBuilder {
         Ok(())
     }
 
-    pub fn write_primitive<T: Integer + Sized>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
-        self.ensure_capacity(bits_len)?;
-        self.data_writer.write_var(bits_len as u32, data)?;
-        Ok(())
-    }
-
     pub fn write_num<N, D>(&mut self, data: D, bits_len: usize) -> Result<(), TonCoreError>
     where
         N: TonCellNum,
@@ -134,7 +128,7 @@ impl CellBuilder {
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_BITS_LEN - self.data_bits_len }
 
-    pub fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
+    fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_bits_len + bits_len;
         if new_bits_len <= TonCell::MAX_DATA_BITS_LEN {
             self.data_bits_len = new_bits_len;
