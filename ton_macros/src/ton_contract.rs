@@ -45,7 +45,7 @@ pub(crate) fn ton_contract_impl(_attr: TokenStream, item: TokenStream) -> TokenS
         #(#attrs)*
         #vis struct #struct_name #generics #new_fields
 
-        impl #impl_generics #crate_path::contracts::ton_contract::TonContract for #struct_name #ty_generics #where_clause {
+        impl #impl_generics #crate_path::contracts::TonContract for #struct_name #ty_generics #where_clause {
             fn ctx(&self) -> &ContractCtx {
                 &self.contract_ctx
             }
