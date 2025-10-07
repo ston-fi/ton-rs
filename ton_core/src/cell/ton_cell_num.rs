@@ -1,16 +1,17 @@
-use bitstream_io::Integer;
+
 use num_bigint::{BigInt, BigUint};
 use num_traits::{Signed, Zero};
 use std::fmt::Display;
 
 // fastnum support temporarily disabled due to API compatibility issues
-use crate::cell::{CellBuilder, CellParser};
+
 use crate::errors::TonCoreError;
 use crate::{bail_ton_core, bail_ton_core_data};
 use fastnum::bint::{Int, UInt};
 use fastnum::{I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
-use num_traits::real::Real;
+
+
 
 fn toncell_data_set_bit(data: &mut Vec<u8>, bit_id: usize, value: bool) -> Result<bool, TonCoreError> {
     // Find the bit in data array in big-endian format and set it to value
@@ -21,7 +22,7 @@ fn toncell_data_set_bit(data: &mut Vec<u8>, bit_id: usize, value: bool) -> Resul
     let bit_in_byte = 7 - (bit_id % 8); // In big-endian, MSB is bit 7, LSB is bit 0
 
     if byte_idx >= data.len() {
-        use crate::bail_ton_core_data;
+
         bail_ton_core_data!("Bit index {} out of range for {} bytes", bit_id, data.len());
     }
 
@@ -36,22 +37,6 @@ fn toncell_data_set_bit(data: &mut Vec<u8>, bit_id: usize, value: bool) -> Resul
     }
 
     Ok(current_value)
-}
-fn toncell_data_get_bit(data: &mut Vec<u8>, bit_id: u32) -> Result<bool, TonCoreError> {
-    // Find the bit in data array in big-endian format and return its value
-
-    let byte_idx = (bit_id / 8) as usize;
-    let bit_in_byte = 7 - (bit_id % 8); // In big-endian, MSB is bit 7, LSB is bit 0
-
-    if byte_idx >= data.len() {
-        use crate::bail_ton_core_data;
-        bail_ton_core_data!("Bit index {} out of range for {} bytes", bit_id, data.len());
-    }
-
-    // Get the bit value
-    let bit_value = (data[byte_idx] >> bit_in_byte) & 1 == 1;
-
-    Ok(bit_value)
 }
 
 /// Allows generic read/write operation for any numeric type
@@ -69,15 +54,6 @@ pub trait TonCellNum: Display + Sized + Clone {
     fn tcn_shr(&self, bits: usize) -> Self;
 
     fn tcn_min_bits_len(&self) -> u32;
-}
-macro_rules! abs_it {
-    ($val:expr, $tp:ty) => {{
-        if $val < <$tp>::from(0i8) {
-            $val * <$tp>::from(-1i8)
-        } else {
-            $val
-        }
-    }};
 }
 
 macro_rules! ton_cell_num_primitive_signed_from_unsigned_impl {
@@ -287,9 +263,9 @@ impl TonCellNum for usize {
 
 // Implementation for BigUint
 impl TonCellNum for BigUint {
-    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> { Ok(BigUint::to_bytes_be(self)) }
+    fn tcn_to_bytes(&self, _bits_len: usize) -> Result<Vec<u8>, TonCoreError> { Ok(BigUint::to_bytes_be(self)) }
 
-    fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> { todo!() }
+    fn tcn_from_bytes(data: Vec<u8>, _bits_len: usize) -> Result<Self, TonCoreError> { Ok(BigUint::from_bytes_be(&data)) }
 
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
@@ -367,7 +343,6 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 if bits_len == 0 {
                     return Ok(vec![]);
                 }
-
                 // Calculate number of bytes needed
                 let num_bytes = (bits_len + 7) / 8;
 
@@ -385,7 +360,6 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 
                     // Convert to u8 by going through u64
                     // For a single byte value, this is safe
-                    use num_traits::ToPrimitive;
                     bytes.push(byte_val.to_u64().unwrap() as u8);
                 }
 
@@ -493,7 +467,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
-                if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
+                if let Some( value) = self.highest_bit_pos_ignore_sign() {
                     value + 2
                 } else {
                     0
@@ -522,7 +496,7 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::ton_cell_num::{toncell_data_get_bit, toncell_data_set_bit};
+    use crate::cell::ton_cell_num::{ toncell_data_set_bit};
     use crate::cell::{CellParser, TonCell, TonCellNum};
     use fastnum::{I512, U512};
     use num_bigint::BigInt;
@@ -671,7 +645,7 @@ mod tests {
         let result = i32::tcn_from_bytes(bytes, bits_in_val)?;
         println!("Parsed result: {}", result);
         assert!(result < i32::from(0i8), "should be negative");
-        panic!("HEY");
+        
         Ok(())
     }
     #[test]

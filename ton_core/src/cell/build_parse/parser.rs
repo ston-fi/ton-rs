@@ -2,7 +2,7 @@ use crate::bail_ton_core_data;
 use crate::cell::ton_cell::{TonCell, TonCellRef};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitRead, BitReader, Integer};
+use bitstream_io::{BigEndian, BitRead, BitReader};
 use std::io::{Cursor, SeekFrom};
 
 #[derive(Debug)]
