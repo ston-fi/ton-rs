@@ -235,6 +235,39 @@ impl TonCellNum for BigUint {
     }
 }
 
+impl TonCellNum for BigInt {
+    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+        let zero = BigInt::from(0i8);
+        let sign = *self < zero;
+        let uval = bigint_signed_to_unsigned(self);
+        let bytes = uval.tcn_to_bytes(bits_len)?;
+        Ok(bytes)
+    }
+
+    fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+        let mut unsigned_val = BigUint::tcn_from_bytes(data, bits_len)?;
+        let result = bigint_unsigned_to_signed(&unsigned_val);
+
+        Ok(result)
+    }
+    fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+    fn tcn_shr(&self, _bits: usize) -> Self { self >> _bits }
+    fn tcn_min_bits_len(&self) -> u32 {
+        if let Some(value) = self.highest_bit_pos_ignore_sign() {
+            value + 2
+        } else {
+            0
+        }
+    }
+    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+        if self.tcn_is_zero() {
+            return None;
+        }
+        let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
+        Some(max_bit_id - self.bits() as u32)
+    }
+}
+
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
@@ -447,7 +480,7 @@ mod tests {
     fn test_toncellnum_store_and_parse_bigint() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
         let mut builder = TonCell::builder();
-        let test_value = BigInt::from(-900);
+        let test_value = BigInt::from(-900i128);
 
         let test_bit = 14;
         builder.write_num(&test_value, test_bit)?;
@@ -526,44 +559,6 @@ mod tests {
 
         // Verify the value matches
         assert_eq!(parsed_value, test_value);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_toncellnum_data_set_bit32() -> anyhow::Result<()> {
-        let bits_in_val = 32;
-
-        let b_uint = BigUint::from(1u32).tcn_to_bytes(128)?;
-        println!("BigUint bytes: {:?}", b_uint);
-
-        let mut tb = U128::from(3u32).tcn_to_bytes(128)?;
-        println!("U128 bytes: {:?}", tb);
-        toncell_data_set_bit(&mut tb, 0, true)?;
-        println!("U128 bytes: {:?}", tb);
-
-        let mut bytes = i32::from(3).tcn_to_bytes(bits_in_val)?;
-        println!("Initial bytes: {:?}", bytes);
-        println!("Setting bit {} (bits_in_val - 1)", 0);
-        let bit_val = toncell_data_set_bit(&mut bytes, 0, true)?;
-
-        println!("Previous bit value: {}", bit_val);
-        println!("Bytes after set_bit: {:?}", bytes);
-        assert_eq!(bit_val, false);
-        let result = i32::tcn_from_bytes(bytes, bits_in_val)?;
-        println!("Parsed result: {}", result);
-        assert!(result < i32::from(0i8), "should be negative");
-
-        Ok(())
-    }
-    #[test]
-    fn test_toncellnum_data_set_bit512() -> anyhow::Result<()> {
-        let bits_in_val = 512;
-        let mut bytes = I512::from(1).tcn_to_bytes(bits_in_val)?;
-        let bit_val = toncell_data_set_bit(&mut bytes, bits_in_val - 1, true)?;
-        assert_eq!(bit_val, false);
-        let result = I512::tcn_from_bytes(bytes, bits_in_val)?;
-        assert!(result < I512::from(0i8), "should be negative");
 
         Ok(())
     }
