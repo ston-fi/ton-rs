@@ -169,27 +169,28 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 }
 
                 // Left-align value if not byte-aligned
-                let mut value = *self;
-                if bits_len % 8 != 0 {
-                    value <<= 8 - bits_len % 8;
-                }
-
-                // Extract bytes in big-endian order
-                let all_bytes = value.to_be_bytes();
-                let type_bytes = std::mem::size_of::<$src>();
-                let num_bytes = bits_len.div_ceil(8);
-                let full_bytes = bits_len / 8;
-                let remaining_bits = bits_len % 8;
-
-                // Write full bytes
-                let start_byte = type_bytes - num_bytes;
-                writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
-
-                // Write remaining bits from TOP of last byte
-                if remaining_bits > 0 {
-                    let last_byte = all_bytes[start_byte + full_bytes];
-                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-                }
+                // let mut value = *self;
+                // if bits_len % 8 != 0 {
+                //     value <<= 8 - bits_len % 8;
+                // }
+                //
+                // // Extract bytes in big-endian order
+                // let all_bytes = value.to_be_bytes();
+                // let type_bytes = std::mem::size_of::<$src>();
+                // let num_bytes = bits_len.div_ceil(8);
+                // let full_bytes = bits_len / 8;
+                // let remaining_bits = bits_len % 8;
+                //
+                // // Write full bytes
+                // let start_byte = type_bytes - num_bytes;
+                // writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
+                //
+                // // Write remaining bits from TOP of last byte
+                // if remaining_bits > 0 {
+                //     let last_byte = all_bytes[start_byte + full_bytes];
+                //     writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+                // }
+                writer.write_var(bits_len as u32, *self);
                 Ok(())
             }
 
@@ -246,7 +247,6 @@ ton_cell_num_primitive_unsigned_impl!(u16);
 ton_cell_num_primitive_unsigned_impl!(u32);
 ton_cell_num_primitive_unsigned_impl!(u64);
 ton_cell_num_primitive_unsigned_impl!(u128);
-ton_cell_num_primitive_unsigned_impl!(usize);
 
 ton_cell_num_primitive_signed_impl!(i8);
 ton_cell_num_primitive_signed_impl!(i16);
@@ -257,6 +257,94 @@ ton_cell_num_primitive_signed_impl!(i128);
 // Implementation for BigUint
 // Note: BigUint is used for BigInt sign encoding
 // Must left-align values for non-byte-aligned sizes to match write_bits expectations
+impl TonCellNum for usize {
+    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
+        if bits_len == 0 {
+            return Ok(());
+        }
+        if bits_len > std::mem::size_of::<usize>() * 8 {
+            bail_ton_core_data!("Requested bits {} more than sizeof {}", bits_len, std::mem::size_of::<usize>() * 8);
+        }
+        if bits_len < self.tcn_min_bits_len() as usize {
+            bail_ton_core_data!(
+                "Not enouth bits for write num {} in {} bits unsigned  min len {}",
+                *self,
+                bits_len,
+                self.tcn_min_bits_len()
+            );
+        }
+
+        // Left-align value if not byte-aligned
+        let mut value = *self;
+        if bits_len % 8 != 0 {
+            value <<= 8 - bits_len % 8;
+        }
+
+        // Extract bytes in big-endian order
+        let all_bytes = value.to_be_bytes();
+        let type_bytes = std::mem::size_of::<usize>();
+        let num_bytes = bits_len.div_ceil(8);
+        let full_bytes = bits_len / 8;
+        let remaining_bits = bits_len % 8;
+
+        // Write full bytes
+        let start_byte = type_bytes - num_bytes;
+        writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
+
+        // Write remaining bits from TOP of last byte
+        if remaining_bits > 0 {
+            let last_byte = all_bytes[start_byte + full_bytes];
+            writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+        }
+        Ok(())
+    }
+
+    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
+        if self.tcn_is_zero() {
+            return None;
+        }
+        let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
+        Some(max_bit_id - self.leading_zeros())
+    }
+
+    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
+        if bits_len == 0 {
+            return Ok(0);
+        }
+
+        let full_bytes = bits_len / 8;
+        let remaining_bits = bits_len % 8;
+        let mut result: usize = 0;
+
+        // Read full bytes
+        for _ in 0..full_bytes {
+            let byte = reader.read::<8, u8>()?;
+            result = result.wrapping_shl(8) | (byte as usize);
+        }
+
+        // Read remaining bits if any
+        if remaining_bits > 0 {
+            let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
+            result = result.wrapping_shl(remaining_bits as u32) | (last_bits as usize);
+        }
+
+        Ok(result)
+    }
+
+    fn tcn_is_zero(&self) -> bool { *self == 0 }
+
+    fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
+
+    fn tcn_min_bits_len(&self) -> u32 {
+        if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
+            value += 1u32;
+            value
+        } else {
+            0u32
+        }
+    }
+}
+
 impl TonCellNum for BigUint {
     fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
         if bits_len == 0 {

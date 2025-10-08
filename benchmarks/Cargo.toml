@@ -32,3 +32,8 @@ harness = false
 name = "write_num_primitives"
 path = "write_num_primitives.rs"
 harness = false
+
+[[bench]]
+name = "read_num_primitives"
+path = "read_num_primitives.rs"
+harness = false
