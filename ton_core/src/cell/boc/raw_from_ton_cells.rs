@@ -1,20 +1,20 @@
-use crate::cell::TonCellRef;
+use crate::cell::boc::raw_types::{RawBoC, RawCell};
 use crate::cell::TonHash;
+use crate::cell::{TonCell, TonCellRef};
 use crate::errors::TonCoreError;
+use smallvec::SmallVec;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-use crate::cell::boc::raw_types::{RawBoC, RawCell};
-
 #[derive(Debug, Clone)]
 struct IndexedCell<'a> {
-    cell: &'a TonCellRef,
+    cell: &'a TonCell,
     index: RefCell<usize>, // internal mutability required
 }
 
 impl RawBoC {
-    pub fn from_ton_cells(roots: &[TonCellRef]) -> Result<Self, TonCoreError> {
+    pub fn from_ton_cells(roots: &[TonCell]) -> Result<Self, TonCoreError> {
         let cell_by_hash = build_and_verify_index(roots)?;
 
         // Sort indexed cells by their index value.
@@ -41,7 +41,7 @@ impl RawBoC {
     }
 }
 
-fn build_and_verify_index(roots: &[TonCellRef]) -> Result<HashMap<TonHash, IndexedCell<'_>>, TonCoreError> {
+fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedCell<'_>>, TonCoreError> {
     let mut cur_cells = vec![];
     for cell in roots {
         cur_cells.push(cell);
@@ -66,7 +66,7 @@ fn build_and_verify_index(roots: &[TonCellRef]) -> Result<HashMap<TonHash, Index
             cells_by_hash.insert(hash.clone(), indexed_cell);
 
             new_hash_index += 1;
-            next_cells.extend(&cell.refs);
+            next_cells.extend(cell.refs());
         }
 
         cur_cells = next_cells;
@@ -78,8 +78,8 @@ fn build_and_verify_index(roots: &[TonCellRef]) -> Result<HashMap<TonHash, Index
         verify_order = false;
 
         for index_cell in cells_by_hash.values() {
-            for ref_pos in 0..index_cell.cell.refs.len() {
-                let ref_cell = &index_cell.cell.refs[ref_pos];
+            for ref_pos in 0..index_cell.cell.refs().len() {
+                let ref_cell = &index_cell.cell.refs()[ref_pos];
                 let ref_hash = ref_cell.hash()?;
                 if let Some(indexed) = cells_by_hash.get(ref_hash) {
                     if indexed.index < index_cell.index {
@@ -95,10 +95,10 @@ fn build_and_verify_index(roots: &[TonCellRef]) -> Result<HashMap<TonHash, Index
     Ok(cells_by_hash)
 }
 
-fn raw_from_indexed(cell: &TonCellRef, cells_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<RawCell, TonCoreError> {
+fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<RawCell, TonCoreError> {
     let refs_positions = raw_cell_refs_indexes(cell, cells_by_hash)?;
     Ok(RawCell {
-        cell_type: cell.cell_type,
+        cell_type: cell.cell_type(),
         data: cell.data.clone(),
         data_bits_len: cell.data_bits_len,
         refs_positions,
@@ -107,18 +107,18 @@ fn raw_from_indexed(cell: &TonCellRef, cells_by_hash: &HashMap<TonHash, IndexedC
 }
 
 fn raw_cell_refs_indexes(
-    cell: &TonCellRef,
+    cell: &TonCell,
     cells_by_hash: &HashMap<TonHash, IndexedCell>,
-) -> Result<Vec<usize>, TonCoreError> {
-    let mut vec = Vec::with_capacity(cell.refs.len());
-    for ref_pos in 0..cell.refs.len() {
-        let cell_ref = &cell.refs[ref_pos];
+) -> Result<SmallVec<[usize; 4]>, TonCoreError> {
+    let mut vec = SmallVec::with_capacity(cell.refs().len());
+    for ref_pos in 0..cell.refs().len() {
+        let cell_ref = &cell.refs()[ref_pos];
         vec.push(get_position(cell_ref, cells_by_hash)?);
     }
     Ok(vec)
 }
 
-fn get_position(cell: &TonCellRef, call_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<usize, TonCoreError> {
+fn get_position(cell: &TonCell, call_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<usize, TonCoreError> {
     let hash = cell.hash()?;
     call_by_hash
         .get(hash)

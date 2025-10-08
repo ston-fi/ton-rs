@@ -4,6 +4,7 @@ use crate::cell::CellType;
 use crate::cell::LevelMask;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, ByteRead, ByteReader};
+use smallvec::SmallVec;
 use std::io::Cursor;
 
 impl RawBoC {
@@ -112,7 +113,7 @@ fn read_cell(reader: &mut ByteReader<Cursor<&[u8]>, BigEndian>, size: u8) -> Res
         0
     };
     let data_bits_len = data.len() * 8 - padding_len as usize;
-    let mut refs_positions: Vec<usize> = Vec::new();
+    let mut refs_positions: SmallVec<[usize; 4]> = SmallVec::new();
     for _ in 0..ref_num {
         refs_positions.push(read_var_size(reader, size)?);
     }

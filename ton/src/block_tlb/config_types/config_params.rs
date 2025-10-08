@@ -74,7 +74,7 @@ impl TLB for ConfigParams {
         self.config_addr.write(dst)?;
         let mut config_cell = TonCell::builder();
         TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).write(&mut config_cell, &self.config)?;
-        dst.write_ref(config_cell.build()?.into_ref())?;
+        dst.write_ref(config_cell.build_ref()?)?;
         Ok(())
     }
 }

@@ -6,28 +6,23 @@ mod raw_types;
 
 use crate::bail_ton_core_data;
 use crate::cell::boc::raw_types::RawBoC;
-use crate::cell::{TonCell, TonCellRef, TonCellStorage};
+use crate::cell::TonCell;
 use crate::errors::TonCoreError;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
-use std::marker::PhantomData;
 
-pub struct BoC<C = TonCell> {
-    roots: TonCellStorage,
-    _phantom: PhantomData<C>,
+pub struct BoC {
+    roots: Vec<TonCell>,
 }
 
 impl BoC {
-    pub fn new(root: TonCellRef) -> Self {
+    pub fn new(root: TonCell) -> Self { Self { roots: vec![root] } }
+    pub fn from_roots<I>(roots: I) -> Self
+    where
+        I: IntoIterator<Item = TonCell>,
+    {
         Self {
-            roots: vec![root],
-            _phantom: PhantomData,
-        }
-    }
-    pub fn from_roots(roots: TonCellStorage) -> Self {
-        Self {
-            roots,
-            _phantom: PhantomData,
+            roots: roots.into_iter().collect(),
         }
     }
 
@@ -38,7 +33,6 @@ impl BoC {
         }
         Ok(Self {
             roots: RawBoC::from_bytes(bytes_ref)?.into_ton_cells()?,
-            _phantom: PhantomData,
         })
     }
 
@@ -57,7 +51,10 @@ impl BoC {
         Ok(BASE64_STANDARD.encode(self.to_bytes(add_crc32)?))
     }
 
-    pub fn single_root(mut self) -> Result<TonCellRef, TonCoreError> {
+    // zero-based index
+    pub fn get_root(&self, index: usize) -> Option<&TonCell> { self.roots.get(index) }
+
+    pub fn single_root(mut self) -> Result<TonCell, TonCoreError> {
         if self.roots.len() != 1 {
             bail_ton_core_data!("Expected 1 root cell, got {}", self.roots.len());
         }
@@ -73,8 +70,7 @@ mod tests {
 
     #[test]
     fn test_boc_create() {
-        let cell = TonCell::EMPTY;
-        let boc = BoC::new(cell.into_ref());
+        let boc = BoC::new(TonCell::empty().to_owned());
         assert_eq!(boc.roots.len(), 1);
     }
 

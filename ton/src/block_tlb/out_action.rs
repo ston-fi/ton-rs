@@ -55,7 +55,7 @@ impl OutList {
 
 impl TLB for OutList {
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
-        if parser.data_bits_remaining()? == 0 {
+        if parser.data_bits_left()? == 0 {
             return Ok(Self::default());
         }
         let mut cur_ref = parser.read_next_ref()?.clone();

@@ -74,7 +74,7 @@ fn parse_key_block_seqno(block: &BlockData) -> Result<u32, TonError> {
             exp: BlockInfo::PREFIX.value,
             given: tag,
             bits_exp: BlockInfo::PREFIX.bits_len,
-            bits_left: parser.data_bits_remaining()? + 32,
+            bits_left: parser.data_bits_left()? + 32,
         }
         .into());
     }

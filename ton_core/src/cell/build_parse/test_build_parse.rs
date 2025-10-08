@@ -1,4 +1,4 @@
-use crate::cell::build_parse::parser::CellParser;
+use crate::cell::cell_parser::CellParser;
 use crate::cell::ton_cell::TonCell;
 use crate::cell::BoC;
 use crate::cell::TonHash;
@@ -13,7 +13,6 @@ fn test_build_parse_bit() -> anyhow::Result<()> {
     writer.write_bit(true)?;
     writer.write_bit(false)?;
     let cell = writer.build()?;
-    // let cell_slice = CellSlice::from_cell(&cell);
     let mut reader = CellParser::new(&cell);
     assert!(reader.read_bit()?);
     assert!(!reader.read_bit()?);
@@ -29,7 +28,6 @@ fn test_build_parse_bits() -> anyhow::Result<()> {
     writer.write_bits([0b1010_1010], 8)?;
     writer.write_bits([0b0101_0101], 4)?;
     let cell = writer.build()?;
-    // let cell_slice = CellSlice::from_cell(&cell);
     let mut reader = CellParser::new(&cell);
     assert!(reader.read_bit()?);
     let dst = reader.read_bits(8)?;

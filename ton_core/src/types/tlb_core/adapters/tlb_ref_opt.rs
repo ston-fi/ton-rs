@@ -1,8 +1,8 @@
+use crate::cell::CellBuilder;
+use crate::cell::CellParser;
+use crate::errors::TonCoreError;
+use crate::traits::tlb::TLB;
 use std::marker::PhantomData;
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
 
 /// TLBOptRef - allows to save optional object ( Maybe(^X) ) in a reference cell.
 /// use `#[tlb_derive(adapter="TLBRefOpt")]` to apply it using TLBDerive macro
@@ -22,7 +22,7 @@ impl<T: TLB> TLBRefOpt<Option<T>> {
     pub fn write(&self, builder: &mut CellBuilder, val: &Option<T>) -> Result<(), TonCoreError> {
         builder.write_bit(val.is_some())?;
         if let Some(val) = val {
-            builder.write_ref(val.to_cell_ref()?)?;
+            builder.write_ref(val.to_cell()?)?;
         }
         Ok(())
     }
@@ -35,17 +35,17 @@ impl<T: TLB> Default for TLBRefOpt<Option<T>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tlb_adapters::TLBRef;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::TLB;
+    use crate::cell::TonCell;
+    use crate::types::tlb_core::adapters::tlb_ref::TLBRef;
+    use ton_lib_macros::TLB;
 
     #[test]
     fn test_tlb_ref() -> anyhow::Result<()> {
         let mut builder = TonCell::builder();
         TLBRef::<bool>::new().write(&mut builder, &true)?;
         let cell = builder.build()?;
-        assert_eq!(cell.refs.len(), 1);
-        assert_eq!(cell.refs[0].data, vec![0b10000000]);
+        assert_eq!(cell.refs().len(), 1);
+        assert_eq!(cell.refs()[0].underlying_storage(), vec![0b10000000]);
 
         let parsed = TLBRef::<bool>::new().read(&mut cell.parser())?;
         assert!(parsed);
@@ -64,9 +64,9 @@ mod tests {
     fn test_tlb_ref_derive() -> anyhow::Result<()> {
         let expected = TestStruct { a: 255, b: 255 };
         let cell = expected.to_cell()?;
-        assert_eq!(cell.refs.len(), 2);
-        assert_eq!(cell.refs[0].data, vec![255]);
-        assert_eq!(cell.refs[1].data, vec![255]);
+        assert_eq!(cell.refs().len(), 2);
+        assert_eq!(cell.refs()[0].underlying_storage(), vec![255]);
+        assert_eq!(cell.refs()[1].underlying_storage(), vec![255]);
 
         let parsed = TestStruct::from_cell(&cell)?;
         assert_eq!(parsed, expected);

@@ -59,7 +59,7 @@ impl TLB for SnakeData {
 
 impl SnakeData {
     fn read_chunk(parser: &mut CellParser, result: &mut Self) -> Result<(), TonCoreError> {
-        let chunk_bits_len = parser.data_bits_remaining()?;
+        let chunk_bits_len = parser.data_bits_left()?;
         if chunk_bits_len % 8 != 0 {
             bail_ton_core_data!("Expecting data_chunk_len % 8 == 0, got {chunk_bits_len}");
         }
@@ -131,7 +131,7 @@ mod tests {
         let cell = builder.build()?;
         let mut parser = cell.parser();
         let _ = parser.read_bits(512); // skip
-        assert_eq!(parser.data_bits_remaining()?, 63 * 8);
+        assert_eq!(parser.data_bits_left()?, 63 * 8);
         assert_eq!(parser.read_bits(63 * 8)?, vec![0b11111111; 63]);
 
         // just in case - write to empty cell

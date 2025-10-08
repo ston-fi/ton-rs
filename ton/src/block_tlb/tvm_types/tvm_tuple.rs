@@ -99,7 +99,7 @@ fn write_tuple_ref(builder: &mut CellBuilder, data: &[TVMStackValue], rest_len: 
         _ => {
             let mut ref_builder = TonCell::builder();
             write_tuple(&mut ref_builder, data, rest_len)?;
-            builder.write_ref(ref_builder.build()?.into_ref())?;
+            builder.write_ref(ref_builder.build_ref()?)?;
         }
     }
     Ok(())

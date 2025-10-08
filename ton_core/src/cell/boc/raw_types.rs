@@ -1,4 +1,5 @@
 use crate::cell::{CellType, LevelMask};
+use smallvec::SmallVec;
 
 pub const GENERIC_BOC_MAGIC: u32 = 0xb5ee9c72;
 /// `cells` must be topologically sorted.
@@ -14,6 +15,6 @@ pub struct RawCell {
     pub cell_type: CellType,
     pub data: Vec<u8>,
     pub data_bits_len: usize,
-    pub refs_positions: Vec<usize>,
+    pub refs_positions: SmallVec<[usize; 4]>,
     pub level_mask: LevelMask,
 }

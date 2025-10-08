@@ -53,7 +53,7 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
             EitherRefLayout::ToRef => EitherRefLayout::ToRef,
             EitherRefLayout::Native => {
                 // strictly <, 1 more bit is reserver for layout marker
-                if cell.data_bits_len < builder.data_bits_left() {
+                if cell.data_bits_len() < builder.data_bits_left() {
                     EitherRefLayout::ToCell
                 } else {
                     EitherRefLayout::ToRef
@@ -67,7 +67,7 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
             }
             EitherRefLayout::ToRef => {
                 builder.write_bit(true)?;
-                builder.write_ref(cell.into_ref())?;
+                builder.write_ref(cell)?;
             }
             _ => unreachable!("Invalid EitherRefLayout value"),
         };
@@ -153,7 +153,7 @@ mod tests {
 
         impl TLB for List {
             fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
-                match parser.data_bits_remaining()? {
+                match parser.data_bits_left()? {
                     0 => Ok(Self::Empty),
                     _ => Ok(Self::Some(TLB::read(parser)?)),
                 }
