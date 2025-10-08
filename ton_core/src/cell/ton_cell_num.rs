@@ -740,7 +740,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bigint_257_bits_serialization() -> anyhow::Result<()> {
+    fn test_toncellnum_bigint_257_bits_serialization() -> anyhow::Result<()> {
         // This test demonstrates the BigInt serialization issue with non-byte-aligned sizes
         // BigInt uses sign encoding: (magnitude << 1) | sign_bit
         // For 257 bits (33 bytes with 1 bit in last byte), the alignment matters
@@ -771,7 +771,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bigint_simple_non_byte_aligned() -> anyhow::Result<()> {
+    fn test_toncellnum_bigint_simple_non_byte_aligned() -> anyhow::Result<()> {
         // Simpler test: 9 bits (2 bytes with 1 bit in second byte)
         use num_bigint::BigInt;
 
@@ -781,7 +781,8 @@ mod tests {
         let bits_len = 9; // Not byte-aligned
 
         // Debug: check what bytes are generated
-        let encoded_bytes = test_value.tcn_to_bytes(bits_len)?;
+        test_value.tcn_to_bytes(bits_len)?;
+
         builder.write_num(&test_value, bits_len)?;
 
         let cell = builder.build()?;
@@ -789,7 +790,7 @@ mod tests {
         let mut parser = CellParser::new(&cell);
 
         // Debug: check what bytes we read back
-        let read_bytes = parser.read_bits(bits_len)?;
+        let _ = parser.read_bits(bits_len)?;
         parser.seek_bits(-(bits_len as i32))?;
 
         let parsed_value = parser.read_num::<BigInt>(bits_len)?;
@@ -800,7 +801,7 @@ mod tests {
     }
 
     #[test]
-    fn test_biguint_150_bits() -> anyhow::Result<()> {
+    fn test_toncellnum_biguint_150_bits() -> anyhow::Result<()> {
         // Test BigUint with 150 bits (the size used in test_dict_key_bits_len_bigger_than_key)
         use num_bigint::BigUint;
 
@@ -816,6 +817,53 @@ mod tests {
         let parsed_value = parser.read_num::<BigUint>(bits_len)?;
 
         assert_eq!(parsed_value, test_value, "BigUint round-trip failed for 150 bits");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_toncellnum_u256_simple_non_byte_aligned() -> anyhow::Result<()> {
+        // Test U256 (fastnum) with non-byte-aligned bits
+        use fastnum::U256;
+
+        let mut builder = TonCell::builder();
+        let test_value = U256::from(42u32);
+
+        let bits_len = 9; // Not byte-aligned
+
+        let _ = test_value.tcn_to_bytes(bits_len)?;
+
+        builder.write_num(&test_value, bits_len)?;
+        let cell = builder.build()?;
+
+        let mut parser = CellParser::new(&cell);
+        parser.read_bits(bits_len)?;
+        parser.seek_bits(-(bits_len as i32))?;
+        let parsed_value = parser.read_num::<U256>(bits_len)?;
+
+        assert_eq!(parsed_value, test_value, "U256 round-trip failed for 9 bits");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_toncellnum_i128_zero_value_zero_bits() -> anyhow::Result<()> {
+        // Test I128 with zero value and 0 bits (edge case)
+        use fastnum::I128;
+
+        let mut builder = TonCell::builder();
+        let test_value = I128::from(0u32);
+
+        let bits_len = 0; // Zero bits
+
+        builder.write_num(&test_value, bits_len)?;
+        let cell = builder.build()?;
+
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<I128>(bits_len)?;
+
+        assert_eq!(parsed_value, test_value, "I128 round-trip failed for 0 bits with zero value");
+        assert_eq!(cell.data_bits_len, 0, "Cell should have 0 data bits");
 
         Ok(())
     }
