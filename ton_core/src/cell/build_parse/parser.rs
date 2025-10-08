@@ -5,11 +5,13 @@ use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use std::io::{Cursor, SeekFrom};
 
+pub type CellBitReader<'a> = BitReader<Cursor<&'a [u8]>, BigEndian>;
+
 #[derive(Debug)]
 pub struct CellParser<'a> {
     pub cell: &'a TonCell,
     pub next_ref_pos: usize,
-    data_reader: BitReader<Cursor<&'a [u8]>, BigEndian>,
+    data_reader: CellBitReader<'a>,
 }
 
 impl<'a> CellParser<'a> {
@@ -52,9 +54,7 @@ impl<'a> CellParser<'a> {
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
         self.ensure_enough_bits(bits_len)?;
-        let data = self.read_bits(bits_len)?;
-
-        N::tcn_from_bytes(data, bits_len)
+        N::tcn_from_bytes(&mut self.data_reader, bits_len)
     }
 
     pub fn read_cell(&mut self) -> Result<TonCell, TonCoreError> {

@@ -1,3 +1,5 @@
+use crate::cell::{CellBitReader, CellBitWriter};
+use bitstream_io::{BitRead, BitWrite};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{Signed, Zero};
 
@@ -13,9 +15,9 @@ use fastnum::{U1024, U128, U256, U512};
 /// Questions
 /// Split on Primitive and not Primitive?
 pub trait TonCellNum: Display + Sized + Clone {
-    // deprecated
-    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError>;
-    fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError>;
+    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError>;
+
+    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError>;
 
     fn highest_bit_pos_ignore_sign(&self) -> Option<u32>;
     fn tcn_is_zero(&self) -> bool;
@@ -28,11 +30,11 @@ pub trait TonCellNum: Display + Sized + Clone {
 macro_rules! ton_cell_num_primitive_signed_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
                 // Signed integers use standard two's complement representation in TON
                 // Just serialize the raw bytes like unsigned integers
                 if bits_len == 0 {
-                    return Ok(vec![]);
+                    return Ok(());
                 }
                 if (bits_len > std::mem::size_of::<$src>() * 8) {
                     bail_ton_core_data!(
@@ -50,10 +52,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                     );
                 }
 
-                // Calculate number of bytes needed
-                let num_bytes = bits_len.div_ceil(8);
-
-                // Adjust value if bits_len is not byte-aligned
+                // Left-align value if not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
                     value <<= 8 - bits_len % 8;
@@ -62,31 +61,42 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                 // Extract bytes in big-endian order
                 let all_bytes = value.to_be_bytes();
                 let type_bytes = std::mem::size_of::<$src>();
+                let num_bytes = bits_len.div_ceil(8);
+                let full_bytes = bits_len / 8;
+                let remaining_bits = bits_len % 8;
 
-                // Return only the needed bytes from the end (big-endian)
-                Ok(all_bytes[(type_bytes - num_bytes)..].to_vec())
+                // Write full bytes
+                let start_byte = type_bytes - num_bytes;
+                writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
+
+                // Write remaining bits from TOP of last byte
+                if remaining_bits > 0 {
+                    let last_byte = all_bytes[start_byte + full_bytes];
+                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+                }
+                Ok(())
             }
 
-            fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(0);
                 }
 
-                // Reconstruct number from bytes as unsigned first
+                let full_bytes = bits_len / 8;
+                let remaining_bits = bits_len % 8;
                 let mut result: $src = 0;
                 let type_bits = std::mem::size_of::<$src>() * 8;
 
-                for (i, &byte) in data.iter().enumerate() {
-                    let shift_amount = (data.len() - 1 - i) * 8;
-                    // Only shift if it won't overflow
-                    if shift_amount < type_bits {
-                        result |= (byte as $src) << shift_amount;
-                    }
+                // Read full bytes
+                for _ in 0..full_bytes {
+                    let byte = reader.read::<8, u8>()?;
+                    result = result.wrapping_shl(8) | (byte as $src);
                 }
 
-                // Shift right if bits_len is not byte-aligned
-                if bits_len % 8 != 0 {
-                    result >>= 8 - bits_len % 8;
+                // Read remaining bits if any
+                if remaining_bits > 0 {
+                    let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
+                    result = result.wrapping_shl(remaining_bits as u32) | (last_bits as $src);
                 }
 
                 // Sign-extend if the MSB of the read bits is set
@@ -138,9 +148,9 @@ macro_rules! ton_cell_num_primitive_signed_impl {
 macro_rules! ton_cell_num_primitive_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
                 if bits_len == 0 {
-                    return Ok(vec![]);
+                    return Ok(());
                 }
                 if (bits_len > std::mem::size_of::<$src>() * 8) {
                     bail_ton_core_data!(
@@ -158,10 +168,7 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                     );
                 }
 
-                // Calculate number of bytes needed
-                let num_bytes = bits_len.div_ceil(8);
-
-                // Adjust value if bits_len is not byte-aligned
+                // Left-align value if not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
                     value <<= 8 - bits_len % 8;
@@ -170,9 +177,20 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 // Extract bytes in big-endian order
                 let all_bytes = value.to_be_bytes();
                 let type_bytes = std::mem::size_of::<$src>();
+                let num_bytes = bits_len.div_ceil(8);
+                let full_bytes = bits_len / 8;
+                let remaining_bits = bits_len % 8;
 
-                // Return only the needed bytes from the end (big-endian)
-                Ok(all_bytes[(type_bytes - num_bytes)..].to_vec())
+                // Write full bytes
+                let start_byte = type_bytes - num_bytes;
+                writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
+
+                // Write remaining bits from TOP of last byte
+                if remaining_bits > 0 {
+                    let last_byte = all_bytes[start_byte + full_bytes];
+                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+                }
+                Ok(())
             }
 
             fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
@@ -183,27 +201,27 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 Some(max_bit_id - self.leading_zeros())
             }
 
-            fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::zero());
                 }
 
-                // Reconstruct number from bytes
+                let full_bytes = bits_len / 8;
+                let remaining_bits = bits_len % 8;
                 let mut result: $src = 0;
-                let type_bits = std::mem::size_of::<$src>() * 8;
 
-                for (i, &byte) in data.iter().enumerate() {
-                    let shift_amount = (data.len() - 1 - i) * 8;
-                    // Only shift if it won't overflow
-                    if shift_amount < type_bits {
-                        result |= (byte as $src) << shift_amount;
-                    }
+                // Read full bytes
+                for _ in 0..full_bytes {
+                    let byte = reader.read::<8, u8>()?;
+                    result = result.wrapping_shl(8) | (byte as $src);
                 }
 
-                // Shift right if bits_len is not byte-aligned
-                if bits_len % 8 != 0 {
-                    result >>= 8 - bits_len % 8;
+                // Read remaining bits if any
+                if remaining_bits > 0 {
+                    let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
+                    result = result.wrapping_shl(remaining_bits as u32) | (last_bits as $src);
                 }
+
                 Ok(result)
             }
 
@@ -240,48 +258,65 @@ ton_cell_num_primitive_signed_impl!(i128);
 // Note: BigUint is used for BigInt sign encoding
 // Must left-align values for non-byte-aligned sizes to match write_bits expectations
 impl TonCellNum for BigUint {
-    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
         if bits_len == 0 {
-            return Ok(vec![]);
+            return Ok(());
         }
 
-        // Calculate how many bytes we need for bits_len
-        let required_bytes = bits_len.div_ceil(8);
-
-        // Left-align the value if not byte-aligned (to match write_bits expectations)
-        let value_to_serialize = if bits_len % 8 != 0 {
+        // Left-align the value if not byte-aligned
+        let value_to_write = if bits_len % 8 != 0 {
             self << (8 - bits_len % 8)
         } else {
             self.clone()
         };
 
         // Get big-endian bytes
-        let mut bytes = value_to_serialize.to_bytes_be();
+        let mut bytes = value_to_write.to_bytes_be();
+
+        let num_bytes = bits_len.div_ceil(8);
+        let full_bytes = bits_len / 8;
+        let remaining_bits = bits_len % 8;
 
         // Pad with leading zeros if needed
-        while bytes.len() < required_bytes {
+        while bytes.len() < num_bytes {
             bytes.insert(0, 0);
         }
 
-        // Trim if we have extra bytes from the shift operation
-        if bytes.len() > required_bytes {
-            bytes = bytes[(bytes.len() - required_bytes)..].to_vec();
+        // Trim if we have extra bytes
+        if bytes.len() > num_bytes {
+            bytes = bytes[(bytes.len() - num_bytes)..].to_vec();
         }
 
-        Ok(bytes)
+        // Write full bytes
+        writer.write_bytes(&bytes[0..full_bytes])?;
+
+        // Write remaining bits from TOP of last byte
+        if remaining_bits > 0 {
+            let last_byte = bytes[full_bytes];
+            writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+        }
+        Ok(())
     }
 
-    fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigUint::zero());
         }
 
-        let mut result = BigUint::from_bytes_be(&data);
+        let full_bytes = bits_len / 8;
+        let remaining_bits = bits_len % 8;
+        let mut result = BigUint::zero();
 
-        // Compensate for read_bits left-aligning the last partial byte
-        // read_bits shifts left by (8 - bits_len % 8) when bits_len % 8 != 0
-        if bits_len % 8 != 0 {
-            result >>= 8 - bits_len % 8;
+        // Read full bytes
+        for _ in 0..full_bytes {
+            let byte = reader.read::<8, u8>()?;
+            result = (result << 8) | BigUint::from(byte);
+        }
+
+        // Read remaining bits if any
+        if remaining_bits > 0 {
+            let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
+            result = (result << remaining_bits) | BigUint::from(last_bits);
         }
 
         Ok(result)
@@ -311,26 +346,28 @@ impl TonCellNum for BigUint {
 }
 
 impl TonCellNum for BigInt {
-    fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
         if bits_len == 0 {
-            return Ok(vec![]);
+            return Ok(());
         }
 
         // Use two's complement encoding (standard for TVM int257 and signed integers)
         let mut bytes = self.to_signed_bytes_be();
 
         // Calculate required bytes
-        let required_bytes = bits_len.div_ceil(8);
+        let num_bytes = bits_len.div_ceil(8);
+        let full_bytes = bits_len / 8;
+        let remaining_bits = bits_len % 8;
 
         // Pad with sign extension if needed
         let pad_byte = if self.is_negative() { 0xFF } else { 0x00 };
-        while bytes.len() < required_bytes {
+        while bytes.len() < num_bytes {
             bytes.insert(0, pad_byte);
         }
 
         // Trim if too many bytes
-        if bytes.len() > required_bytes {
-            bytes = bytes[(bytes.len() - required_bytes)..].to_vec();
+        if bytes.len() > num_bytes {
+            bytes = bytes[(bytes.len() - num_bytes)..].to_vec();
         }
 
         // Left-align if not byte-aligned
@@ -344,46 +381,47 @@ impl TonCellNum for BigInt {
             }
         }
 
-        Ok(bytes)
+        // Write full bytes
+        writer.write_bytes(&bytes[0..full_bytes])?;
+
+        // Write remaining bits from TOP of last byte
+        if remaining_bits > 0 {
+            let last_byte = bytes[full_bytes];
+            writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+        }
+        Ok(())
     }
 
-    fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigInt::zero());
         }
 
-        let mut bytes = data;
+        let full_bytes = bits_len / 8;
+        let remaining_bits = bits_len % 8;
+        let mut result = BigInt::zero();
 
-        // Undo left-alignment if not byte-aligned
-        if bits_len % 8 != 0 {
-            let shift = 8 - (bits_len % 8);
-            let mut carry = 0u16;
-            for byte in &mut bytes {
-                let val = (*byte as u16) | (carry << 8);
-                *byte = (val >> shift) as u8;
-                carry = val & ((1 << shift) - 1);
-            }
+        // Read full bytes
+        for _ in 0..full_bytes {
+            let byte = reader.read::<8, u8>()?;
+            result = (result << 8) | BigInt::from(byte);
         }
 
-        // Check the sign bit at the correct position for bits_len
-        let sign_bit_byte_idx = 0;
-        let sign_bit_pos_in_byte = if bits_len % 8 == 0 {
-            7 // MSB of first byte
-        } else {
-            (bits_len % 8) - 1
-        };
-
-        let is_negative = (bytes[sign_bit_byte_idx] & (1 << sign_bit_pos_in_byte)) != 0;
-
-        // Sign-extend if necessary
-        if is_negative && bits_len % 8 != 0 {
-            // Set all bits above the significant bits to 1
-            let mask = 0xFF << (bits_len % 8);
-            bytes[0] |= mask;
+        // Read remaining bits if any
+        if remaining_bits > 0 {
+            let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
+            result = (result << remaining_bits) | BigInt::from(last_bits);
         }
 
-        // Use two's complement deserialization
-        Ok(BigInt::from_signed_bytes_be(&bytes))
+        // Check if the sign bit is set
+        let sign_bit_mask = BigInt::from(1) << (bits_len - 1);
+        if &result & &sign_bit_mask != BigInt::zero() {
+            // Negative number - sign extend by subtracting 2^bits_len
+            let modulus = BigInt::from(1) << bits_len;
+            result -= modulus;
+        }
+
+        Ok(result)
     }
     fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
     fn tcn_shr(&self, _bits: usize) -> Self { self >> _bits }
@@ -406,9 +444,9 @@ impl TonCellNum for BigInt {
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
                 if bits_len == 0 {
-                    return Ok(vec![]);
+                    return Ok(());
                 }
                 if (bits_len > size_of::<$src>() * 8) {
                     bail_ton_core_data!("Requested bits {} more that sizeof  {}", bits_len, size_of::<$src>() * 8);
@@ -421,14 +459,16 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                         self.tcn_min_bits_len()
                     );
                 }
-                // Calculate number of bytes needed
-                let num_bytes = bits_len.div_ceil(8);
-
-                // Adjust value if bits_len is not byte-aligned
+                // Left-align value if not byte-aligned
                 let mut value = *self;
                 if bits_len % 8 != 0 {
                     value <<= 8 - bits_len % 8;
                 }
+
+                // Calculate number of bytes needed
+                let num_bytes = bits_len.div_ceil(8);
+                let full_bytes = bits_len / 8;
+                let remaining_bits = bits_len % 8;
 
                 // Extract bytes in big-endian order
                 let mut bytes = Vec::with_capacity(num_bytes);
@@ -441,24 +481,38 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     bytes.push(byte_val.to_u64().unwrap() as u8);
                 }
 
-                Ok(bytes)
+                // Write full bytes
+                writer.write_bytes(&bytes[0..full_bytes])?;
+
+                // Write remaining bits from TOP of last byte
+                if remaining_bits > 0 {
+                    let last_byte = bytes[full_bytes];
+                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+                }
+                Ok(())
             }
 
-            fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
+            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
 
-                // Reconstruct number from bytes
+                let full_bytes = bits_len / 8;
+                let remaining_bits = bits_len % 8;
                 let mut result = Self::from(0u32);
-                for &byte in &data {
+
+                // Read full bytes
+                for _ in 0..full_bytes {
+                    let byte = reader.read::<8, u8>()?;
                     result = (result << 8) | Self::from(byte);
                 }
 
-                // Shift right if bits_len is not byte-aligned
-                if bits_len % 8 != 0 {
-                    result >>= 8 - bits_len % 8;
+                // Read remaining bits if any
+                if remaining_bits > 0 {
+                    let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
+                    result = (result << remaining_bits) | Self::from(last_bits);
                 }
+
                 Ok(result)
             }
 
@@ -487,7 +541,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 macro_rules! ton_cell_num_fastnum_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
+            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
                 // Encode signed value: (abs(value) << 1) | (sign ? 1 : 0)
                 let zero: $src = Self::from(0u32);
                 let sign = *self < zero;
@@ -519,11 +573,11 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
 
                 // Use the unsigned implementation to serialize
-                uval.tcn_to_bytes(bits_len)
+                uval.tcn_to_bytes(writer, bits_len)
             }
 
-            fn tcn_from_bytes(data: Vec<u8>, bits_len: usize) -> Result<Self, TonCoreError> {
-                let unsigned_val = <$u_src>::tcn_from_bytes(data, bits_len)?;
+            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
+                let unsigned_val = <$u_src>::tcn_from_bytes(reader, bits_len)?;
 
                 // Decode sign from LSB
                 let sign_bit = (unsigned_val.clone() & <$u_src>::ONE) == <$u_src>::ONE;
@@ -585,7 +639,7 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::{CellParser, TonCell, TonCellNum};
+    use crate::cell::{CellParser, TonCell};
     use fastnum::{I512, U512};
     use num_bigint::{BigInt, BigUint};
     #[test]
@@ -780,9 +834,6 @@ mod tests {
 
         let bits_len = 9; // Not byte-aligned
 
-        // Debug: check what bytes are generated
-        test_value.tcn_to_bytes(bits_len)?;
-
         builder.write_num(&test_value, bits_len)?;
 
         let cell = builder.build()?;
@@ -830,8 +881,6 @@ mod tests {
         let test_value = U256::from(42u32);
 
         let bits_len = 9; // Not byte-aligned
-
-        let _ = test_value.tcn_to_bytes(bits_len)?;
 
         builder.write_num(&test_value, bits_len)?;
         let cell = builder.build()?;

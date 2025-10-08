@@ -35,7 +35,11 @@ impl TonHash {
         // if T::IS_PRIMITIVE {
         //     return Err(TonCoreError::data("TonHash", "Can't create from primitive type (not enough bytes)"));
         // }
-        Self::from_slice(&num.tcn_to_bytes(32 * 8)?)
+        use bitstream_io::{BigEndian, BitWriter};
+        let mut writer = BitWriter::endian(vec![], BigEndian);
+        num.tcn_to_bytes(&mut writer, 32 * 8)?;
+        let bytes = writer.into_writer();
+        Self::from_slice(&bytes)
     }
 
     pub fn as_slice(&self) -> &[u8] { self.0.as_slice() }

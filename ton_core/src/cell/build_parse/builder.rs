@@ -8,6 +8,8 @@ use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::cmp::min;
 use std::ops::Deref;
 
+pub type CellBitWriter = BitWriter<Vec<u8>, BigEndian>;
+
 pub struct CellBuilder {
     cell_type: CellType,
     data_writer: BitWriter<Vec<u8>, BigEndian>,
@@ -122,8 +124,8 @@ impl CellBuilder {
             }
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
-        let data = data_ref.tcn_to_bytes(bits_len)?;
-        self.write_bits(data, bits_len)
+        self.ensure_capacity(bits_len)?;
+        data_ref.tcn_to_bytes(&mut self.data_writer, bits_len)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_BITS_LEN - self.data_bits_len }
