@@ -2,14 +2,15 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use ton_lib_core_008::cell::TonCell as TonCell008;
 use tonlib_core::cell::CellBuilder as TonlibCellBuilder;
 
+use bitstream_io::write::BitWrite;
 use std::hint::black_box;
-use ton_lib_core::cell::TonCell;
-
+use std::thread::sleep;
+use ton_lib_core::cell::{CellBitWriter, TonCell};
 const ITERATIONS_COUNT: usize = 100;
 
 const TEST_VALUE: u32 = 4u32;
-const TEST_WRITE_BIT: usize = 32;
-const THRESHOLD_TO_RECREATE_BUILDER: usize = 10;
+const TEST_WRITE_BIT: usize = 10;
+const THRESHOLD_TO_RECREATE_BUILDER: usize = 100;
 
 fn write_primitive_tonlib() {
     let mut builder = TonlibCellBuilder::new();
@@ -33,6 +34,17 @@ fn write_primitive_ton_lib_core_008() {
     }
 }
 
+fn write_primitive_bit_writer() {
+    let mut buffer = Vec::new();
+    buffer.reserve(128);
+    let tvb = TEST_WRITE_BIT as u32;
+    let mut bit_writer = CellBitWriter::new(buffer);
+    for i in 0..ITERATIONS_COUNT {
+        bit_writer.write_var(tvb, TEST_VALUE).unwrap();
+        black_box(&bit_writer);
+    }
+}
+
 fn write_primitive_ton_rs_current() {
     let mut builder = TonCell::builder();
     for i in 0..ITERATIONS_COUNT {
@@ -43,11 +55,24 @@ fn write_primitive_ton_rs_current() {
         black_box(&builder);
     }
 }
+fn write_primitive_ton_rs_current_negative() {
+    let mut builder = TonCell::builder();
+    let tv = TEST_VALUE as i32 * (-1i32);
+    for i in 0..ITERATIONS_COUNT {
+        if i % THRESHOLD_TO_RECREATE_BUILDER == 0 {
+            builder = TonCell::builder();
+        }
+        builder.write_num(&tv, TEST_WRITE_BIT).unwrap();
+        black_box(&builder);
+    }
+}
 
 fn benchmark_functions(c: &mut Criterion) {
+    c.bench_function("write_primitive_baseline_bit_writer", |b| b.iter(write_primitive_bit_writer));
     c.bench_function("write_primitive_tonlib", |b| b.iter(write_primitive_tonlib));
     c.bench_function("write_primitive_ton_lib_core_008", |b| b.iter(write_primitive_ton_lib_core_008));
     c.bench_function("write_primitive_ton_rs_current", |b| b.iter(write_primitive_ton_rs_current));
+    c.bench_function("write_primitive_ton_rs_current_negative", |b| b.iter(write_primitive_ton_rs_current_negative));
 }
 
 criterion_group!(benches, benchmark_functions);

@@ -1,8 +1,7 @@
 use crate::cell::{CellBitReader, CellBitWriter};
 use bitstream_io::{BitRead, BitWrite};
 use num_bigint::{BigInt, BigUint};
-use num_traits::{Signed, Zero};
-
+use num_traits::{One, Signed, Zero};
 use std::fmt::Display;
 
 use crate::bail_ton_core_data;
@@ -10,40 +9,57 @@ use crate::errors::TonCoreError;
 use fastnum::{I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
 
+macro_rules! primitive_convert_to_unsigned {
+    ($val:expr,$T:ty) => {{
+        let mut uval: $T = $val.unsigned_abs();
+        uval <<= 1u8;
+        if $val < 0 {
+            uval += <$T>::one();
+        }
+        uval
+    }};
+}
+macro_rules! primitive_convert_to_signed {
+    ($uval:expr,$I:ty) => {{
+        let mut val: $I = ($uval >> 1) as $I;
+        if ($uval & 1) != 0 {
+            val *= -1 as $I;
+        }
+        val
+    }};
+}
+
+macro_rules! primitive_highest_bit_pos {
+    ($val:expr,$T:ty,true) => {{
+        let max_bit_id = (std::mem::size_of::<$T>() * 8 - 1) as u32;
+        (max_bit_id - $val.abs().leading_zeros())
+    }};
+    ($val:expr,$T:ty,false) => {{
+        let max_bit_id = (std::mem::size_of::<$T>() * 8 - 1) as u32;
+        (max_bit_id - $val.leading_zeros())
+    }};
+}
+
 /// Allows generic read/write operation for any numeric type
 ///
 /// Questions
 /// Split on Primitive and not Primitive?
 pub trait TonCellNum: Display + Sized + Clone {
-    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError>;
+    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError>;
 
-    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError>;
+    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError>;
 
-    fn highest_bit_pos_ignore_sign(&self) -> Option<u32>;
     fn tcn_is_zero(&self) -> bool;
 
     fn tcn_shr(&self, bits: usize) -> Self;
 
     fn tcn_min_bits_len(&self) -> u32;
 }
-
-macro_rules! ton_cell_num_primitive_signed_impl {
+macro_rules! ton_cell_num_primitive_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
-                // Signed integers use standard two's complement representation in TON
-                // Just serialize the raw bytes like unsigned integers
-                if bits_len == 0 {
-                    return Ok(());
-                }
-                if (bits_len > std::mem::size_of::<$src>() * 8) {
-                    bail_ton_core_data!(
-                        "Requested bits {} more than sizeof {}",
-                        bits_len,
-                        std::mem::size_of::<$src>() * 8
-                    );
-                }
-                if (bits_len < self.tcn_min_bits_len() as usize) {
+            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
+                if self.tcn_min_bits_len() > bits_len {
                     bail_ton_core_data!(
                         "Not enough bits for write num {} in {} bits signed, min len {}",
                         *self,
@@ -51,191 +67,56 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                         self.tcn_min_bits_len()
                     );
                 }
-
-                // Left-align value if not byte-aligned
-                let mut value = *self;
-                if bits_len % 8 != 0 {
-                    value <<= 8 - bits_len % 8;
-                }
-
-                // Extract bytes in big-endian order
-                let all_bytes = value.to_be_bytes();
-                let type_bytes = std::mem::size_of::<$src>();
-                let num_bytes = bits_len.div_ceil(8);
-                let full_bytes = bits_len / 8;
-                let remaining_bits = bits_len % 8;
-
-                // Write full bytes
-                let start_byte = type_bytes - num_bytes;
-                writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
-
-                // Write remaining bits from TOP of last byte
-                if remaining_bits > 0 {
-                    let last_byte = all_bytes[start_byte + full_bytes];
-                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-                }
+                writer.write_var(bits_len, *self)?;
                 Ok(())
             }
-
-            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
-                if bits_len == 0 {
-                    return Ok(0);
+            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+                if (bits_len != 0) {
+                    let val: Self = reader.read_var(bits_len)?;
+                    Ok(val)
+                } else {
+                    Ok(0)
                 }
-
-                let full_bytes = bits_len / 8;
-                let remaining_bits = bits_len % 8;
-                let mut result: $src = 0;
-                let type_bits = std::mem::size_of::<$src>() * 8;
-
-                // Read full bytes
-                for _ in 0..full_bytes {
-                    let byte = reader.read::<8, u8>()?;
-                    result = result.wrapping_shl(8) | (byte as $src);
-                }
-
-                // Read remaining bits if any
-                if remaining_bits > 0 {
-                    let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
-                    result = result.wrapping_shl(remaining_bits as u32) | (last_bits as $src);
-                }
-
-                // Sign-extend if the MSB of the read bits is set
-                if bits_len < type_bits {
-                    let sign_bit_pos = bits_len - 1;
-                    let sign_bit_mask = 1 << sign_bit_pos;
-                    if (result & sign_bit_mask) != 0 {
-                        // Negative number - sign extend by setting all higher bits to 1
-                        let extension_mask = !((1 << bits_len) - 1);
-                        result |= extension_mask;
-                    }
-                }
-
-                Ok(result)
             }
-
-            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-                let val = self.unsigned_abs();
-                val.highest_bit_pos_ignore_sign()
-            }
-
             fn tcn_is_zero(&self) -> bool { *self == 0 }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
-                let type_bits = (std::mem::size_of::<$src>() * 8) as u32;
-
-                if *self >= 0 {
-                    // For non-negative values, need bits for value + 1 for sign bit but 0  needs 0 bit
-                    if *self == 0 {
-                        0
-                    } else {
-                        let bits_for_value = type_bits - self.leading_zeros();
-                        bits_for_value + 1 // +1 for sign bit
-                    }
+                if *self == 0 {
+                    0u32
                 } else {
-                    let magnitude = self.unsigned_abs();
-                    if magnitude == 1 {
-                        1 // -1 needs just 1 bit (1)
-                    } else {
-                        let bits_needed = type_bits - (magnitude - 1).leading_zeros();
-                        bits_needed + 1 // +1 for sign bit
-                    }
+                    (primitive_highest_bit_pos!(*self, Self, false) + 1u32)
                 }
             }
         }
     };
 }
 
-macro_rules! ton_cell_num_primitive_unsigned_impl {
-    ($src:ty) => {
+macro_rules! ton_cell_num_primitive_signed_impl {
+    ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
-                if bits_len == 0 {
-                    return Ok(());
-                }
-                if (bits_len > std::mem::size_of::<$src>() * 8) {
-                    bail_ton_core_data!(
-                        "Requested bits {} more than sizeof {}",
-                        bits_len,
-                        std::mem::size_of::<$src>() * 8
-                    );
-                }
-                if (bits_len < self.tcn_min_bits_len() as usize) {
-                    bail_ton_core_data!(
-                        "Not enouth bits for write num {} in {} bits unsigned  min len {}",
-                        *self,
-                        bits_len,
-                        self.tcn_min_bits_len()
-                    );
-                }
-
-                // Left-align value if not byte-aligned
-                // let mut value = *self;
-                // if bits_len % 8 != 0 {
-                //     value <<= 8 - bits_len % 8;
-                // }
-                //
-                // // Extract bytes in big-endian order
-                // let all_bytes = value.to_be_bytes();
-                // let type_bytes = std::mem::size_of::<$src>();
-                // let num_bytes = bits_len.div_ceil(8);
-                // let full_bytes = bits_len / 8;
-                // let remaining_bits = bits_len % 8;
-                //
-                // // Write full bytes
-                // let start_byte = type_bytes - num_bytes;
-                // writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
-                //
-                // // Write remaining bits from TOP of last byte
-                // if remaining_bits > 0 {
-                //     let last_byte = all_bytes[start_byte + full_bytes];
-                //     writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-                // }
-                writer.write_var(bits_len as u32, *self);
+            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
+                let val: $u_src = primitive_convert_to_unsigned!(*self, $u_src);
+                writer.write_var(bits_len, val)?;
                 Ok(())
             }
 
-            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-                if self.tcn_is_zero() {
-                    return None;
+            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+                if bits_len != 0 {
+                    let uval: $u_src = reader.read_var(bits_len)?;
+                    let ret: Self = primitive_convert_to_signed!(uval, Self);
+                    Ok(ret)
+                } else {
+                    Ok(0)
                 }
-                let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-                Some(max_bit_id - self.leading_zeros())
-            }
-
-            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
-                if bits_len == 0 {
-                    return Ok(Self::zero());
-                }
-
-                let full_bytes = bits_len / 8;
-                let remaining_bits = bits_len % 8;
-                let mut result: $src = 0;
-
-                // Read full bytes
-                for _ in 0..full_bytes {
-                    let byte = reader.read::<8, u8>()?;
-                    result = result.wrapping_shl(8) | (byte as $src);
-                }
-
-                // Read remaining bits if any
-                if remaining_bits > 0 {
-                    let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
-                    result = result.wrapping_shl(remaining_bits as u32) | (last_bits as $src);
-                }
-
-                Ok(result)
             }
 
             fn tcn_is_zero(&self) -> bool { *self == 0 }
-
-            fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
-
+            fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
-                if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
-                    value += 1u32; // bit pos to bit size
-                    value
-                } else {
+                if *self == 0 {
                     0u32
+                } else {
+                    primitive_highest_bit_pos!(*self, Self, true) + 2u32
                 }
             }
         }
@@ -248,105 +129,32 @@ ton_cell_num_primitive_unsigned_impl!(u32);
 ton_cell_num_primitive_unsigned_impl!(u64);
 ton_cell_num_primitive_unsigned_impl!(u128);
 
-ton_cell_num_primitive_signed_impl!(i8);
-ton_cell_num_primitive_signed_impl!(i16);
-ton_cell_num_primitive_signed_impl!(i32);
-ton_cell_num_primitive_signed_impl!(i64);
-ton_cell_num_primitive_signed_impl!(i128);
+ton_cell_num_primitive_signed_impl!(i16, u16);
+ton_cell_num_primitive_signed_impl!(i32, u32);
+ton_cell_num_primitive_signed_impl!(i64, u64);
+ton_cell_num_primitive_signed_impl!(i128, u128);
+ton_cell_num_primitive_signed_impl!(i8, u8);
 
 // Implementation for BigUint
 // Note: BigUint is used for BigInt sign encoding
 // Must left-align values for non-byte-aligned sizes to match write_bits expectations
 impl TonCellNum for usize {
-    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
-        if bits_len == 0 {
-            return Ok(());
-        }
-        if bits_len > std::mem::size_of::<usize>() * 8 {
-            bail_ton_core_data!("Requested bits {} more than sizeof {}", bits_len, std::mem::size_of::<usize>() * 8);
-        }
-        if bits_len < self.tcn_min_bits_len() as usize {
-            bail_ton_core_data!(
-                "Not enouth bits for write num {} in {} bits unsigned  min len {}",
-                *self,
-                bits_len,
-                self.tcn_min_bits_len()
-            );
-        }
-
-        // Left-align value if not byte-aligned
-        let mut value = *self;
-        if bits_len % 8 != 0 {
-            value <<= 8 - bits_len % 8;
-        }
-
-        // Extract bytes in big-endian order
-        let all_bytes = value.to_be_bytes();
-        let type_bytes = std::mem::size_of::<usize>();
-        let num_bytes = bits_len.div_ceil(8);
-        let full_bytes = bits_len / 8;
-        let remaining_bits = bits_len % 8;
-
-        // Write full bytes
-        let start_byte = type_bytes - num_bytes;
-        writer.write_bytes(&all_bytes[start_byte..(start_byte + full_bytes)])?;
-
-        // Write remaining bits from TOP of last byte
-        if remaining_bits > 0 {
-            let last_byte = all_bytes[start_byte + full_bytes];
-            writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-        }
-        Ok(())
+    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
+        (*self as u128).tcn_write_bits(writer, bits_len)
     }
 
-    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-        if self.tcn_is_zero() {
-            return None;
-        }
-        let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-        Some(max_bit_id - self.leading_zeros())
+    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+        let val: u128 = u128::tcn_read_bits(reader, bits_len)?;
+        Ok(val as usize)
     }
-
-    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
-        if bits_len == 0 {
-            return Ok(0);
-        }
-
-        let full_bytes = bits_len / 8;
-        let remaining_bits = bits_len % 8;
-        let mut result: usize = 0;
-
-        // Read full bytes
-        for _ in 0..full_bytes {
-            let byte = reader.read::<8, u8>()?;
-            result = result.wrapping_shl(8) | (byte as usize);
-        }
-
-        // Read remaining bits if any
-        if remaining_bits > 0 {
-            let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
-            result = result.wrapping_shl(remaining_bits as u32) | (last_bits as usize);
-        }
-
-        Ok(result)
-    }
-
     fn tcn_is_zero(&self) -> bool { *self == 0 }
-
     fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
 
-    fn tcn_min_bits_len(&self) -> u32 {
-        if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
-            value += 1u32;
-            value
-        } else {
-            0u32
-        }
-    }
+    fn tcn_min_bits_len(&self) -> u32 { (*self as u128).tcn_min_bits_len() }
 }
 
 impl TonCellNum for BigUint {
-    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
+    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
         if bits_len == 0 {
             return Ok(());
         }
@@ -361,12 +169,12 @@ impl TonCellNum for BigUint {
         // Get big-endian bytes
         let mut bytes = value_to_write.to_bytes_be();
 
-        let num_bytes = bits_len.div_ceil(8);
-        let full_bytes = bits_len / 8;
+        let num_bytes = bits_len.div_ceil(8) as usize;
+        let full_bytes = (bits_len / 8) as usize;
         let remaining_bits = bits_len % 8;
 
         // Pad with leading zeros if needed
-        while bytes.len() < num_bytes {
+        while bytes.len() < num_bytes as usize {
             bytes.insert(0, 0);
         }
 
@@ -386,7 +194,7 @@ impl TonCellNum for BigUint {
         Ok(())
     }
 
-    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
+    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigUint::zero());
         }
@@ -412,29 +220,19 @@ impl TonCellNum for BigUint {
 
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
-    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-        if self.tcn_is_zero() {
-            return None;
-        }
-        // For BigUint, use bits() which returns the number of bits needed
-        // The highest bit position is bits - 1
-        let bits = self.bits();
-        Some((bits - 1) as u32)
-    }
     fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
 
     fn tcn_min_bits_len(&self) -> u32 {
-        if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
-            value += 1u32; // bit pos to bit size
-            value
-        } else {
+        if self.tcn_is_zero() {
             0u32
+        } else {
+            self.bits() as u32
         }
     }
 }
 
 impl TonCellNum for BigInt {
-    fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
+    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
         if bits_len == 0 {
             return Ok(());
         }
@@ -443,8 +241,8 @@ impl TonCellNum for BigInt {
         let mut bytes = self.to_signed_bytes_be();
 
         // Calculate required bytes
-        let num_bytes = bits_len.div_ceil(8);
-        let full_bytes = bits_len / 8;
+        let num_bytes = bits_len.div_ceil(8) as usize;
+        let full_bytes = (bits_len / 8) as usize;
         let remaining_bits = bits_len % 8;
 
         // Pad with sign extension if needed
@@ -480,7 +278,7 @@ impl TonCellNum for BigInt {
         Ok(())
     }
 
-    fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
+    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigInt::zero());
         }
@@ -514,29 +312,23 @@ impl TonCellNum for BigInt {
     fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
     fn tcn_shr(&self, _bits: usize) -> Self { self >> _bits }
     fn tcn_min_bits_len(&self) -> u32 {
-        if let Some(value) = self.highest_bit_pos_ignore_sign() {
-            value + 2
-        } else {
-            0
-        }
-    }
-    fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
         if self.tcn_is_zero() {
-            return None;
+            0u32
+        } else {
+            (self.bits() as u32) + 1u32
         }
-        let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-        Some(max_bit_id - self.bits() as u32)
     }
 }
 
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
+            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
                 if bits_len == 0 {
                     return Ok(());
                 }
-                if (bits_len > size_of::<$src>() * 8) {
+                let bits_len = bits_len as usize;
+                if ((bits_len as usize) > size_of::<$src>() * 8) {
                     bail_ton_core_data!("Requested bits {} more that sizeof  {}", bits_len, size_of::<$src>() * 8);
                 }
                 if (bits_len < self.tcn_min_bits_len() as usize) {
@@ -580,7 +372,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 Ok(())
             }
 
-            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
+            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
@@ -604,23 +396,14 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 Ok(result)
             }
 
-            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
-                if self.tcn_is_zero() {
-                    return None;
-                }
-                let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-                Some(max_bit_id - self.leading_zeros())
-            }
-
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
 
             fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
             fn tcn_min_bits_len(&self) -> u32 {
-                if let Some(mut value) = self.highest_bit_pos_ignore_sign() {
-                    value += 1u32; // bit pos to bit size
-                    value
-                } else {
+                if self.tcn_is_zero() {
                     0u32
+                } else {
+                    primitive_highest_bit_pos!(*self, $src, false) as u32
                 }
             }
         }
@@ -629,7 +412,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 macro_rules! ton_cell_num_fastnum_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_to_bytes(&self, writer: &mut CellBitWriter, bits_len: usize) -> Result<(), TonCoreError> {
+            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
                 // Encode signed value: (abs(value) << 1) | (sign ? 1 : 0)
                 let zero: $src = Self::from(0u32);
                 let sign = *self < zero;
@@ -661,11 +444,11 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
 
                 // Use the unsigned implementation to serialize
-                uval.tcn_to_bytes(writer, bits_len)
+                uval.tcn_write_bits(writer, bits_len)
             }
 
-            fn tcn_from_bytes(reader: &mut CellBitReader, bits_len: usize) -> Result<Self, TonCoreError> {
-                let unsigned_val = <$u_src>::tcn_from_bytes(reader, bits_len)?;
+            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+                let unsigned_val = <$u_src>::tcn_read_bits(reader, bits_len)?;
 
                 // Decode sign from LSB
                 let sign_bit = (unsigned_val.clone() & <$u_src>::ONE) == <$u_src>::ONE;
@@ -698,18 +481,11 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
-                if let Some(value) = self.highest_bit_pos_ignore_sign() {
-                    value + 2
-                } else {
-                    0
-                }
-            }
-            fn highest_bit_pos_ignore_sign(&self) -> Option<u32> {
                 if self.tcn_is_zero() {
-                    return None;
+                    0u32
+                } else {
+                    primitive_highest_bit_pos!(*self, $src, false) as u32
                 }
-                let max_bit_id = (std::mem::size_of::<Self>() * 8 - 1) as u32;
-                Some(max_bit_id - self.abs().leading_zeros())
             }
         }
     };
