@@ -140,17 +140,23 @@ ton_cell_num_primitive_signed_impl!(i8, u8);
 // Must left-align values for non-byte-aligned sizes to match write_bits expectations
 impl TonCellNum for usize {
     fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-        (*self as u128).tcn_write_bits(writer, bits_len)
+        (*self as u64).tcn_write_bits(writer, bits_len)
     }
 
     fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
-        let val: u128 = u128::tcn_read_bits(reader, bits_len)?;
+        let val: u64 = u64::tcn_read_bits(reader, bits_len)?;
         Ok(val as usize)
     }
     fn tcn_is_zero(&self) -> bool { *self == 0 }
     fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
 
-    fn tcn_min_bits_len(&self) -> u32 { (*self as u128).tcn_min_bits_len() }
+    fn tcn_min_bits_len(&self) -> u32 {
+        if *self == 0 {
+            0u32
+        } else {
+            (primitive_highest_bit_pos!(*self, Self, false) + 1u32)
+        }
+    }
 }
 
 impl TonCellNum for BigUint {
@@ -403,7 +409,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 if self.tcn_is_zero() {
                     0u32
                 } else {
-                    primitive_highest_bit_pos!(*self, $src, false) as u32
+                    primitive_highest_bit_pos!(*self, $src, false) as u32 + 1u32
                 }
             }
         }
@@ -484,7 +490,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 if self.tcn_is_zero() {
                     0u32
                 } else {
-                    primitive_highest_bit_pos!(*self, $src, false) as u32
+                    primitive_highest_bit_pos!(*self, $src, true) as u32 + 2u32
                 }
             }
         }

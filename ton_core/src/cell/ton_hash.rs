@@ -37,7 +37,7 @@ impl TonHash {
         // }
         use bitstream_io::{BigEndian, BitWriter};
         let mut writer = BitWriter::endian(vec![], BigEndian);
-        num.tcn_to_bytes(&mut writer, 32 * 8)?;
+        num.tcn_write_bits(&mut writer, 32 * 8)?;
         let bytes = writer.into_writer();
         Self::from_slice(&bytes)
     }
