@@ -1,7 +1,7 @@
 use crate::cell::{CellBitReader, CellBitWriter};
 use bitstream_io::{BitRead, BitWrite};
 use num_bigint::{BigInt, BigUint};
-use num_traits::{One, Signed, Zero};
+use num_traits::{Signed, Zero};
 use std::fmt::Display;
 
 use crate::bail_ton_core_data;
@@ -10,21 +10,31 @@ use fastnum::{I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
 
 macro_rules! primitive_convert_to_unsigned {
-    ($val:expr,$T:ty) => {{
-        let mut uval: $T = $val.unsigned_abs();
-        uval <<= 1u8;
-        if $val < 0 {
-            uval += <$T>::one();
+    ($val:expr,$T:ty,$bit_count:expr) => {{
+        let mut bit_mask = <$T>::MAX;
+        if size_of::<$T>() * 8 == ($bit_count as usize) {
+            bit_mask = 0 as $T;
+        } else {
+            bit_mask <<= $bit_count;
         }
+        let mut uval = $val as $T;
+        uval ^= bit_mask;
         uval
     }};
 }
 macro_rules! primitive_convert_to_signed {
-    ($uval:expr,$I:ty) => {{
-        let mut val: $I = ($uval >> 1) as $I;
-        if ($uval & 1) != 0 {
-            val *= -1 as $I;
+    ($uval:expr,$I:ty,$U:ty,$bit_count:expr) => {{
+        let mut uval = $uval;
+        let mut bit_mask = <$U>::MAX;
+
+        if size_of::<$I>() * 8 == $bit_count as usize {
+            bit_mask = 0 as $U;
+        } else {
+            bit_mask <<= $bit_count;
         }
+
+        uval |= bit_mask;
+        let val = uval as $I;
         val
     }};
 }
@@ -95,7 +105,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
             fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-                let val: $u_src = primitive_convert_to_unsigned!(*self, $u_src);
+                let val: $u_src = primitive_convert_to_unsigned!(*self, $u_src, bits_len);
                 writer.write_var(bits_len, val)?;
                 Ok(())
             }
@@ -103,7 +113,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
             fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len != 0 {
                     let uval: $u_src = reader.read_var(bits_len)?;
-                    let ret: Self = primitive_convert_to_signed!(uval, Self);
+                    let ret: Self = primitive_convert_to_signed!(uval, Self, $u_src, bits_len);
                     Ok(ret)
                 } else {
                     Ok(0)
@@ -534,8 +544,41 @@ mod tests {
     }
 
     #[test]
+    fn test_toncellnum_convert_sign_unsign_int16() -> anyhow::Result<()> {
+        // Test with 15 bits
+        let bits_len = 15;
+        let val = -3i16;
+        let u_val: u16 = primitive_convert_to_unsigned!(val, u16, bits_len);
+        let res_val = primitive_convert_to_signed!(u_val, i16, u16, bits_len);
+        assert_eq!(val, res_val);
+
+        // Test with various bit lengths
+        for bits_len in [8, 10, 15, 16] {
+            let val = -3i16;
+            let u_val: u16 = primitive_convert_to_unsigned!(val, u16, bits_len);
+            let res_val = primitive_convert_to_signed!(u_val, i16, u16, bits_len);
+            assert_eq!(val, res_val, "Failed round-trip for bits_len={}", bits_len);
+        }
+
+        // Test edge cases
+        let bits_len = 16;
+        let val = i16::MIN;
+        let u_val: u16 = primitive_convert_to_unsigned!(val, u16, bits_len);
+        let res_val = primitive_convert_to_signed!(u_val, i16, u16, bits_len);
+        assert_eq!(val, res_val, "Failed for i16::MIN");
+
+        let val = i16::MAX;
+        let u_val: u16 = primitive_convert_to_unsigned!(val, u16, bits_len);
+        let res_val = primitive_convert_to_signed!(u_val, i16, u16, bits_len);
+        assert_eq!(val, res_val, "Failed for i16::MAX");
+
+        Ok(())
+    }
+
+    #[test]
     fn test_toncellnum_store_and_parse_int16() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
+
         let mut builder = TonCell::builder();
         let test_value: i16 = -12;
 
