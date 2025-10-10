@@ -92,10 +92,9 @@ impl TLB for ShardDescr {
     }
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         let prefix = match self.prefix {
-            ShardDescrTag::Old => 0xbu32,
-            ShardDescrTag::New => 0xau32,
+            ShardDescrTag::Old => 0xb,
+            ShardDescrTag::New => 0xa,
         };
-
         builder.write_num(&prefix, 4)?;
         self.seqno.write(builder)?;
         self.reg_mc_seqno.write(builder)?;
