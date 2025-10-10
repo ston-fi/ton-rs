@@ -90,11 +90,10 @@ fn read_primitive_bit_reader() {
     let cell = get_ton_rs_cell_u32();
 
     // Create bit reader and read all values
-    let cursor = Cursor::new(cell.data.as_slice());
-    let mut bit_reader = CellBitReader::new(cursor);
+    let tvb = TEST_READ_BIT as u32;
     for _ in 0..10 {
-        bit_reader.seek_bits(SeekFrom::Start(0));
-        let tvb = TEST_READ_BIT as u32;
+        let cursor = Cursor::new(cell.data.as_slice());
+        let mut bit_reader = CellBitReader::new(cursor);
         for _ in 0..ITERATIONS_COUNT {
             let val: u32 = bit_reader.read_var(tvb).unwrap();
             black_box(val);
@@ -104,10 +103,10 @@ fn read_primitive_bit_reader() {
 
 fn read_primitive_ton_rs_current() {
     let cell = get_ton_rs_cell_u32();
-    let mut parser = cell.parser();
+
     // Create parser and read all values
     for _ in 0..10 {
-        parser.reset().unwrap();
+        let mut parser = cell.parser();
         for _ in 0..ITERATIONS_COUNT {
             let val = parser.read_num::<u32>(TEST_READ_BIT).unwrap();
             black_box(val);
@@ -117,10 +116,10 @@ fn read_primitive_ton_rs_current() {
 
 fn read_primitive_ton_rs_current_negative() {
     let cell = get_ton_rs_cell_i32();
-    let mut parser = cell.parser();
+
     // Create parser and read all values
     for _ in 0..10 {
-        parser.reset();
+        let mut parser = cell.parser();
         for _ in 0..ITERATIONS_COUNT {
             let val = parser.read_num::<i32>(TEST_READ_BIT).unwrap();
             black_box(val);
