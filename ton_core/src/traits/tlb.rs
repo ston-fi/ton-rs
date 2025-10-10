@@ -13,6 +13,9 @@ use crate::cell::{TonCell, TonHash};
 use crate::errors::TonCoreError;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use std::any::type_name;
+use std::ops::Deref;
+use std::sync::Arc;
 
 pub trait TLB: Sized {
     const PREFIX: TLBPrefix = TLBPrefix::NULL;
@@ -43,22 +46,21 @@ pub trait TLB: Sized {
     /// Reading
     fn from_cell(cell: &TonCell) -> Result<Self, TonCoreError> { Self::read(&mut cell.parser()) }
 
-    fn from_boc(boc: &[u8]) -> Result<Self, TonCoreError> {
-        match BoC::from_bytes(boc).and_then(|x| x.single_root()).and_then(|x| Self::from_cell(&x)) {
+    fn from_boc<T: Into<Arc<Vec<u8>>>>(boc: T) -> Result<Self, TonCoreError> {
+        let boc = boc.into();
+        match BoC::from_bytes(boc.clone()).and_then(|x| x.single_root()).and_then(|x| Self::from_cell(&x)) {
             Ok(cell) => Ok(cell),
-            Err(err) => {
-                bail_ton_core_data!(
-                    "Fail to read {} from bytes: {}, err: {err}",
-                    std::any::type_name::<Self>(),
-                    hex::encode(boc)
-                );
-            }
+            Err(err) => bail_ton_core_data!(
+                "Fail to read {} from bytes: {}, err: {err}",
+                type_name::<Self>(),
+                hex::encode(boc.deref())
+            ),
         }
     }
 
-    fn from_boc_hex(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&hex::decode(boc)?) }
+    fn from_boc_hex(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(hex::decode(boc)?) }
 
-    fn from_boc_b64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&STANDARD.decode(boc)?) }
+    fn from_boc_b64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(STANDARD.decode(boc)?) }
 
     /// Writing
     fn to_cell(&self) -> Result<TonCell, TonCoreError> {

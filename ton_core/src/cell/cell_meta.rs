@@ -95,9 +95,9 @@ impl Default for CellMeta {
 
 pub(super) type HashesDepthsStorage = (SmallVec<[TonHash; 4]>, SmallVec<[u16; 4]>);
 
-static EMPTY_CELL_META: LazyLock<Arc<CellMeta>> = LazyLock::new(|| {
-    Arc::new(CellMeta {
-        level_mask: LevelMask::new(0).into(),
-        hashes_depths: (SmallVec::from_elem(TonCell::EMPTY_CELL_HASH, 4), SmallVec::from_elem(0, 4)).into(),
-    })
-});
+// static EMPTY_CELL_META: LazyLock<Arc<CellMeta>> = LazyLock::new(|| {
+//     Arc::new(CellMeta {
+//         level_mask: LevelMask::new(0).into(),
+//         hashes_depths: (SmallVec::from_elem(TonCell::EMPTY_CELL_HASH, 4), SmallVec::from_elem(0, 4)).into(),
+//     })
+// });

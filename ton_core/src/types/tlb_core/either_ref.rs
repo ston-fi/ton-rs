@@ -53,7 +53,7 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
             EitherRefLayout::ToRef => EitherRefLayout::ToRef,
             EitherRefLayout::Native => {
                 // strictly <, 1 more bit is reserver for layout marker
-                if cell.data_bits_len() < builder.data_bits_left() {
+                if cell.data_len_bits() < builder.data_bits_left() {
                     EitherRefLayout::ToCell
                 } else {
                     EitherRefLayout::ToRef

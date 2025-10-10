@@ -1,15 +1,16 @@
-mod raw_from_bytes;
+mod raw_boc;
+mod raw_cell;
 mod raw_from_ton_cells;
 mod raw_into_ton_cells;
-mod raw_to_bytes;
-mod raw_types;
+mod read_var_size;
 
 use crate::bail_ton_core_data;
-use crate::cell::boc::raw_types::RawBoC;
+use crate::cell::boc::raw_boc::RawBoC;
 use crate::cell::TonCell;
 use crate::errors::TonCoreError;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use std::sync::Arc;
 
 pub struct BoC {
     roots: Vec<TonCell>,
@@ -26,13 +27,13 @@ impl BoC {
         }
     }
 
-    pub fn from_bytes<T: AsRef<[u8]>>(bytes: T) -> Result<Self, TonCoreError> {
-        let bytes_ref = bytes.as_ref();
-        if bytes_ref.is_empty() {
+    pub fn from_bytes<T: Into<Arc<Vec<u8>>>>(bytes: T) -> Result<Self, TonCoreError> {
+        let bytes_ptr = bytes.into();
+        if bytes_ptr.is_empty() {
             bail_ton_core_data!("Can't read BOC from empty slice");
         }
         Ok(Self {
-            roots: RawBoC::from_bytes(bytes_ref)?.into_ton_cells()?,
+            roots: RawBoC::from_bytes(bytes_ptr)?.into_ton_cells()?,
         })
     }
 

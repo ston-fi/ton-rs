@@ -5,7 +5,7 @@ use num_bigint::{BigInt, BigUint};
 use std::marker::PhantomData;
 
 /// Adapter to write data with fixed length into a cell.
-/// use `#[tlb_derive(bits_len={BITS_LEN})]` to apply it using TLBDerive macro
+/// use `#[tlb(bits_len={BITS_LEN})]` to apply it using TLB macro
 pub struct ConstLen<T> {
     bits_len: usize,
     _phantom: PhantomData<T>,

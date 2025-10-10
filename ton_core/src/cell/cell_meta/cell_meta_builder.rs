@@ -1,4 +1,5 @@
 use crate::bail_ton_core_data;
+use crate::bits_utils::BitsUtils;
 use crate::cell::cell_meta::cell_type::CellType;
 use crate::cell::cell_meta::level_mask::LevelMask;
 use crate::cell::cell_meta::HashesDepthsStorage;
@@ -15,8 +16,8 @@ pub struct CellMetaBuilder<'a> {
     cell_type: CellType,
     data: &'a [u8],
     start_bit: usize,
-    end_bit: usize,
-    data_bits_len: usize,
+    is_byte_aligned: bool,
+    data_len_bits: usize,
     refs: &'a [TonCell],
 }
 
@@ -30,14 +31,13 @@ struct Pruned {
 impl<'a> CellMetaBuilder<'a> {
     pub fn new(cell: &'a TonCell) -> Self {
         let start_bit = cell.borders.start_bit as usize;
-        let end_bit = cell.borders.end_bit as usize;
-        let data_bits_len = end_bit - start_bit;
+        let data_bits_len = cell.borders.end_bit as usize - start_bit;
         Self {
             cell_type: cell.cell_type(),
             data: &cell.cell_data.data_storage,
             start_bit,
-            end_bit,
-            data_bits_len,
+            is_byte_aligned: start_bit % 8 == 0,
+            data_len_bits: data_bits_len,
             refs: &cell.refs(),
         }
     }
@@ -63,7 +63,7 @@ impl<'a> CellMetaBuilder<'a> {
     }
 
     fn validate_ordinary(&self) -> Result<(), TonCoreError> {
-        if self.data_bits_len > TonCell::MAX_DATA_BITS_LEN {
+        if self.data_len_bits > TonCell::MAX_DATA_LEN_BITS {
             bail_ton_core_data!("Ordinary cell data bits length is too big");
         }
         Ok(())
@@ -73,7 +73,7 @@ impl<'a> CellMetaBuilder<'a> {
         if !self.refs.is_empty() {
             bail_ton_core_data!("Pruned cell can't have refs");
         }
-        if self.data_bits_len < 16 {
+        if self.data_len_bits < 16 {
             bail_ton_core_data!("Pruned Branch require at least 16 bits data");
         }
 
@@ -91,8 +91,8 @@ impl<'a> CellMetaBuilder<'a> {
             * (TonHash::BYTES_LEN + CellMeta::DEPTH_BYTES))
             * 8;
 
-        if self.data_bits_len != expected_size {
-            bail_ton_core_data!("PrunedBranch must have exactly {expected_size} bits, got {}", self.data_bits_len);
+        if self.data_len_bits != expected_size {
+            bail_ton_core_data!("PrunedBranch must have exactly {expected_size} bits, got {}", self.data_len_bits);
         }
 
         Ok(())
@@ -101,8 +101,8 @@ impl<'a> CellMetaBuilder<'a> {
     fn validate_library(&self) -> Result<(), TonCoreError> {
         const LIB_CELL_BITS_LEN: usize = (1 + TonHash::BYTES_LEN) * 8;
 
-        if self.data_bits_len != LIB_CELL_BITS_LEN {
-            bail_ton_core_data!("Lib cell must have exactly {LIB_CELL_BITS_LEN} bits, got {}", self.data_bits_len);
+        if self.data_len_bits != LIB_CELL_BITS_LEN {
+            bail_ton_core_data!("Lib cell must have exactly {LIB_CELL_BITS_LEN} bits, got {}", self.data_len_bits);
         }
 
         Ok(())
@@ -112,26 +112,24 @@ impl<'a> CellMetaBuilder<'a> {
         // type + hash + depth
         const MERKLE_PROOF_BITS_LEN: usize = (1 + TonHash::BYTES_LEN + CellMeta::DEPTH_BYTES) * 8;
 
-        if self.data_bits_len != MERKLE_PROOF_BITS_LEN {
+        if self.data_len_bits != MERKLE_PROOF_BITS_LEN {
             bail_ton_core_data!(
                 "MerkleProof must have exactly {MERKLE_PROOF_BITS_LEN} bits, got {}",
-                self.data_bits_len
+                self.data_len_bits
             );
         }
 
         if self.refs.len() != 1 {
             bail_ton_core_data!("Merkle Proof cell must have exactly 1 ref");
         }
-
-        let mut data_slice = &self.data[1..];
-        let _proof_hash = match TonHash::from_slice(&data_slice[..TonHash::BYTES_LEN]) {
-            Ok(hash) => hash,
-            Err(err) => bail_ton_core_data!("Can't parse proof hash from cell data: {err}"),
+        if self.is_byte_aligned {
+            let data = &self.data[self.start_bit / 8..];
+            validate_merkle_proof_slice(data)?;
+        } else {
+            let mut data = vec![0; self.data_len_bits.div_ceil(8)];
+            BitsUtils::read_with_offset(self.data, &mut data, self.start_bit, self.data_len_bits);
+            validate_merkle_proof_slice(&data)?;
         };
-
-        data_slice = &data_slice[TonHash::BYTES_LEN..];
-        let _proof_depth = u16::from_be_bytes(data_slice[..CellMeta::DEPTH_BYTES].try_into().unwrap());
-        log::trace!("validate_merkle_proof is not implemented yet!"); // TODO
         Ok(())
     }
 
@@ -151,9 +149,12 @@ impl<'a> CellMetaBuilder<'a> {
     }
 
     fn calc_level_mask_pruned(&self) -> LevelMask {
+        let mut data = vec![0; self.data_len_bits.div_ceil(8)];
+        BitsUtils::read_with_offset(self.data, &mut data, self.start_bit, self.data_len_bits);
+
         match self.is_config_proof() {
             true => LevelMask::new(1),
-            false => LevelMask::new(self.data[1]),
+            false => LevelMask::new(data[1]),
         }
     }
 
@@ -164,7 +165,7 @@ impl<'a> CellMetaBuilder<'a> {
 
     fn is_config_proof(&self) -> bool {
         const CONFIG_PROOF_DATA_LEN_BITS: usize = 200;
-        self.cell_type == CellType::PrunedBranch && self.data_bits_len == CONFIG_PROOF_DATA_LEN_BITS
+        self.cell_type == CellType::PrunedBranch && self.data_len_bits == CONFIG_PROOF_DATA_LEN_BITS
     }
 
     /// This function replicates unknown logic of resolving cell data
@@ -188,8 +189,12 @@ impl<'a> CellMetaBuilder<'a> {
                 continue;
             }
 
+            let mut data = vec![0; self.data_len_bits.div_ceil(8)];
+            BitsUtils::read_with_offset(self.data, &mut data, self.start_bit, self.data_len_bits);
+            // Get current data
+
             let (cur_data, cur_bit_len) = if hash_pos == hash_i_offset {
-                (self.data, self.data_bits_len)
+                (data.as_slice(), self.data_len_bits)
             } else {
                 let prev_hash = &hashes[hash_pos - hash_i_offset - 1];
                 (prev_hash.as_slice(), 256)
@@ -229,7 +234,7 @@ impl<'a> CellMetaBuilder<'a> {
 
         let mut writer = BitWriter::endian(Vec::with_capacity(buffer_len), BigEndian);
         let d1 = self.get_refs_descriptor(level_mask.apply(level));
-        let d2 = get_bits_descriptor(self.data_bits_len);
+        let d2 = get_bits_descriptor(self.data_len_bits);
 
         // Write descriptors
         writer.write_var(8, d1)?;
@@ -318,7 +323,11 @@ impl<'a> CellMetaBuilder<'a> {
     fn calc_pruned_hash_depth(&self, level_mask: LevelMask) -> Result<Vec<Pruned>, TonCoreError> {
         let current_index = if self.is_config_proof() { 1 } else { 2 };
 
-        let cursor = Cursor::new(&self.data[current_index..]);
+        // TODO find a way to avoid allocation
+        let mut data = vec![0; self.data_len_bits.div_ceil(8)];
+        BitsUtils::read_with_offset(self.data, &mut data, self.start_bit, self.data_len_bits);
+
+        let cursor = Cursor::new(&data[current_index..]);
         let mut reader = ByteReader::endian(cursor, BigEndian);
 
         let level = level_mask.level() as usize;
@@ -358,6 +367,19 @@ fn write_data(writer: &mut CellBitWriter, data: &[u8], bit_len: usize) -> Result
     Ok(())
 }
 
+fn validate_merkle_proof_slice(data: &[u8]) -> Result<(), TonCoreError> {
+    let mut data_slice = &data[1..];
+    let _proof_hash = match TonHash::from_slice(&data_slice[..TonHash::BYTES_LEN]) {
+        Ok(hash) => hash,
+        Err(err) => bail_ton_core_data!("Can't parse proof hash from cell data: {err}"),
+    };
+
+    data_slice = &data_slice[TonHash::BYTES_LEN..];
+    let _proof_depth = u16::from_be_bytes(data_slice[..CellMeta::DEPTH_BYTES].try_into().unwrap());
+    log::trace!("validate_merkle_proof is not implemented yet!"); // TODO
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -373,11 +395,9 @@ mod test {
         assert_eq!(meta_builder.get_refs_descriptor(3), 96);
 
         let cell_2 = TonCell {
+            cell_type: CellType::Ordinary,
             cell_data: Arc::new(CellData {
-                cell_type: CellType::Ordinary,
                 data_storage: Arc::new(vec![]),
-                start_bit: 0,
-                end_bit: 0,
                 refs: SmallVec::from_elem(empty_cell_ref(), 1),
             }),
             meta: Arc::new(CellMeta::default()),
@@ -392,11 +412,9 @@ mod test {
         assert_eq!(meta_builder.get_refs_descriptor(3), 97);
 
         let cell_3 = TonCell {
+            cell_type: CellType::Ordinary,
             cell_data: Arc::new(CellData {
-                cell_type: CellType::Ordinary,
                 data_storage: Arc::new(vec![]),
-                start_bit: 0,
-                end_bit: 0,
                 refs: SmallVec::from_elem(empty_cell_ref(), 2),
             }),
             meta: Arc::new(CellMeta::default()),
@@ -404,7 +422,7 @@ mod test {
                 start_bit: 0,
                 end_bit: 0,
                 start_ref: 0,
-                end_ref: 1,
+                end_ref: 2,
             },
         };
         let meta_builder = CellMetaBuilder::new(&cell_3);

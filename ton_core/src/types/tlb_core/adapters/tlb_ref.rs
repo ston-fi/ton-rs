@@ -5,7 +5,7 @@ use crate::traits::tlb::TLB;
 use std::marker::PhantomData;
 
 /// TLBRef - allows to save object in a reference cell ( ^X).
-/// use `#[tlb_derive(adapter="TLBRef")]` to apply it using TLBDerive macro
+/// use `#[tlb(adapter="TLBRef")]` to apply it using TLB macro
 #[derive(Debug, Clone, PartialEq)]
 pub struct TLBRef<T: TLB>(PhantomData<T>);
 

@@ -5,7 +5,7 @@ use crate::traits::tlb::TLB;
 use std::marker::PhantomData;
 
 /// TLBOptRef - allows to save optional object ( Maybe(^X) ) in a reference cell.
-/// use `#[tlb_derive(adapter="TLBRefOpt")]` to apply it using TLBDerive macro
+/// use `#[tlb(adapter="TLBRefOpt")]` to apply it using TLB macro
 #[derive(Debug, Clone, PartialEq)]
 pub struct TLBRefOpt<T: TLB>(PhantomData<T>);
 

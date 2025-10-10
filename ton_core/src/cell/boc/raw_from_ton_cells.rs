@@ -1,6 +1,7 @@
-use crate::cell::boc::raw_types::{RawBoC, RawCell};
+use crate::cell::boc::raw_boc::RawBoC;
+use crate::cell::boc::raw_cell::RawCell;
+use crate::cell::TonCell;
 use crate::cell::TonHash;
-use crate::cell::{TonCell, TonCellRef};
 use crate::errors::TonCoreError;
 use smallvec::SmallVec;
 use std::cell::RefCell;
@@ -36,7 +37,7 @@ impl RawBoC {
 
         Ok(RawBoC {
             cells: raw_cells,
-            roots_position: root_indices,
+            roots_positions: root_indices,
         })
     }
 }
@@ -99,8 +100,9 @@ fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell
     let refs_positions = raw_cell_refs_indexes(cell, cells_by_hash)?;
     Ok(RawCell {
         cell_type: cell.cell_type(),
-        data: cell.data.clone(),
-        data_bits_len: cell.data_bits_len,
+        data_storage: cell.cell_data.data_storage.clone(),
+        start_bit: cell.borders.start_bit as usize,
+        end_bit: cell.borders.end_bit as usize,
         refs_positions,
         level_mask: cell.level_mask(),
     })

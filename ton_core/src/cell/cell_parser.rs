@@ -1,7 +1,7 @@
 use crate::bail_ton_core_data;
 use crate::cell::ton_cell::CellBorders;
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::cell::TonCell;
+use crate::cell::{CellType, TonCell};
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use num_traits::Zero;
@@ -41,8 +41,16 @@ impl<'a> CellParser<'a> {
     }
 
     pub fn read_bits(&mut self, bits_len: usize) -> Result<Vec<u8>, TonCoreError> {
-        self.ensure_enough_bits(bits_len)?;
         let mut dst = vec![0; bits_len.div_ceil(8)];
+        self.read_bits_to(bits_len, &mut dst)?;
+        Ok(dst)
+    }
+
+    pub fn read_bits_to(&mut self, bits_len: usize, dst: &mut [u8]) -> Result<(), TonCoreError> {
+        if dst.len() * 8 < bits_len {
+            bail_ton_core_data!("Can't write {bits_len} bits into {}-bytes buffer", dst.len());
+        }
+        self.ensure_enough_bits(bits_len)?;
         let full_bytes = bits_len / 8;
         let remaining_bits = bits_len % 8;
 
@@ -52,7 +60,7 @@ impl<'a> CellParser<'a> {
             let last_byte = self.data_reader.read_var::<u8>(remaining_bits as u32)?;
             dst[full_bytes] = last_byte << (8 - remaining_bits);
         }
-        Ok(dst)
+        Ok(())
     }
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
@@ -79,7 +87,16 @@ impl<'a> CellParser<'a> {
             start_ref: self.next_ref_pos as u8,
             end_ref: self.cell.borders.end_ref,
         };
+
+        let cell_type =
+            if borders.start_bit == self.cell.borders.start_bit && borders.start_ref == self.cell.borders.start_ref {
+                self.cell.cell_type
+            } else {
+                CellType::Ordinary
+            };
+
         let cell = TonCell {
+            cell_type,
             cell_data: self.cell.cell_data.clone(),
             borders,
             meta: Arc::new(Default::default()),
@@ -111,7 +128,7 @@ impl<'a> CellParser<'a> {
 
     pub fn seek_bits(&mut self, offset: i32) -> Result<(), TonCoreError> {
         let new_pos = self.data_reader.position_in_bits()? as i32 + offset;
-        if new_pos < 0 || new_pos as usize >= self.cell.borders.end_bit as usize {
+        if new_pos < 0 || new_pos as usize > self.cell.borders.end_bit as usize {
             bail_ton_core_data!(
                 "Bad seek position in slice: new_pos {new_pos}, data_bits_len {}",
                 self.cell.borders.end_bit
@@ -170,9 +187,9 @@ mod tests {
         assert_eq!(parser.data_reader.position_in_bits()? as usize, 0);
         assert_ok!(parser.seek_bits(cell.borders.end_bit as i32 - 1));
         assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit as usize - 1);
+        assert_ok!(parser.seek_bits(1));
+        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit as usize);
         assert_err!(parser.seek_bits(1));
-        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit as usize - 1);
-
         assert_err!(parser.seek_bits(20));
         Ok(())
     }
