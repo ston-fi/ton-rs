@@ -4,7 +4,7 @@ use tonlib_core::cell::CellBuilder as TonlibCellBuilder;
 
 use bitstream_io::read::BitRead;
 use std::hint::black_box;
-use std::io::{Cursor, SeekFrom};
+use std::io::Cursor;
 use std::sync::OnceLock;
 use ton_lib_core::cell::{CellBitReader, TonCell};
 

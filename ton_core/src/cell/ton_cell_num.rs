@@ -451,22 +451,13 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
             fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-                if self.tcn_min_bits_len() > bits_len {
-                    bail_ton_core_data!(
-                        "Not enough bits for write num {} in {} bits, min len {}",
-                        *self,
-                        bits_len,
-                        self.tcn_min_bits_len()
-                    );
-                }
-
                 // Two's complement encoding: convert signed to unsigned preserving bit pattern
-                // Extract bytes from signed value
-                let bytes_count = std::mem::size_of::<$src>();
-                let mut bytes_vec = Vec::with_capacity(bytes_count);
+                // Only extract bytes needed for bits_len to avoid overflow
+                let num_bytes_needed = (bits_len as usize).div_ceil(8).min(std::mem::size_of::<$src>());
+                let mut bytes_vec = Vec::with_capacity(num_bytes_needed);
                 let mut temp = self.clone();
 
-                for _ in 0..bytes_count {
+                for _ in 0..num_bytes_needed {
                     let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
                     bytes_vec.push(byte_val);
                     temp >>= 8;
@@ -479,7 +470,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     uval = (uval << 8) | <$u_src>::from(byte);
                 }
 
-                // Mask to bits_len (same as primitives) - MUST do this before tcn_write_bits!
+                // Mask to bits_len (same as primitives)
                 let bit_count = bits_len as usize;
                 let type_bits = std::mem::size_of::<$src>() * 8;
 
@@ -868,11 +859,12 @@ mod tests {
         num_builder.write_num(&num_val, 10).unwrap();
         bigint_builder.write_num(&bigint_val, 10).unwrap();
         let num_cell = num_builder.build().unwrap();
-        println!("{:?}", num_cell.data);
         i512_builder.write_num(&i512_val, 10).unwrap();
 
-        assert_eq!(num_cell.data, vec![0b0000_0001, 0b0000_0010]);
-        // assert_eq!(num_cell.data, bigint_builder.);
+        // Two's complement: -9 in 10 bits = 1111110111
+        // As bytes (10 bits = 2 bytes): 11111101 11000000 = [253, 192]
+        assert_eq!(num_cell.data, vec![0b1111_1101, 0b1100_0000]);
+        assert_eq!(num_cell.data, bigint_builder.build()?.data);
         assert_eq!(num_cell.data, i512_builder.build()?.data);
         Ok(())
     }

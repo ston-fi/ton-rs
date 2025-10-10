@@ -1,9 +1,8 @@
 use bitstream_io::write::BitWrite;
 use criterion::{criterion_group, criterion_main, Criterion};
-use fastnum::{I1024, I128, I256, I512};
+use fastnum::I512;
 use num_bigint::BigInt;
 use std::hint::black_box;
-use std::thread::sleep;
 use ton_lib_core::cell::{CellBitWriter, TonCell};
 use ton_lib_core_008::cell::TonCell as TonCell008;
 use tonlib_core::cell::CellBuilder as TonlibCellBuilder;
