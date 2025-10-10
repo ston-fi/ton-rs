@@ -1,5 +1,6 @@
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRefOpt;
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::*;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
 use ton_lib_core::TLB;
@@ -12,7 +13,8 @@ pub struct WalletV5Data {
     pub seqno: u32,
     pub wallet_id: i32,
     pub public_key: TonHash,
-    pub extensions: Option<TonCellRef>,
+    #[tlb(adapter="TLBRefOpt")]
+    pub extensions: Option<TonCell>,
 }
 
 impl WalletV5Data {
@@ -37,7 +39,7 @@ pub struct WalletV5ExtMsgBody {
     pub valid_until: u32,
     pub msg_seqno: u32,
     pub msgs_modes: Vec<u8>,
-    pub msgs: Vec<TonCellRef>,
+    pub msgs: Vec<TonCell>,
 }
 
 impl TLB for WalletV5ExtMsgBody {
@@ -116,7 +118,7 @@ mod test {
         // https://tonviewer.com/transaction/b4c5eddc52d0e23dafb2da6d022a5b6ae7eba52876fa75d32b2a95fa30c7e2f0
         let body_signed_cell = TonCell::from_boc_hex("b5ee9c720101040100940001a17369676e7fffff11ffffffff00000000bc04889cb28b36a3a00810e363a413763ec34860bf0fce552c5d36e37289fafd442f1983d740f92378919d969dd530aec92d258a0779fb371d4659f10ca1b3826001020a0ec3c86d030302006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a1200000000000000000000000000000000")?;
         let mut parser = body_signed_cell.parser();
-        parser.read_bits(body_signed_cell.data_bits_len - 512)?;
+        parser.read_bits(body_signed_cell.data_len_bits() - 512)?;
         let sign = parser.read_bits(512)?;
 
         let body = WalletV5ExtMsgBody::read_signed(&mut body_signed_cell.parser())?.0;
