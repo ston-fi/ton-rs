@@ -479,8 +479,58 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     uval = (uval << 8) | <$u_src>::from(byte);
                 }
 
-                // Use the unsigned implementation to serialize
-                uval.tcn_write_bits(writer, bits_len)
+                // Mask to bits_len (same as primitives) - MUST do this before tcn_write_bits!
+                let bit_count = bits_len as usize;
+                let type_bits = std::mem::size_of::<$src>() * 8;
+
+                if bit_count < type_bits {
+                    // Mask to bit_count bits
+                    let mask = ((<$u_src>::ONE << bits_len) - <$u_src>::ONE);
+                    uval = uval & mask;
+                }
+
+                // Write directly using the unsigned logic (skip validation since we already validated)
+                // This avoids double-validation issue
+                if bits_len == 0 {
+                    return Ok(());
+                }
+                let bits_len_usize = bits_len as usize;
+                if bits_len_usize > std::mem::size_of::<$u_src>() * 8 {
+                    bail_ton_core_data!(
+                        "Requested bits {} more than sizeof {}",
+                        bits_len,
+                        std::mem::size_of::<$u_src>() * 8
+                    );
+                }
+
+                // Left-align value if not byte-aligned
+                let mut value = uval;
+                if bits_len % 8 != 0 {
+                    value <<= 8 - bits_len % 8;
+                }
+
+                // Calculate number of bytes needed
+                let num_bytes = (bits_len as usize).div_ceil(8);
+                let full_bytes = (bits_len / 8) as usize;
+                let remaining_bits = bits_len % 8;
+
+                // Extract bytes in big-endian order
+                let mut bytes = Vec::with_capacity(num_bytes);
+                for i in (0..num_bytes).rev() {
+                    let shift_amount = i * 8;
+                    let byte_val = (value.clone() >> shift_amount) & <$u_src>::from(0xFFu32);
+                    bytes.push(byte_val.to_string().parse::<u8>().unwrap_or(0));
+                }
+
+                // Write full bytes
+                writer.write_bytes(&bytes[0..full_bytes])?;
+
+                // Write remaining bits from TOP of last byte
+                if remaining_bits > 0 {
+                    let last_byte = bytes[full_bytes];
+                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
+                }
+                Ok(())
             }
 
             fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
@@ -564,7 +614,6 @@ mod tests {
     use crate::cell::{CellParser, TonCell};
     use fastnum::{I512, U512};
     use num_bigint::{BigInt, BigUint};
-    use std::hint::black_box;
     #[test]
     fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
@@ -807,11 +856,52 @@ mod tests {
         Ok(())
     }
     #[test]
-    fn test_toncellnum_write_i512() {
-        let mut builder = TonCell::builder();
-        let tv = I512::from(-4i32);
-        builder = TonCell::builder();
-        builder.write_num(&tv, 10).unwrap();
+    fn test_toncellnum_write_num() -> anyhow::Result<()> {
+        let num_val = -9i32;
+        let bigint_val = BigInt::from(-9i32);
+        let i512_val = I512::from(-9i32);
+
+        let mut num_builder = TonCell::builder();
+        let mut bigint_builder = TonCell::builder();
+        let mut i512_builder = TonCell::builder();
+
+        num_builder.write_num(&num_val, 10).unwrap();
+        bigint_builder.write_num(&bigint_val, 10).unwrap();
+        let num_cell = num_builder.build().unwrap();
+        println!("{:?}", num_cell.data);
+        i512_builder.write_num(&i512_val, 10).unwrap();
+
+        assert_eq!(num_cell.data, vec![0b0000_0001, 0b0000_0010]);
+        // assert_eq!(num_cell.data, bigint_builder.);
+        assert_eq!(num_cell.data, i512_builder.build()?.data);
+        Ok(())
+    }
+
+    #[test]
+    fn test_toncellnum_write_i512() -> anyhow::Result<()> {
+        use fastnum::I512;
+
+        // Test writing and reading I512 values
+        let test_cases = vec![
+            (I512::from(0i32), 10),
+            (I512::from(1i32), 10),
+            (I512::from(123i32), 10),
+            (-I512::from(1i32), 10), // -1
+            (-I512::from(4i32), 10), // -4
+        ];
+
+        for (tv, bits) in test_cases {
+            let mut builder = TonCell::builder();
+            builder.write_num(&tv, bits)?;
+
+            // Verify round-trip
+            let cell = builder.build()?;
+            let mut parser = cell.parser();
+            let parsed = parser.read_num::<I512>(bits)?;
+            assert_eq!(parsed, tv, "Failed for value {} with {} bits", tv, bits);
+        }
+
+        Ok(())
     }
 
     #[test]
