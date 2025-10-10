@@ -1,5 +1,5 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, write_up_to_4_msgs};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::TLB;
@@ -31,7 +31,7 @@ pub struct WalletV3ExtMsgBody {
     pub valid_until: u32,
     pub msg_seqno: u32,
     pub msgs_modes: Vec<u8>,
-    pub msgs: Vec<TonCellRef>,
+    pub msgs: Vec<TonCell>,
 }
 
 impl TLB for WalletV3ExtMsgBody {

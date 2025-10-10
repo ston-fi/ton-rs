@@ -1,5 +1,6 @@
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRefOpt;
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, write_up_to_4_msgs};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::{bail_ton_core, TLB};
@@ -9,7 +10,8 @@ pub struct WalletV4Data {
     pub seqno: u32,
     pub wallet_id: i32,
     pub public_key: TonHash,
-    pub plugins: Option<TonCellRef>,
+    #[tlb(adapter = "TLBRefOpt")]
+    pub plugins: Option<TonCell>,
 }
 
 impl WalletV4Data {
@@ -32,7 +34,7 @@ pub struct WalletV4ExtMsgBody {
     pub msg_seqno: u32,
     pub opcode: u8,
     pub msgs_modes: Vec<u8>,
-    pub msgs: Vec<TonCellRef>,
+    pub msgs: Vec<TonCell>,
 }
 
 impl TLB for WalletV4ExtMsgBody {

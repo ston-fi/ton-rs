@@ -1,8 +1,9 @@
 use crate::block_tlb::CurrencyCollection;
-use crate::tlb_adapters::ConstLen;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef, TonHash};
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::types::tlb_core::TLBEither;
 use ton_lib_core::TLB;
 
@@ -60,7 +61,7 @@ impl TLB for OutList {
         }
         let mut cur_ref = parser.read_next_ref()?.clone();
         let mut actions = vec![TLB::read(parser)?];
-        while !cur_ref.data.is_empty() {
+        while cur_ref.data_len_bits() != 0 {
             let mut cur_parser = cur_ref.parser();
             let next_ref = cur_parser.read_next_ref()?.clone();
             actions.push(TLB::read(&mut cur_parser)?);
@@ -74,10 +75,10 @@ impl TLB for OutList {
         if self.actions.is_empty() {
             return Ok(());
         }
-        let mut cur_cell = TonCell::EMPTY;
+        let mut cur_cell = TonCell::empty().to_owned();
         for action in &self.actions {
             let mut parent_builder = TonCell::builder();
-            parent_builder.write_ref(cur_cell.into_ref())?;
+            parent_builder.write_ref(cur_cell)?;
             action.write(&mut parent_builder)?;
             cur_cell = parent_builder.build()?;
         }
@@ -89,7 +90,7 @@ impl TLB for OutList {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tlb_adapters::TLBRef;
+    use ton_lib_core::types::tlb_core::adapters::TLBRef;
 
     #[test]
     fn test_block_tlb_out_list_send_msg_action_manual_build() -> anyhow::Result<()> {
@@ -98,7 +99,7 @@ mod test {
         for i in 0..actions_cnt {
             let act = OutAction::SendMsg(OutActionSendMsg {
                 mode: i as u8,
-                out_msg: TonCell::EMPTY.into_ref(),
+                out_msg: TonCell::empty().into(),
             });
             actions.push(act);
         }

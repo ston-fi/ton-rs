@@ -15,8 +15,8 @@ pub struct GetCollectionDataResult {
 
 impl TVMResult for GetCollectionDataResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let owner_address = TonAddress::from_cell(stack.pop_cell()?.deref())?;
-        let collection_content = MetadataContent::from_cell(&*stack.pop_cell()?)?;
+        let owner_address = TonAddress::from_cell(&stack.pop_cell()?)?;
+        let collection_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
         let next_item_index = stack.pop_tiny_int()?;
 
         Ok(Self {

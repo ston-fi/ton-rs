@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::bits_utils::BitsUtils;
 use crate::cell::cell_meta::CellMeta;
 use crate::cell::cell_meta::CellType;
@@ -39,6 +40,39 @@ impl TonCell {
     pub fn empty() -> &'static Self { EMPTY_CELL.deref() }
 
     pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary) }
+
+    // Borders are relative to origin cell here
+    pub fn slice(cell: &TonCell, borders: CellBorders) -> Result<Self, TonCoreError> {
+        if borders.start_bit > borders.end_bit
+            || borders.end_bit as usize > cell.data_len_bits()
+            || borders.start_ref > borders.end_ref
+            || borders.end_ref as usize > cell.refs().len()
+        {
+            bail_ton_core_data!("Invalid slice borders={borders:?} for cell with borders={:?}", cell.borders);
+        }
+
+        let is_full = borders.start_bit == 0
+            && borders.end_bit as usize == cell.data_len_bits()
+            && borders.start_ref == 0
+            && borders.end_ref as usize == cell.refs().len();
+
+        let (cell_type, meta) = if is_full {
+            (cell.cell_type, cell.meta.clone())
+        } else {
+            (CellType::Ordinary, Arc::new(CellMeta::default()))
+        };
+        Ok(TonCell {
+            cell_type,
+            cell_data: cell.cell_data.clone(),
+            borders: CellBorders {
+                start_bit: cell.borders.start_bit + borders.start_bit,
+                end_bit: cell.borders.start_bit + borders.end_bit,
+                start_ref: cell.borders.start_ref + borders.start_ref,
+                end_ref: cell.borders.start_ref + borders.end_ref,
+            },
+            meta,
+        })
+    }
     pub fn builder_typed(cell_type: CellType) -> CellBuilder { CellBuilder::new(cell_type) }
     pub fn parser(&'_ self) -> CellParser<'_> { CellParser::new(self) }
 
@@ -69,7 +103,7 @@ pub(super) struct CellData {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(super) struct CellBorders {
+pub struct CellBorders {
     pub start_bit: u16,
     pub end_bit: u16, // exclusive
     pub start_ref: u8,
@@ -97,13 +131,12 @@ mod traits_impl {
     use crate::cell::{TonCell};
     use crate::cell::ton_cell::write_cell_display;
 
-// TonCell
+    // TonCell
     impl PartialEq for TonCell { fn eq(&self, other: &Self) -> bool { self.hash().is_ok() && other.hash().is_ok() && self.hash().unwrap() == other.hash().unwrap() } }
     impl Eq for TonCell {}
     impl Display for TonCell { fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write_cell_display(f, self, 0) } }
     // expensive
     impl Debug for TonCell { fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{self}") } }
-
 }
 
 fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize) -> std::fmt::Result {

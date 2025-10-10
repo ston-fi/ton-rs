@@ -1,4 +1,5 @@
-use ton_lib_core::cell::{TonCellRef, TonHash};
+use ton_lib_core::cell::{TonCell, TonHash};
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::TLB;
 
 /// WalletVersion::HighloadV2R2, not tested

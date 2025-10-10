@@ -18,9 +18,9 @@ pub struct GetNFTDataResult {
 
 impl TVMResult for GetNFTDataResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let individual_content = MetadataContent::from_cell(stack.pop_cell()?.deref())?;
-        let owner_address: TonAddress = TonAddress::from_cell(stack.pop_cell()?.deref())?;
-        let collection_address = TonAddress::from_cell(stack.pop_cell()?.deref())?;
+        let individual_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
+        let owner_address: TonAddress = TonAddress::from_cell(&stack.pop_cell()?)?;
+        let collection_address = TonAddress::from_cell(&stack.pop_cell()?)?;
         let index = stack.pop_int_or_tiny_int()?;
         let init = stack.pop_int_or_tiny_int()? != BigInt::ZERO;
 

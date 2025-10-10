@@ -114,11 +114,11 @@ impl CellBuilder {
         Ok(())
     }
 
-    pub fn write_ref(&mut self, cell: TonCell) -> Result<(), TonCoreError> {
+    pub fn write_ref<T: Into<TonCell>>(&mut self, cell: T) -> Result<(), TonCoreError> {
         if self.refs.len() >= TonCell::MAX_REFS_COUNT {
             bail_ton_core_data!("Can't add more refs: {} refs are written already", TonCell::MAX_REFS_COUNT);
         }
-        self.refs.push(cell);
+        self.refs.push(cell.into());
         Ok(())
     }
 

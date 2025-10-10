@@ -1,7 +1,7 @@
 use crate::block_tlb::*;
-use crate::tlb_adapters::ConstLen;
-use crate::tlb_adapters::TLBRef;
-use crate::tlb_adapters::TLBRefOpt;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRef;
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRefOpt;
 use std::ops::Deref;
 use ton_lib_core::cell::TonHash;
 use ton_lib_core::TLB;

@@ -12,7 +12,7 @@ pub struct GetNFTAddressByIndexResult {
 
 impl TVMResult for GetNFTAddressByIndexResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let nft_address = TonAddress::from_cell(stack.pop_cell()?.deref())?;
+        let nft_address = TonAddress::from_cell(&stack.pop_cell()?)?;
 
         Ok(Self { nft_address })
     }

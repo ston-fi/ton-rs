@@ -12,7 +12,7 @@ pub struct GetWalletAddressResult {
 
 impl TVMResult for GetWalletAddressResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let address = TonAddress::from_cell(stack.pop_cell()?.deref())?;
+        let address = TonAddress::from_cell(&stack.pop_cell()?)?;
         Ok(Self { address })
     }
 }

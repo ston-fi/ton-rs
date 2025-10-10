@@ -33,7 +33,7 @@ async fn update_init_block(config: &mut TLClientConfig) -> Result<(), TonError> 
         let future = async {
             let mc_info = lite_client_ref.get_mc_info().await?;
             let block = lite_client_ref.get_block(mc_info.last, None).await?;
-            let seqno = parse_key_block_seqno(&block)?;
+            let seqno = parse_key_block_seqno(block)?;
             lite_client_ref.lookup_mc_block(seqno).await
         };
         futs.push(future);
@@ -61,13 +61,13 @@ async fn update_init_block(config: &mut TLClientConfig) -> Result<(), TonError> 
     Ok(())
 }
 
-fn parse_key_block_seqno(block: &BlockData) -> Result<u32, TonError> {
-    let block_cell = TonCell::from_boc(&block.data)?;
-    if block_cell.refs.is_empty() {
+fn parse_key_block_seqno(block: BlockData) -> Result<u32, TonError> {
+    let block_cell = TonCell::from_boc(block.data)?;
+    if block_cell.refs().is_empty() {
         return Err(TonError::Custom("No refs in block cell".to_string()));
         // TODO make proper block parser
     }
-    let mut parser = block_cell.refs[0].parser();
+    let mut parser = block_cell.refs()[0].parser();
     let tag: usize = parser.read_num(32)?;
     if tag != BlockInfo::PREFIX.value {
         return Err(TonCoreError::TLBWrongPrefix {

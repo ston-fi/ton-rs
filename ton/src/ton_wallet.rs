@@ -14,7 +14,7 @@ use super::*;
 use crate::block_tlb::*;
 use crate::errors::TonError;
 use nacl::sign::signature;
-use ton_lib_core::cell::{TonCell};
+use ton_lib_core::cell::TonCell;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::tlb_core::{MsgAddressExt, TLBEitherRef};
 use ton_lib_core::types::TonAddress;
@@ -71,12 +71,7 @@ impl TonWallet {
         Ok(external)
     }
 
-    pub fn create_ext_in_body(
-        &self,
-        expire_at: u32,
-        seqno: u32,
-        int_msgs: Vec<TonCell>,
-    ) -> Result<TonCell, TonError> {
+    pub fn create_ext_in_body(&self, expire_at: u32, seqno: u32, int_msgs: Vec<TonCell>) -> Result<TonCell, TonError> {
         WalletVersion::build_ext_in_body(self.version, expire_at, seqno, self.wallet_id, int_msgs)
     }
 

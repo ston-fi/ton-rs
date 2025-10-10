@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 
@@ -40,8 +40,8 @@ impl TVMStack {
 
     pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }
     pub fn push_int(&mut self, value: BigInt) { self.push(TVMStackValue::Int(TVMInt { value })); }
-    pub fn push_cell(&mut self, value: TonCellRef) { self.push(TVMStackValue::Cell(TVMCell { value })); }
-    pub fn push_cell_slice(&mut self, cell: TonCellRef) {
+    pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
+    pub fn push_cell_slice(&mut self, cell: TonCell) {
         self.push(TVMStackValue::CellSlice(TVMCellSlice::from_cell(cell)));
     }
     pub fn push_tuple(&mut self, tuple: TVMTuple) { self.push(TVMStackValue::Tuple(tuple)); }
@@ -67,10 +67,10 @@ impl TVMStack {
     }
 
     // extract cell & cell_slice
-    pub fn pop_cell(&mut self) -> Result<TonCellRef, TonError> {
+    pub fn pop_cell(&mut self) -> Result<TonCell, TonError> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
-            Some(TVMStackValue::Cell(cell)) => Ok(cell.value),
+            Some(TVMStackValue::Cell(cell)) => Ok(cell.value.into()),
             Some(TVMStackValue::CellSlice(slice)) => Ok(slice.value),
             _ => Err(TonError::TVMStackWrongType("Cell".to_string(), format!("{self:?}"))),
         }
@@ -109,11 +109,11 @@ impl TLB for TVMStack {
         if self.0.is_empty() {
             return Ok(());
         }
-        let mut cur_rest = TonCell::EMPTY;
+        let mut cur_rest = TonCell::empty().to_owned();
         // we fill cell chain from the end
         for item in self.0.iter() {
             let mut rest_builder = TonCell::builder();
-            rest_builder.write_ref(cur_rest.into_ref())?; // write "rest" first
+            rest_builder.write_ref(cur_rest)?; // write "rest" first
             item.write(&mut rest_builder)?; // then write "item" itself
             cur_rest = rest_builder.build()?
         }
@@ -161,7 +161,7 @@ mod tests {
         let mut parser = stack_cell.parser();
         let depth: u32 = parser.read_num(24)?;
         assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?.deref(), &TonCell::EMPTY);
+        assert_eq!(parser.read_next_ref()?.deref(), TonCell::empty());
 
         match TVMStackValue::read(&mut parser)? {
             TVMStackValue::TinyInt(val) => assert_eq!(val.value, 1),
@@ -177,22 +177,22 @@ mod tests {
     #[test]
     fn test_vm_stack_cell_slice() -> anyhow::Result<()> {
         let mut stack = TVMStack::new(vec![]);
-        stack.push_cell_slice(TonAddress::ZERO.to_cell_ref()?);
+        stack.push_cell_slice(TonAddress::ZERO.to_cell()?);
         let stack_cell = stack.to_cell()?;
 
         let mut parser = stack_cell.parser();
         let depth: u32 = parser.read_num(24)?;
         assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?.deref(), &TonCell::EMPTY);
+        assert_eq!(parser.read_next_ref()?.deref(), TonCell::empty());
 
         match TVMStackValue::read(&mut parser)? {
-            TVMStackValue::CellSlice(val) => assert_eq!(val.value.deref(), &TonAddress::ZERO.to_cell()?),
+            TVMStackValue::CellSlice(val) => assert_eq!(val.value, TonAddress::ZERO.to_cell()?),
             _ => panic!("Expected CellSlice"),
         }
 
         let mut stack_parsed = TVMStack::from_cell(&stack_cell)?;
         assert_eq!(stack_parsed.len(), 1);
-        assert_eq!(stack_parsed.pop_cell()?.deref(), &TonAddress::ZERO.to_cell()?);
+        assert_eq!(stack_parsed.pop_cell()?, TonAddress::ZERO.to_cell()?);
         Ok(())
     }
 
@@ -201,7 +201,7 @@ mod tests {
         let mut stack = TVMStack::new(vec![]);
         stack.push_tiny_int(1);
         stack.push_int(2.into());
-        stack.push_cell_slice(TonAddress::ZERO.to_cell_ref()?);
+        stack.push_cell_slice(TonAddress::ZERO.to_cell()?);
         let stack_cell = stack.to_cell()?;
 
         let mut deep1_parser = stack_cell.parser();
@@ -210,7 +210,7 @@ mod tests {
 
         let rest1 = deep1_parser.read_next_ref()?.clone();
         match TVMStackValue::read(&mut deep1_parser)? {
-            TVMStackValue::CellSlice(val) => assert_eq!(val.value.deref(), &TonAddress::ZERO.to_cell()?),
+            TVMStackValue::CellSlice(val) => assert_eq!(val.value, TonAddress::ZERO.to_cell()?),
             _ => panic!("Expected CellSlice"),
         }
 
@@ -228,11 +228,11 @@ mod tests {
             _ => panic!("Expected TinyInt"),
         }
 
-        assert_eq!(rest3.deref(), &TonCell::EMPTY);
+        assert_eq!(&rest3, TonCell::empty());
 
         let mut stack_parsed = TVMStack::from_cell(&stack_cell)?;
         assert_eq!(stack_parsed.len(), 3);
-        assert_eq!(stack_parsed.pop_cell()?.deref(), &TonAddress::ZERO.to_cell()?);
+        assert_eq!(stack_parsed.pop_cell()?, TonAddress::ZERO.to_cell()?);
         assert_eq!(stack_parsed.pop_int()?, 2.into());
         assert_eq!(stack_parsed.pop_tiny_int()?, 1);
         Ok(())

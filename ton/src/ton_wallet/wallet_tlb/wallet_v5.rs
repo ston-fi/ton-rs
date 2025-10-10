@@ -1,8 +1,8 @@
-use crate::ton_lib_core::types::tlb_core::adapters::TLBRefOpt;
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::*;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::TLB;
 
 /// WalletVersion::V5R1
@@ -13,8 +13,7 @@ pub struct WalletV5Data {
     pub seqno: u32,
     pub wallet_id: i32,
     pub public_key: TonHash,
-    #[tlb(adapter="TLBRefOpt")]
-    pub extensions: Option<TonCell>,
+    pub extensions: Option<TonCellRef>,
 }
 
 impl WalletV5Data {

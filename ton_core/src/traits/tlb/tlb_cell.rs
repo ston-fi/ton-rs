@@ -5,6 +5,7 @@ use crate::cell::CellType;
 use crate::cell::{TonCell, TonHash};
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
+use std::ops::Deref;
 use std::sync::Arc;
 
 impl TLB for TonCell {
