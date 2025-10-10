@@ -11,31 +11,43 @@ use fastnum::{U1024, U128, U256, U512};
 
 macro_rules! primitive_convert_to_unsigned {
     ($val:expr,$T:ty,$bit_count:expr) => {{
-        let mut bit_mask = <$T>::MAX;
-        if size_of::<$T>() * 8 == ($bit_count as usize) {
-            bit_mask = 0 as $T;
+        // Two's complement: cast to unsigned and mask to bit_count
+        let uval = $val as $T;
+        let bit_count = $bit_count as usize;
+        let type_bits = std::mem::size_of::<$T>() * 8;
+
+        if bit_count >= type_bits {
+            // Full width or larger - no masking needed
+            uval
         } else {
-            bit_mask <<= $bit_count;
+            // Mask to bit_count bits
+            let mask = ((1 as $T) << bit_count) - 1;
+            uval & mask
         }
-        let mut uval = $val as $T;
-        uval ^= bit_mask;
-        uval
     }};
 }
 macro_rules! primitive_convert_to_signed {
     ($uval:expr,$I:ty,$U:ty,$bit_count:expr) => {{
-        let mut uval = $uval;
-        let mut bit_mask = <$U>::MAX;
+        // Two's complement decoding with sign extension
+        let uval = $uval;
+        let bit_count = $bit_count as usize;
+        let type_bits = std::mem::size_of::<$I>() * 8;
 
-        if size_of::<$I>() * 8 == $bit_count as usize {
-            bit_mask = 0 as $U;
+        if bit_count >= type_bits {
+            // Full width or larger - just cast
+            uval as $I
         } else {
-            bit_mask <<= $bit_count;
+            // Need to sign-extend from bit_count to full width
+            let sign_bit = 1 << (bit_count - 1);
+            if (uval & sign_bit) != 0 {
+                // Negative number - extend with 1s
+                let extension_mask = (<$U>::MAX << bit_count);
+                (uval | extension_mask) as $I
+            } else {
+                // Positive number - just cast
+                uval as $I
+            }
         }
-
-        uval |= bit_mask;
-        let val = uval as $I;
-        val
     }};
 }
 
@@ -105,6 +117,14 @@ macro_rules! ton_cell_num_primitive_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
             fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
+                if self.tcn_min_bits_len() > bits_len {
+                    bail_ton_core_data!(
+                        "Not enough bits for write num {} in {} bits, min len {}",
+                        *self,
+                        bits_len,
+                        self.tcn_min_bits_len()
+                    );
+                }
                 let val: $u_src = primitive_convert_to_unsigned!(*self, $u_src, bits_len);
                 writer.write_var(bits_len, val)?;
                 Ok(())
@@ -126,6 +146,8 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                 if *self == 0 {
                     0u32
                 } else {
+                    // Two's complement: abs(val).bit_length() + 1
+                    // Which is: primitive_highest_bit_pos + 2
                     primitive_highest_bit_pos!(*self, Self, true) + 2u32
                 }
             }

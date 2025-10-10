@@ -254,7 +254,8 @@ mod tests {
 
         let cell = cell_builder.build()?;
 
-        assert_eq!(cell.data, vec![0b0000_0000, 0b0000_0111, 0b000_0111]);
+        // Two's complement: -3 as i16 = 0xFFFD, -3 as i8 = 0xFD
+        assert_eq!(cell.data, vec![0b1111_1111, 0b1111_1101, 0b1111_1101]);
 
         Ok(())
     }
@@ -266,7 +267,11 @@ mod tests {
         cell_builder.write_num(&-3i16, 16)?;
         cell_builder.write_num(&-3i8, 8)?;
         let cell = cell_builder.build()?;
-        assert_eq!(cell.data, vec![0b1000_0000, 0b0000_0011, 0b1000_0011, 0b1000_0000]);
+        // Two's complement: -3 as i16 = 0xFFFD, -3 as i8 = 0xFD
+        // Bit stream: 1 + 1111111111111101 + 11111101 + padding
+        // = 11111111111111101111111010000000
+        // Bytes: 11111111 11111110 11111110 10000000
+        assert_eq!(cell.data, vec![0b1111_1111, 0b1111_1110, 0b1111_1110, 0b1000_0000]);
         Ok(())
     }
 
