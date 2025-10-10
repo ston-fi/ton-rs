@@ -146,8 +146,6 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                 if *self == 0 {
                     0u32
                 } else {
-                    // Two's complement: abs(val).bit_length() + 1
-                    // Which is: primitive_highest_bit_pos + 2
                     primitive_highest_bit_pos!(*self, Self, true) + 2u32
                 }
             }
