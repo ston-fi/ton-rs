@@ -8,10 +8,12 @@ publish = false
 ton_lib = { path = "../ton", version = "0" }
 ton_lib_core = { path = "../ton_core", version = "0" }
 base64 = "0.22"
+fastnum.workspace = true
+num-bigint.workspace = true
 criterion = "0.7"
-
+bitstream-io.workspace = true
 tonlib-core = "0.26"
-
+ton_lib_core_008 = { package = "ton_lib_core", version = "0.0.8" }
 
 [[bench]]
 name = "boc_to_from_bytes"
@@ -26,4 +28,14 @@ harness = false
 [[bench]]
 name = "build_dict_cell"
 path = "build_dict_cell.rs"
+harness = false
+
+[[bench]]
+name = "write_num_primitives"
+path = "write_num_primitives.rs"
+harness = false
+
+[[bench]]
+name = "read_num_primitives"
+path = "read_num_primitives.rs"
 harness = false

@@ -3,14 +3,15 @@ use crate::cell::ton_cell::{TonCell, TonCellRef};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
-use num_traits::Zero;
 use std::io::{Cursor, SeekFrom};
+
+pub type CellBitReader<'a> = BitReader<Cursor<&'a [u8]>, BigEndian>;
 
 #[derive(Debug)]
 pub struct CellParser<'a> {
     pub cell: &'a TonCell,
     pub next_ref_pos: usize,
-    data_reader: BitReader<Cursor<&'a [u8]>, BigEndian>,
+    data_reader: CellBitReader<'a>,
 }
 
 impl<'a> CellParser<'a> {
@@ -52,20 +53,9 @@ impl<'a> CellParser<'a> {
     }
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
-        if bits_len == 0 {
-            return Ok(N::tcn_from_primitive(N::Primitive::zero()));
-        }
         self.ensure_enough_bits(bits_len)?;
-        if N::IS_PRIMITIVE {
-            let primitive = self.data_reader.read_var::<N::Primitive>(bits_len as u32)?;
-            return Ok(N::tcn_from_primitive(primitive));
-        }
-        let bytes = self.read_bits(bits_len)?;
-        let res = N::tcn_from_bytes(&bytes);
-        if bits_len % 8 != 0 {
-            return Ok(res.tcn_shr(8 - bits_len % 8));
-        }
-        Ok(res)
+
+        N::tcn_read_bits(&mut self.data_reader, bits_len as u32)
     }
 
     pub fn read_cell(&mut self) -> Result<TonCell, TonCoreError> {
@@ -234,7 +224,7 @@ mod tests {
     #[test]
     fn test_parser_read_ref() -> anyhow::Result<()> {
         let mut ref_builder = TonCell::builder();
-        ref_builder.write_num(&0b11110000, 8)?;
+        ref_builder.write_num(&0b11110000u32, 8)?;
         let cell_ref = ref_builder.build()?.into_ref();
 
         let mut cell_builder = TonCell::builder();
