@@ -13,7 +13,6 @@ use once_cell;
 use once_cell::sync::OnceCell;
 use smallvec::SmallVec;
 use std::collections::VecDeque;
-use std::sync::{Arc, LazyLock};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CellMeta {

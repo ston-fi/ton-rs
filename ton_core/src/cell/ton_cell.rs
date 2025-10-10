@@ -23,7 +23,7 @@ use std::sync::{Arc, LazyLock};
 pub struct TonCell {
     pub(super) cell_type: CellType,
     pub(super) cell_data: Arc<CellData>,
-    pub(super) borders: CellBorders, // absolute borders for cell_data
+    pub(super) borders: CellBorders, // absolute borders of cell_data
     pub(super) meta: Arc<CellMeta>,
 }
 
