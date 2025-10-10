@@ -31,7 +31,6 @@ impl<'a> CellParser<'a> {
         self.seek_bits(-(bits_len as i32))?;
         Ok(value)
     }
-    pub fn reset(&mut self) -> Result<u64, TonCoreError> { Ok(self.data_reader.seek_bits(SeekFrom::Start(0))?) }
 
     pub fn read_bit(&mut self) -> Result<bool, TonCoreError> {
         self.ensure_enough_bits(1)?;

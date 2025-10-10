@@ -263,15 +263,11 @@ mod tests {
     #[test]
     fn test_builder_write_num_negative_unaligned() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_bit(true)?;
+        cell_builder.write_bit(false)?;
         cell_builder.write_num(&-3i16, 16)?;
         cell_builder.write_num(&-3i8, 8)?;
         let cell = cell_builder.build()?;
-        // Two's complement: -3 as i16 = 0xFFFD, -3 as i8 = 0xFD
-        // Bit stream: 1 + 1111111111111101 + 11111101 + padding
-        // = 11111111111111101111111010000000
-        // Bytes: 11111111 11111110 11111110 10000000
-        assert_eq!(cell.data, vec![0b1111_1111, 0b1111_1110, 0b1111_1110, 0b1000_0000]);
+        assert_eq!(cell.data, vec![0b0111_1111, 0b1111_1110, 0b1111_1110, 0b1000_0000]);
         Ok(())
     }
 
@@ -331,32 +327,32 @@ mod tests {
         //   /
         //  5
         let mut builder5 = TonCell::builder();
-        builder5.write_num(&0x05u8, 8)?;
+        builder5.write_num(&0x05, 8)?;
         let cell5 = builder5.build()?;
 
         let mut builder3 = TonCell::builder();
-        builder3.write_num(&0x03u8, 8)?;
+        builder3.write_num(&0x03, 8)?;
         builder3.write_ref(cell5.clone().into_ref())?;
         let cell3 = builder3.build()?;
 
         let mut builder4 = TonCell::builder();
-        builder4.write_num(&0x04u8, 8)?;
+        builder4.write_num(&0x04, 8)?;
         let cell4 = builder4.build()?;
 
         let mut builder2 = TonCell::builder();
-        builder2.write_num(&0x02u8, 8)?;
+        builder2.write_num(&0x02, 8)?;
         let cell2 = builder2.build()?;
 
         let mut builder1 = TonCell::builder();
-        builder1.write_num(&0x01u8, 8)?;
+        builder1.write_num(&0x01, 8)?;
         builder1.write_ref(cell3.clone().into_ref())?;
         builder1.write_ref(cell4.clone().into_ref())?;
         let cell1 = builder1.build()?;
 
         let mut builder0 = TonCell::builder();
         builder0.write_bit(true)?;
-        builder0.write_num(&0b0000_0001u8, 8)?;
-        builder0.write_num(&0b0000_0011u8, 8)?;
+        builder0.write_num(&0b0000_0001, 8)?;
+        builder0.write_num(&0b0000_0011, 8)?;
         builder0.write_ref(cell1.clone().into_ref())?;
         builder0.write_ref(cell2.clone().into_ref())?;
         let cell0 = builder0.build()?;
@@ -380,7 +376,7 @@ mod tests {
         assert_err!(builder.build()); // no lib prefix
 
         let mut builder = TonCell::builder_typed(CellType::LibraryRef);
-        builder.write_num(&2u8, 8)?; // adding lib prefix https://docs.ton.org/v3/documentation/data-formats/tlb/exotic-cells#library-reference
+        builder.write_num(&2, 8)?; // adding lib prefix https://docs.ton.org/v3/documentation/data-formats/tlb/exotic-cells#library-reference
         builder.write_bits(TonHash::ZERO, TonHash::BITS_LEN)?;
         let lib_cell = assert_ok!(builder.build());
 
