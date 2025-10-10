@@ -161,11 +161,11 @@ ton_cell_num_primitive_unsigned_impl!(u32);
 ton_cell_num_primitive_unsigned_impl!(u64);
 ton_cell_num_primitive_unsigned_impl!(u128);
 
+ton_cell_num_primitive_signed_impl!(i8, u8);
 ton_cell_num_primitive_signed_impl!(i16, u16);
 ton_cell_num_primitive_signed_impl!(i32, u32);
 ton_cell_num_primitive_signed_impl!(i64, u64);
 ton_cell_num_primitive_signed_impl!(i128, u128);
-ton_cell_num_primitive_signed_impl!(i8, u8);
 
 // Implementation for BigUint
 // Note: BigUint is used for BigInt sign encoding

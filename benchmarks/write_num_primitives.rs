@@ -8,7 +8,7 @@ use std::thread::sleep;
 use ton_lib_core::cell::{CellBitWriter, TonCell};
 const ITERATIONS_COUNT: usize = 100;
 
-const TEST_VALUE: u32 = 4u32;
+const TEST_VALUE: u32 = 3u32;
 const TEST_WRITE_BIT: usize = 10;
 const THRESHOLD_TO_RECREATE_BUILDER: usize = 100;
 
