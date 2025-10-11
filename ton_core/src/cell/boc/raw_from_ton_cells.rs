@@ -76,7 +76,7 @@ fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedC
         verify_order = false;
 
         for index_cell in cells_by_hash.values() {
-            for (ref_pos, ref_cell) in index_cell.cell.refs().iter().enumerate() {
+            for ref_cell in index_cell.cell.refs() {
                 let ref_hash = ref_cell.hash()?;
                 if let Some(indexed) = cells_by_hash.get(ref_hash) {
                     if indexed.index < index_cell.index {

@@ -1,3 +1,4 @@
+use crate::bail_ton_core_data;
 use crate::cell::boc::raw_boc::RawBoC;
 use crate::cell::ton_cell::{CellBorders, CellData, RefStorage};
 use crate::cell::{CellMeta, TonCell};
@@ -15,7 +16,7 @@ impl RawBoC {
             let mut refs = RefStorage::with_capacity(cell_raw.refs_positions.len());
             for ref_index in cell_raw.refs_positions {
                 if ref_index <= cell_index {
-                    return Err(TonCoreError::Custom("ref to parent cell detected".to_string()));
+                    bail_ton_core_data!("Invalid BoC: ref to parent cell detected");
                 }
                 refs.push(cells[cells_len - 1 - ref_index].clone());
             }
