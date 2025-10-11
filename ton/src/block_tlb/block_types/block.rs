@@ -1,7 +1,7 @@
 use crate::block_tlb::BlockExtra;
 use crate::block_tlb::BlockInfo;
-use crate::tlb_adapters::TLBRef;
-use ton_lib_core::cell::TonCellRef;
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRef;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L462
@@ -107,7 +107,7 @@ mod tests {
 
         // full serialization test
         let serialized = parsed.to_boc()?;
-        let parsed_back = Block::from_boc(&serialized)?;
+        let parsed_back = Block::from_boc(serialized)?;
         assert_eq!(parsed_back, parsed);
         assert_eq!(
             parsed_back.cell_hash()?,

@@ -91,8 +91,8 @@ impl<'a> CellParser<'a> {
         };
 
         let borders = CellBorders {
-            start_bit: self.data_reader.position_in_bits()? as u16,
-            end_bit: self.data_reader.position_in_bits()? as u16 + bits_len as u16,
+            start_bit: self.data_reader.position_in_bits()? as usize,
+            end_bit: self.data_reader.position_in_bits()? as usize + bits_len,
             start_ref: self.next_ref_pos as u8,
             end_ref: self.next_ref_pos as u8 + refs_len,
         };
@@ -119,10 +119,7 @@ impl<'a> CellParser<'a> {
 
     pub fn read_cell(&mut self) -> Result<TonCell, TonCoreError> {
         let cur_pos = self.data_reader.position_in_bits()? as usize;
-        self.read_slice(
-            self.cell.borders.end_bit as usize - cur_pos,
-            self.cell.borders.end_ref - self.next_ref_pos as u8,
-        )
+        self.read_slice(self.cell.borders.end_bit - cur_pos, self.cell.borders.end_ref - self.next_ref_pos as u8)
     }
 
     pub fn read_next_ref(&mut self) -> Result<&TonCell, TonCoreError> {

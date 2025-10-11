@@ -1,7 +1,6 @@
 use crate::block_tlb::TVMStack;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use std::ops::Deref;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::TonAddress;

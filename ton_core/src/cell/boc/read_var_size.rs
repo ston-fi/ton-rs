@@ -1,11 +1,8 @@
+use crate::cell::boc::raw_boc::BocBytesReader;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, ByteRead, ByteReader};
-use std::io::Cursor;
+use bitstream_io::ByteRead;
 
-pub(super) fn read_var_size(
-    reader: &mut ByteReader<Cursor<&[u8]>, BigEndian>,
-    bytes_len: u8,
-) -> Result<usize, TonCoreError> {
+pub(super) fn read_var_size(reader: &mut BocBytesReader, bytes_len: u8) -> Result<usize, TonCoreError> {
     let bytes = reader.read_to_vec(bytes_len.into())?;
 
     let mut result = 0;

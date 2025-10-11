@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 const GENERIC_BOC_MAGIC: u32 = 0xb5ee9c72;
 const CRC_32_ISCSI: Crc<u32> = Crc::<u32>::new(&crc::CRC_32_ISCSI);
+pub(super) type BocBytesReader<'a> = ByteReader<Cursor<&'a [u8]>, BigEndian>;
 
 /// `cells` must be topologically sorted.
 #[derive(PartialEq, Debug, Clone)]
@@ -22,7 +23,7 @@ impl RawBoC {
     // https://github.com/ton-blockchain/ton/blob/24dc184a2ea67f9c47042b4104bbb4d82289fac1/crypto/tl/boc.tlb#L25
     pub(super) fn from_bytes(data_storage: Arc<Vec<u8>>) -> Result<RawBoC, TonCoreError> {
         let cursor = Cursor::new(data_storage.as_slice());
-        let mut reader = ByteReader::endian(cursor, BigEndian);
+        let mut reader = BocBytesReader::new(cursor);
         let magic = reader.read::<u32>()?;
 
         if magic != GENERIC_BOC_MAGIC {

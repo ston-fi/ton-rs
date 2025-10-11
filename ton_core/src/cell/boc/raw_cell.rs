@@ -1,5 +1,6 @@
 use crate::bail_ton_core_data;
 use crate::bits_utils::BitsUtils;
+use crate::cell::boc::raw_boc::BocBytesReader;
 use crate::cell::boc::read_var_size::read_var_size;
 use crate::cell::{CellType, LevelMask, TonCell};
 use crate::errors::TonCoreError;
@@ -67,7 +68,7 @@ impl RawCell {
     }
 
     pub fn new(
-        reader: &mut ByteReader<Cursor<&[u8]>, BigEndian>,
+        reader: &mut BocBytesReader,
         ref_pos_size_bytes: u8,
         data_storage: Arc<Vec<u8>>,
     ) -> Result<Self, TonCoreError> {

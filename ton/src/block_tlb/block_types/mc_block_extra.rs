@@ -4,9 +4,10 @@ use crate::block_tlb::{ConfigParams, CurrencyCollection};
 use crate::block_tlb::{ShardIdent, ShardPfx};
 use crate::tlb_adapters::{BinTree, DictKeyAdapterInto, DictValAdapterTLB, TLBHashMapE};
 use std::collections::HashMap;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L593
@@ -74,11 +75,11 @@ impl TLB for MCBlockExtra {
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         self.key_block.write(builder)?;
-        let mut shards_dict = HashMap::<u32, TonCellRef>::new();
+        let mut shards_dict = HashMap::<u32, TonCell>::new();
         for (wc_id, shards) in &self.shard_hashes {
             let mut val_builder = TonCell::builder();
             BinTree::<DictValAdapterTLB, _>::write(&mut val_builder, shards)?;
-            shards_dict.insert(*wc_id as u32, val_builder.build_ref()?);
+            shards_dict.insert(*wc_id as u32, val_builder.build()?);
         }
         TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).write(builder, &shards_dict)?;
         self.shard_fees.write(builder)?;

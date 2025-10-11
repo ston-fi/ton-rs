@@ -1,4 +1,4 @@
-use ton_lib_core::cell::TonCellRef;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::types::tlb_core::MsgAddress;
 use ton_lib_core::TLB;
 

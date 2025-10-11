@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::block_tlb::TVMStack;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;

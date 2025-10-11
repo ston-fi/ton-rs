@@ -5,9 +5,10 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L543
 #[derive(Debug, Default)]
@@ -74,7 +75,7 @@ impl TLB for ConfigParams {
         self.config_addr.write(dst)?;
         let mut config_cell = TonCell::builder();
         TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).write(&mut config_cell, &self.config)?;
-        dst.write_ref(config_cell.build_ref()?)?;
+        dst.write_ref(config_cell.build()?)?;
         Ok(())
     }
 }
@@ -91,7 +92,7 @@ mod tests {
     fn test_config_params() -> anyhow::Result<()> {
         let config_params = ConfigParams::from_boc_hex(CONFIG_BOC_HEX)?;
         let serialized = config_params.to_boc()?;
-        let parsed_back = ConfigParams::from_boc(&serialized)?;
+        let parsed_back = ConfigParams::from_boc(serialized)?;
         assert_eq!(config_params, parsed_back);
         Ok(())
     }

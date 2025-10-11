@@ -1,6 +1,6 @@
-use crate::tlb_adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use num_bigint::BigUint;
-use ton_lib_core::cell::TonCellRef;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::types::tlb_core::MsgAddress;
 use ton_lib_core::TLB;
 

@@ -14,7 +14,7 @@ impl TVMCellSlice {
     pub fn from_cell(cell: TonCell) -> Self {
         let borders = CellBorders {
             start_bit: 0,
-            end_bit: cell.data_len_bits() as u16,
+            end_bit: cell.data_len_bits(),
             start_ref: 0,
             end_ref: cell.refs().len() as u8,
         };

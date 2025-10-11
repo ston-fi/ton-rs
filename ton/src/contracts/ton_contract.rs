@@ -43,7 +43,7 @@ pub trait TonContract: Send + Sync + Sized {
     async fn get_parsed_data<D: TLB>(&self) -> Result<D, TonError> {
         let state = self.get_state().await?;
         match &state.data_boc {
-            Some(data_boc) => Ok(D::from_boc(data_boc)?),
+            Some(data_boc) => Ok(D::from_boc(data_boc.to_owned())?),
             None => Err(TonError::TonContractNoData {
                 address: state.address.clone(),
                 tx_id: Some(state.last_tx_id.clone()),

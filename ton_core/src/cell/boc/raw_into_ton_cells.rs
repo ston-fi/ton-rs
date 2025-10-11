@@ -32,8 +32,8 @@ impl RawBoC {
                     refs,
                 }),
                 borders: CellBorders {
-                    start_bit: cell_raw.start_bit as u16,
-                    end_bit: cell_raw.end_bit as u16,
+                    start_bit: cell_raw.start_bit,
+                    end_bit: cell_raw.end_bit,
                     start_ref: 0,
                     end_ref: refs_count as u8,
                 },

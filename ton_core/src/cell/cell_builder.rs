@@ -31,7 +31,7 @@ impl CellBuilder {
 
         let borders = CellBorders {
             start_bit: 0,
-            end_bit: bits_len as u16,
+            end_bit: bits_len,
             start_ref: 0,
             end_ref: cell_data.refs.len() as u8,
         };

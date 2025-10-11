@@ -16,7 +16,7 @@ impl NFTItemMethods for NFTItemContract {}
 pub trait NFTItemMethods: TonContract {
     async fn get_nft_data(&self) -> Result<GetNFTDataResult, TonError> {
         let stack_boc = self.emulate_get_method("get_nft_data", &TVMStack::EMPTY).await?;
-        Ok(GetNFTDataResult::from_boc(&stack_boc)?)
+        Ok(GetNFTDataResult::from_boc(stack_boc)?)
     }
 
     async fn load_full_nft_data(&self) -> Result<GetNFTDataResult, TonCoreError> {
@@ -24,7 +24,7 @@ pub trait NFTItemMethods: TonContract {
         if let MetadataContent::Unsupported(meta) = data.individual_content {
             let collection_address = data.collection_address.clone();
             let collection = NFTCollectionContract::new(&self.ctx().client, collection_address, None).await?;
-            let full_content = collection.get_nft_content(data.index.clone(), meta.cell.into_ref()).await?;
+            let full_content = collection.get_nft_content(data.index.clone(), meta.cell).await?;
             data.individual_content = full_content.full_content;
             Ok(data)
         } else {

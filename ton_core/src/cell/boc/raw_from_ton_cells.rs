@@ -43,10 +43,7 @@ impl RawBoC {
 }
 
 fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedCell<'_>>, TonCoreError> {
-    let mut cur_cells = vec![];
-    for cell in roots {
-        cur_cells.push(cell);
-    }
+    let mut cur_cells = Vec::from_iter(roots.iter());
     let mut new_hash_index = 0;
     let mut cells_by_hash = HashMap::new();
 

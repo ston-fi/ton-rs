@@ -92,7 +92,7 @@ mod example {
                 created_at: 0,
             }),
             init: None,
-            body: TLBEitherRef::new(TonCell::EMPTY),
+            body: TLBEitherRef::new(TonCell::empty().to_owned()),
         };
 
         let expired_at_time = std::time::SystemTime::now() + Duration::from_secs(600);
@@ -102,7 +102,7 @@ mod example {
         let wallet_ctr = TonWalletContract::new(&ctr_cli, wallet.address.clone(), None).await?;
         let seqno = wallet_ctr.seqno().await?;
 
-        let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell_ref()?], seqno, expire_at, false)?;
+        let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell()?], seqno, expire_at, false)?;
         // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
         let _msg_hash = tl_client.send_msg(ext_in_msg.to_boc()?).await?;
 

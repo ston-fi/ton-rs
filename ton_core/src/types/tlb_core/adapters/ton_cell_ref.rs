@@ -31,7 +31,7 @@ mod traits_impl {
 
     // TonCellRef
     impl Display for TonCellRef {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{self}") }
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.0) }
     }
     // expensive
     impl Debug for TonCellRef {

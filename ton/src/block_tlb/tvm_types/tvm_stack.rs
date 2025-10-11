@@ -161,7 +161,7 @@ mod tests {
         let mut parser = stack_cell.parser();
         let depth: u32 = parser.read_num(24)?;
         assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?.deref(), TonCell::empty());
+        assert_eq!(parser.read_next_ref()?, TonCell::empty());
 
         match TVMStackValue::read(&mut parser)? {
             TVMStackValue::TinyInt(val) => assert_eq!(val.value, 1),
@@ -183,7 +183,7 @@ mod tests {
         let mut parser = stack_cell.parser();
         let depth: u32 = parser.read_num(24)?;
         assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?.deref(), TonCell::empty());
+        assert_eq!(parser.read_next_ref()?, TonCell::empty());
 
         match TVMStackValue::read(&mut parser)? {
             TVMStackValue::CellSlice(val) => assert_eq!(val.value, TonAddress::ZERO.to_cell()?),

@@ -48,10 +48,10 @@ async fn assert_tl_client_get_block_header(client: &TLClient, block_id: &BlockId
 
 async fn assert_tl_client_get_config(client: &TLClient) -> anyhow::Result<()> {
     let config = client.get_config_boc_all(0).await?;
-    assert_ok!(TonCell::from_boc(&config));
+    assert_ok!(TonCell::from_boc(config));
 
     let config = client.get_config_boc_param(0, 34).await?;
-    let cell = assert_ok!(TonCell::from_boc(&config));
+    let cell = assert_ok!(TonCell::from_boc(config));
     let mut parser = cell.parser();
     let value: u8 = TLB::read(&mut parser)?;
     assert_eq!(value, 0x12);
@@ -75,10 +75,10 @@ async fn assert_tl_client_get_account_state(client: &TLClient) -> anyhow::Result
     let TLAccountState::Raw { code, .. } = usdt_state.account_state else {
         panic!("Expected Raw account state");
     };
-    assert_eq!(TonCell::from_boc(&code)?, expected_code);
+    assert_eq!(TonCell::from_boc(code)?, expected_code);
 
     let usdt_state_raw = client.get_account_state_raw(usdt_master.clone()).await?;
-    assert_eq!(TonCell::from_boc(&usdt_state_raw.code)?, expected_code);
+    assert_eq!(TonCell::from_boc(usdt_state_raw.code.clone())?, expected_code);
 
     let mut usdt_by_tx =
         client.get_account_state_raw_by_tx(usdt_master.clone(), usdt_state_raw.last_tx_id.clone()).await?;

@@ -45,8 +45,8 @@ impl TonProvider for TLProvider {
             None => self.client.get_account_state_raw(address.clone()).await,
         }?;
 
-        let code_boc = Some(raw_state.code).filter(|x| !x.is_empty());
-        let data_boc = Some(raw_state.data).filter(|x| !x.is_empty());
+        let code_boc = Some(raw_state.code).filter(|x| !x.is_empty()).map(Arc::new);
+        let data_boc = Some(raw_state.data).filter(|x| !x.is_empty()).map(Arc::new);
         let frozen_hash = match raw_state.frozen_hash.is_empty() {
             true => None,
             false => Some(TonHash::from_vec(raw_state.frozen_hash)?),

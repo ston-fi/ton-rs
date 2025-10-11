@@ -38,7 +38,7 @@ impl<'a> CellMetaBuilder<'a> {
             start_bit,
             is_byte_aligned: start_bit % 8 == 0,
             data_len_bits: data_bits_len,
-            refs: &cell.refs(),
+            refs: cell.refs(),
         }
     }
 

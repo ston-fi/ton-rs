@@ -1,5 +1,6 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::cell::{TonCell, TonCellRef};
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef};
 use ton_lib_core::TLB;
 
@@ -31,7 +32,7 @@ impl JettonTransferMsg {
             response_dst: MsgAddress::NONE,
             custom_payload: None,
             forward_ton_amount: Coins::ZERO,
-            forward_payload: TLBEitherRef::new(TonCell::EMPTY),
+            forward_payload: TLBEitherRef::new(TonCell::empty().to_owned()),
         }
     }
 }

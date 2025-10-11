@@ -17,12 +17,12 @@ mod example {
     impl StonfiPool {
         async fn get_jetton_data(&self) -> Result<TVMStack, TonError> {
             let boc = self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY).await?;
-            Ok(TVMStack::from_boc(&boc)?)
+            Ok(TVMStack::from_boc(boc)?)
         }
 
         async fn get_pool_data(&self) -> Result<TVMStack, TonError> {
             let boc = self.emulate_get_method("get_pool_data", &TVMStack::EMPTY).await?;
-            Ok(TVMStack::from_boc(&boc)?)
+            Ok(TVMStack::from_boc(boc)?)
         }
     }
 

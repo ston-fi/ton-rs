@@ -104,8 +104,8 @@ pub(super) struct CellData {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CellBorders {
-    pub start_bit: u16,
-    pub end_bit: u16, // exclusive
+    pub start_bit: usize,
+    pub end_bit: usize, // exclusive
     pub start_ref: u8,
     pub end_ref: u8, // exclusive
 }
