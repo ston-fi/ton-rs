@@ -50,7 +50,7 @@ mod tests {
         assert_eq!(expected, msg);
 
         let serialized = expected.to_boc()?;
-        let parsed_back = JettonInternalTransferMsg::from_boc(&serialized)?;
+        let parsed_back = JettonInternalTransferMsg::from_boc(serialized)?;
         assert_eq!(expected, parsed_back);
         Ok(())
     }

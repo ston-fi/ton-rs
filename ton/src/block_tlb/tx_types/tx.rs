@@ -1,11 +1,12 @@
 use crate::block_tlb::*;
-use crate::tlb_adapters::ConstLen;
-use crate::tlb_adapters::TLBRef;
-use crate::tlb_adapters::{DictKeyAdapterInto, DictValAdapterTLBRef, TLBHashMapE, TLBRefOpt};
+use crate::tlb_adapters::*;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRef;
 use std::collections::HashMap;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonHash};
+use ton_lib_core::cell::*;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
+use ton_lib_core::types::tlb_core::adapters::TLBRefOpt;
 use ton_lib_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L291

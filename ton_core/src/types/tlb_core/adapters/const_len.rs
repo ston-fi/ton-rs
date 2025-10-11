@@ -1,11 +1,11 @@
+use crate::cell::CellBuilder;
+use crate::cell::CellParser;
+use crate::errors::TonCoreError;
 use num_bigint::{BigInt, BigUint};
 use std::marker::PhantomData;
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::errors::TonCoreError;
 
 /// Adapter to write data with fixed length into a cell.
-/// use `#[tlb_derive(bits_len={BITS_LEN})]` to apply it using TLBDerive macro
+/// use `#[tlb(bits_len={BITS_LEN})]` to apply it using TLB macro
 pub struct ConstLen<T> {
     bits_len: usize,
     _phantom: PhantomData<T>,
@@ -88,16 +88,16 @@ impl ConstLen<Option<Vec<u8>>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::TLB;
+    use crate::cell::TonCell;
+    use crate::traits::tlb::TLB;
+    use ton_lib_macros::TLB;
 
     #[test]
     fn test_const_len() -> anyhow::Result<()> {
         let mut builder = TonCell::builder();
         ConstLen::<u32>::new(24).write(&mut builder, &1u32)?;
         let cell = builder.build()?;
-        assert_eq!(&cell.data, &[0, 0, 1]);
+        assert_eq!(cell.underlying_storage(), &[0, 0, 1]);
         let parsed = ConstLen::<u32>::new(24).read(&mut cell.parser())?;
         assert_eq!(parsed, 1u32);
         Ok(())
@@ -114,7 +114,7 @@ mod tests {
         let mut builder = TonCell::builder();
         TestType { a: 1 }.write(&mut builder)?;
         let cell = builder.build()?;
-        assert_eq!(&cell.data, &[0b00010000]);
+        assert_eq!(cell.underlying_storage(), &[0b00010000]);
         let parsed = TestType::read(&mut cell.parser())?;
         assert_eq!(parsed.a, 1u32);
         Ok(())

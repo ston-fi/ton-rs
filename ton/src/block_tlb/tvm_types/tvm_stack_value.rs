@@ -1,15 +1,15 @@
 use crate::block_tlb::{TVMCellSlice, TVMStack, TVMTuple};
-use crate::tlb_adapters::ConstLen;
 use crate::tlb_adapters::DictKeyAdapterInto;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
-use crate::tlb_adapters::TLBRef;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::TLBRef;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
-use ton_lib_core::cell::TonCellRef;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::TLB;
 
 #[derive(Clone, TLB)]
@@ -182,7 +182,7 @@ impl Display for TVMStackValue {
             TVMStackValue::Int(v) => write!(f, "Int({})", v.value),
             TVMStackValue::Nan(_) => write!(f, "Nan"),
             TVMStackValue::Cell(v) => write!(f, "Cell({})", v.value.deref()),
-            TVMStackValue::CellSlice(v) => write!(f, "CellSlice({})", v.value.deref()),
+            TVMStackValue::CellSlice(v) => write!(f, "CellSlice({})", v.value),
             TVMStackValue::Builder(_) => write!(f, "Builder"),
             TVMStackValue::Cont(_) => write!(f, "Cont"),
             TVMStackValue::Tuple(v) => write!(f, "Tuple[{v:?}"),

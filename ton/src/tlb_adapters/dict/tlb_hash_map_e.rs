@@ -34,7 +34,7 @@ where
         builder.write_bit(true)?;
         let mut dict_data_builder = TonCell::builder();
         self.0.write(&mut dict_data_builder, data)?;
-        builder.write_ref(dict_data_builder.build()?.into_ref())
+        builder.write_ref(dict_data_builder.build()?)
     }
 }
 

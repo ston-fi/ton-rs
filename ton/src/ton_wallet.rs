@@ -14,7 +14,7 @@ use super::*;
 use crate::block_tlb::*;
 use crate::errors::TonError;
 use nacl::sign::signature;
-use ton_lib_core::cell::{TonCell, TonCellRef};
+use ton_lib_core::cell::TonCell;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::tlb_core::{MsgAddressExt, TLBEitherRef};
 use ton_lib_core::types::TonAddress;
@@ -60,7 +60,7 @@ impl TonWallet {
 
     pub fn create_ext_in_msg(
         &self,
-        int_msgs: Vec<TonCellRef>,
+        int_msgs: Vec<TonCell>,
         seqno: u32,
         expire_at: u32,
         add_state_init: bool,
@@ -71,12 +71,7 @@ impl TonWallet {
         Ok(external)
     }
 
-    pub fn create_ext_in_body(
-        &self,
-        expire_at: u32,
-        seqno: u32,
-        int_msgs: Vec<TonCellRef>,
-    ) -> Result<TonCell, TonError> {
+    pub fn create_ext_in_body(&self, expire_at: u32, seqno: u32, int_msgs: Vec<TonCell>) -> Result<TonCell, TonError> {
         WalletVersion::build_ext_in_body(self.version, expire_at, seqno, self.wallet_id, int_msgs)
     }
 
@@ -167,7 +162,7 @@ mod tests {
         let key_pair = make_keypair(MNEMONIC_STR);
         let wallet = TonWallet::new(WalletVersion::V3R1, key_pair)?;
 
-        let int_msg = TonCell::builder().build()?.into_ref();
+        let int_msg = TonCell::builder().build()?;
 
         let ext_body_cell = wallet.create_ext_in_body(13, 7, vec![int_msg.clone()])?;
         let body = WalletV3ExtMsgBody::from_cell(&ext_body_cell)?;
@@ -187,7 +182,7 @@ mod tests {
         let key_pair = make_keypair(MNEMONIC_STR);
         let wallet = TonWallet::new(WalletVersion::V4R1, key_pair)?;
 
-        let int_msg = TonCell::builder().build()?.into_ref();
+        let int_msg = TonCell::builder().build()?;
 
         let ext_body_cell = wallet.create_ext_in_body(13, 7, vec![int_msg.clone()])?;
         let body = WalletV4ExtMsgBody::from_cell(&ext_body_cell)?;
@@ -213,9 +208,9 @@ mod tests {
         for i in 0..msgs_cnt as u32 {
             let mut builder = TonCell::builder();
             i.write(&mut builder)?;
-            int_msgs.push(builder.build()?.into_ref());
+            int_msgs.push(builder.build()?);
         }
-        TonCell::builder().build()?.into_ref();
+        TonCell::builder().build()?;
 
         let ext_body_cell = wallet.create_ext_in_body(13, 7, int_msgs.clone())?;
         let body = WalletV5ExtMsgBody::from_cell(&ext_body_cell)?;
@@ -241,7 +236,7 @@ mod tests {
 
         let mut builder = TonCell::builder();
         100u32.write(&mut builder)?;
-        let msg = builder.build()?.into_ref();
+        let msg = builder.build()?;
 
         for wallet in [wallet_v3, wallet_v5] {
             let body = wallet.create_ext_in_body(1, 3, vec![msg.clone()])?;
@@ -251,7 +246,7 @@ mod tests {
             match wallet.version {
                 WalletVersion::V5R1 => {
                     // sign in last 512 bits
-                    let data_size_bits = signed_msg.data_bits_len - 512;
+                    let data_size_bits = signed_msg.data_len_bits() - 512;
                     let mut builder = TonCell::builder();
                     builder.write_bits(parser.read_bits(data_size_bits)?.as_slice(), data_size_bits)?;
                     while let Ok(cell_ref) = parser.read_next_ref() {

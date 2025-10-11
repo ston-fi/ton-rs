@@ -123,7 +123,7 @@ impl TLB for ShardDescr {
                 let mut ref_builder = TonCell::builder();
                 self.fees_collected.write(&mut ref_builder)?;
                 self.funds_created.write(&mut ref_builder)?;
-                builder.write_ref(ref_builder.build()?.into_ref())?;
+                builder.write_ref(ref_builder.build()?)?;
             }
         }
 

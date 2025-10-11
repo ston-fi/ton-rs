@@ -1,9 +1,8 @@
-use crate::cell::meta::CellType;
+use crate::cell::cell_meta::CellType;
 use crate::cell::TonCell;
 use crate::cell::TonHash;
 use crate::errors::TonCoreError;
 use std::collections::{HashSet, VecDeque};
-use std::ops::Deref;
 
 pub struct TonCellUtils;
 
@@ -25,17 +24,20 @@ impl TonCellUtils {
             if let Some(lib_id) = Self::read_lib_id(cell)? {
                 result.insert(lib_id);
             }
-            queue.extend(cell.refs.iter().map(Deref::deref));
+            queue.extend(cell.refs());
         }
         Ok(result)
     }
 
     // Read lib_ids from library_cell
     pub fn read_lib_id(cell: &TonCell) -> Result<Option<TonHash>, TonCoreError> {
-        if cell.cell_type != CellType::LibraryRef {
+        if cell.cell_type() != CellType::LibraryRef {
             return Ok(None);
         }
-        Ok(Some(TonHash::from_slice(&cell.data[1..=32])?))
+        let mut parser = cell.parser();
+        parser.read_bits(8)?; // skip exotic tag
+
+        Ok(Some(TonHash::from_vec(parser.read_bits(TonHash::BITS_LEN)?)?))
     }
 }
 
@@ -56,9 +58,7 @@ mod tests {
         let lib_ids = TonCellUtils::extract_lib_ids(cells)?;
         assert_eq!(lib_ids, HashSet::from([expected_lib_id.clone()]));
 
-        // check accepted formats
-        let code_ref = code.clone().into_ref();
-        let cells = vec![code_ref.deref(), &code];
+        let cells = vec![&code];
         let lib_ids = TonCellUtils::extract_lib_ids(cells)?;
         assert_eq!(lib_ids, HashSet::from([expected_lib_id.clone()]));
         Ok(())

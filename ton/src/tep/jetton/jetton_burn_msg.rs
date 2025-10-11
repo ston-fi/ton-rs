@@ -1,5 +1,5 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::cell::TonCellRef;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::types::tlb_core::MsgAddress;
 use ton_lib_core::TLB;
 
@@ -53,7 +53,7 @@ mod tests {
 
         assert_eq!(burn_msg, expected_msg);
         let serialized = burn_msg.to_boc()?;
-        let parsed_back = JettonBurnMsg::from_boc(serialized.as_slice())?;
+        let parsed_back = JettonBurnMsg::from_boc(serialized)?;
         assert_eq!(expected_msg, parsed_back);
 
         let burn_notcoin_msg = JettonBurnMsg::from_boc_hex("b5ee9c72010101010035000066595f07bc0000000000000001545d964b800800cd324c114b03f846373734c74b3c3287e1a8c2c732b5ea563a17c6276ef4af30")?;

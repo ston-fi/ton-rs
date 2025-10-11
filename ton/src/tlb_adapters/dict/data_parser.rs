@@ -7,7 +7,7 @@ use num_traits::One;
 use ton_lib_core::cell::CellParser;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::UnaryLen;
+use ton_lib_core::types::tlb_core::adapters::UnaryLen;
 
 pub struct DictDataParser {
     key_bits_len: usize,

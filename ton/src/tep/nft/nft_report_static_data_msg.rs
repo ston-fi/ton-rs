@@ -1,4 +1,4 @@
-use crate::tlb_adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use num_bigint::BigUint;
 use ton_lib_core::types::TonAddress;
 use ton_lib_core::TLB;

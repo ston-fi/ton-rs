@@ -1,5 +1,6 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::cell::{TonCell, TonCellRef};
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::adapters::TonCellRef;
 use ton_lib_core::types::tlb_core::TLBEitherRef;
 use ton_lib_core::types::TonAddress;
 use ton_lib_core::TLB;
@@ -35,7 +36,7 @@ impl NFTTransferMsg {
             response_dst: TonAddress::ZERO,
             custom_payload: None,
             forward_ton_amount: Coins::ZERO,
-            forward_payload: TLBEitherRef::new(TonCell::EMPTY),
+            forward_payload: TLBEitherRef::new(TonCell::empty().to_owned()),
         }
     }
 }
@@ -68,7 +69,7 @@ mod tests {
         assert_eq!(nft_transfer_msg, expected);
 
         let serialized = nft_transfer_msg.to_boc()?;
-        let parsed_back = NFTTransferMsg::from_boc(&serialized)?;
+        let parsed_back = NFTTransferMsg::from_boc(serialized)?;
         assert_eq!(parsed_back, expected);
         Ok(())
     }

@@ -1,9 +1,10 @@
-use crate::cell::build_parse::parser::CellParser;
+use crate::cell::cell_parser::CellParser;
 use crate::cell::ton_cell::TonCell;
 use crate::cell::BoC;
 use crate::cell::TonHash;
 use num_bigint::{BigInt, BigUint};
 use std::str::FromStr;
+use tokio_test::assert_ok;
 
 #[test]
 fn test_build_parse_bit() -> anyhow::Result<()> {
@@ -13,7 +14,6 @@ fn test_build_parse_bit() -> anyhow::Result<()> {
     writer.write_bit(true)?;
     writer.write_bit(false)?;
     let cell = writer.build()?;
-    // let cell_slice = CellSlice::from_cell(&cell);
     let mut reader = CellParser::new(&cell);
     assert!(reader.read_bit()?);
     assert!(!reader.read_bit()?);
@@ -29,7 +29,6 @@ fn test_build_parse_bits() -> anyhow::Result<()> {
     writer.write_bits([0b1010_1010], 8)?;
     writer.write_bits([0b0101_0101], 4)?;
     let cell = writer.build()?;
-    // let cell_slice = CellSlice::from_cell(&cell);
     let mut reader = CellParser::new(&cell);
     assert!(reader.read_bit()?);
     let dst = reader.read_bits(8)?;
@@ -113,5 +112,16 @@ fn test_merkle_proof() -> anyhow::Result<()> {
     let expected_hash = TonHash::from_str("60081a3bc1e907876b3f20889100d25d86cf07b2c23f10adfcb51eae7de53ac0")?;
     let cell = BoC::from_hex(boc_hex)?.single_root()?;
     assert_eq!(cell.hash()?, &expected_hash);
+    Ok(())
+}
+
+#[test]
+fn test_build_parse_shard_block() -> anyhow::Result<()> {
+    let boc_hex = include_str!("../../resources/tests/shard_block_6000000000000000_52111590.hex");
+    let cell = BoC::from_hex(&boc_hex)?.single_root()?;
+    assert_ok!(cell.hash());
+    let serialized = BoC::new(cell.clone()).to_hex(false)?;
+    let parsed_back = BoC::from_hex(&serialized)?.single_root()?;
+    assert_eq!(cell, parsed_back);
     Ok(())
 }

@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::OnceCell;
-use ton_lib_core::cell::{TonCell, TonCellRef, TonCellUtils, TonHash};
+use ton_lib_core::cell::{TonCell, TonCellUtils, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::contract_provider::{TonContractState, TonProvider};
 use ton_lib_core::traits::tlb::TLB;
@@ -71,8 +71,6 @@ impl ContractClient {
             }
         };
 
-        let data_boc = state.data_boc.as_deref().unwrap_or(&[]);
-
         let c7 = TVMEmulatorC7 {
             address: state.address.clone(),
             unix_time: SystemTime::now().duration_since(UNIX_EPOCH).map_err(TonCoreError::from)?.as_secs() as u32,
@@ -81,10 +79,15 @@ impl ContractClient {
             config: self.get_bc_config().await?.clone(),
         };
 
-        let mut emulator = TVMEmulator::new(code_boc, data_boc, &c7)?;
+        let emul_data_boc = state.data_boc.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
+        let mut emulator = TVMEmulator::new(code_boc, emul_data_boc, &c7)?;
 
-        let code_cell = TonCell::from_boc(code_boc)?;
-        let data_cell = TonCell::from_boc(data_boc)?;
+        let code_cell = TonCell::from_boc(code_boc.to_owned())?;
+        let data_cell = match &state.data_boc {
+            Some(boc) => TonCell::from_boc(boc.to_owned())?,
+            None => TonCell::empty().to_owned(),
+        };
+
         let lib_ids = TonCellUtils::extract_lib_ids([&code_cell, &data_cell])?;
         let libs_rsp = self
             .0
@@ -92,7 +95,7 @@ impl ContractClient {
             .load_libs(lib_ids.into_iter().collect(), state.mc_seqno)
             .await?
             .into_iter()
-            .map(|(_, lib)| TonCellRef::from_boc(&lib))
+            .map(|(_, lib)| TonCell::from_boc(lib))
             .collect::<Result<Vec<_>, _>>()?;
 
         if !libs_rsp.is_empty() {

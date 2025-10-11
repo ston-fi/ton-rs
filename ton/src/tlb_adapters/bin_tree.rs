@@ -85,11 +85,11 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
 
         let mut left_builder = TonCell::builder();
         Self::write_impl(&mut left_builder, left_key, data)?;
-        builder.write_ref(left_builder.build_ref()?)?;
+        builder.write_ref(left_builder.build()?)?;
 
         let mut right_builder = TonCell::builder();
         Self::write_impl(&mut right_builder, right_key, data)?;
-        builder.write_ref(right_builder.build_ref()?)?;
+        builder.write_ref(right_builder.build()?)?;
         Ok(())
     }
 }

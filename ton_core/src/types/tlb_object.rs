@@ -1,4 +1,4 @@
-use crate::cell::TonCellRef;
+use crate::cell::TonCell;
 use crate::traits::tlb::TLB;
 
 // use crate::cell::build_parse::builder::CellBuilder;
@@ -11,7 +11,7 @@ use crate::traits::tlb::TLB;
 #[derive(Debug, Clone)]
 pub struct TLBObject<T: TLB> {
     plain: Option<T>,
-    cell_ref: Option<TonCellRef>,
+    cell_ref: Option<TonCell>,
 }
 //
 // impl<T: TLBType> TLBObject<T> {

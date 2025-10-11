@@ -10,7 +10,7 @@ use ton_lib_core::cell::CellBuilder;
 use ton_lib_core::cell::TonCell;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::UnaryLen;
+use ton_lib_core::types::tlb_core::adapters::UnaryLen;
 
 pub struct DictDataBuilder<'a, T, VA: DictValAdapter<T>> {
     keys_sorted: Vec<BigUint>, // contains 1 extra leading bit set to 1
@@ -88,11 +88,11 @@ impl<'a, T, VA: DictValAdapter<T>> DictDataBuilder<'a, T, VA> {
         self.key_bits_len_left -= common_prefix_len + 1; // branch consumes 1 more bit
         let mut left_builder = TonCell::builder();
         self.fill_cell(&mut left_builder, left_keys)?;
-        builder.write_ref(left_builder.build()?.into_ref())?;
+        builder.write_ref(left_builder.build()?)?;
 
         let mut right_builder = TonCell::builder();
         self.fill_cell(&mut right_builder, right_keys)?;
-        builder.write_ref(right_builder.build()?.into_ref())?;
+        builder.write_ref(right_builder.build()?)?;
 
         self.key_bits_len_left = key_len_bits_left_original;
         Ok(())

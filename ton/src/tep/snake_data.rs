@@ -59,7 +59,7 @@ impl TLB for SnakeData {
 
 impl SnakeData {
     fn read_chunk(parser: &mut CellParser, result: &mut Self) -> Result<(), TonCoreError> {
-        let chunk_bits_len = parser.data_bits_remaining()?;
+        let chunk_bits_len = parser.data_bits_left()?;
         if chunk_bits_len % 8 != 0 {
             bail_ton_core_data!("Expecting data_chunk_len % 8 == 0, got {chunk_bits_len}");
         }
@@ -84,7 +84,7 @@ impl SnakeData {
         let chunks_len_rest = if chunks_len.len() > 1 { &chunks_len[1..] } else { &[] };
         let mut child_builder = TonCell::builder();
         Self::write_chunk(&mut child_builder, &data[bytes_to_write..], chunks_len_rest)?;
-        builder.write_ref(child_builder.build_ref()?)
+        builder.write_ref(child_builder.build()?)
     }
 }
 
@@ -101,12 +101,12 @@ mod tests {
     fn test_snake_data() -> anyhow::Result<()> {
         let mut builder2 = TonCell::builder();
         builder2.write_bits([0b10101010; 64], 512)?;
-        let child2 = builder2.build_ref()?;
+        let child2 = builder2.build()?;
 
         let mut builder1 = TonCell::builder();
         builder1.write_bits([0b01010101; 64], 512)?;
         builder1.write_ref(child2)?;
-        let child1 = builder1.build_ref()?;
+        let child1 = builder1.build()?;
 
         let mut builder = TonCell::builder();
         builder.write_bits([0b00000000; 64], 512)?;
@@ -131,15 +131,13 @@ mod tests {
         let cell = builder.build()?;
         let mut parser = cell.parser();
         let _ = parser.read_bits(512); // skip
-        assert_eq!(parser.data_bits_remaining()?, 63 * 8);
+        assert_eq!(parser.data_bits_left()?, 63 * 8);
         assert_eq!(parser.read_bits(63 * 8)?, vec![0b11111111; 63]);
 
         // just in case - write to empty cell
         let cell = snake_data.to_cell()?;
-        assert_eq!(cell.data.len(), 127);
-        assert_eq!(cell.data_bits_len, 1016);
-        assert_eq!(cell.refs[0].data.len(), 1);
-        assert_eq!(cell.refs[0].data_bits_len, 8);
+        assert_eq!(cell.data_len_bits(), 1016);
+        assert_eq!(cell.refs()[0].data_len_bits(), 8);
 
         // from_str
 

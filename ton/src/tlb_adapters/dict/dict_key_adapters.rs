@@ -41,7 +41,7 @@ impl DictKeyAdapter<TonHash> for DictKeyAdapterTonHash {
 impl DictKeyAdapter<MsgAddressInt> for DictKeyAdapterAddress {
     fn make_key(src_key: &MsgAddressInt) -> Result<BigUint, TonError> {
         let cell = src_key.to_cell()?;
-        Ok(BigUint::from_bytes_le(&cell.data))
+        Ok(cell.parser().read_num(cell.data_len_bits())?)
     }
 
     fn extract_key(dict_key: &BigUint) -> Result<MsgAddressInt, TonError> {
@@ -54,7 +54,7 @@ impl DictKeyAdapter<MsgAddressInt> for DictKeyAdapterAddress {
 impl DictKeyAdapter<TonAddress> for DictKeyAdapterAddress {
     fn make_key(src_key: &TonAddress) -> Result<BigUint, TonError> {
         let cell = src_key.to_cell()?;
-        Ok(BigUint::from_bytes_le(&cell.data))
+        Ok(cell.parser().read_num(cell.data_len_bits())?)
     }
 
     fn extract_key(dict_key: &BigUint) -> Result<TonAddress, TonError> {

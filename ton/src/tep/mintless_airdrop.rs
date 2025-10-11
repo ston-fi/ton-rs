@@ -1,8 +1,8 @@
 use crate::block_tlb::Coins;
-use crate::tlb_adapters::ConstLen;
 use crate::tlb_adapters::DictKeyAdapterAddress;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
 use ton_lib_core::types::TonAddress;
 use ton_lib_core::TLB;

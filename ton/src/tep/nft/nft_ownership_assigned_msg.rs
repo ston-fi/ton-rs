@@ -23,7 +23,7 @@ impl NFTOwnershipAssignedMsg {
         Self {
             query_id: 0,
             prev_owner: prev_owner.clone(),
-            forward_payload: TLBEitherRef::new(TonCell::EMPTY),
+            forward_payload: TLBEitherRef::new(TonCell::empty().to_owned()),
         }
     }
 }

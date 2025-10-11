@@ -179,12 +179,12 @@ impl TLB for BlockInfo {
             gen_software.write(builder)?;
         }
         if let Some(master_ref) = &self.master_ref {
-            builder.write_ref(master_ref.to_cell_ref()?)?;
+            builder.write_ref(master_ref.to_cell()?)?;
         }
 
-        builder.write_ref(self.prev_ref.to_cell_ref()?)?;
+        builder.write_ref(self.prev_ref.to_cell()?)?;
         if let Some(prev_vert_ref) = &self.prev_vert_ref {
-            builder.write_ref(prev_vert_ref.to_cell_ref()?)?;
+            builder.write_ref(prev_vert_ref.to_cell()?)?;
         }
 
         Ok(())
@@ -241,7 +241,7 @@ mod tests {
         };
         assert_eq!(parsed_block_info, expected);
 
-        let parsed_back = BlockInfo::from_boc(&parsed_block_info.to_boc()?)?;
+        let parsed_back = BlockInfo::from_boc(parsed_block_info.to_boc()?)?;
         assert_eq!(parsed_block_info, parsed_back);
         assert_eq!(parsed_block_info.cell_hash()?, parsed_back.cell_hash()?);
         Ok(())
@@ -294,7 +294,7 @@ mod tests {
             prev_vert_ref: None,
         };
         assert_eq!(parsed_block_info, expected);
-        let parsed_back = BlockInfo::from_boc(&parsed_block_info.to_boc()?)?;
+        let parsed_back = BlockInfo::from_boc(parsed_block_info.to_boc()?)?;
         assert_eq!(parsed_block_info, parsed_back);
         assert_eq!(parsed_block_info.cell_hash()?, parsed_back.cell_hash()?);
         Ok(())
