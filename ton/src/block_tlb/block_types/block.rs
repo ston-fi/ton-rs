@@ -85,7 +85,6 @@ mod tests {
         assert_eq!(expected_block_info, parsed.info);
 
         assert!(parsed.extra.mc_block_extra.is_some());
-
         // test block.extra.mc_block_extra.shard_hashes
         let expected_shards = HashMap::from([
             (0x2000000000000000u64, 52077744),
@@ -104,10 +103,16 @@ mod tests {
             let expected_seqno = expected_shards.get(&shard).unwrap();
             assert_eq!(*expected_seqno, descr.seqno);
         }
-
         // full serialization test
         let serialized = parsed.to_boc()?;
         let parsed_back = Block::from_boc(serialized)?;
+        // if check fail, it's impossible to read it based on blocks comparing assert
+        assert_eq!(parsed_back.global_id, parsed.global_id);
+        assert_eq!(parsed_back.info, parsed.info);
+        assert_eq!(parsed_back.value_flow, parsed.value_flow);
+        assert_eq!(parsed_back.state_update, parsed.state_update);
+        assert_eq!(parsed_back.extra.mc_block_extra, parsed.extra.mc_block_extra);
+        assert_eq!(parsed_back.extra, parsed.extra);
         assert_eq!(parsed_back, parsed);
         assert_eq!(
             parsed_back.cell_hash()?,

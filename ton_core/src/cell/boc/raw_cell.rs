@@ -1,12 +1,11 @@
 use crate::bail_ton_core_data;
 use crate::bits_utils::BitsUtils;
-use crate::cell::boc::raw_boc::BocBytesReader;
 use crate::cell::boc::read_var_size::read_var_size;
+use crate::cell::ton_cell::{CellBitWriter, CellBytesReader};
 use crate::cell::{CellType, LevelMask, TonCell};
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter, ByteRead, ByteReader};
+use bitstream_io::{BitWrite, ByteRead};
 use smallvec::SmallVec;
-use std::io::Cursor;
 use std::sync::Arc;
 
 /// References are stored as indices in BagOfCells.
@@ -30,7 +29,7 @@ impl RawCell {
         2 + self.data_len_bytes() as u32 + self.refs_positions.len() as u32 * ref_size_bytes
     }
 
-    pub fn write_to(&self, writer: &mut BitWriter<Vec<u8>, BigEndian>, ref_size_bytes: u32) -> std::io::Result<()> {
+    pub fn write_to(&self, writer: &mut CellBitWriter, ref_size_bytes: u32) -> std::io::Result<()> {
         let level = self.level_mask;
         let is_exotic = self.cell_type.is_exotic() as u32;
         let num_refs = self.refs_positions.len() as u32;
@@ -68,7 +67,7 @@ impl RawCell {
     }
 
     pub fn new(
-        reader: &mut BocBytesReader,
+        reader: &mut CellBytesReader,
         ref_pos_size_bytes: u8,
         data_storage: Arc<Vec<u8>>,
     ) -> Result<Self, TonCoreError> {
@@ -121,7 +120,10 @@ impl RawCell {
         let data_len_bits = data_len_bytes * 8 - padding_len_bits as usize;
         let end_bit = start_bit + data_len_bits;
 
-        let refs_positions = read_refs_pos(reader, ref_pos_size_bytes, refs_count)?;
+        let mut refs_positions = RefPosStorage::with_capacity(refs_count as usize);
+        for _ in 0..refs_count {
+            refs_positions.push(read_var_size(reader, ref_pos_size_bytes)?);
+        }
 
         let cell = RawCell {
             cell_type,
@@ -133,16 +135,4 @@ impl RawCell {
         };
         Ok(cell)
     }
-}
-
-fn read_refs_pos(
-    reader: &mut ByteReader<Cursor<&[u8]>, BigEndian>,
-    ref_pos_size_bytes: u8,
-    refs_count: u8,
-) -> Result<RefPosStorage, TonCoreError> {
-    let mut refs_pos = RefPosStorage::with_capacity(refs_count as usize);
-    for _ in 0..refs_count {
-        refs_pos.push(read_var_size(reader, ref_pos_size_bytes)?);
-    }
-    Ok(refs_pos)
 }

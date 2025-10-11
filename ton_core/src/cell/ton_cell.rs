@@ -5,8 +5,10 @@ use crate::cell::cell_meta::CellType;
 use crate::cell::ton_hash::TonHash;
 use crate::cell::{CellBuilder, CellParser, LevelMask};
 use crate::errors::TonCoreError;
+use bitstream_io::{BigEndian, BitReader, BitWriter, ByteReader};
 use smallvec::SmallVec;
 use std::fmt::Formatter;
+use std::io::Cursor;
 use std::ops::Deref;
 use std::sync::{Arc, LazyLock};
 
@@ -41,22 +43,25 @@ impl TonCell {
 
     pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary) }
 
-    // Borders are relative to origin cell here
+    // Borders are relative to origin cell
     pub fn slice(cell: &TonCell, borders: CellBorders) -> Result<Self, TonCoreError> {
-        if borders.start_bit > borders.end_bit
-            || borders.end_bit as usize > cell.data_len_bits()
-            || borders.start_ref > borders.end_ref
-            || borders.end_ref as usize > cell.refs().len()
-        {
-            bail_ton_core_data!("Invalid slice borders={borders:?} for cell with borders={:?}", cell.borders);
+        let new_cell_borders = CellBorders {
+            start_bit: borders.start_bit + cell.borders.start_bit,
+            end_bit: borders.end_bit + cell.borders.start_bit,
+            start_ref: borders.start_ref + cell.borders.start_ref,
+            end_ref: borders.start_ref + cell.borders.end_ref,
+        };
+
+        if new_cell_borders.end_bit > cell.borders.end_bit || new_cell_borders.end_ref > cell.borders.end_ref {
+            bail_ton_core_data!(
+                "Can't build slice:\nslice_borders={:?}\ncell_borders={:?}\nnew_cell_borders={:?}",
+                borders,
+                cell.borders,
+                new_cell_borders
+            );
         }
 
-        let is_full = borders.start_bit == 0
-            && borders.end_bit as usize == cell.data_len_bits()
-            && borders.start_ref == 0
-            && borders.end_ref as usize == cell.refs().len();
-
-        let (cell_type, meta) = if is_full {
+        let (cell_type, meta) = if new_cell_borders == cell.borders {
             (cell.cell_type, cell.meta.clone())
         } else {
             (CellType::Ordinary, Arc::new(CellMeta::default()))
@@ -64,12 +69,7 @@ impl TonCell {
         Ok(TonCell {
             cell_type,
             cell_data: cell.cell_data.clone(),
-            borders: CellBorders {
-                start_bit: cell.borders.start_bit + borders.start_bit,
-                end_bit: cell.borders.start_bit + borders.end_bit,
-                start_ref: cell.borders.start_ref + borders.start_ref,
-                end_ref: cell.borders.start_ref + borders.end_ref,
-            },
+            borders: new_cell_borders,
             meta,
         })
     }
@@ -83,7 +83,7 @@ impl TonCell {
     pub fn refs(&self) -> &[TonCell] {
         &self.cell_data.refs[self.borders.start_ref as usize..self.borders.end_ref as usize]
     }
-    pub fn data_len_bits(&self) -> usize { (self.borders.end_bit - self.borders.start_bit) as usize }
+    pub fn data_len_bits(&self) -> usize { self.borders.end_bit - self.borders.start_bit }
 
     pub fn hash_for_level(&self, level: LevelMask) -> Result<&TonHash, TonCoreError> {
         self.meta.hash_for_level(self, level)
@@ -125,6 +125,10 @@ static EMPTY_CELL: LazyLock<TonCell> = LazyLock::new(|| TonCell {
     meta: Arc::new(CellMeta::default()),
 });
 
+pub(super) type CellBytesReader<'a> = ByteReader<Cursor<&'a [u8]>, BigEndian>;
+pub(super) type CellBitsReader<'a> = BitReader<Cursor<&'a [u8]>, BigEndian>;
+pub(super) type CellBitWriter = BitWriter<Vec<u8>, BigEndian>;
+
 #[rustfmt::skip]
 mod traits_impl {
     use std::fmt::{Debug, Display, Formatter};
@@ -146,7 +150,7 @@ fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize
     BitsUtils::read_with_offset(
         &cell.cell_data.data_storage,
         &mut cell_data,
-        cell.borders.start_bit as usize,
+        cell.borders.start_bit,
         cell.data_len_bits(),
     );
     // Generate the data display string

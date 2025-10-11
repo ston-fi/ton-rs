@@ -13,13 +13,14 @@ pub(super) fn write_up_to_4_msgs(
     validate_msgs_count(msgs, msgs_modes, 4)?;
     for (msg, mode) in msgs.iter().zip(msgs_modes.iter()) {
         mode.write(dst)?;
-        msg.write(dst)?;
+        dst.write_ref(msg.to_owned())?;
     }
     Ok(())
 }
 
 pub(super) fn read_up_to_4_msgs(parser: &mut CellParser) -> Result<(Vec<u8>, Vec<TonCell>), TonCoreError> {
     let msgs_cnt = parser.refs_left();
+    println!("refs left: {}", msgs_cnt);
     let mut msgs_modes = Vec::with_capacity(msgs_cnt);
     let mut msgs = Vec::with_capacity(msgs_cnt);
     for _ in 0..msgs_cnt {

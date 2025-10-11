@@ -1,14 +1,18 @@
-use crate::cell::boc::raw_boc::BocBytesReader;
+use crate::cell::ton_cell::CellBytesReader;
 use crate::errors::TonCoreError;
 use bitstream_io::ByteRead;
 
-pub(super) fn read_var_size(reader: &mut BocBytesReader, bytes_len: u8) -> Result<usize, TonCoreError> {
-    let bytes = reader.read_to_vec(bytes_len.into())?;
+const MAX_LEN_BYTES: usize = (usize::BITS / 8) as usize;
 
-    let mut result = 0;
-    for &byte in &bytes {
-        result <<= 8;
-        result |= usize::from(byte);
+pub(super) fn read_var_size(reader: &mut CellBytesReader, bytes_len: u8) -> Result<usize, TonCoreError> {
+    let mut bytes = [0u8; MAX_LEN_BYTES];
+    let read_offset = MAX_LEN_BYTES - bytes_len as usize;
+    reader.read_bytes(&mut bytes[read_offset..])?;
+
+    let mut res = 0usize;
+    for pos in 0..bytes_len as usize {
+        res <<= 8;
+        res |= bytes[read_offset + pos] as usize;
     }
-    Ok(result)
+    Ok(res)
 }

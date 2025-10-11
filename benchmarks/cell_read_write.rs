@@ -16,6 +16,8 @@ const ITERATIONS_COUNT: usize = 100;
 // to run: cargo bench --bench cell_read_write
 fn benchmark_functions(c: &mut Criterion) {
     run_bench!(c, boc_read_tonlib_core_old);
+    run_bench!(c, boc_read_with_hash_ton_lib_core_008);
+    run_bench!(c, boc_read_with_hash_ton_rs_current);
     run_bench!(c, boc_read_ton_lib_core_008);
     run_bench!(c, boc_read_ton_rs_current);
 
@@ -43,6 +45,12 @@ fn boc_read_ton_lib_core_008() {
     }
 }
 
+fn boc_read_with_hash_ton_lib_core_008() {
+    for _ in 0..ITERATIONS_COUNT {
+        black_box(TonCellTonLibCore008::from_boc(&SHARD_BLOCK_BOC).unwrap().hash().unwrap());
+    }
+}
+
 fn boc_write_ton_lib_core_008() {
     let cell = TonCellTonLibCore008::from_boc(&SHARD_BLOCK_BOC).unwrap().into_ref();
     for _ in 0..ITERATIONS_COUNT {
@@ -53,6 +61,12 @@ fn boc_write_ton_lib_core_008() {
 fn boc_read_ton_rs_current() {
     for _ in 0..ITERATIONS_COUNT {
         black_box(TonCellCurrent::from_boc(SHARD_BLOCK_BOC.deref().clone()).unwrap());
+    }
+}
+
+fn boc_read_with_hash_ton_rs_current() {
+    for _ in 0..ITERATIONS_COUNT {
+        black_box(TonCellCurrent::from_boc(SHARD_BLOCK_BOC.deref().clone()).unwrap().hash().unwrap());
     }
 }
 

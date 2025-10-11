@@ -3,7 +3,7 @@ use crate::bits_utils::BitsUtils;
 use crate::cell::cell_meta::cell_type::CellType;
 use crate::cell::cell_meta::level_mask::LevelMask;
 use crate::cell::cell_meta::HashesDepthsStorage;
-use crate::cell::ton_cell::TonCell;
+use crate::cell::ton_cell::{CellBitWriter, TonCell};
 use crate::cell::ton_hash::TonHash;
 use crate::cell::CellMeta;
 use crate::errors::TonCoreError;
@@ -21,7 +21,6 @@ pub struct CellMetaBuilder<'a> {
     refs: &'a [TonCell],
 }
 
-type CellBitWriter = BitWriter<Vec<u8>, BigEndian>;
 #[derive(Debug)]
 struct Pruned {
     hash: TonHash,
@@ -30,8 +29,8 @@ struct Pruned {
 
 impl<'a> CellMetaBuilder<'a> {
     pub fn new(cell: &'a TonCell) -> Self {
-        let start_bit = cell.borders.start_bit as usize;
-        let data_bits_len = cell.borders.end_bit as usize - start_bit;
+        let start_bit = cell.borders.start_bit;
+        let data_bits_len = cell.borders.end_bit - start_bit;
         Self {
             cell_type: cell.cell_type(),
             data: &cell.cell_data.data_storage,

@@ -1,8 +1,9 @@
 use crate::bail_ton_core_data;
 use crate::cell::boc::raw_cell::{RawCell, RefPosStorage};
 use crate::cell::boc::read_var_size::read_var_size;
+use crate::cell::ton_cell::CellBytesReader;
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, ByteReader};
+use bitstream_io::BigEndian;
 use bitstream_io::{BitWrite, BitWriter, ByteRead};
 use crc::Crc;
 use std::io::Cursor;
@@ -10,7 +11,6 @@ use std::sync::Arc;
 
 const GENERIC_BOC_MAGIC: u32 = 0xb5ee9c72;
 const CRC_32_ISCSI: Crc<u32> = Crc::<u32>::new(&crc::CRC_32_ISCSI);
-pub(super) type BocBytesReader<'a> = ByteReader<Cursor<&'a [u8]>, BigEndian>;
 
 /// `cells` must be topologically sorted.
 #[derive(PartialEq, Debug, Clone)]
@@ -23,7 +23,7 @@ impl RawBoC {
     // https://github.com/ton-blockchain/ton/blob/24dc184a2ea67f9c47042b4104bbb4d82289fac1/crypto/tl/boc.tlb#L25
     pub(super) fn from_bytes(data_storage: Arc<Vec<u8>>) -> Result<RawBoC, TonCoreError> {
         let cursor = Cursor::new(data_storage.as_slice());
-        let mut reader = BocBytesReader::new(cursor);
+        let mut reader = CellBytesReader::new(cursor);
         let magic = reader.read::<u32>()?;
 
         if magic != GENERIC_BOC_MAGIC {

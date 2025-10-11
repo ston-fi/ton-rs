@@ -71,7 +71,7 @@ impl TVMStack {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
             Some(TVMStackValue::Cell(cell)) => Ok(cell.value.into()),
-            Some(TVMStackValue::CellSlice(slice)) => Ok(slice.value),
+            Some(TVMStackValue::CellSlice(slice)) => Ok(slice.to_cell()?),
             _ => Err(TonError::TVMStackWrongType("Cell".to_string(), format!("{self:?}"))),
         }
     }

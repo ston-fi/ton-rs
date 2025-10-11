@@ -16,7 +16,7 @@ pub struct MCBlockExtra {
     pub key_block: bool,
     pub shard_hashes: HashMap<i32, HashMap<ShardPfx, ShardDescr>>, // wc_id -> shard_pfx -> ShardDescr
     pub shard_fees: Option<TonCellRef>,
-    shard_fees_crated: ShardFeesCreated, // this is a mock to read/write cell properly while we don't support a fair HashmapAugE
+    pub shard_fees_crated: ShardFeesCreated, // this is a mock to read/write cell properly while we don't support a fair HashmapAugE
     // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L597
     pub ref_data: TonCellRef,
     pub config: Option<ConfigParams>,
@@ -75,11 +75,11 @@ impl TLB for MCBlockExtra {
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         self.key_block.write(builder)?;
-        let mut shards_dict = HashMap::<u32, TonCell>::new();
+        let mut shards_dict = HashMap::<u32, TonCellRef>::new();
         for (wc_id, shards) in &self.shard_hashes {
             let mut val_builder = TonCell::builder();
             BinTree::<DictValAdapterTLB, _>::write(&mut val_builder, shards)?;
-            shards_dict.insert(*wc_id as u32, val_builder.build()?);
+            shards_dict.insert(*wc_id as u32, val_builder.build()?.into());
         }
         TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).write(builder, &shards_dict)?;
         self.shard_fees.write(builder)?;

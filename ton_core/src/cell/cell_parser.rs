@@ -1,5 +1,5 @@
 use crate::bail_ton_core_data;
-use crate::cell::ton_cell::CellBorders;
+use crate::cell::ton_cell::{CellBitsReader, CellBorders};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::cell::{CellType, TonCell};
 use crate::errors::TonCoreError;
@@ -11,7 +11,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct CellParser<'a> {
     cell: &'a TonCell,
-    data_reader: BitReader<Cursor<&'a [u8]>, BigEndian>,
+    data_reader: CellBitsReader<'a>,
     next_ref_pos: usize,
 }
 
@@ -137,14 +137,14 @@ impl<'a> CellParser<'a> {
 
     pub fn data_bits_left(&mut self) -> Result<usize, TonCoreError> {
         let reader_pos = self.data_reader.position_in_bits()? as usize;
-        Ok(self.cell.borders.end_bit as usize - reader_pos)
+        Ok(self.cell.borders.end_bit - reader_pos)
     }
 
     pub fn refs_left(&mut self) -> usize { self.cell.borders.end_ref as usize - self.next_ref_pos }
 
     pub fn seek_bits(&mut self, offset: i32) -> Result<(), TonCoreError> {
         let new_pos = self.data_reader.position_in_bits()? as i32 + offset;
-        if new_pos < 0 || new_pos as usize > self.cell.borders.end_bit as usize {
+        if new_pos < 0 || new_pos as usize > self.cell.borders.end_bit {
             bail_ton_core_data!(
                 "Bad seek position in slice: new_pos {new_pos}, data_bits_len {}",
                 self.cell.borders.end_bit
@@ -202,9 +202,9 @@ mod tests {
         assert_err!(parser.seek_bits(-1));
         assert_eq!(parser.data_reader.position_in_bits()? as usize, 0);
         assert_ok!(parser.seek_bits(cell.borders.end_bit as i32 - 1));
-        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit as usize - 1);
+        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit - 1);
         assert_ok!(parser.seek_bits(1));
-        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit as usize);
+        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit);
         assert_err!(parser.seek_bits(1));
         assert_err!(parser.seek_bits(20));
         Ok(())

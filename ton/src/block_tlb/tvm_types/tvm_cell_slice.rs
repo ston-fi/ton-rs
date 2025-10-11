@@ -7,7 +7,7 @@ use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
 #[derive(Clone, PartialEq, Debug)]
 pub struct TVMCellSlice {
     pub value: TonCell,
-    pub borders: CellBorders,
+    pub borders: CellBorders, // relative to value.borders
 }
 
 impl TVMCellSlice {
@@ -23,6 +23,8 @@ impl TVMCellSlice {
             borders,
         }
     }
+
+    pub fn to_cell(&self) -> Result<TonCell, TonCoreError> { TonCell::slice(&self.value, self.borders) }
 }
 
 impl TLB for TVMCellSlice {

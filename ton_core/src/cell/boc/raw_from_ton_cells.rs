@@ -76,8 +76,7 @@ fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedC
         verify_order = false;
 
         for index_cell in cells_by_hash.values() {
-            for ref_pos in 0..index_cell.cell.refs().len() {
-                let ref_cell = &index_cell.cell.refs()[ref_pos];
+            for (ref_pos, ref_cell) in index_cell.cell.refs().iter().enumerate() {
                 let ref_hash = ref_cell.hash()?;
                 if let Some(indexed) = cells_by_hash.get(ref_hash) {
                     if indexed.index < index_cell.index {
@@ -98,8 +97,8 @@ fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell
     Ok(RawCell {
         cell_type: cell.cell_type(),
         data_storage: cell.cell_data.data_storage.clone(),
-        start_bit: cell.borders.start_bit as usize,
-        end_bit: cell.borders.end_bit as usize,
+        start_bit: cell.borders.start_bit,
+        end_bit: cell.borders.end_bit,
         refs_positions,
         level_mask: cell.level_mask(),
     })

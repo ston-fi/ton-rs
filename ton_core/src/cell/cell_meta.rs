@@ -47,7 +47,7 @@ impl CellMeta {
     }
 
     pub(crate) fn hash_for_level(&self, cell: &TonCell, level: LevelMask) -> Result<&TonHash, TonCoreError> {
-        let hashes = &self.get_hashes_depths(cell)?.0;
+        let hashes = self.get_hashes_depths(cell)?.0;
         Ok(&hashes[level.mask() as usize])
     }
     pub(crate) fn depth_for_level(&self, cell: &TonCell, level: LevelMask) -> Result<u16, TonCoreError> {
@@ -60,8 +60,10 @@ impl CellMeta {
             let level_mask = self.level_mask(cell);
             let cell_refs = cell.refs();
             let mut queue = VecDeque::with_capacity(cell_refs.len());
-            for cell_ref in cell.refs().iter().filter(|x| x.meta.hash_initialized()) {
-                queue.push_back((cell_ref, 0));
+            for cell_ref in cell.refs() {
+                if !cell_ref.meta.hash_initialized() {
+                    queue.push_back((cell_ref, 0));
+                }
             }
             while let Some((cur_cell, cur_ref_pos)) = queue.pop_front() {
                 if let Some(child) = cur_cell.refs().get(cur_ref_pos) {
@@ -70,7 +72,7 @@ impl CellMeta {
                         queue.push_front((child, 0));
                     }
                 } else {
-                    let _ = cur_cell.hash()?;
+                    let _ = cur_cell.hash()?; // just to calc it
                 }
             }
             CellMetaBuilder::new(cell).calc_hashes_and_depths(level_mask)
