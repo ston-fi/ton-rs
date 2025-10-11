@@ -8,7 +8,7 @@ use crate::traits::tlb::TLB;
 use std::sync::Arc;
 
 impl TLB for TonCell {
-    fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> { parser.read_cell() }
+    fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> { parser.read_rest() }
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> { builder.write_cell(self) }
 

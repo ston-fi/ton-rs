@@ -49,7 +49,7 @@ impl TonCell {
             start_bit: borders.start_bit + cell.borders.start_bit,
             end_bit: borders.end_bit + cell.borders.start_bit,
             start_ref: borders.start_ref + cell.borders.start_ref,
-            end_ref: borders.start_ref + cell.borders.end_ref,
+            end_ref: borders.end_ref + cell.borders.start_ref,
         };
 
         if new_cell_borders.end_bit > cell.borders.end_bit || new_cell_borders.end_ref > cell.borders.end_ref {

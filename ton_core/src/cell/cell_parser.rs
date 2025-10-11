@@ -1,12 +1,11 @@
 use crate::bail_ton_core_data;
 use crate::cell::ton_cell::{CellBitsReader, CellBorders};
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::cell::{CellType, TonCell};
+use crate::cell::TonCell;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use num_traits::Zero;
 use std::io::{Cursor, SeekFrom};
-use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct CellParser<'a> {
@@ -81,45 +80,26 @@ impl<'a> CellParser<'a> {
     }
 
     pub fn read_slice(&mut self, bits_len: usize, refs_len: u8) -> Result<TonCell, TonCoreError> {
-        self.ensure_enough_bits(bits_len)?;
-        if self.next_ref_pos + refs_len as usize > self.cell.borders.end_ref as usize {
-            bail_ton_core_data!(
-                "Can't read cell refs: required {}, left {}",
-                refs_len,
-                self.cell.borders.end_ref as usize - self.next_ref_pos
-            );
-        };
-
+        let start_bit = self.data_reader.position_in_bits()? as usize - self.cell.borders.start_bit;
+        let end_bit = start_bit + bits_len;
+        let start_ref = self.next_ref_pos as u8 - self.cell.borders.start_ref;
+        let end_ref = start_ref + refs_len;
         let borders = CellBorders {
-            start_bit: self.data_reader.position_in_bits()? as usize,
-            end_bit: self.data_reader.position_in_bits()? as usize + bits_len,
-            start_ref: self.next_ref_pos as u8,
-            end_ref: self.next_ref_pos as u8 + refs_len,
+            start_bit,
+            end_bit,
+            start_ref,
+            end_ref,
         };
-
-        let is_full =
-            borders.start_bit == self.cell.borders.start_bit && borders.start_ref == self.cell.borders.start_ref;
-
-        let (cell_type, meta) = match is_full {
-            true => (self.cell.cell_type, self.cell.meta.clone()),
-            false => (CellType::Ordinary, Arc::new(Default::default())),
-        };
-
-        let cell = TonCell {
-            cell_type,
-            cell_data: self.cell.cell_data.clone(),
-            borders,
-            meta,
-        };
-        // move reader position
+        let slice = TonCell::slice(self.cell, borders)?;
         self.seek_bits(bits_len as i32)?;
         self.next_ref_pos += refs_len as usize;
-        Ok(cell)
+        Ok(slice)
     }
 
-    pub fn read_cell(&mut self) -> Result<TonCell, TonCoreError> {
-        let cur_pos = self.data_reader.position_in_bits()? as usize;
-        self.read_slice(self.cell.borders.end_bit - cur_pos, self.cell.borders.end_ref - self.next_ref_pos as u8)
+    pub fn read_rest(&mut self) -> Result<TonCell, TonCoreError> {
+        let bits_len = self.data_bits_left()?;
+        let refs_len = self.refs_left();
+        self.read_slice(bits_len, refs_len as u8)
     }
 
     pub fn read_next_ref(&mut self) -> Result<&TonCell, TonCoreError> {
@@ -320,7 +300,7 @@ mod tests {
         parser.read_bits(4)?; // skip 4 bits
         parser.read_next_ref()?; // skip first ref
 
-        let cell = parser.read_cell()?;
+        let cell = parser.read_rest()?;
         let expected_borders = CellBorders {
             start_bit: 4,
             end_bit: orig_cell.borders.end_bit,
