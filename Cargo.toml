@@ -66,6 +66,7 @@ libc = "0.2"
 tokio-retry = "0.3"
 reqwest = "0.12"
 smallvec = "1"
+derive_setters = "0.1"
 
 
 

@@ -2,7 +2,7 @@ use crate::tests::utils::make_tl_client;
 use std::str::FromStr;
 use std::time::Duration;
 use ton_lib::contracts::tl_provider::TLProvider;
-use ton_lib::contracts::{ContractClient, ContractClientConfig};
+use ton_lib::contracts::ContractClient;
 use ton_lib::contracts::{JettonMasterContract, TonContract};
 use ton_lib_core::cell::TonHash;
 use ton_lib_core::traits::contract_provider::TonProvider;
@@ -70,13 +70,13 @@ async fn test_tl_provider() -> anyhow::Result<()> {
 #[tokio::test]
 async fn test_contract_client_tl_provider() -> anyhow::Result<()> {
     let tl_client = make_tl_client(true, true).await?;
-    let config = ContractClientConfig {
-        refresh_loop_idle_on_error: Duration::from_millis(100),
-        cache_capacity: 1000,
-        cache_ttl: Duration::from_secs(3600),
-    };
     let tl_provider = TLProvider::new(tl_client.clone());
-    let ctr_cli = ContractClient::new(config, tl_provider)?;
+    let ctr_cli = ContractClient::builder(tl_provider)
+        .with_cache_capacity(1000)
+        .with_cache_ttl(Duration::from_secs(3600))
+        .with_refresh_loop_idle_on_error(Duration::from_millis(100))
+        .build()?;
+
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
 
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(0));

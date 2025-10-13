@@ -4,10 +4,11 @@ mod example {
     use ton_lib::block_tlb::TVMStack;
     use ton_lib::contracts::tl_provider::TLProvider;
     use ton_lib::contracts::ContractCtx;
-    use ton_lib::contracts::{ContractClient, ContractClientConfig, TonContract};
+    use ton_lib::contracts::{ContractClient, TonContract};
     use ton_lib::emulators::tvm_emulator::TVMGetMethodID;
     use ton_lib::errors::TonError;
-    use ton_lib::tl_client::{TLClient, TLClientConfig};
+    use ton_lib::net_config::TonNetConfig;
+    use ton_lib::tl_client::TLClient;
     use ton_lib_core::ton_contract;
     use ton_lib_core::traits::tlb::TLB;
     use ton_lib_core::types::TonAddress;
@@ -27,11 +28,10 @@ mod example {
     }
 
     pub async fn real_main() -> anyhow::Result<()> {
-        let tl_config = TLClientConfig::new_mainnet(false);
-        let tl_client = TLClient::new(tl_config).await?;
-        let provider = TLProvider::new(tl_client.clone());
-        let ctr_cfg = ContractClientConfig::new_no_cache(Default::default());
-        let ctr_cli = ContractClient::new(ctr_cfg, provider)?;
+        let tl_client = TLClient::builder()?.with_net_config(&TonNetConfig::new_default(false)?)?.build().await?;
+
+        let provider = TLProvider::new(tl_client);
+        let ctr_cli = ContractClient::builder(provider).build()?;
 
         let address = TonAddress::from_str("EQBSUY4UWGJFAps0KwHY4tpOGqzU41DZhyrT8OuyAWWtnezy")?;
 
@@ -42,7 +42,7 @@ mod example {
         println!("[predefined] jetton_data_result stack len: {:?}", jetton_data.len());
         println!("[predefined] pool_data_result stack len: {:?}", pool_data.len());
 
-        // Emulation using contract client directly
+        // Emulation using contract contract_client directly
         let state = ctr_cli.get_contract(&address, None).await?;
         let method_id = TVMGetMethodID::from("get_jetton_data").to_id();
         let emul_result = ctr_cli.emulate_get_method(&state, method_id, TVMStack::EMPTY_BOC).await?;

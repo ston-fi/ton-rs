@@ -1,4 +1,4 @@
-/*use crate::lite::client::connection::Descriptor;
+/*use crate::lite::contract_client::connection::Descriptor;
 use prometheus::core::Collector;
 use prometheus::{HistogramOpts, HistogramVec, IntCounterVec, IntGauge, Opts};
 use std::fmt;

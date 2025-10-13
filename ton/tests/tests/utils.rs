@@ -31,13 +31,23 @@ pub(crate) fn init_logging() {
 pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<ton_lib::tl_client::TLClient> {
     init_logging();
     log::info!("Initializing tl_client with mainnet={mainnet}...");
-    let mut config = match mainnet {
-        true => ton_lib::tl_client::TLClientConfig::new_mainnet(archive_only),
-        false => ton_lib::tl_client::TLClientConfig::new_testnet(archive_only),
+
+    let node_filter = if archive_only {
+        ton_lib::tl_client::LiteNodeFilter::Archive
+    } else {
+        ton_lib::tl_client::LiteNodeFilter::Healthy
     };
-    config.connections_count = 10;
-    config.retry_strategy.retry_count = 10;
-    let client = ton_lib::tl_client::TLClient::new(config).await?;
+
+    let client = ton_lib::tl_client::TLClient::builder()?
+        .with_net_config(&TonNetConfig::new_default(mainnet)?)?
+        .with_connection_check(node_filter)
+        .with_connections_count(10)
+        .with_retry_strategy(ton_lib::tl_client::RetryStrategy {
+            retry_count: 10,
+            retry_waiting: Duration::from_millis(100),
+        })
+        .build()
+        .await?;
     ton_lib::sys_utils::sys_tonlib_set_verbosity_level(0);
     Ok(client)
 }
@@ -45,7 +55,7 @@ pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow:
 pub async fn make_lite_client(mainnet: bool) -> anyhow::Result<LiteClient> {
     init_logging();
     log::info!("initializing lite_client with mainnet={mainnet}...");
-    let mut config = LiteClientConfig::new(&TonNetConfig::get_json(mainnet))?;
+    let mut config = LiteClientConfig::new(TonNetConfig::new_default(mainnet)?)?;
     config.default_req_params.retries_count = 20;
     config.default_req_params.retry_waiting = Duration::from_millis(200);
     Ok(LiteClient::new(config)?)

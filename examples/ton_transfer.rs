@@ -11,11 +11,11 @@ mod example {
     use ton_lib::block_tlb::{Coins, CommonMsgInfoInt, Msg};
     use ton_lib::block_tlb::{CommonMsgInfo, CurrencyCollection};
     use ton_lib::contracts::tl_provider::TLProvider;
-    use ton_lib::contracts::{ContractClient, ContractClientConfig};
+    use ton_lib::contracts::ContractClient;
     use ton_lib::contracts::{TonContract, TonWalletContract, TonWalletMethods};
+    use ton_lib::net_config::TonNetConfig;
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
-    use ton_lib::tl_client::TLClientConfig;
-    use ton_lib::tl_client::{TLClient, TLClientTrait};
+    use ton_lib::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};
     use ton_lib::ton_wallet::WalletVersion;
     use ton_lib::ton_wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;
@@ -53,13 +53,16 @@ mod example {
     async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<TLClient> {
         init_logging();
         log::info!("Initializing tl_client with mainnet={mainnet}, archive_only={archive_only}...");
-        let mut config = match mainnet {
-            true => TLClientConfig::new_mainnet(archive_only),
-            false => TLClientConfig::new_testnet(archive_only),
-        };
-        config.connections_count = 10;
-        config.retry_strategy.retry_count = 10;
-        let client = TLClient::new(config).await?;
+        let client = TLClient::builder()?
+            .with_net_config(&TonNetConfig::new_default(mainnet)?)?
+            .with_connection_check(LiteNodeFilter::Archive)
+            .with_connections_count(10)
+            .with_retry_strategy(RetryStrategy {
+                retry_count: 10,
+                retry_waiting: Duration::from_millis(200),
+            })
+            .build()
+            .await?;
         sys_tonlib_set_verbosity_level(0);
         Ok(client)
     }
@@ -71,11 +74,10 @@ mod example {
         // To create w5 ton_wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
         let wallet = TonWallet::new(WalletVersion::V4R2, key_pair)?;
 
-        // Make testnet client
+        // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
         let provider = TLProvider::new(tl_client.clone());
-        let ctr_config = ContractClientConfig::new_no_cache(Duration::from_millis(100));
-        let ctr_cli = ContractClient::new(ctr_config, provider)?;
+        let ctr_cli = ContractClient::builder(provider).build()?;
 
         // ---------- Building transfer_msg ----------
         let transfer_msg = Msg {

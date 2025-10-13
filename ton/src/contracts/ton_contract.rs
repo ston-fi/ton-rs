@@ -1,5 +1,5 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::client::ContractClient;
+use crate::contracts::contract_client::ContractClient;
 use crate::emulators::tvm_emulator::TVMGetMethodID;
 use crate::errors::TonError;
 use std::sync::Arc;

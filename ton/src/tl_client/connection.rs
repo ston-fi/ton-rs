@@ -6,7 +6,6 @@ use std::time::{Duration, Instant};
 
 use crate::errors::TonError;
 use crate::sys_utils::sys_tonlib_set_verbosity_level;
-use crate::tl_client::config::{LiteNodeFilter, TLClientConfig};
 use crate::tl_client::tl::tonlibjson_wrapper::TonLibJsonWrapper;
 use crate::tl_client::tl::*;
 use crate::tl_client::*;
@@ -44,7 +43,7 @@ impl TLClientTrait for TLConnection {
 }
 
 impl TLConnection {
-    pub async fn new(config: &TLClientConfig, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
+    pub async fn new(config: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
         new_connection_checked(config, semaphore).await
     }
 
@@ -116,7 +115,7 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
     callbacks.on_loop_exit(&tag);
 }
 
-async fn new_connection_checked(config: &TLClientConfig, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
+async fn new_connection_checked(config: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
     let conn = loop {
         let conn = new_connection(config, semaphore.clone()).await?;
         match config.connection_check {
@@ -146,7 +145,7 @@ async fn new_connection_checked(config: &TLClientConfig, semaphore: Arc<Semaphor
     Ok(conn)
 }
 
-async fn new_connection(config: &TLClientConfig, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
+async fn new_connection(builder: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
     let conn_id = CONNECTION_COUNTER.fetch_add(1, Ordering::Relaxed);
     let tag = format!("ton-conn-{conn_id}");
 
@@ -155,19 +154,19 @@ async fn new_connection(config: &TLClientConfig, semaphore: Arc<Semaphore>) -> R
         active_requests: Mutex::new(HashMap::new()),
         semaphore,
         next_request_id: AtomicU64::new(0),
-        callbacks: config.callbacks.clone(),
+        callbacks: builder.callbacks.clone(),
     });
-    let init_log_level = match config.tonlib_verbosity_level {
+    let init_log_level = match builder.tonlib_verbosity_level {
         4 => 1,
         _ => 0,
     };
     sys_tonlib_set_verbosity_level(init_log_level);
 
     let inner_weak = Arc::downgrade(&inner);
-    let callbacks = config.callbacks.clone();
+    let callbacks = builder.callbacks.clone();
     let _join_handle = thread::Builder::new().name(tag.clone()).spawn(|| run_loop(tag, inner_weak, callbacks))?;
 
     let conn = TLConnection { inner };
-    let _info = conn.init(config.init_opts.clone()).await?;
+    let _info = conn.init(builder.init_opts.clone()).await?;
     Ok(conn)
 }

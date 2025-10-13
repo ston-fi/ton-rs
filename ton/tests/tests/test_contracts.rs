@@ -5,9 +5,9 @@ use std::str::FromStr;
 use std::time::Duration;
 use tokio_test::assert_ok;
 use ton_lib::contracts::tl_provider::TLProvider;
+use ton_lib::contracts::ContractClient;
 use ton_lib::contracts::NFTItemContract;
 use ton_lib::contracts::*;
-use ton_lib::contracts::{ContractClient, ContractClientConfig};
 use ton_lib::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton_lib::tep::nft::NFTItemMetadata;
 use ton_lib::tep::snake_data::SnakeData;
@@ -17,9 +17,10 @@ use ton_lib_core::types::TonAddress;
 #[tokio::test]
 async fn test_contracts() -> anyhow::Result<()> {
     let tl_client = make_tl_client(true, true).await?;
-    let config = ContractClientConfig::new_no_cache(Duration::from_millis(100));
-    let data_provider = TLProvider::new(tl_client.clone());
-    let ctr_cli = ContractClient::new(config, data_provider)?;
+    let data_provider = TLProvider::new(tl_client);
+    let ctr_cli = ContractClient::builder(data_provider)
+        .with_cache_capacity(0) // manually disable cache
+        .build()?;
 
     assert_jetton_wallet_get_wallet(&ctr_cli).await?;
     assert_jetton_master_get_jetton(&ctr_cli).await?;
