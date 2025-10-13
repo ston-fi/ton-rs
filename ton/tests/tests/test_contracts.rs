@@ -2,7 +2,6 @@ use crate::tests::utils::make_tl_client;
 use num_bigint::BigInt;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
-use std::time::Duration;
 use tokio_test::assert_ok;
 use ton_lib::contracts::tl_provider::TLProvider;
 use ton_lib::contracts::ContractClient;
