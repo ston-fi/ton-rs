@@ -1,9 +1,9 @@
 use crate::cell::{CellBitReader, CellBitWriter};
 use bitstream_io::{BitRead, BitWrite};
-use fastnum::{Cast, TryCast, I1024, I128, I256, I512};
+use fastnum::{TryCast, I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
 use num_bigint::{BigInt, BigUint, Sign};
-use num_traits::{Signed, Zero};
+use num_traits::Zero;
 use std::fmt::Display;
 
 use crate::bail_ton_core_data;
@@ -189,84 +189,39 @@ impl TonCellNum for usize {
     }
 }
 
-impl TonCellNum for BigUint {
-    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-        if bits_len == 0 {
-            return Ok(());
-        }
-
-        // Left-align the value if not byte-aligned
-        let value_to_write = if bits_len % 8 != 0 {
-            self << (8 - bits_len % 8)
-        } else {
-            self.clone()
-        };
-
-        // Get big-endian bytes
-        let mut bytes = value_to_write.to_bytes_be();
-
-        let num_bytes = bits_len.div_ceil(8) as usize;
-        let full_bytes = (bits_len / 8) as usize;
-        let remaining_bits = bits_len % 8;
-
-        // Pad with leading zeros if needed
-        while bytes.len() < num_bytes as usize {
-            bytes.insert(0, 0);
-        }
-
-        // Trim if we have extra bytes
-        if bytes.len() > num_bytes {
-            bytes = bytes[(bytes.len() - num_bytes)..].to_vec();
-        }
-
-        // Write full bytes
-        writer.write_bytes(&bytes[0..full_bytes])?;
-
-        // Write remaining bits from TOP of last byte
-        if remaining_bits > 0 {
-            let last_byte = bytes[full_bytes];
-            writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-        }
-        Ok(())
+fn u1024_to_biguint(val: U1024) -> BigUint {
+    if val.is_zero() {
+        return BigUint::zero();
     }
 
-    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
-        if bits_len == 0 {
-            return Ok(BigUint::zero());
-        }
+    let mut tmp = val;
+    let mut bytes = Vec::with_capacity(128);
 
-        let full_bytes = bits_len / 8;
-        let remaining_bits = bits_len % 8;
-        let mut result = BigUint::zero();
-
-        // Read full bytes
-        for _ in 0..full_bytes {
-            let byte = reader.read::<8, u8>()?;
-            result = (result << 8) | BigUint::from(byte);
-        }
-
-        // Read remaining bits if any
-        if remaining_bits > 0 {
-            let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
-            result = (result << remaining_bits) | BigUint::from(last_bits);
-        }
-
-        Ok(result)
+    for _ in 0..128 {
+        bytes.push((tmp & 0xFFu8.into()).to_u8().unwrap());
+        tmp >>= 8;
     }
 
-    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
-
-    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
-
-    fn tcn_min_bits_len(&self) -> u32 {
-        if self.tcn_is_zero() {
-            0u32
-        } else {
-            self.bits() as u32
-        }
-    }
+    bytes.reverse();
+    BigUint::from_bytes_be(&bytes)
 }
-pub fn i1024_to_bigint(val: I1024) -> BigInt {
+
+fn biguint_to_u1024(value: &BigUint) -> U1024 {
+    if value.is_zero() {
+        return U1024::ZERO;
+    }
+
+    let bytes = value.to_bytes_be();
+
+    let mut uval = U1024::ZERO;
+    for &b in &bytes {
+        uval = (uval << 8) | U1024::from(b);
+    }
+
+    uval
+}
+
+fn i1024_to_bigint(val: I1024) -> BigInt {
     if val.is_zero() {
         return BigInt::zero();
     }
@@ -274,7 +229,7 @@ pub fn i1024_to_bigint(val: I1024) -> BigInt {
     let is_negative = val < I1024::ZERO;
     let abs_val = if is_negative { -val } else { val };
 
-    let mut tmp: U1024 = abs_val.try_cast().expect("cast to U1024 failed");
+    let mut tmp: U1024 = TryCast::<U1024>::try_cast(abs_val).expect("cast to U1024 failed");
     let mut bytes = Vec::with_capacity(128);
 
     for _ in 0..128 {
@@ -286,7 +241,7 @@ pub fn i1024_to_bigint(val: I1024) -> BigInt {
     BigInt::from_bytes_be(if is_negative { Sign::Minus } else { Sign::Plus }, &bytes)
 }
 
-pub fn bigint_to_i1024(value: &BigInt) -> I1024 {
+fn bigint_to_i1024(value: &BigInt) -> I1024 {
     if value.is_zero() {
         return I1024::ZERO;
     }
@@ -303,9 +258,43 @@ pub fn bigint_to_i1024(value: &BigInt) -> I1024 {
     }
 
     match sign {
-        Sign::Plus => uval.try_cast().expect("cast to I1024 failed"),
+        Sign::Plus => TryCast::<I1024>::try_cast(uval).expect("cast to I1024 failed"),
         Sign::NoSign => I1024::ZERO,
-        Sign::Minus => -uval.try_cast().expect("cast to I1024 failed"),
+        Sign::Minus => -TryCast::<I1024>::try_cast(uval).expect("cast to I1024 failed"),
+    }
+}
+
+impl TonCellNum for BigUint {
+    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
+        if bits_len == 0 {
+            return Ok(());
+        }
+        let curr_u1024 = biguint_to_u1024(self);
+
+        curr_u1024.tcn_write_bits(writer, bits_len)
+    }
+
+    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+        if bits_len == 0 {
+            return Ok(BigUint::zero());
+        }
+
+        let val = U1024::tcn_read_bits(reader, bits_len)?;
+        let result = u1024_to_biguint(val);
+
+        Ok(result)
+    }
+
+    fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
+
+    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
+
+    fn tcn_min_bits_len(&self) -> u32 {
+        if self.tcn_is_zero() {
+            0u32
+        } else {
+            self.bits() as u32
+        }
     }
 }
 
@@ -585,26 +574,11 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::{bigint_to_i1024, i1024_to_bigint, CellParser, TonCell, TonCellNum};
+    use super::{bigint_to_i1024, biguint_to_u1024, i1024_to_bigint, u1024_to_biguint};
+    use crate::cell::{CellParser, TonCell, TonCellNum};
     use bitstream_io::{BigEndian, BitWrite, BitWriter};
     use fastnum::{I128, I256, I512, U512};
     use num_bigint::{BigInt, BigUint, ToBigInt};
-
-    #[test]
-    fn test_toncellnum_512_to_vec() -> anyhow::Result<()> {
-        let test_bit_value = 12;
-        let mut builder = TonCell::builder();
-        let val = U512::from(0x8f5u32);
-        builder.write_num(&val, test_bit_value).unwrap();
-
-        let num_cell = builder.build().unwrap();
-        let bytes = num_cell.data.clone();
-
-        println!("{:?}", bytes);
-
-        panic!("test done");
-        Ok(())
-    }
 
     #[test]
     fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
@@ -825,6 +799,36 @@ mod tests {
         let result_big_int = i1024_to_bigint(test_fastnum);
 
         assert_eq!(test_big_int, result_big_int);
+    }
+
+    #[test]
+    fn test_toncellnum_biguint_tou1024_conv() {
+        // Since u1024_to_biguint and biguint_to_u1024 are private functions
+        // in the same module, we can call them directly without importing
+
+        // Test with a simple value
+        let test_big_uint = BigUint::from(1234u64);
+        let test_fastnum = biguint_to_u1024(&test_big_uint);
+        let result_big_uint = u1024_to_biguint(test_fastnum);
+        assert_eq!(test_big_uint, result_big_uint);
+
+        // Test with zero
+        let test_big_uint = BigUint::from(0u32);
+        let test_fastnum = biguint_to_u1024(&test_big_uint);
+        let result_big_uint = u1024_to_biguint(test_fastnum);
+        assert_eq!(test_big_uint, result_big_uint);
+
+        // Test with a large value
+        let test_big_uint = BigUint::from(u128::MAX);
+        let test_fastnum = biguint_to_u1024(&test_big_uint);
+        let result_big_uint = u1024_to_biguint(test_fastnum);
+        assert_eq!(test_big_uint, result_big_uint);
+
+        // Test with a very large value (256 bits)
+        let test_big_uint = (BigUint::from(1u32) << 255) + BigUint::from(12345u64);
+        let test_fastnum = biguint_to_u1024(&test_big_uint);
+        let result_big_uint = u1024_to_biguint(test_fastnum);
+        assert_eq!(test_big_uint, result_big_uint);
     }
 
     #[test]
