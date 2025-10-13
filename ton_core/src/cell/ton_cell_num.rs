@@ -83,7 +83,7 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
             fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
                 if self.tcn_min_bits_len() > bits_len {
                     bail_ton_core_data!(
-                        "Not enough bits for write num {} in {} bits signed, min len {}",
+                        "Not enough bits for write num {} in {} bits unsigned, min len {}",
                         *self,
                         bits_len,
                         self.tcn_min_bits_len()
@@ -93,7 +93,7 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 Ok(())
             }
             fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
-                if (bits_len != 0) {
+                if bits_len != 0 {
                     let val: Self = reader.read_var(bits_len)?;
                     Ok(val)
                 } else {
@@ -197,9 +197,13 @@ fn u1024_to_biguint(val: U1024) -> BigUint {
     let mut tmp = val;
     let mut bytes = Vec::with_capacity(128);
 
+    // Extract bytes from least significant to most significant
     for _ in 0..128 {
         bytes.push((tmp & 0xFFu8.into()).to_u8().unwrap());
         tmp >>= 8;
+        if tmp.is_zero() {
+            break; // Stop early if remaining value is zero
+        }
     }
 
     bytes.reverse();
@@ -212,6 +216,11 @@ fn biguint_to_u1024(value: &BigUint) -> U1024 {
     }
 
     let bytes = value.to_bytes_be();
+
+    // U1024 can hold at most 128 bytes (1024 bits)
+    if bytes.len() > 128 {
+        panic!("BigUint value exceeds U1024 capacity: {} bytes > 128 bytes", bytes.len());
+    }
 
     let mut uval = U1024::ZERO;
     for &b in &bytes {
@@ -232,9 +241,13 @@ fn i1024_to_bigint(val: I1024) -> BigInt {
     let mut tmp: U1024 = TryCast::<U1024>::try_cast(abs_val).expect("cast to U1024 failed");
     let mut bytes = Vec::with_capacity(128);
 
+    // Extract bytes from least significant to most significant
     for _ in 0..128 {
         bytes.push((tmp & 0xFFu8.into()).to_u8().unwrap());
         tmp >>= 8;
+        if tmp.is_zero() {
+            break; // Stop early if remaining value is zero
+        }
     }
 
     bytes.reverse();
@@ -242,10 +255,6 @@ fn i1024_to_bigint(val: I1024) -> BigInt {
 }
 
 fn bigint_to_i1024(value: &BigInt) -> I1024 {
-    if value.is_zero() {
-        return I1024::ZERO;
-    }
-
     if value.is_zero() {
         return I1024::ZERO;
     }
@@ -334,12 +343,12 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     return Ok(());
                 }
                 let bits_len = bits_len as usize;
-                if ((bits_len as usize) > size_of::<$src>() * 8) {
-                    bail_ton_core_data!("Requested bits {} more that sizeof  {}", bits_len, size_of::<$src>() * 8);
+                if bits_len > size_of::<$src>() * 8 {
+                    bail_ton_core_data!("Requested bits {} more than sizeof {}", bits_len, size_of::<$src>() * 8);
                 }
-                if (bits_len < self.tcn_min_bits_len() as usize) {
+                if bits_len < self.tcn_min_bits_len() as usize {
                     bail_ton_core_data!(
-                        "Not enouth bits for write num {} in {} bits unsigned  min len {}",
+                        "Not enough bits for write num {} in {} bits unsigned, min len {}",
                         *self,
                         bits_len,
                         self.tcn_min_bits_len()
@@ -442,7 +451,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let mut temp = abs_val.clone();
 
                     for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
                         bytes_vec.push(byte_val);
                         temp >>= 8;
                     }
@@ -462,7 +471,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let mut temp = self.clone();
 
                     for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
                         bytes_vec.push(byte_val);
                         temp >>= 8;
                     }
@@ -476,8 +485,8 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 };
 
                 // Mask to bits_len
-                let masked_uval = if (bits_len as usize) < (std::mem::size_of::<$src>() * 8) {
-                    let mask = ((<$u_src>::ONE << bits_len) - <$u_src>::ONE);
+                let masked_uval = if (bits_len as usize) < std::mem::size_of::<$src>() * 8 {
+                    let mask = (<$u_src>::ONE << bits_len) - <$u_src>::ONE;
                     uval & mask
                 } else {
                     uval
@@ -515,7 +524,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let mut temp = abs_val.clone();
 
                     for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
                         bytes_vec.push(byte_val);
                         temp >>= 8;
                     }
@@ -534,7 +543,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let mut temp = unsigned_val.clone();
 
                     for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
                         bytes_vec.push(byte_val);
                         temp >>= 8;
                     }
