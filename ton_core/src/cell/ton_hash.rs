@@ -84,7 +84,7 @@ impl TonHash {
         let shifted = value_u128 << (128 - bits_len);
         let value_bytes = shifted.to_be_bytes();
 
-        if !BitsUtils::rewrite(&value_bytes, 0, self.as_slice_mut(), 0, bits_len) {
+        if !crate::bits_utils::BitsUtils::rewrite(&value_bytes, 0, self.as_slice_mut(), 0, bits_len) {
             bail_ton_core_data!("Failed to rewrite first {} bits of TonHash", bits_len);
         }
         Ok(())
@@ -155,42 +155,6 @@ mod traits_impl {
     impl Ord for TonHashData {fn cmp(&self, other: &Self) -> std::cmp::Ordering {self.as_slice().cmp(other.as_slice()) } }
     impl PartialOrd for TonHashData {fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) } }
 }
-
-#[cfg(feature = "serde")]
-mod serde {
-    use crate::cell::TonHash;
-    use serde::de::Error;
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-    use std::str::FromStr;
-
-    pub mod serde_ton_hash_base64 {
-        pub use super::*;
-
-        pub fn serialize<S: Serializer>(hash: &TonHash, serializer: S) -> Result<S::Ok, S::Error> {
-            serializer.serialize_str(hash.to_base64().as_str())
-        }
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonHash, D::Error> {
-            TonHash::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
-        }
-    }
-
-    pub mod serde_ton_hash_vec_base64 {
-        pub use super::*;
-
-        pub fn serialize<S: Serializer>(data: &[TonHash], serializer: S) -> Result<S::Ok, S::Error> {
-            let base64_strings: Vec<String> = data.iter().map(|h| h.to_base64()).collect();
-            base64_strings.serialize(serializer)
-        }
-
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<TonHash>, D::Error> {
-            let base64_vec: Vec<String> = Vec::deserialize(deserializer)?;
-            base64_vec.into_iter().map(|s| TonHash::from_str(&s).map_err(Error::custom)).collect()
-        }
-    }
-}
-use crate::bits_utils::BitsUtils;
-#[cfg(feature = "serde")]
-pub use serde::*;
 
 #[cfg(test)]
 mod tests {
@@ -310,37 +274,6 @@ mod tests {
 
         let mut hash = TonHash::ZERO;
         assert_err!(hash.rewrite_first_bits(1u8, 129));
-        Ok(())
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn test_serde_ton_hash() -> anyhow::Result<()> {
-        use ::serde::{Deserialize, Serialize};
-        use serde_json::json;
-
-        #[derive(Serialize, Deserialize, Debug, PartialEq)]
-        struct TestStruct {
-            #[serde(with = "serde_ton_hash_base64")]
-            hash: TonHash,
-            #[serde(with = "serde_ton_hash_vec_base64")]
-            hash_vec: Vec<TonHash>,
-        }
-
-        let val = TestStruct {
-            hash: TonHash::from_slice(&[1u8; 32])?,
-            hash_vec: vec![TonHash::from_slice(&[2u8; 32])?, TonHash::from_slice(&[3u8; 32])?],
-        };
-        let val_json = serde_json::to_string(&val)?;
-        let expected = json!({
-            "hash": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
-            "hash_vec": [
-                "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
-                "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM="
-            ]
-        })
-        .to_string();
-        assert_eq!(val_json, expected);
         Ok(())
     }
 }
