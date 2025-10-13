@@ -584,10 +584,9 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 #[cfg(test)]
 mod tests {
     use super::{bigint_to_i1024, biguint_to_u1024, i1024_to_bigint, u1024_to_biguint};
-    use crate::cell::{CellParser, TonCell, TonCellNum};
-    use bitstream_io::{BigEndian, BitWrite, BitWriter};
+    use crate::cell::{CellParser, TonCell};
     use fastnum::{I128, I256, I512, U512};
-    use num_bigint::{BigInt, BigUint, ToBigInt};
+    use num_bigint::{BigInt, BigUint};
 
     #[test]
     fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
