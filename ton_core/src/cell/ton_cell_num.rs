@@ -1,8 +1,8 @@
 use crate::cell::{CellBitReader, CellBitWriter};
 use bitstream_io::{BitRead, BitWrite};
-use fastnum::{I1024, I128, I256, I512};
+use fastnum::{Cast, TryCast, I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
-use num_bigint::{BigInt, BigUint};
+use num_bigint::{BigInt, BigUint, Sign};
 use num_traits::{Signed, Zero};
 use std::fmt::Display;
 
@@ -266,82 +266,63 @@ impl TonCellNum for BigUint {
         }
     }
 }
+pub fn i1024_to_bigint(val: I1024) -> BigInt {
+    if val.is_zero() {
+        return BigInt::zero();
+    }
+
+    let is_negative = val < I1024::ZERO;
+    let abs_val = if is_negative { -val } else { val };
+
+    let mut tmp: U1024 = abs_val.try_cast().expect("cast to U1024 failed");
+    let mut bytes = Vec::with_capacity(128);
+
+    for _ in 0..128 {
+        bytes.push((tmp & 0xFFu8.into()).to_u8().unwrap());
+        tmp >>= 8;
+    }
+
+    bytes.reverse();
+    BigInt::from_bytes_be(if is_negative { Sign::Minus } else { Sign::Plus }, &bytes)
+}
+
+pub fn bigint_to_i1024(value: &BigInt) -> I1024 {
+    if value.is_zero() {
+        return I1024::ZERO;
+    }
+
+    if value.is_zero() {
+        return I1024::ZERO;
+    }
+
+    let (sign, bytes) = value.to_bytes_be();
+
+    let mut uval = U1024::ZERO;
+    for &b in &bytes {
+        uval = (uval << 8) | U1024::from(b);
+    }
+
+    match sign {
+        Sign::Plus => uval.try_cast().expect("cast to I1024 failed"),
+        Sign::NoSign => I1024::ZERO,
+        Sign::Minus => -uval.try_cast().expect("cast to I1024 failed"),
+    }
+}
 
 impl TonCellNum for BigInt {
     fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
         if bits_len == 0 {
             return Ok(());
         }
-
-        // Use two's complement encoding (standard for TVM int257 and signed integers)
-        let mut bytes = self.to_signed_bytes_be();
-
-        // Calculate required bytes
-        let num_bytes = bits_len.div_ceil(8) as usize;
-        let full_bytes = (bits_len / 8) as usize;
-        let remaining_bits = bits_len % 8;
-
-        // Pad with sign extension if needed
-        let pad_byte = if self.is_negative() { 0xFF } else { 0x00 };
-        while bytes.len() < num_bytes {
-            bytes.insert(0, pad_byte);
-        }
-
-        // Trim if too many bytes
-        if bytes.len() > num_bytes {
-            bytes = bytes[(bytes.len() - num_bytes)..].to_vec();
-        }
-
-        // Left-align if not byte-aligned
-        if bits_len % 8 != 0 {
-            let shift = 8 - (bits_len % 8);
-            let mut carry = 0u16;
-            for i in (0..bytes.len()).rev() {
-                let val = (bytes[i] as u16) << shift;
-                bytes[i] = (val | carry) as u8;
-                carry = val >> 8;
-            }
-        }
-
-        // Write full bytes
-        writer.write_bytes(&bytes[0..full_bytes])?;
-
-        // Write remaining bits from TOP of last byte
-        if remaining_bits > 0 {
-            let last_byte = bytes[full_bytes];
-            writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-        }
-        Ok(())
+        bigint_to_i1024(self).tcn_write_bits(writer, bits_len)
     }
 
     fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigInt::zero());
         }
-
-        let full_bytes = bits_len / 8;
-        let remaining_bits = bits_len % 8;
-        let mut result = BigInt::zero();
-
-        // Read full bytes
-        for _ in 0..full_bytes {
-            let byte = reader.read::<8, u8>()?;
-            result = (result << 8) | BigInt::from(byte);
-        }
-
-        // Read remaining bits if any
-        if remaining_bits > 0 {
-            let last_bits = reader.read_var::<u8>(remaining_bits as u32)?;
-            result = (result << remaining_bits) | BigInt::from(last_bits);
-        }
-
-        // Check if the sign bit is set
-        let sign_bit_mask = BigInt::from(1) << (bits_len - 1);
-        if &result & &sign_bit_mask != BigInt::zero() {
-            // Negative number - sign extend by subtracting 2^bits_len
-            let modulus = BigInt::from(1) << bits_len;
-            result -= modulus;
-        }
+        let val = I1024::tcn_read_bits(reader, bits_len)?;
+        let result = i1024_to_bigint(val);
 
         Ok(result)
     }
@@ -449,77 +430,72 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
             fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-                // Two's complement encoding: convert signed to unsigned preserving bit pattern
-                // Only extract bytes needed for bits_len to avoid overflow
-                let num_bytes_needed = (bits_len as usize).div_ceil(8).min(std::mem::size_of::<$src>());
-                let mut bytes_vec = Vec::with_capacity(num_bytes_needed);
-                let mut temp = self.clone();
-
-                for _ in 0..num_bytes_needed {
-                    let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
-                    bytes_vec.push(byte_val);
-                    temp >>= 8;
-                }
-                bytes_vec.reverse(); // Make it big-endian
-
-                // Construct UInt from bytes (preserves two's complement bit pattern)
-                let mut uval = <$u_src>::from(0u32);
-                for byte in bytes_vec {
-                    uval = (uval << 8) | <$u_src>::from(byte);
-                }
-
-                // Mask to bits_len (same as primitives)
-                let bit_count = bits_len as usize;
-                let type_bits = std::mem::size_of::<$src>() * 8;
-
-                if bit_count < type_bits {
-                    // Mask to bit_count bits
-                    let mask = ((<$u_src>::ONE << bits_len) - <$u_src>::ONE);
-                    uval = uval & mask;
-                }
-
-                // Write directly using the unsigned logic (skip validation since we already validated)
-                // This avoids double-validation issue
                 if bits_len == 0 {
                     return Ok(());
                 }
-                let bits_len_usize = bits_len as usize;
-                if bits_len_usize > std::mem::size_of::<$u_src>() * 8 {
-                    bail_ton_core_data!(
-                        "Requested bits {} more than sizeof {}",
-                        bits_len,
-                        std::mem::size_of::<$u_src>() * 8
-                    );
-                }
 
-                // Left-align value if not byte-aligned
-                let mut value = uval;
-                if bits_len % 8 != 0 {
-                    value <<= 8 - bits_len % 8;
-                }
+                // Convert signed to unsigned using two's complement arithmetic
+                let uval = if *self < Self::from(0u32) {
+                    // Negative number: add 2^type_bits to get unsigned representation
+                    // We compute this as: (2^type_bits - 1) + 1 + signed_value
+                    // But since we can't represent 2^type_bits directly, we use:
+                    // unsigned = (signed + 2^bits_len) & mask for the specific bits_len
 
-                // Calculate number of bytes needed
-                let num_bytes = (bits_len as usize).div_ceil(8);
-                let full_bytes = (bits_len / 8) as usize;
-                let remaining_bits = bits_len % 8;
+                    // First convert to positive abs value by negating
+                    let abs_val = -*self;
 
-                // Extract bytes in big-endian order
-                let mut bytes = Vec::with_capacity(num_bytes);
-                for i in (0..num_bytes).rev() {
-                    let shift_amount = i * 8;
-                    let byte_val = (value.clone() >> shift_amount) & <$u_src>::from(0xFFu32);
-                    bytes.push(byte_val.to_string().parse::<u8>().unwrap_or(0));
-                }
+                    // Then compute: 2^bits_len - abs_val
+                    let modulus = <$u_src>::ONE << bits_len;
 
-                // Write full bytes
-                writer.write_bytes(&bytes[0..full_bytes])?;
+                    // Convert abs_val to unsigned byte by byte
+                    let bytes_count = std::mem::size_of::<$src>();
+                    let mut bytes_vec = Vec::with_capacity(bytes_count);
+                    let mut temp = abs_val.clone();
 
-                // Write remaining bits from TOP of last byte
-                if remaining_bits > 0 {
-                    let last_byte = bytes[full_bytes];
-                    writer.write_var(remaining_bits as u32, last_byte >> (8 - remaining_bits))?;
-                }
-                Ok(())
+                    for _ in 0..bytes_count {
+                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        bytes_vec.push(byte_val);
+                        temp >>= 8;
+                    }
+                    bytes_vec.reverse();
+
+                    let mut abs_unsigned = <$u_src>::from(0u32);
+                    for byte in bytes_vec {
+                        abs_unsigned = (abs_unsigned << 8) | <$u_src>::from(byte);
+                    }
+
+                    // Compute two's complement
+                    modulus - abs_unsigned
+                } else {
+                    // Positive number: direct conversion
+                    let bytes_count = std::mem::size_of::<$src>();
+                    let mut bytes_vec = Vec::with_capacity(bytes_count);
+                    let mut temp = self.clone();
+
+                    for _ in 0..bytes_count {
+                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        bytes_vec.push(byte_val);
+                        temp >>= 8;
+                    }
+                    bytes_vec.reverse();
+
+                    let mut result = <$u_src>::from(0u32);
+                    for byte in bytes_vec {
+                        result = (result << 8) | <$u_src>::from(byte);
+                    }
+                    result
+                };
+
+                // Mask to bits_len
+                let masked_uval = if (bits_len as usize) < (std::mem::size_of::<$src>() * 8) {
+                    let mask = ((<$u_src>::ONE << bits_len) - <$u_src>::ONE);
+                    uval & mask
+                } else {
+                    uval
+                };
+
+                // Now write the unsigned value
+                masked_uval.tcn_write_bits(writer, bits_len)
             }
 
             fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
@@ -529,50 +505,59 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
 
                 let unsigned_val = <$u_src>::tcn_read_bits(reader, bits_len)?;
 
-                // Two's complement decoding: convert unsigned to signed preserving bit pattern
-                let bytes_count = std::mem::size_of::<$src>();
-                let mut bytes_vec = Vec::with_capacity(bytes_count);
-                let mut temp_uint = unsigned_val.clone();
+                // Two's complement decoding: check sign bit
+                let sign_bit_pos = bits_len - 1;
+                let sign_bit = <$u_src>::ONE << sign_bit_pos;
 
-                for _ in 0..bytes_count {
-                    let byte_val = (temp_uint.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
-                    bytes_vec.push(byte_val);
-                    temp_uint >>= 8;
-                }
-                bytes_vec.reverse(); // Make it big-endian
+                // Convert unsigned to signed using two's complement arithmetic
+                if (unsigned_val & sign_bit) != <$u_src>::from(0u32) {
+                    // Negative number: subtract 2^bits_len
+                    // First, convert unsigned_val to a temporary signed value
+                    // We do this by creating the positive part and then negating
 
-                // Construct Int from bytes (preserves two's complement)
-                let mut result = Self::from(0u32);
-                for byte in bytes_vec {
-                    result = (result << 8) | Self::from(byte);
-                }
+                    // Calculate: value - 2^bits_len = -(2^bits_len - value)
+                    let modulus_unsigned = <$u_src>::ONE << bits_len;
+                    let abs_val = modulus_unsigned - unsigned_val;
 
-                // Sign extend if needed (when bits_len < full width)
-                if bits_len < (std::mem::size_of::<$src>() * 8) as u32 {
-                    let sign_bit_pos = bits_len - 1;
-                    let sign_bit = <$u_src>::ONE << sign_bit_pos;
-                    if (unsigned_val & sign_bit) != <$u_src>::from(0u32) {
-                        // Sign bit is set, extend with 1s
-                        let mask_uint = !((<$u_src>::ONE << bits_len) - <$u_src>::ONE);
-                        // Convert mask to signed by going through bytes
-                        let mut mask_bytes = Vec::with_capacity(bytes_count);
-                        let mut temp_mask = mask_uint;
-                        for _ in 0..bytes_count {
-                            let byte_val =
-                                (temp_mask.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
-                            mask_bytes.push(byte_val);
-                            temp_mask >>= 8;
-                        }
-                        mask_bytes.reverse();
-                        let mut mask = Self::from(0u32);
-                        for byte in mask_bytes {
-                            mask = (mask << 8) | Self::from(byte);
-                        }
-                        result = result | mask;
+                    // Convert abs_val to signed and negate
+                    // We need to convert the unsigned value to signed byte by byte
+                    let bytes_count = std::mem::size_of::<$src>();
+                    let mut bytes_vec = Vec::with_capacity(bytes_count);
+                    let mut temp = abs_val.clone();
+
+                    for _ in 0..bytes_count {
+                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        bytes_vec.push(byte_val);
+                        temp >>= 8;
                     }
-                }
+                    bytes_vec.reverse();
 
-                Ok(result)
+                    let mut result = Self::from(0u32);
+                    for byte in bytes_vec {
+                        result = (result << 8) | Self::from(byte);
+                    }
+
+                    Ok(-result)
+                } else {
+                    // Positive number: direct conversion
+                    let bytes_count = std::mem::size_of::<$src>();
+                    let mut bytes_vec = Vec::with_capacity(bytes_count);
+                    let mut temp = unsigned_val.clone();
+
+                    for _ in 0..bytes_count {
+                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_string().parse::<u8>().unwrap_or(0);
+                        bytes_vec.push(byte_val);
+                        temp >>= 8;
+                    }
+                    bytes_vec.reverse();
+
+                    let mut result = Self::from(0u32);
+                    for byte in bytes_vec {
+                        result = (result << 8) | Self::from(byte);
+                    }
+
+                    Ok(result)
+                }
             }
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
             fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
@@ -600,9 +585,27 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::{CellParser, TonCell};
-    use fastnum::{I512, U512};
-    use num_bigint::{BigInt, BigUint};
+    use crate::cell::{bigint_to_i1024, i1024_to_bigint, CellParser, TonCell, TonCellNum};
+    use bitstream_io::{BigEndian, BitWrite, BitWriter};
+    use fastnum::{I128, I256, I512, U512};
+    use num_bigint::{BigInt, BigUint, ToBigInt};
+
+    #[test]
+    fn test_toncellnum_512_to_vec() -> anyhow::Result<()> {
+        let test_bit_value = 12;
+        let mut builder = TonCell::builder();
+        let val = U512::from(0x8f5u32);
+        builder.write_num(&val, test_bit_value).unwrap();
+
+        let num_cell = builder.build().unwrap();
+        let bytes = num_cell.data.clone();
+
+        println!("{:?}", bytes);
+
+        panic!("test done");
+        Ok(())
+    }
+
     #[test]
     fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
         // Create a builder and store an int16 value
@@ -766,10 +769,39 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_toncellnum_fastnum_known_bug_i512() -> () {
+        // in case this test stop failng - the fastnum  fixed issue
+        let test_value1 = -I512::from(1234i64);
+        let test_value2 = I512::from(-1234i64);
+        assert_eq!(test_value1, test_value2);
+        ()
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_toncellnum_fastnum_known_bug_i256() -> () {
+        // in case this test stop failng - the fastnum  fixed issue
+        let test_value1 = -I256::from(1234i64);
+        let test_value2 = I256::from(-1234i64);
+        assert_eq!(test_value1, test_value2);
+        ()
+    }
+    #[test]
+    #[should_panic]
+    fn test_toncellnum_fastnum_known_bug_i128() -> () {
+        // in case this test stop failng - the fastnum  fixed issue
+        let test_value1 = -I128::from(1234i64);
+        let test_value2 = I128::from(-1234i64);
+        assert_eq!(test_value1, test_value2);
+        ()
+    }
+
+    #[test]
     fn test_toncellnum_store_and_parse_i512() -> anyhow::Result<()> {
         // Create a builder and store a I512 value
         let mut builder = TonCell::builder();
-        let test_value = I512::from(1234u32);
+        let test_value = -I512::from(1234i32);
 
         let test_bit = 30;
         builder.write_num(&test_value, test_bit)?;
@@ -785,6 +817,14 @@ mod tests {
         assert_eq!(parsed_value, test_value);
 
         Ok(())
+    }
+    #[test]
+    fn test_toncellnum_bigint_toi1024_conv() {
+        let test_big_int = -1 * BigInt::from(1234i64);
+        let test_fastnum = bigint_to_i1024(&test_big_int);
+        let result_big_int = i1024_to_bigint(test_fastnum);
+
+        assert_eq!(test_big_int, result_big_int);
     }
 
     #[test]
@@ -848,7 +888,7 @@ mod tests {
     fn test_toncellnum_write_num() -> anyhow::Result<()> {
         let num_val = -9i32;
         let bigint_val = BigInt::from(-9i32);
-        let i512_val = I512::from(-9i32);
+        let i512_val = -I512::from(9i32);
 
         let mut num_builder = TonCell::builder();
         let mut bigint_builder = TonCell::builder();
@@ -869,8 +909,6 @@ mod tests {
 
     #[test]
     fn test_toncellnum_write_i512() -> anyhow::Result<()> {
-        use fastnum::I512;
-
         // Test writing and reading I512 values
         let test_cases = vec![
             (I512::from(0i32), 10),

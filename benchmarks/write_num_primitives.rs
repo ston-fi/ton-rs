@@ -80,7 +80,7 @@ fn write_bigint_ton_rs_current_negative() {
 }
 fn write_i512_ton_rs_current_negative() {
     let mut builder = TonCell::builder();
-    let tv = I512::from(TEST_VALUE as i32 * (-1i32));
+    let tv = -I512::from(TEST_VALUE);
     for i in 0..ITERATIONS_COUNT {
         if i % THRESHOLD_TO_RECREATE_BUILDER == 0 {
             builder = TonCell::builder();
