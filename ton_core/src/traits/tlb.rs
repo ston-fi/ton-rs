@@ -60,7 +60,7 @@ pub trait TLB: Sized {
 
     fn from_boc_hex(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(hex::decode(boc)?) }
 
-    fn from_boc_b64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(STANDARD.decode(boc)?) }
+    fn from_boc_base64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(STANDARD.decode(boc)?) }
 
     /// Writing
     fn to_cell(&self) -> Result<TonCell, TonCoreError> {

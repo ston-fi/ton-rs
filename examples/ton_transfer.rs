@@ -16,8 +16,8 @@ mod example {
     use ton_lib::net_config::TonNetConfig;
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
     use ton_lib::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};
+    use ton_lib::ton_wallet::TonWallet;
     use ton_lib::ton_wallet::WalletVersion;
-    use ton_lib::ton_wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;
     use ton_lib_core::traits::tlb::TLB;
     use ton_lib_core::types::tlb_core::{MsgAddress, TLBEitherRef};
@@ -69,10 +69,9 @@ mod example {
 
     pub async fn real_main() -> anyhow::Result<()> {
         // ---------- Wallet initialization ----------
-        let mnemonic_str = std::env::var("MNEMONIC_STR")?;
-        let key_pair = Mnemonic::from_str(&mnemonic_str, None)?.to_key_pair()?;
+        let mnemonic = std::env::var("MNEMONIC_STR")?;
         // To create w5 ton_wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
-        let wallet = TonWallet::new(WalletVersion::V4R2, key_pair)?;
+        let wallet = TonWallet::new_with_creds(WalletVersion::V4R2, &mnemonic, None)?;
 
         // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
@@ -86,7 +85,7 @@ mod example {
                 bounce: false,
                 bounced: false,
                 src: MsgAddress::NONE,
-                dst: MsgAddress::Int(wallet.address.to_msg_address_int()),
+                dst: wallet.address.to_msg_address(),
                 value: CurrencyCollection::new(50010u128),
                 ihr_fee: Coins::ZERO,
                 fwd_fee: Coins::ZERO,

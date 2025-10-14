@@ -76,7 +76,7 @@ impl TVMEmulator {
     {
         let tvm_method = method.into();
         log::trace!("[TVMEmulator][run_get_method]: method: {tvm_method}, stack: {stack_boc:?}");
-        let stack = make_b64_c_str(stack_boc)?;
+        let stack = make_base64_c_str(stack_boc)?;
         let response_ptr = unsafe { tvm_emulator_run_get_method(self.ptr, tvm_method.to_id(), stack.as_ptr()) };
         let json_str = convert_emulator_response(response_ptr)?;
         log::trace!("[TVMEmulator][run_get_method]: method: {tvm_method}, stack_boc: {stack_boc:?}, rsp: {json_str}");
@@ -95,7 +95,7 @@ impl TVMEmulator {
 
     pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> Result<TVMSendMsgSuccess, TonError> {
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}");
-        let msg = make_b64_c_str(msg_boc)?;
+        let msg = make_base64_c_str(msg_boc)?;
         let response_ptr = unsafe { tvm_emulator_send_external_message(self.ptr, msg.as_ptr()) };
         let json_str = convert_emulator_response(response_ptr)?;
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}, rsp: {json_str}");

@@ -26,7 +26,7 @@ impl MetaLoader {
         } else {
             let resp = self.http_loader.get(uri).send().await?;
             if resp.status().is_success() {
-                resp.text().await.map(Into::into)?
+                resp.text().await?
             } else {
                 return Err(MetaLoaderError::LoadMetadataFailed {
                     uri: uri.to_string(),
@@ -48,7 +48,7 @@ impl MetaLoader {
             MetadataContent::Internal(MetadataInternal { data: dict }) => {
                 let uri = match dict.get(&META_URI) {
                     Some(uri) => uri,
-                    None => return Ok(T::from_dict(dict)?),
+                    None => return T::from_dict(dict),
                 };
                 let uri_str = uri.as_str();
 
@@ -58,7 +58,7 @@ impl MetaLoader {
                         log::warn!(
                             "Failed to load metadata from internal META_URI {uri_str}: {err}, use internal data only"
                         );
-                        return Ok(T::from_dict(dict)?);
+                        return T::from_dict(dict);
                     }
                 };
                 Ok(T::from_data(dict, Some(&json))?)
