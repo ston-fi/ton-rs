@@ -1,12 +1,17 @@
 use crate::bail_ton_core_data;
 use crate::cell::boc::raw_cell::{RawCell, RefPosStorage};
 use crate::cell::boc::read_var_size::read_var_size;
-use crate::cell::ton_cell::CellBytesReader;
+use crate::cell::ton_cell::{CellBytesReader, RefStorage};
+use crate::cell::{TonCell, TonHash};
 use crate::errors::TonCoreError;
 use bitstream_io::BigEndian;
 use bitstream_io::{BitWrite, BitWriter, ByteRead};
 use crc::Crc;
+use smallvec::SmallVec;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::io::Cursor;
+use std::ops::Deref;
 use std::sync::Arc;
 
 const GENERIC_BOC_MAGIC: u32 = 0xb5ee9c72;
@@ -78,7 +83,7 @@ impl RawBoC {
         let mut cells = Vec::with_capacity(cells_cnt);
 
         for _ in 0..cells_cnt {
-            let cell = RawCell::new(&mut reader, ref_pos_size_bytes, data_storage.clone())?;
+            let cell = RawCell::read(&mut reader, ref_pos_size_bytes, data_storage.clone())?;
             cells.push(cell);
         }
         //   crc32c:has_crc32c?uint32
@@ -143,4 +148,141 @@ impl RawBoC {
         }
         Ok(bytes)
     }
+
+    //Based on https://github.com/toncenter/tonweb/blob/c2d5d0fc23d2aec55a0412940ce6e580344a288c/src/boc/Cell.js#L198
+    pub(super) fn into_ton_cells(self) -> Result<Vec<TonCell>, TonCoreError> {
+        let cells_len = self.cells.len();
+        let mut cells: Vec<TonCell> = Vec::with_capacity(cells_len);
+
+        for (cell_index, cell_raw) in self.cells.into_iter().enumerate().rev() {
+            let mut refs = RefStorage::with_capacity(cell_raw.refs_positions.len());
+            for ref_index in &cell_raw.refs_positions {
+                if *ref_index <= cell_index {
+                    bail_ton_core_data!("Invalid BoC: ref to parent cell detected");
+                }
+                refs.push(cells[cells_len - 1 - ref_index].clone());
+            }
+            cells.push(cell_raw.into_cell(refs));
+        }
+
+        let mut roots = Vec::with_capacity(self.roots_positions.len());
+        for root_index in self.roots_positions {
+            roots.push(cells[cells_len - 1 - root_index].clone());
+        }
+        Ok(roots)
+    }
+
+    pub(super) fn from_ton_cells(roots: &[TonCell]) -> Result<Self, TonCoreError> {
+        let cell_by_hash = build_and_verify_index(roots)?;
+
+        // Sort indexed cells by their index value.
+        let mut cell_sorted: Vec<_> = cell_by_hash.values().collect();
+        cell_sorted.sort_unstable_by(|a, b| a.index.cmp(&b.index));
+
+        // Remove gaps in indices.
+        cell_sorted
+            .iter()
+            .enumerate()
+            .for_each(|(real_index, indexed_cell)| *indexed_cell.index.borrow_mut() = real_index);
+
+        let raw_cells = cell_sorted
+            .into_iter()
+            .map(|indexed| raw_from_indexed(indexed.cell, &cell_by_hash))
+            .collect::<Result<_, TonCoreError>>()?;
+
+        let root_indices = roots.iter().map(|x| get_position(x, &cell_by_hash)).collect::<Result<_, TonCoreError>>()?;
+
+        Ok(RawBoC {
+            cells: raw_cells,
+            roots_positions: root_indices,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+struct IndexedCell<'a> {
+    cell: &'a TonCell,
+    index: RefCell<usize>, // internal mutability required
+}
+
+fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedCell<'_>>, TonCoreError> {
+    let mut cur_cells = Vec::from_iter(roots.iter());
+    let mut new_hash_index = 0;
+    let mut cells_by_hash = HashMap::new();
+
+    // Process cells to build the initial index.
+    while !cur_cells.is_empty() {
+        let mut next_cells = Vec::with_capacity(cur_cells.len() * 4);
+        for cell in cur_cells {
+            let hash = cell.hash()?;
+
+            if cells_by_hash.contains_key(hash) {
+                continue; // Skip if already indexed.
+            }
+
+            let indexed_cell = IndexedCell {
+                cell,
+                index: RefCell::new(new_hash_index),
+            };
+            cells_by_hash.insert(hash.clone(), indexed_cell);
+
+            new_hash_index += 1;
+            next_cells.extend(cell.refs());
+        }
+
+        cur_cells = next_cells;
+    }
+
+    // Ensure indices are in the correct order based on cell references.
+    let mut verify_order = true;
+    while verify_order {
+        verify_order = false;
+
+        for index_cell in cells_by_hash.values() {
+            for ref_cell in index_cell.cell.refs() {
+                let ref_hash = ref_cell.hash()?;
+                if let Some(indexed) = cells_by_hash.get(ref_hash) {
+                    if indexed.index < index_cell.index {
+                        *indexed.index.borrow_mut() = new_hash_index;
+                        new_hash_index += 1;
+                        verify_order = true; // Verify if an index was updated.
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(cells_by_hash)
+}
+
+fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<RawCell, TonCoreError> {
+    let refs_positions = raw_cell_refs_indexes(cell, cells_by_hash)?;
+    Ok(RawCell {
+        cell_type: cell.cell_type(),
+        data_storage: cell.cell_data.data_storage.clone(),
+        start_bit: cell.borders.start_bit,
+        end_bit: cell.borders.end_bit,
+        refs_positions,
+        level_mask: cell.level_mask(),
+    })
+}
+
+fn raw_cell_refs_indexes(
+    cell: &TonCell,
+    cells_by_hash: &HashMap<TonHash, IndexedCell>,
+) -> Result<SmallVec<[usize; 4]>, TonCoreError> {
+    let mut vec = SmallVec::with_capacity(cell.refs().len());
+    for ref_pos in 0..cell.refs().len() {
+        let cell_ref = &cell.refs()[ref_pos];
+        vec.push(get_position(cell_ref, cells_by_hash)?);
+    }
+    Ok(vec)
+}
+
+fn get_position(cell: &TonCell, call_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<usize, TonCoreError> {
+    let hash = cell.hash()?;
+    call_by_hash
+        .get(hash)
+        .ok_or_else(|| TonCoreError::Custom(format!("cell with hash {hash:?} not found in available hashes")))
+        .map(|indexed_cell| *indexed_cell.index.borrow().deref())
 }

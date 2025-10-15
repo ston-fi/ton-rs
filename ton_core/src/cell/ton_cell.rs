@@ -97,6 +97,7 @@ impl TonCell {
 }
 
 pub(super) type RefStorage = SmallVec<[TonCell; TonCell::MAX_REFS_COUNT]>;
+
 pub(super) struct CellData {
     pub data_storage: Arc<Vec<u8>>, // shared between cell-tree deserialized from BoC
     pub refs: RefStorage,
@@ -114,7 +115,7 @@ static EMPTY_CELL: LazyLock<TonCell> = LazyLock::new(|| TonCell {
     cell_type: CellType::Ordinary,
     cell_data: Arc::new(CellData {
         data_storage: Arc::new(vec![]),
-        refs: SmallVec::new(),
+        refs: RefStorage::new(),
     }),
     borders: CellBorders {
         start_bit: 0,

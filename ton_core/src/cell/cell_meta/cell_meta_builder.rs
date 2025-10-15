@@ -382,7 +382,7 @@ fn validate_merkle_proof_slice(data: &[u8]) -> Result<(), TonCoreError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cell::ton_cell::{CellBorders, CellData};
+    use crate::cell::ton_cell::{CellBorders, CellData, RefStorage};
     use std::sync::Arc;
 
     fn empty_cell_ref() -> TonCell { TonCell::empty().to_owned() }
@@ -397,7 +397,7 @@ mod test {
             cell_type: CellType::Ordinary,
             cell_data: Arc::new(CellData {
                 data_storage: Arc::new(vec![]),
-                refs: SmallVec::from_elem(empty_cell_ref(), 1),
+                refs: RefStorage::from_iter([empty_cell_ref()]),
             }),
             meta: Arc::new(CellMeta::default()),
             borders: CellBorders {
@@ -414,7 +414,7 @@ mod test {
             cell_type: CellType::Ordinary,
             cell_data: Arc::new(CellData {
                 data_storage: Arc::new(vec![]),
-                refs: SmallVec::from_elem(empty_cell_ref(), 2),
+                refs: RefStorage::from_iter([empty_cell_ref(), empty_cell_ref()]),
             }),
             meta: Arc::new(CellMeta::default()),
             borders: CellBorders {
