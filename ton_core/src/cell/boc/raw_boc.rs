@@ -20,8 +20,8 @@ const CRC_32_ISCSI: Crc<u32> = Crc::<u32>::new(&crc::CRC_32_ISCSI);
 /// `cells` must be topologically sorted.
 #[derive(PartialEq, Debug, Clone)]
 pub(super) struct RawBoC {
-    pub(super) cells: Vec<RawCell>,
-    pub(super) roots_positions: RefPosStorage, // Usually one, sometimes two. Haven't seen more in practice.
+    pub(super) raw_cells: Vec<RawCell>,
+    pub(super) roots_pos: RefPosStorage, // Usually one, sometimes two. Haven't seen more in practice.
 }
 
 impl RawBoC {
@@ -71,9 +71,9 @@ impl RawBoC {
         //   tot_cells_size:(##(off_bytes * 8))
         let _tot_cells_size = read_var_size(&mut reader, off_bytes)?;
         //   root_list:(roots * ##(size * 8))
-        let mut roots_position = RefPosStorage::with_capacity(roots_cnt);
+        let mut roots_pos = RefPosStorage::with_capacity(roots_cnt);
         for _ in 0..roots_cnt {
-            roots_position.push(read_var_size(&mut reader, ref_pos_size_bytes)?)
+            roots_pos.push(read_var_size(&mut reader, ref_pos_size_bytes)?)
         }
         //   index:has_idx?(cells * ##(off_bytes * 8))
         if has_idx {
@@ -90,21 +90,21 @@ impl RawBoC {
         let _crc32c = if has_crc32c { reader.read::<u32>()? } else { 0 };
 
         Ok(RawBoC {
-            cells,
-            roots_positions: roots_position,
+            raw_cells: cells,
+            roots_pos,
         })
     }
 
     //Based on https://github.com/toncenter/tonweb/blob/c2d5d0fc23d2aec55a0412940ce6e580344a288c/src/boc/Cell.js#L198
     pub(super) fn to_bytes(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
-        let root_count = self.roots_positions.len();
-        let ref_size_bits = 32 - (self.cells.len() as u32).leading_zeros();
+        let root_count = self.roots_pos.len();
+        let ref_size_bits = 32 - (self.raw_cells.len() as u32).leading_zeros();
         let ref_pos_size_bytes = ref_size_bits.div_ceil(8);
         let has_idx = false;
 
         let mut full_size = 0u32;
 
-        for cell in &self.cells {
+        for cell in &self.raw_cells {
             full_size += cell.size_in_boc_bytes(ref_pos_size_bytes);
         }
 
@@ -117,7 +117,7 @@ impl RawBoC {
             3 * ref_pos_size_bytes + // cells_num, roots, complete
             num_offset_bytes + // full_size
             ref_pos_size_bytes + // root_idx
-            (if has_idx { self.cells.len() as u32 * num_offset_bytes } else { 0 }) +
+            (if has_idx { self.raw_cells.len() as u32 * num_offset_bytes } else { 0 }) +
             full_size +
             (if add_crc32 { 4 } else { 0 });
 
@@ -129,16 +129,16 @@ impl RawBoC {
         writer.write_var(2, 0)?; // flags
         writer.write_var(3, ref_pos_size_bytes)?;
         writer.write_var(8, num_offset_bytes)?;
-        writer.write_var(8 * ref_pos_size_bytes, self.cells.len() as u32)?;
+        writer.write_var(8 * ref_pos_size_bytes, self.raw_cells.len() as u32)?;
         writer.write_var(8 * ref_pos_size_bytes, root_count as u32)?;
         writer.write_var(8 * ref_pos_size_bytes, 0)?; // Complete BOCs only
         writer.write_var(8 * num_offset_bytes, full_size)?;
 
-        for &root in &self.roots_positions {
+        for &root in &self.roots_pos {
             writer.write_var(8 * ref_pos_size_bytes, root as u32)?;
         }
 
-        for cell in &self.cells {
+        for cell in &self.raw_cells {
             cell.write_to(&mut writer, ref_pos_size_bytes)?;
         }
         writer.byte_align()?;
@@ -151,22 +151,22 @@ impl RawBoC {
 
     //Based on https://github.com/toncenter/tonweb/blob/c2d5d0fc23d2aec55a0412940ce6e580344a288c/src/boc/Cell.js#L198
     pub(super) fn into_ton_cells(self) -> Result<Vec<TonCell>, TonCoreError> {
-        let cells_len = self.cells.len();
+        let cells_len = self.raw_cells.len();
         let mut cells: Vec<TonCell> = Vec::with_capacity(cells_len);
 
-        for (cell_index, cell_raw) in self.cells.into_iter().enumerate().rev() {
-            let mut refs = RefStorage::with_capacity(cell_raw.refs_positions.len());
-            for ref_index in &cell_raw.refs_positions {
+        for (cell_index, cell_raw) in self.raw_cells.into_iter().enumerate().rev() {
+            let mut refs = RefStorage::with_capacity(cell_raw.refs_pos.len());
+            for ref_index in &cell_raw.refs_pos {
                 if *ref_index <= cell_index {
                     bail_ton_core_data!("Invalid BoC: ref to parent cell detected");
                 }
                 refs.push(cells[cells_len - 1 - ref_index].clone());
             }
-            cells.push(cell_raw.into_cell(refs));
+            cells.push(cell_raw.into_ton_cell(refs));
         }
 
-        let mut roots = Vec::with_capacity(self.roots_positions.len());
-        for root_index in self.roots_positions {
+        let mut roots = Vec::with_capacity(self.roots_pos.len());
+        for root_index in self.roots_pos {
             roots.push(cells[cells_len - 1 - root_index].clone());
         }
         Ok(roots)
@@ -190,12 +190,9 @@ impl RawBoC {
             .map(|indexed| raw_from_indexed(indexed.cell, &cell_by_hash))
             .collect::<Result<_, TonCoreError>>()?;
 
-        let root_indices = roots.iter().map(|x| get_position(x, &cell_by_hash)).collect::<Result<_, TonCoreError>>()?;
+        let roots_pos = roots.iter().map(|x| get_position(x, &cell_by_hash)).collect::<Result<_, TonCoreError>>()?;
 
-        Ok(RawBoC {
-            cells: raw_cells,
-            roots_positions: root_indices,
-        })
+        Ok(RawBoC { raw_cells, roots_pos })
     }
 }
 
@@ -262,7 +259,7 @@ fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell
         data_storage: cell.cell_data.data_storage.clone(),
         start_bit: cell.borders.start_bit,
         end_bit: cell.borders.end_bit,
-        refs_positions,
+        refs_pos: refs_positions,
         level_mask: cell.level_mask(),
     })
 }

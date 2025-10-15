@@ -2,6 +2,7 @@ use crate::bail_ton_core_data;
 use crate::cell::cell_meta::CellType;
 use crate::cell::ton_cell::{CellBorders, CellData, RefStorage, TonCell};
 use crate::cell::ton_cell_num::TonCellNum;
+use crate::cell::CellMeta;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::cmp::min;
@@ -40,7 +41,7 @@ impl CellBuilder {
             cell_type: self.cell_type,
             cell_data: Arc::new(cell_data),
             borders,
-            meta: Arc::new(Default::default()),
+            meta: Arc::new(CellMeta::default()),
         };
         // Consider it as a tech debt. We have validation embedded into CellMetaBuilder,
         // and it's the simples way to use it from builder

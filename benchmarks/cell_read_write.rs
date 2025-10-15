@@ -11,7 +11,7 @@ use ton_lib_core::cell::TonCell as TonCellCurrent;
 use ton_lib_core::traits::tlb::TLB as TLBCurrent;
 use ton_lib_core_008::traits::tlb::TLB as TLB008;
 
-const ITERATIONS_COUNT: usize = 100;
+const ITERATIONS_COUNT: usize = 20;
 
 // to run: cargo bench --bench cell_read_write
 fn benchmark_functions(c: &mut Criterion) {
@@ -26,6 +26,7 @@ fn benchmark_functions(c: &mut Criterion) {
     run_bench!(c, boc_write_ton_rs_current);
 }
 
+// tonlib-core (old)
 fn boc_read_tonlib_core_old() {
     for _ in 0..ITERATIONS_COUNT {
         black_box(BagOfCells::parse(&SHARD_BLOCK_BOC).unwrap());
@@ -39,6 +40,7 @@ fn boc_write_tonlib_core_old() {
     }
 }
 
+// ton_lib_core_008
 fn boc_read_ton_lib_core_008() {
     for _ in 0..ITERATIONS_COUNT {
         black_box(TonCellTonLibCore008::from_boc(&SHARD_BLOCK_BOC).unwrap());
@@ -58,6 +60,7 @@ fn boc_write_ton_lib_core_008() {
     }
 }
 
+// ton_rs (current)
 fn boc_read_ton_rs_current() {
     for _ in 0..ITERATIONS_COUNT {
         black_box(TonCellCurrent::from_boc(SHARD_BLOCK_BOC.deref().clone()).unwrap());

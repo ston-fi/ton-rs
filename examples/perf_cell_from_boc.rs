@@ -10,7 +10,7 @@ static SHARD_BLOCK_BOC: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
 });
 
 fn main() -> anyhow::Result<()> {
-    for _ in 0..10000 {
+    for _ in 0..50000 {
         #[allow(unused)]
         let cell = TonCell::from_boc(SHARD_BLOCK_BOC.to_owned())?;
     }

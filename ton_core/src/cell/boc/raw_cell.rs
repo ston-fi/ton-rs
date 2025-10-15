@@ -15,7 +15,7 @@ pub(super) struct RawCell {
     pub(super) data_storage: Arc<Vec<u8>>,
     pub(super) start_bit: usize,
     pub(super) end_bit: usize,
-    pub(super) refs_positions: RefPosStorage,
+    pub(super) refs_pos: RefPosStorage,
     pub(super) level_mask: LevelMask,
 }
 
@@ -25,13 +25,13 @@ impl RawCell {
     pub(super) fn data_len_bits(&self) -> usize { self.end_bit - self.start_bit }
     pub(super) fn data_len_bytes(&self) -> usize { self.data_len_bits().div_ceil(8) }
     pub(super) fn size_in_boc_bytes(&self, ref_size_bytes: u32) -> u32 {
-        2 + self.data_len_bytes() as u32 + self.refs_positions.len() as u32 * ref_size_bytes
+        2 + self.data_len_bytes() as u32 + self.refs_pos.len() as u32 * ref_size_bytes
     }
 
     pub(super) fn write_to(&self, writer: &mut CellBitWriter, ref_size_bytes: u32) -> std::io::Result<()> {
         let level = self.level_mask;
         let is_exotic = self.cell_type.is_exotic() as u32;
-        let num_refs = self.refs_positions.len() as u32;
+        let num_refs = self.refs_pos.len() as u32;
         let data_len_bits = self.data_len_bits();
         let data_len_bytes = self.data_len_bytes();
 
@@ -57,8 +57,8 @@ impl RawCell {
             writer.write_var(8, last_byte)?;
         }
 
-        for r in &self.refs_positions {
-            writer.write_var(8 * ref_size_bytes, *r as u32)?;
+        for refs_pos in &self.refs_pos {
+            writer.write_var(8 * ref_size_bytes, *refs_pos as u32)?;
         }
 
         Ok(())
@@ -69,8 +69,9 @@ impl RawCell {
         ref_pos_size_bytes: u8,
         data_storage: Arc<Vec<u8>>,
     ) -> Result<Self, TonCoreError> {
-        let d1 = reader.read::<u8>()?;
-        let d2 = reader.read::<u8>()?;
+        let mut descriptors = [0u8; 2];
+        reader.read_bytes(&mut descriptors)?;
+        let (d1, d2) = (descriptors[0], descriptors[1]);
 
         let refs_count = d1 & 0b111;
         let is_exotic = (d1 & 0b1000) != 0;
@@ -118,9 +119,9 @@ impl RawCell {
         let data_len_bits = data_len_bytes * 8 - padding_len_bits as usize;
         let end_bit = start_bit + data_len_bits;
 
-        let mut refs_positions = RefPosStorage::with_capacity(refs_count as usize);
+        let mut refs_pos = RefPosStorage::with_capacity(refs_count as usize);
         for _ in 0..refs_count {
-            refs_positions.push(read_var_size(reader, ref_pos_size_bytes)?);
+            refs_pos.push(read_var_size(reader, ref_pos_size_bytes)?);
         }
 
         let cell = RawCell {
@@ -128,13 +129,13 @@ impl RawCell {
             data_storage,
             start_bit,
             end_bit,
-            refs_positions,
+            refs_pos,
             level_mask,
         };
         Ok(cell)
     }
 
-    pub(super) fn into_cell(self, refs: RefStorage) -> TonCell {
+    pub(super) fn into_ton_cell(self, refs: RefStorage) -> TonCell {
         let end_ref = refs.len() as u8;
         TonCell {
             cell_type: self.cell_type,
