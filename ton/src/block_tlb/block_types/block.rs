@@ -1,7 +1,7 @@
 use crate::block_tlb::BlockExtra;
 use crate::block_tlb::BlockInfo;
-use crate::ton_lib_core::types::tlb_core::adapters::TLBRef;
-use ton_lib_core::types::tlb_core::adapters::TonCellRef;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L462
@@ -9,23 +9,21 @@ use ton_lib_core::TLB;
 #[tlb(prefix = 0x11ef55aa, bits_len = 32)]
 pub struct Block {
     pub global_id: i32,
-    #[tlb(adapter = "TLBRef")]
-    pub info: BlockInfo,
-    pub value_flow: TonCellRef,   // TODO
-    pub state_update: TonCellRef, // TODO
-    #[tlb(adapter = "TLBRef")]
-    pub extra: BlockExtra,
+    pub info: TLBRef<BlockInfo>,
+    pub value_flow: TLBRef<TonCell>,   // TODO
+    pub state_update: TLBRef<TonCell>, // TODO
+    pub extra: TLBRef<BlockExtra>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
-
     use crate::block_tlb::block_types::block_info::ExtBlockRef;
     use crate::block_tlb::GlobalVersion;
     use crate::block_tlb::ShardIdent;
     use crate::block_tlb::_test_block_data::MASTER_BLOCK_BOC_HEX;
+    use std::collections::HashMap;
+    use std::ops::Deref;
     use std::str::FromStr;
     use tokio_test::assert_ok;
     use ton_lib_core::cell::TonHash;
@@ -82,7 +80,7 @@ mod tests {
 
             prev_vert_ref: None,
         };
-        assert_eq!(expected_block_info, parsed.info);
+        assert_eq!(&expected_block_info, parsed.info.deref());
 
         assert!(parsed.extra.mc_block_extra.is_some());
         // test block.extra.mc_block_extra.shard_hashes

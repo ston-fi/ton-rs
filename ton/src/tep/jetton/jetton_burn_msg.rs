@@ -1,6 +1,6 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::types::tlb_core::adapters::TonCellRef;
-use ton_lib_core::types::tlb_core::MsgAddress;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::{MsgAddress, TLBRef};
 use ton_lib_core::TLB;
 
 /// ```raw
@@ -15,7 +15,7 @@ pub struct JettonBurnMsg {
     pub query_id: u64,            // arbitrary request number
     pub amount: Coins,            // amount to burn
     pub response_dst: MsgAddress, // address to send confirmation
-    pub custom_payload: Option<TonCellRef>,
+    pub custom_payload: Option<TLBRef<TonCell>>,
 }
 
 impl JettonBurnMsg {

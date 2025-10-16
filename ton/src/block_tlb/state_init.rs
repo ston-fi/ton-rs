@@ -3,10 +3,10 @@ use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMapE;
 use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
-use ton_lib_core::cell::TonHash;
+use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::adapters::TonCellRef;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::types::TonAddress;
 use ton_lib_core::TLB;
 
@@ -16,16 +16,16 @@ pub struct StateInit {
     #[tlb(bits_len = 5)]
     pub split_depth: Option<u8>,
     pub tick_tock: Option<TickTock>,
-    pub code: Option<TonCellRef>,
-    pub data: Option<TonCellRef>,
+    pub code: Option<TLBRef<TonCell>>,
+    pub data: Option<TLBRef<TonCell>>,
     #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
     pub library: HashMap<TonHash, SimpleLib>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, TLB)]
+#[derive(Debug, Clone, PartialEq, TLB)]
 pub struct SimpleLib {
     pub public: bool,
-    pub root: TonCellRef,
+    pub root: TLBRef<TonCell>,
 }
 
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -37,8 +37,8 @@ pub struct TickTock {
 impl StateInit {
     pub fn new<C, D>(code: C, data: D) -> Self
     where
-        C: Into<TonCellRef>,
-        D: Into<TonCellRef>,
+        C: Into<TLBRef<TonCell>>,
+        D: Into<TLBRef<TonCell>>,
     {
         StateInit {
             split_depth: None,

@@ -38,15 +38,6 @@ pub(crate) fn tlb_derive_struct(
                 field_attrs.adapter = Some(adapter_str);
             }
 
-            if let Some(adapter) = field_attrs.adapter {
-                // well-known aliases
-                match adapter.as_str() {
-                    "TLBRef" => field_attrs.adapter = Some(format!("TLBRef::<{ty_token_stream}>::new()")),
-                    "TLBRefOpt" => field_attrs.adapter = Some(format!("TLBRefOpt::<{ty_token_stream}>::new()")),
-                    _ => field_attrs.adapter = Some(adapter),
-                }
-            }
-
             FieldInfo {
                 ident: ident.clone(),
                 position,

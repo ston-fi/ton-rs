@@ -1,12 +1,13 @@
-use crate::cell::{CellBuilder, CellParser, CellType};
+use crate::cell::{CellBuilder, CellParser, CellType, TonCell, TonHash};
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
+use std::sync::Arc;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct TLBRef<T>(T);
 
 impl<T: TLB> TLBRef<T> {
-    pub fn new<K: Into<T>>(val: K) -> Self { Self(val.into()) }
+    pub const fn new(val: T) -> Self { Self(val) }
     pub fn into_inner(self) -> T { self.0 }
 }
 
@@ -17,6 +18,10 @@ impl<T: TLB> TLB for TLBRef<T> {
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         builder.write_ref(self.0.to_cell()?)
     }
+    fn cell_hash(&self) -> Result<TonHash, TonCoreError> { Ok(self.0.cell_hash()?.clone()) }
+    fn from_boc<B: Into<Arc<Vec<u8>>>>(boc: B) -> Result<Self, TonCoreError> { Ok(Self::new(T::from_boc(boc)?)) }
+    fn to_cell(&self) -> Result<TonCell, TonCoreError> { self.0.to_cell() }
+    fn to_boc(&self) -> Result<Vec<u8>, TonCoreError> { self.0.to_boc() }
     fn ton_cell_type(&self) -> CellType { self.0.ton_cell_type() }
 }
 

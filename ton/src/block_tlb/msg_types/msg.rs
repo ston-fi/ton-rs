@@ -155,7 +155,7 @@ mod tests {
         let msg = Msg {
             info: msg_info,
             init: Some(TLBEitherRef {
-                value: StateInit::new(TonCell::empty(), TonCell::empty()),
+                value: StateInit::new(TonCell::empty().to_owned(), TonCell::empty().to_owned()),
                 layout: EitherRefLayout::ToRef,
             }),
             body: TLBEitherRef {

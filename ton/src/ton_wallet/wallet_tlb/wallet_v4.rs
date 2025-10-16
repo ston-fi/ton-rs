@@ -2,7 +2,7 @@ use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, wri
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::adapters::TonCellRef;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::{bail_ton_core, TLB};
 
 #[derive(Debug, PartialEq, Clone, TLB)]
@@ -10,7 +10,7 @@ pub struct WalletV4Data {
     pub seqno: u32,
     pub wallet_id: i32,
     pub public_key: TonHash,
-    pub plugins: Option<TonCellRef>,
+    pub plugins: Option<TLBRef<TonCell>>,
 }
 
 impl WalletV4Data {

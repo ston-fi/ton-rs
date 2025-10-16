@@ -97,7 +97,7 @@ pub(super) fn build_inner_request(msgs: &[TonCell], msgs_modes: &[u8]) -> Result
     for (msg, mode) in msgs.iter().zip(msgs_modes.iter()) {
         let action = OutActionSendMsg {
             mode: *mode,
-            out_msg: msg.into(),
+            out_msg: msg.clone().into(),
         };
         actions.push(OutAction::SendMsg(action));
     }

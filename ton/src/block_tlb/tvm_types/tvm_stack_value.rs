@@ -3,13 +3,13 @@ use crate::tlb_adapters::DictKeyAdapterInto;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
 use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
-use crate::ton_lib_core::types::tlb_core::adapters::TLBRef;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
-use ton_lib_core::types::tlb_core::adapters::TonCellRef;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 #[derive(Clone, TLB)]
@@ -50,13 +50,13 @@ pub struct TVMNan;
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x03, bits_len = 8)]
 pub struct TVMCell {
-    pub value: TonCellRef,
+    pub value: TLBRef<TonCell>,
 }
 
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x05, bits_len = 8)]
 pub struct TVMBuilder {
-    pub cell: TonCellRef,
+    pub cell: TLBRef<TonCell>,
 }
 
 #[derive(Debug, Clone, TLB)]
@@ -99,8 +99,7 @@ pub struct VMContStd {
 #[tlb(prefix = 0x01, bits_len = 8)]
 pub struct TVMContEnvelope {
     pub data: VMControlData,
-    #[tlb(adapter = "TLBRef")]
-    pub next: Arc<TVMCont>,
+    pub next: Arc<TLBRef<TVMCont>>,
 }
 
 #[derive(Debug, Clone, TLB)]
@@ -118,56 +117,44 @@ pub struct TVMContQuitExc {}
 pub struct VMContRepeat {
     #[tlb(bits_len = 63)]
     pub count: u64,
-    #[tlb(adapter = "TLBRef")]
-    pub body: Arc<TVMCont>,
-    #[tlb(adapter = "TLBRef")]
-    pub after: Arc<TVMCont>,
+    pub body: Arc<TLBRef<TVMCont>>,
+    pub after: Arc<TLBRef<TVMCont>>,
 }
 
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x110000, bits_len = 24)]
 pub struct VMContUntil {
-    #[tlb(adapter = "TLBRef")]
-    pub body: Arc<TVMCont>,
-    #[tlb(adapter = "TLBRef")]
-    pub after: Arc<TVMCont>,
+    pub body: Arc<TLBRef<TVMCont>>,
+    pub after: Arc<TLBRef<TVMCont>>,
 }
 
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x110001, bits_len = 24)]
 pub struct VMContAgain {
-    #[tlb(adapter = "TLBRef")]
-    pub body: Arc<TVMCont>,
+    pub body: Arc<TLBRef<TVMCont>>,
 }
 
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x110010, bits_len = 24)]
 pub struct VMContWhileCond {
-    #[tlb(adapter = "TLBRef")]
-    pub cond: Arc<TVMCont>,
-    #[tlb(adapter = "TLBRef")]
-    pub body: Arc<TVMCont>,
-    #[tlb(adapter = "TLBRef")]
-    pub after: Arc<TVMCont>,
+    pub cond: Arc<TLBRef<TVMCont>>,
+    pub body: Arc<TLBRef<TVMCont>>,
+    pub after: Arc<TLBRef<TVMCont>>,
 }
 
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x110011, bits_len = 24)]
 pub struct VMContWhileBody {
-    #[tlb(adapter = "TLBRef")]
-    pub cond: Arc<TVMCont>,
-    #[tlb(adapter = "TLBRef")]
-    pub body: Arc<TVMCont>,
-    #[tlb(adapter = "TLBRef")]
-    pub after: Arc<TVMCont>,
+    pub cond: Arc<TLBRef<TVMCont>>,
+    pub body: Arc<TLBRef<TVMCont>>,
+    pub after: Arc<TLBRef<TVMCont>>,
 }
 
 #[derive(Debug, Clone, TLB)]
 #[tlb(prefix = 0x1111, bits_len = 16)]
 pub struct VMContPushInt {
     pub value: i32,
-    #[tlb(adapter = "TLBRef")]
-    pub next: Arc<TVMCont>,
+    pub next: Arc<TLBRef<TVMCont>>,
 }
 
 impl Debug for TVMStackValue {
@@ -176,6 +163,7 @@ impl Debug for TVMStackValue {
 
 impl Display for TVMStackValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        use Deref;
         match self {
             TVMStackValue::Null(_) => write!(f, "Null"),
             TVMStackValue::TinyInt(v) => write!(f, "TinyInt({})", v.value),

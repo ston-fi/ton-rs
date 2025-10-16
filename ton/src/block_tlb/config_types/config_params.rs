@@ -8,13 +8,13 @@ use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::adapters::TonCellRef;
+use ton_lib_core::types::tlb_core::TLBRef;
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L543
 #[derive(Debug, Default)]
 pub struct ConfigParams {
     pub config_addr: TonHash,
-    pub config: HashMap<u32, TonCellRef>,
+    pub config: HashMap<u32, TLBRef<TonCell>>,
     storage_prices: RwLock<Option<Arc<ConfigParam18>>>,
     global_version: RwLock<Option<Arc<GlobalVersion>>>,
 }

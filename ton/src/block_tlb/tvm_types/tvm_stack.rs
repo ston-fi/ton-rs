@@ -70,7 +70,7 @@ impl TVMStack {
     pub fn pop_cell(&mut self) -> Result<TonCell, TonError> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
-            Some(TVMStackValue::Cell(cell)) => Ok(cell.value.into()),
+            Some(TVMStackValue::Cell(cell)) => Ok(cell.value.into_inner()),
             Some(TVMStackValue::CellSlice(slice)) => Ok(slice.to_cell()?),
             _ => Err(TonError::TVMStackWrongType("Cell".to_string(), format!("{self:?}"))),
         }
