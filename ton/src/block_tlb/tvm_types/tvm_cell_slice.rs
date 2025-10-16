@@ -24,7 +24,7 @@ impl TVMCellSlice {
         }
     }
 
-    pub fn to_cell(&self) -> Result<TonCell, TonCoreError> { TonCell::slice(&self.value, self.borders) }
+    pub fn to_cell(&self) -> Result<TonCell, TonCoreError> { self.value.slice(self.borders) }
 }
 
 impl TLB for TVMCellSlice {

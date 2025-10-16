@@ -44,31 +44,31 @@ impl TonCell {
     pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary) }
 
     // Borders are relative to origin cell
-    pub fn slice(cell: &TonCell, borders: CellBorders) -> Result<Self, TonCoreError> {
+    pub fn slice(&self, borders: CellBorders) -> Result<Self, TonCoreError> {
         let new_cell_borders = CellBorders {
-            start_bit: borders.start_bit + cell.borders.start_bit,
-            end_bit: borders.end_bit + cell.borders.start_bit,
-            start_ref: borders.start_ref + cell.borders.start_ref,
-            end_ref: borders.end_ref + cell.borders.start_ref,
+            start_bit: borders.start_bit + self.borders.start_bit,
+            end_bit: borders.end_bit + self.borders.start_bit,
+            start_ref: borders.start_ref + self.borders.start_ref,
+            end_ref: borders.end_ref + self.borders.start_ref,
         };
 
-        if new_cell_borders.end_bit > cell.borders.end_bit || new_cell_borders.end_ref > cell.borders.end_ref {
+        if new_cell_borders.end_bit > self.borders.end_bit || new_cell_borders.end_ref > self.borders.end_ref {
             bail_ton_core_data!(
                 "Can't build slice:\nslice_borders={:?}\ncell_borders={:?}\nnew_cell_borders={:?}",
                 borders,
-                cell.borders,
+                self.borders,
                 new_cell_borders
             );
         }
 
-        let (cell_type, meta) = if new_cell_borders == cell.borders {
-            (cell.cell_type, cell.meta.clone())
+        let (cell_type, meta) = if new_cell_borders == self.borders {
+            (self.cell_type, self.meta.clone())
         } else {
             (CellType::Ordinary, Arc::new(CellMeta::default()))
         };
         Ok(TonCell {
             cell_type,
-            cell_data: cell.cell_data.clone(),
+            cell_data: self.cell_data.clone(),
             borders: new_cell_borders,
             meta,
         })
@@ -192,5 +192,39 @@ fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize
             write_cell_display(f, cell_ref, indent_level + 1)?;
         }
         writeln!(f, "{indent}]}}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cell::{CellBorders, TonCell};
+
+    #[test]
+    fn test_ton_cell_slice() -> anyhow::Result<()> {
+        let mut builder = TonCell::builder();
+        builder.write_bits([1, 2, 3], 24)?;
+
+        for i in 0..4 {
+            let mut c_builder = TonCell::builder();
+            c_builder.write_num(&i, 8)?;
+            builder.write_ref(c_builder.build()?)?;
+        }
+        let cell = builder.build()?;
+        assert_eq!(cell.underlying_storage(), &[1, 2, 3]);
+        assert_eq!(cell.data_len_bits(), 24);
+        assert_eq!(cell.refs().len(), 4);
+
+        let slice = cell.slice(CellBorders {
+            start_bit: 8,
+            end_bit: 16,
+            start_ref: 1,
+            end_ref: 3,
+        })?;
+        assert_eq!(slice.underlying_storage(), &[1, 2, 3]);
+        assert_eq!(slice.data_len_bits(), 8);
+        assert_eq!(slice.refs().len(), 2);
+        assert_eq!(slice.refs()[0].underlying_storage(), &[1]);
+        assert_eq!(slice.refs()[1].underlying_storage(), &[2]);
+        Ok(())
     }
 }
