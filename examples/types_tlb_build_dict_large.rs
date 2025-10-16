@@ -15,7 +15,7 @@ const ITEMS_COUNT: usize = 400000;
 
 #[derive(TLB)]
 struct MyDict {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto, DictValAdapterNum<256>, _, _>::new(256)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterNum<_, 256>>::new(256)")]
     pub data: HashMap<usize, BigUint>,
 }
 

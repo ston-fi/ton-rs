@@ -63,7 +63,7 @@ impl TLB for ConfigParams {
         let config_addr = TLB::read(parser)?;
         let config_ref = parser.read_next_ref()?;
         let config =
-            TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).read(&mut config_ref.parser())?;
+            TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(32).read(&mut config_ref.parser())?;
         Ok(Self {
             config_addr,
             config,
@@ -74,7 +74,7 @@ impl TLB for ConfigParams {
     fn write_definition(&self, dst: &mut CellBuilder) -> Result<(), TonCoreError> {
         self.config_addr.write(dst)?;
         let mut config_cell = TonCell::builder();
-        TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).write(&mut config_cell, &self.config)?;
+        TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(32).write(&mut config_cell, &self.config)?;
         dst.write_ref(config_cell.build()?)?;
         Ok(())
     }

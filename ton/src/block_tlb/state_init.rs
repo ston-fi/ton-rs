@@ -18,7 +18,7 @@ pub struct StateInit {
     pub tick_tock: Option<TickTock>,
     pub code: Option<TLBRef<TonCell>>,
     pub data: Option<TLBRef<TonCell>>,
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
+    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
     pub library: HashMap<TonHash, SimpleLib>,
 }
 

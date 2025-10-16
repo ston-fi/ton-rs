@@ -9,7 +9,7 @@ use ton_lib_core::TLB;
 // TODO not tested
 #[derive(Clone, Debug, TLB)]
 pub struct MintlessAirdropDict {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterAddress, DictValAdapterTLB, _, _>::new(267)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterAddress<TonAddress>, DictValAdapterTLB<_>>::new(267)")]
     pub data: HashMap<TonAddress, MintlessAirdropData>,
 }
 

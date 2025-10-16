@@ -60,10 +60,8 @@ fn build_dict_ton_rs_current() {
         let data_clone = DICT_DATA.clone(); // must do it to compare with ton_core
                                             // MyDict{data:data_clone}
         tlb_adapters_current::TLBHashMap::<
-            tlb_adapters_current::DictKeyAdapterInto,
-            tlb_adapters_current::DictValAdapterNum<2>,
-            _,
-            _,
+            tlb_adapters_current::DictKeyAdapterInto<_>,
+            tlb_adapters_current::DictValAdapterNum<_, 2>,
         >::new(256)
         .write(&mut builder, &data_clone)
         .unwrap();

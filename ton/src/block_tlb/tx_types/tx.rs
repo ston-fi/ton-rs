@@ -37,7 +37,7 @@ impl TLB for TxMsgs {
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
         let in_msg: Option<TLBRef<Msg>> = TLB::read(parser)?;
         let mut out_msgs_map: HashMap<u32, TLBRef<Msg>> =
-            TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(15).read(parser)?;
+            TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(15).read(parser)?;
         let mut out_msgs = Vec::with_capacity(out_msgs_map.len());
         // it's important to keep the order
         for msg_index in 0..out_msgs_map.len() as u32 {
@@ -64,7 +64,7 @@ impl TLB for TxMsgs {
         for (pos, msg) in self.out_msgs.iter().enumerate() {
             out_msgs_map.insert(pos as u32, TLBRef::new(msg.clone().to_owned()));
         }
-        TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, u32, _>::new(15).write(builder, &out_msgs_map)?;
+        TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(15).write(builder, &out_msgs_map)?;
         Ok(())
     }
 }

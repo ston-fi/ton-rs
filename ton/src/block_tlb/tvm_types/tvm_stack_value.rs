@@ -84,7 +84,7 @@ pub struct VMControlData {
 
 #[derive(Debug, Clone, TLB)]
 pub struct VMSaveList {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(4)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(4)")]
     pub cregs: HashMap<u8, TVMStackValue>,
 }
 

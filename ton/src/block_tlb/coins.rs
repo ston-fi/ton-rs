@@ -19,7 +19,7 @@ pub struct Coins(VarLenBytes<u128, 4>);
 #[derive(Default, Clone, Debug, PartialEq, TLB)]
 pub struct CurrencyCollection {
     pub grams: Coins,
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32)")]
+    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(32)")]
     pub other: HashMap<TonExtraCurrencyId, VarLenBytes<BigUint, 5>>,
 }
 

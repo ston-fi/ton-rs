@@ -20,7 +20,7 @@ pub enum MetadataContent {
 #[derive(PartialEq, Debug, Clone, TLB)]
 #[tlb(prefix = 0x0, bits_len = 8)]
 pub struct MetadataInternal {
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
+    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
     pub data: MetadataDict,
 }
 

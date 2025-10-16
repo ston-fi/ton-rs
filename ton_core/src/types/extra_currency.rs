@@ -73,8 +73,8 @@ mod traits_impl {
         fn from_str(string: &str) -> Result<Self, Self::Err> { Ok(u32::from_str(string)?.into()) }
     }
 
-    impl Into<BigUint> for TonExtraCurrencyId {
-        fn into(self) -> BigUint { BigUint::from(self.0) }
+    impl From<TonExtraCurrencyId> for BigUint {
+        fn from(val: TonExtraCurrencyId) -> Self { BigUint::from(val.0) }
     }
 
     impl TryFrom<BigUint> for TonExtraCurrencyId {

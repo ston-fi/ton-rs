@@ -10,7 +10,7 @@ use ton_lib_core::TLB;
 /// Contains dict (TLBHashMap), no 'present' marker in root cell
 #[derive(Debug, Clone, PartialEq, Default, TLB)]
 pub struct LibsDict {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
     data: HashMap<TonHash, TLBRef<TonCell>>,
 }
 

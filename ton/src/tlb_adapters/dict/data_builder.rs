@@ -12,18 +12,18 @@ use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::tlb_core::adapters::UnaryLen;
 
-pub struct DictDataBuilder<'a, T, VA: DictValAdapter<T>> {
+pub struct DictDataBuilder<'a, VA: DictValAdapter> {
     keys_sorted: Vec<BigUint>, // contains 1 extra leading bit set to 1
-    values_sorted: &'a [&'a T],
+    values_sorted: &'a [&'a VA::ValType],
     key_bits_len_left: usize,
     _phantom: PhantomData<VA>,
 }
 
-impl<'a, T, VA: DictValAdapter<T>> DictDataBuilder<'a, T, VA> {
+impl<'a, VA: DictValAdapter> DictDataBuilder<'a, VA> {
     pub fn new(
         key_bits_len: usize,
         mut keys_sorted: Vec<BigUint>,
-        values_sorted: &'a [&'a T],
+        values_sorted: &'a [&'a VA::ValType],
     ) -> Result<Self, TonCoreError> {
         // we support writing empty dict, but it's usually handled by 0 bit in parent cell
         prepare_keys(&mut keys_sorted, key_bits_len)?;
