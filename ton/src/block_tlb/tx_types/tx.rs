@@ -29,28 +29,37 @@ pub struct Tx {
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct TxMsgs {
-    pub in_msg: Option<TLBRef<Msg>>,
+    pub in_msg: Option<Msg>,
     pub out_msgs: Vec<Msg>,
 }
 
 impl TLB for TxMsgs {
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
-        let in_msg = TLB::read(parser)?;
-        let mut out_msgs_map = TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, u32, _>::new(15).read(parser)?;
+        let in_msg: Option<TLBRef<Msg>> = TLB::read(parser)?;
+        let mut out_msgs_map: HashMap<u32, TLBRef<Msg>> =
+            TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(15).read(parser)?;
         let mut out_msgs = Vec::with_capacity(out_msgs_map.len());
         // it's important to keep the order
         for msg_index in 0..out_msgs_map.len() as u32 {
             let msg = match out_msgs_map.remove(&msg_index) {
-                Some(msg) => msg,
+                Some(msg) => msg.into_inner(),
                 None => bail_ton_core_data!("Missing out message with index {msg_index}"),
             };
             out_msgs.push(msg);
         }
-        Ok(Self { in_msg, out_msgs })
+        Ok(Self {
+            in_msg: in_msg.map(|x| x.into_inner()),
+            out_msgs,
+        })
     }
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
-        self.in_msg.write(builder)?;
+        if let Some(in_msg) = self.in_msg.as_ref() {
+            builder.write_bit(true)?;
+            builder.write_ref(in_msg.to_cell()?)?;
+        } else {
+            builder.write_bit(false)?;
+        }
         let mut out_msgs_map = HashMap::with_capacity(self.out_msgs.len());
         for (pos, msg) in self.out_msgs.iter().enumerate() {
             out_msgs_map.insert(pos as u32, TLBRef::new(msg.clone().to_owned()));
