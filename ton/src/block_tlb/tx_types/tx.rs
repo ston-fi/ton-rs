@@ -36,7 +36,7 @@ pub struct TxMsgs {
 impl TLB for TxMsgs {
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
         let in_msg = TLB::read(parser)?;
-        let mut out_msgs_map = TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLBRef, u32, _>::new(15).read(parser)?;
+        let mut out_msgs_map = TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, u32, _>::new(15).read(parser)?;
         let mut out_msgs = Vec::with_capacity(out_msgs_map.len());
         // it's important to keep the order
         for msg_index in 0..out_msgs_map.len() as u32 {
@@ -51,9 +51,11 @@ impl TLB for TxMsgs {
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         self.in_msg.write(builder)?;
-        let out_msgs_map: HashMap<_, _> =
-            self.out_msgs.iter().enumerate().map(|(i, msg)| (i as u32, TLBRef::new(msg.to_owned()))).collect();
-        TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLBRef, u32, _>::new(15).write(builder, &out_msgs_map)?;
+        let mut out_msgs_map = HashMap::with_capacity(self.out_msgs.len());
+        for (pos, msg) in self.out_msgs.iter().enumerate() {
+            out_msgs_map.insert(pos as u32, TLBRef::new(msg.clone().to_owned()));
+        }
+        TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, u32, _>::new(15).write(builder, &out_msgs_map)?;
         Ok(())
     }
 }

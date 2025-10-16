@@ -195,7 +195,7 @@ impl Inner {
                 );
             }
             for item in dict_items {
-                libs_dict.insert(item.0, item.1);
+                libs_dict.insert(item.0, item.1.into());
             }
         }
 

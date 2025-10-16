@@ -4,7 +4,7 @@ use crate::tep::tvm_results::tvm_result::TVMResult;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GetNFTContentResult {
     pub full_content: MetadataContent,
 }

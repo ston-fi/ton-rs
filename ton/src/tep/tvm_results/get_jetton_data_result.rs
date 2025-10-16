@@ -8,7 +8,7 @@ use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GetJettonDataResult {
     pub total_supply: Coins,
     pub mintable: bool,

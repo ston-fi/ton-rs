@@ -5,7 +5,7 @@ use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GetCollectionDataResult {
     pub next_item_index: i64,
     pub collection_content: MetadataContent,

@@ -1,34 +1,38 @@
-use crate::tlb_adapters::DictValAdapterTLBRef;
+use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::{DictKeyAdapterTonHash, TLBHashMap};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 /// Contains dict (TLBHashMap), no 'present' marker in root cell
 #[derive(Debug, Clone, PartialEq, Default, TLB)]
 pub struct LibsDict {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonHash, DictValAdapterTLBRef, _, _>::new(256)")]
-    data: HashMap<TonHash, TonCell>,
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
+    data: HashMap<TonHash, TLBRef<TonCell>>,
 }
 
 impl LibsDict {
     pub fn new<I: IntoIterator<Item = TonCell>>(libs: I) -> Result<Self, TonCoreError> {
         let mut data = HashMap::new();
         for lib in libs {
-            data.insert(lib.hash()?.clone(), lib);
+            data.insert(lib.hash()?.clone(), lib.into());
         }
-        Ok(LibsDict { data })
+        Ok(Self { data })
     }
 }
 
 impl From<HashMap<TonHash, TonCell>> for LibsDict {
-    fn from(data: HashMap<TonHash, TonCell>) -> Self { LibsDict { data } }
+    fn from(data: HashMap<TonHash, TonCell>) -> Self {
+        let inner_data = data.into_iter().map(|(k, v)| (k, TLBRef::from(v))).collect::<HashMap<_, _>>();
+        Self { data: inner_data }
+    }
 }
 
 impl Deref for LibsDict {
-    type Target = HashMap<TonHash, TonCell>;
+    type Target = HashMap<TonHash, TLBRef<TonCell>>;
     fn deref(&self) -> &Self::Target { &self.data }
 }
 
