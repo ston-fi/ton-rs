@@ -2,7 +2,6 @@ use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
-use std::ops::{Deref, DerefMut};
 
 /// Either X ^X
 ///
@@ -29,6 +28,7 @@ impl<T> TLBEitherRef<T> {
     }
 
     pub fn new_with_layout(value: T, layout: EitherRefLayout) -> Self { Self { value, layout } }
+    pub fn into_inner(self) -> T { self.value }
 }
 
 impl<T: TLB> TLB for TLBEitherRef<T> {
@@ -75,15 +75,15 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
     }
 }
 
-impl<T> Deref for TLBEitherRef<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target { &self.value }
-}
-impl<T> DerefMut for TLBEitherRef<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.value }
-}
-impl<T: PartialEq> PartialEq for TLBEitherRef<T> {
-    fn eq(&self, other: &Self) -> bool { self.value == other.value }
+#[rustfmt::skip]
+mod traits_impl {
+    use std::ops::{Deref, DerefMut};
+    use crate::types::tlb_core::TLBEitherRef;
+
+    impl<T> Deref for TLBEitherRef<T> { type Target = T; fn deref(&self) -> &Self::Target { &self.value }}
+    impl<T> DerefMut for TLBEitherRef<T> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.value } }
+    impl<T: PartialEq> PartialEq for TLBEitherRef<T> { fn eq(&self, other: &Self) -> bool { self.value == other.value }}
+    impl<T> From<T> for TLBEitherRef<T> { fn from(value: T) -> Self { Self::new(value) } }
 }
 
 #[cfg(test)]
