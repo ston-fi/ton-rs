@@ -94,7 +94,7 @@ pub(super) fn build_inner_request(msgs: &[TonCell], msgs_modes: &[u8]) -> Result
 
     validate_msgs_count(msgs, msgs_modes, 255)?;
     let mut actions = vec![];
-    for (msg, mode) in msgs.iter().zip(msgs_modes.iter()) {
+    for (msg, mode) in msgs.iter().zip(msgs_modes) {
         let action = OutActionSendMsg {
             mode: *mode,
             out_msg: msg.clone().into(),
