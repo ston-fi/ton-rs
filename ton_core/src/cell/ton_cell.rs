@@ -1,5 +1,6 @@
 use crate::bail_ton_core_data;
 use crate::bits_utils::BitsUtils;
+use crate::cell::cell_builder::INITIAL_STORAGE_CAPACITY;
 use crate::cell::cell_meta::CellMeta;
 use crate::cell::cell_meta::CellType;
 use crate::cell::ton_hash::TonHash;
@@ -41,7 +42,10 @@ impl TonCell {
 
     pub fn empty() -> &'static Self { EMPTY_CELL.deref() }
 
-    pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary) }
+    pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary, INITIAL_STORAGE_CAPACITY) }
+    pub fn builder_extra(cell_type: CellType, initial_capacity: usize) -> CellBuilder {
+        CellBuilder::new(cell_type, initial_capacity)
+    }
 
     // Borders are relative to origin cell
     pub fn slice(&self, borders: CellBorders) -> Result<Self, TonCoreError> {
@@ -73,7 +77,7 @@ impl TonCell {
             meta,
         })
     }
-    pub fn builder_typed(cell_type: CellType) -> CellBuilder { CellBuilder::new(cell_type) }
+
     pub fn parser(&'_ self) -> CellParser<'_> { CellParser::new(self) }
 
     pub fn cell_type(&self) -> CellType { self.cell_type }

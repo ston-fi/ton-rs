@@ -5,10 +5,10 @@ mod tlb_opt;
 mod tlb_ptr;
 
 use crate::bail_ton_core_data;
-use crate::cell::BoC;
 use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::CellType;
+use crate::cell::{BoC, INITIAL_STORAGE_CAPACITY};
 use crate::cell::{TonCell, TonHash};
 use crate::errors::TonCoreError;
 use base64::engine::general_purpose::STANDARD;
@@ -64,7 +64,7 @@ pub trait TLB: Sized {
 
     /// Writing
     fn to_cell(&self) -> Result<TonCell, TonCoreError> {
-        let mut builder = TonCell::builder_typed(self.ton_cell_type());
+        let mut builder = TonCell::builder_extra(self.ton_cell_type(), INITIAL_STORAGE_CAPACITY);
         self.write(&mut builder)?;
         builder.build()
     }

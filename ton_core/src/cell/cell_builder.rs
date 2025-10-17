@@ -9,6 +9,8 @@ use std::cmp::min;
 use std::ops::Deref;
 use std::sync::Arc;
 
+pub(crate) const INITIAL_STORAGE_CAPACITY: usize = 1024;
+
 pub struct CellBuilder {
     cell_type: CellType,
     data_writer: BitWriter<Vec<u8>, BigEndian>,
@@ -17,10 +19,11 @@ pub struct CellBuilder {
 }
 
 impl CellBuilder {
-    pub fn new(cell_type: CellType) -> Self {
+    pub(super) fn new(cell_type: CellType, initial_capacity: usize) -> Self {
+        let data_store = Vec::with_capacity(initial_capacity);
         Self {
             cell_type,
-            data_writer: BitWriter::endian(vec![], BigEndian),
+            data_writer: BitWriter::endian(data_store, BigEndian),
             data_len_bits: 0,
             refs: RefStorage::new(),
         }
@@ -93,9 +96,9 @@ impl CellBuilder {
 
         let full_bytes = bits_len / 8;
         self.data_writer.write_bytes(&data_ref[0..full_bytes])?;
-        let rest_bits_len = bits_len % 8;
-        if rest_bits_len != 0 {
-            self.data_writer.write_var(rest_bits_len as u32, data_ref[full_bytes] >> (8 - rest_bits_len))?;
+        let remaining_len_bits = bits_len % 8;
+        if remaining_len_bits != 0 {
+            self.data_writer.write_var(remaining_len_bits as u32, data_ref[full_bytes] >> (8 - remaining_len_bits))?;
         }
         Ok(())
     }
@@ -109,8 +112,8 @@ impl CellBuilder {
         let data_bits_len = parser.data_bits_left()?;
         let data = parser.read_bits(data_bits_len)?;
         self.write_bits(&data, data_bits_len)?;
-        for _ in 0..(cell.borders.end_ref - cell.borders.start_ref) {
-            self.write_ref(parser.read_next_ref()?.clone())?;
+        for cell_ref in cell.refs() {
+            self.write_ref(cell_ref.to_owned())?;
         }
         Ok(())
     }
@@ -405,11 +408,11 @@ mod tests {
 
     #[test]
     fn test_builder_build_cell_library() -> anyhow::Result<()> {
-        let mut builder = TonCell::builder_typed(CellType::LibraryRef);
+        let mut builder = TonCell::builder_extra(CellType::LibraryRef, INITIAL_STORAGE_CAPACITY);
         builder.write_bits(TonHash::ZERO, TonHash::BITS_LEN)?;
         assert_err!(builder.build()); // no lib prefix
 
-        let mut builder = TonCell::builder_typed(CellType::LibraryRef);
+        let mut builder = TonCell::builder_extra(CellType::LibraryRef, INITIAL_STORAGE_CAPACITY);
         builder.write_num(&2, 8)?; // adding lib prefix https://docs.ton.org/v3/documentation/data-formats/tlb/exotic-cells#library-reference
         builder.write_bits(TonHash::ZERO, TonHash::BITS_LEN)?;
         let lib_cell = assert_ok!(builder.build());

@@ -96,7 +96,7 @@ impl<'a> CellParser<'a> {
         Ok(slice)
     }
 
-    pub fn read_rest(&mut self) -> Result<TonCell, TonCoreError> {
+    pub fn read_remaining(&mut self) -> Result<TonCell, TonCoreError> {
         let bits_len = self.data_bits_left()?;
         let refs_len = self.refs_left();
         self.read_cell(bits_len, refs_len as u8)
@@ -300,7 +300,7 @@ mod tests {
         parser.read_bits(4)?; // skip 4 bits
         parser.read_next_ref()?; // skip first ref
 
-        let cell = parser.read_rest()?;
+        let cell = parser.read_remaining()?;
         let expected_borders = CellBorders {
             start_bit: 4,
             end_bit: orig_cell.borders.end_bit,
