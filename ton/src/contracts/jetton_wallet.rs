@@ -1,13 +1,13 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::ton_contract::{ContractCtx, TonContract};
+use crate::contracts::ton_contract::TonContract;
+use crate::contracts::ContractClient;
 use crate::errors::TonError;
 use crate::tep::tvm_results::{GetWalletDataResult, TVMResult};
+use crate::ton_contract;
+use crate::ton_lib_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
-use ton_lib_core::ton_contract;
 
-#[ton_contract]
-pub struct JettonWalletContract;
-impl JettonWalletMethods for JettonWalletContract {}
+ton_contract!(JettonWalletContract: JettonWalletMethods);
 
 #[async_trait]
 pub trait JettonWalletMethods: TonContract {

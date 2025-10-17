@@ -1,15 +1,14 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::ton_contract::ContractCtx;
 use crate::contracts::ton_contract::TonContract;
+use crate::contracts::ContractClient;
 use crate::errors::TonError;
+use crate::ton_contract;
+use crate::ton_lib_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
 use ton_lib_core::cell::TonHash;
-use ton_lib_core::ton_contract;
 use ton_lib_core::traits::tlb::TLB;
 
-#[ton_contract]
-pub struct TonWalletContract;
-impl TonWalletMethods for TonWalletContract {}
+ton_contract!(TonWalletContract: TonWalletMethods);
 
 #[async_trait]
 pub trait TonWalletMethods: TonContract {
