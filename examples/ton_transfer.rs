@@ -100,7 +100,7 @@ mod example {
         let expire_at = expired_at_time.duration_since(std::time::UNIX_EPOCH)?.as_secs() as u32;
 
         // Get current ton_wallet seqno
-        let wallet_ctr = TonWalletContract::new(&ctr_cli, wallet.address.clone(), None).await?;
+        let wallet_ctr = TonWalletContract::new(&ctr_cli, &wallet.address, None).await?;
         let seqno = wallet_ctr.seqno().await?;
 
         let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell()?], seqno, expire_at, false)?;

@@ -36,7 +36,7 @@ mod example {
         let address = TonAddress::from_str("EQBSUY4UWGJFAps0KwHY4tpOGqzU41DZhyrT8OuyAWWtnezy")?;
 
         // Emulation using predefined implementation of TonContract
-        let pool = StonfiPool::new(&ctr_cli, address.clone(), None).await?;
+        let pool = StonfiPool::new(&ctr_cli, &address, None).await?;
         let jetton_data = pool.get_jetton_data().await?;
         let pool_data = pool.get_pool_data().await?;
         println!("[predefined] jetton_data_result stack len: {:?}", jetton_data.len());

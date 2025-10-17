@@ -81,7 +81,7 @@ async fn test_contract_client_tl_provider() -> anyhow::Result<()> {
 
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(0));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(0));
-    let _contract = JettonMasterContract::new(&ctr_cli, usdt_master.clone(), None).await?;
+    let _contract = JettonMasterContract::new(&ctr_cli, &usdt_master, None).await?;
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
 
@@ -89,13 +89,13 @@ async fn test_contract_client_tl_provider() -> anyhow::Result<()> {
         59663842000027,
         TonHash::from_str("7d90294122887b3ee8c3ee534eaf2d62533445dff4646ad9c9dbd05ab404baaf")?,
     );
-    let _contract = JettonMasterContract::new(&ctr_cli, usdt_master.clone(), Some(tx_id.clone())).await?;
+    let _contract = JettonMasterContract::new(&ctr_cli, &usdt_master, Some(tx_id.clone())).await?;
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_miss").copied(), Some(1));
 
-    let _contract = JettonMasterContract::new(&ctr_cli, usdt_master.clone(), Some(tx_id.clone())).await?;
+    let _contract = JettonMasterContract::new(&ctr_cli, &usdt_master, Some(tx_id.clone())).await?;
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(2));
