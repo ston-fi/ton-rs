@@ -9,24 +9,28 @@ use ton_lib_core::errors::TonCoreError;
 // https://github.com/ton-blockchain/ton/blame/72056a2261cbb11f7cf0f20b389bcbffe018b1a8/crypto/block/block.tlb#L37
 /// Write present marker (0|1 bit) to root cell, and then Dict data to first ref cell.
 /// Usage: `#[tlb_derive(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]` instead
-pub struct TLBHashMapE<KA: DictKeyAdapter<K>, VA: DictValAdapter<V>, K, V>(TLBHashMap<KA, VA, K, V>);
+pub struct TLBHashMapE<KA: DictKeyAdapter, VA: DictValAdapter>(TLBHashMap<KA, VA>);
 
-impl<KA, VA, K, V> TLBHashMapE<KA, VA, K, V>
+impl<KA, VA> TLBHashMapE<KA, VA>
 where
-    KA: DictKeyAdapter<K>,
-    VA: DictValAdapter<V>,
-    K: Eq + Hash + Ord,
+    KA: DictKeyAdapter,
+    VA: DictValAdapter,
+    KA::KeyType: Eq + Hash + Ord,
 {
     pub fn new(key_bits_len: u32) -> Self { Self(TLBHashMap::new(key_bits_len)) }
 
-    pub fn read(&self, parser: &mut CellParser) -> Result<HashMap<K, V>, TonCoreError> {
+    pub fn read(&self, parser: &mut CellParser) -> Result<HashMap<KA::KeyType, VA::ValType>, TonCoreError> {
         if !parser.read_bit()? {
             return Ok(HashMap::new());
         }
         self.0.read(&mut parser.read_next_ref()?.parser())
     }
 
-    pub fn write(&self, builder: &mut CellBuilder, data: &HashMap<K, V>) -> Result<(), TonCoreError> {
+    pub fn write(
+        &self,
+        builder: &mut CellBuilder,
+        data: &HashMap<KA::KeyType, VA::ValType>,
+    ) -> Result<(), TonCoreError> {
         if data.is_empty() {
             builder.write_bit(false)?;
             return Ok(());
@@ -34,14 +38,14 @@ where
         builder.write_bit(true)?;
         let mut dict_data_builder = TonCell::builder();
         self.0.write(&mut dict_data_builder, data)?;
-        builder.write_ref(dict_data_builder.build()?.into_ref())
+        builder.write_ref(dict_data_builder.build()?)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tlb_adapters::{DictKeyAdapterInto, DictValAdapterNum};
+    use crate::tlb_adapters::{DictKeyAdapterUint, DictValAdapterNum};
     use num_bigint::BigUint;
     use ton_lib_core::traits::tlb::TLB;
 
@@ -57,11 +61,11 @@ mod tests {
         let mut parser = dict_cell.parser();
         let some_data = parser.read_bits(96)?;
 
-        let parsed_data = TLBHashMapE::<DictKeyAdapterInto, DictValAdapterNum<150>, _, _>::new(8).read(&mut parser)?;
+        let parsed_data = TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(8).read(&mut parser)?;
         assert_eq!(expected_data, parsed_data);
         let mut builder = TonCell::builder();
         builder.write_bits(&some_data, 96)?;
-        TLBHashMapE::<DictKeyAdapterInto, DictValAdapterNum<150>, _, _>::new(8).write(&mut builder, &expected_data)?;
+        TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(8).write(&mut builder, &expected_data)?;
         let constructed_cell = builder.build()?;
         assert_eq!(dict_cell, constructed_cell);
         Ok(())
@@ -79,12 +83,12 @@ mod tests {
 
         for key_len_bits in [8u32, 16, 32, 64, 111] {
             let mut builder = TonCell::builder();
-            TLBHashMapE::<DictKeyAdapterInto, DictValAdapterNum<150>, _, _>::new(key_len_bits)
+            TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(key_len_bits)
                 .write(&mut builder, &data)?;
             let dict_cell = builder.build()?;
             let mut parser = dict_cell.parser();
             let parsed =
-                TLBHashMapE::<DictKeyAdapterInto, DictValAdapterNum<150>, _, _>::new(key_len_bits).read(&mut parser)?;
+                TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(key_len_bits).read(&mut parser)?;
             assert_eq!(data, parsed, "key_len_bits: {key_len_bits}");
         }
         Ok(())

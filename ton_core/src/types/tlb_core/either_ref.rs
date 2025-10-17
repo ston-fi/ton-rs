@@ -2,7 +2,6 @@ use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
-use std::ops::{Deref, DerefMut};
 
 /// Either X ^X
 ///
@@ -29,6 +28,7 @@ impl<T> TLBEitherRef<T> {
     }
 
     pub fn new_with_layout(value: T, layout: EitherRefLayout) -> Self { Self { value, layout } }
+    pub fn into_inner(self) -> T { self.value }
 }
 
 impl<T: TLB> TLB for TLBEitherRef<T> {
@@ -53,7 +53,7 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
             EitherRefLayout::ToRef => EitherRefLayout::ToRef,
             EitherRefLayout::Native => {
                 // strictly <, 1 more bit is reserver for layout marker
-                if cell.data_bits_len < builder.data_bits_left() {
+                if cell.data_len_bits() < builder.data_bits_left() {
                     EitherRefLayout::ToCell
                 } else {
                     EitherRefLayout::ToRef
@@ -67,7 +67,7 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
             }
             EitherRefLayout::ToRef => {
                 builder.write_bit(true)?;
-                builder.write_ref(cell.into_ref())?;
+                builder.write_ref(cell)?;
             }
             _ => unreachable!("Invalid EitherRefLayout value"),
         };
@@ -75,15 +75,15 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
     }
 }
 
-impl<T> Deref for TLBEitherRef<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target { &self.value }
-}
-impl<T> DerefMut for TLBEitherRef<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.value }
-}
-impl<T: PartialEq> PartialEq for TLBEitherRef<T> {
-    fn eq(&self, other: &Self) -> bool { self.value == other.value }
+#[rustfmt::skip]
+mod traits_impl {
+    use std::ops::{Deref, DerefMut};
+    use crate::types::tlb_core::TLBEitherRef;
+
+    impl<T> Deref for TLBEitherRef<T> { type Target = T; fn deref(&self) -> &Self::Target { &self.value }}
+    impl<T> DerefMut for TLBEitherRef<T> { fn deref_mut(&mut self) -> &mut Self::Target { &mut self.value } }
+    impl<T: PartialEq> PartialEq for TLBEitherRef<T> { fn eq(&self, other: &Self) -> bool { self.value == other.value }}
+    impl<T> From<T> for TLBEitherRef<T> { fn from(value: T) -> Self { Self::new(value) } }
 }
 
 #[cfg(test)]
@@ -153,7 +153,7 @@ mod tests {
 
         impl TLB for List {
             fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
-                match parser.data_bits_remaining()? {
+                match parser.data_bits_left()? {
                     0 => Ok(Self::Empty),
                     _ => Ok(Self::Some(TLB::read(parser)?)),
                 }

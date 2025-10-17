@@ -1,11 +1,12 @@
-use crate::tlb_adapters::ConstLen;
 use crate::tlb_adapters::DictKeyAdapterTonHash;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMapE;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
-use ton_lib_core::cell::{TonCellRef, TonHash};
+use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::types::TonAddress;
 use ton_lib_core::TLB;
 
@@ -15,16 +16,16 @@ pub struct StateInit {
     #[tlb(bits_len = 5)]
     pub split_depth: Option<u8>,
     pub tick_tock: Option<TickTock>,
-    pub code: Option<TonCellRef>,
-    pub data: Option<TonCellRef>,
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
+    pub code: Option<TLBRef<TonCell>>,
+    pub data: Option<TLBRef<TonCell>>,
+    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
     pub library: HashMap<TonHash, SimpleLib>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, TLB)]
+#[derive(Debug, Clone, PartialEq, TLB)]
 pub struct SimpleLib {
     pub public: bool,
-    pub root: TonCellRef,
+    pub root: TLBRef<TonCell>,
 }
 
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -34,12 +35,16 @@ pub struct TickTock {
 }
 
 impl StateInit {
-    pub fn new(code: TonCellRef, data: TonCellRef) -> Self {
+    pub fn new<C, D>(code: C, data: D) -> Self
+    where
+        C: Into<TLBRef<TonCell>>,
+        D: Into<TLBRef<TonCell>>,
+    {
         StateInit {
             split_depth: None,
             tick_tock: None,
-            code: Some(code),
-            data: Some(data),
+            code: Some(code.into()),
+            data: Some(data.into()),
             library: Default::default(),
         }
     }
@@ -80,8 +85,8 @@ mod tests {
         let code_cell = TonCell::from_boc_hex(
             "b5ee9c7201010101002300084202a9338ecd624ca15d37e4a8d9bf677ddc9b84f0e98f05f2fb84c7afe332a281b4",
         )?;
-        let data_cell = TonCell::from_boc_hex("b5ee9c720101040100b900010d000000000000050102c9801459f7c0a12bb4ac4b78a788c425ee4d52f8b6041dda17b77b09fc5a03e894d6900287cd9fbe2ea663415da0aa6bbdf0cb136abe9c4f45214dd259354b80da8c265a006aebb27f5d0f1daf43e200f52408f3eb9ff5610f5b43284224644e7c6a590d14400203084202c00836440d084e44fb94316132ac5a21417ef4f429ee09b5560b5678b334c3e8084202c95a2ed22ab516f77f9d4898dc4578e72f18a2448e8f6832334b0b4bf501bc79")?.into_ref();
-        let state_init = StateInit::new(code_cell.into_ref(), data_cell);
+        let data_cell = TonCell::from_boc_hex("b5ee9c720101040100b900010d000000000000050102c9801459f7c0a12bb4ac4b78a788c425ee4d52f8b6041dda17b77b09fc5a03e894d6900287cd9fbe2ea663415da0aa6bbdf0cb136abe9c4f45214dd259354b80da8c265a006aebb27f5d0f1daf43e200f52408f3eb9ff5610f5b43284224644e7c6a590d14400203084202c00836440d084e44fb94316132ac5a21417ef4f429ee09b5560b5678b334c3e8084202c95a2ed22ab516f77f9d4898dc4578e72f18a2448e8f6832334b0b4bf501bc79")?;
+        let state_init = StateInit::new(code_cell, data_cell);
         let address = state_init.derive_address(0)?;
         let exp_addr = TonAddress::from_str("EQAdltEfzXG_xteLFaKFGd-HPVKrEJqv_FdC7z2roOddRNdM")?;
         assert_eq!(address, exp_addr);

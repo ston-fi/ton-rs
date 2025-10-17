@@ -1,23 +1,29 @@
 use crate::bail_ton;
 use crate::errors::TonError;
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint, Sign};
+use num_traits::One;
+use std::marker::PhantomData;
 use ton_lib_core::cell::TonCell;
 use ton_lib_core::cell::TonHash;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::tlb_core::MsgAddressInt;
 use ton_lib_core::types::TonAddress;
 
-pub trait DictKeyAdapter<K> {
-    fn make_key(src_key: &K) -> Result<BigUint, TonError>;
-    fn extract_key(dict_key: &BigUint) -> Result<K, TonError>;
+pub trait DictKeyAdapter {
+    type KeyType;
+    fn make_key(src_key: &Self::KeyType) -> Result<BigUint, TonError>;
+    fn extract_key(dict_key: &BigUint) -> Result<Self::KeyType, TonError>;
 }
 
 pub struct DictKeyAdapterTonHash; // properly tested in LibsDict & account_types
-pub struct DictKeyAdapterInto;
-pub struct DictKeyAdapterAddress;
+pub struct DictKeyAdapterUint<T>(PhantomData<T>);
+pub struct DictKeyAdapterInt<T>(PhantomData<T>);
+pub struct DictKeyAdapterMsgAddress;
+pub struct DictKeyAdapterTonAddress;
 pub struct DictKeyAdapterString; // TODO is not covered by tests
 
-impl DictKeyAdapter<TonHash> for DictKeyAdapterTonHash {
+impl DictKeyAdapter for DictKeyAdapterTonHash {
+    type KeyType = TonHash;
     fn make_key(src_key: &TonHash) -> Result<BigUint, TonError> { Ok(BigUint::from_bytes_be(src_key.as_slice())) }
 
     fn extract_key(dict_key: &BigUint) -> Result<TonHash, TonError> {
@@ -38,10 +44,11 @@ impl DictKeyAdapter<TonHash> for DictKeyAdapterTonHash {
     }
 }
 
-impl DictKeyAdapter<MsgAddressInt> for DictKeyAdapterAddress {
+impl DictKeyAdapter for DictKeyAdapterMsgAddress {
+    type KeyType = MsgAddressInt;
     fn make_key(src_key: &MsgAddressInt) -> Result<BigUint, TonError> {
         let cell = src_key.to_cell()?;
-        Ok(BigUint::from_bytes_le(&cell.data))
+        Ok(cell.parser().read_num(cell.data_len_bits())?)
     }
 
     fn extract_key(dict_key: &BigUint) -> Result<MsgAddressInt, TonError> {
@@ -51,10 +58,11 @@ impl DictKeyAdapter<MsgAddressInt> for DictKeyAdapterAddress {
     }
 }
 
-impl DictKeyAdapter<TonAddress> for DictKeyAdapterAddress {
+impl DictKeyAdapter for DictKeyAdapterTonAddress {
+    type KeyType = TonAddress;
     fn make_key(src_key: &TonAddress) -> Result<BigUint, TonError> {
         let cell = src_key.to_cell()?;
-        Ok(BigUint::from_bytes_le(&cell.data))
+        Ok(cell.parser().read_num(cell.data_len_bits())?)
     }
 
     fn extract_key(dict_key: &BigUint) -> Result<TonAddress, TonError> {
@@ -64,10 +72,11 @@ impl DictKeyAdapter<TonAddress> for DictKeyAdapterAddress {
     }
 }
 
-impl<T: Clone + Into<BigUint> + TryFrom<BigUint>> DictKeyAdapter<T> for DictKeyAdapterInto {
-    fn make_key(src_key: &T) -> Result<BigUint, TonError> { Ok(src_key.clone().into()) }
+impl<T: Clone + Into<BigUint> + TryFrom<BigUint>> DictKeyAdapter for DictKeyAdapterUint<T> {
+    type KeyType = T;
+    fn make_key(src_key: &Self::KeyType) -> Result<BigUint, TonError> { Ok(src_key.clone().into()) }
 
-    fn extract_key(dict_key: &BigUint) -> Result<T, TonError> {
+    fn extract_key(dict_key: &BigUint) -> Result<Self::KeyType, TonError> {
         match T::try_from(dict_key.clone()) {
             Ok(key) => Ok(key),
             Err(_) => bail_ton!("fail to extract dict key"),
@@ -75,7 +84,48 @@ impl<T: Clone + Into<BigUint> + TryFrom<BigUint>> DictKeyAdapter<T> for DictKeyA
     }
 }
 
-impl DictKeyAdapter<String> for DictKeyAdapterString {
+impl<T> DictKeyAdapter for DictKeyAdapterInt<T>
+where
+    T: Clone + Into<BigInt> + TryFrom<BigInt>,
+{
+    type KeyType = T;
+
+    fn make_key(src_key: &Self::KeyType) -> Result<BigUint, TonError> {
+        let big_int: BigInt = src_key.clone().into();
+        let bits = (size_of::<T>() * 8) as u64;
+
+        let big_uint = if big_int.sign() == Sign::Minus {
+            // compute 2^bits + x  (since x is negative)
+            let modulo = BigUint::one() << bits;
+            let abs_val = (-big_int).to_biguint().unwrap();
+            &modulo - &abs_val
+        } else {
+            big_int.to_biguint().unwrap()
+        };
+
+        Ok(big_uint)
+    }
+
+    fn extract_key(dict_key: &BigUint) -> Result<Self::KeyType, TonError> {
+        let bits = (size_of::<T>() * 8) as u64;
+        let sign_bit = BigUint::one() << (bits - 1);
+
+        let big_int = if dict_key >= &sign_bit {
+            // interpret as negative: x - 2^bits
+            let modulo = BigUint::one() << bits;
+            BigInt::from_biguint(Sign::Minus, &modulo - dict_key)
+        } else {
+            BigInt::from_biguint(Sign::Plus, dict_key.clone())
+        };
+        match T::try_from(big_int.clone()) {
+            Ok(key) => Ok(key),
+            Err(_) => bail_ton!("fail to extract dict key"),
+        }
+    }
+}
+
+impl DictKeyAdapter for DictKeyAdapterString {
+    type KeyType = String;
     fn make_key(src_key: &String) -> Result<BigUint, TonError> {
         let bytes = src_key.as_bytes();
         Ok(BigUint::from_bytes_le(bytes))
@@ -104,6 +154,26 @@ mod tests {
             BigUint::from_str("77194726158210796949047323339125271902179989777093709359638389338608753093290")?
         );
         assert_eq!(DictKeyAdapterTonHash::extract_key(&dict_key)?, TonHash::from([0b1010_1010; 32]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_dict_key_adapter_uint() -> anyhow::Result<()> {
+        for val in [0u32, 1, 13, 190, 9999999] {
+            let dict_key = DictKeyAdapterUint::make_key(&val)?;
+            let extracted_val = DictKeyAdapterUint::<u32>::extract_key(&dict_key)?;
+            assert_eq!(val, extracted_val);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_dict_key_adapter_int() -> anyhow::Result<()> {
+        for val in [-9999999i32, -190, -13, -1, 0, 1, 13, 190, 9999999] {
+            let dict_key = DictKeyAdapterInt::make_key(&val)?;
+            let extracted_val = DictKeyAdapterInt::<i32>::extract_key(&dict_key)?;
+            assert_eq!(val, extracted_val);
+        }
         Ok(())
     }
 }

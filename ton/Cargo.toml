@@ -61,7 +61,7 @@ libc.workspace = true
 tokio-retry.workspace = true
 sha2.workspace = true
 reqwest.workspace = true
-
+derive_setters.workspace = true
 
 [dev-dependencies]
 anyhow = "1.0"

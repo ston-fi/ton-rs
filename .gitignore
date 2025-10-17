@@ -5,3 +5,4 @@ Cargo.lock
 .idea
 .vscode
 .DS_Store
+flamegraph.svg

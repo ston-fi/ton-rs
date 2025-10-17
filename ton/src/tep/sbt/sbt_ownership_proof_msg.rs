@@ -1,7 +1,7 @@
-use crate::tlb_adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use num_bigint::BigUint;
-use ton_lib_core::cell::TonCellRef;
-use ton_lib_core::types::tlb_core::MsgAddress;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::{MsgAddress, TLBRef};
 use ton_lib_core::TLB;
 
 /// ```raw
@@ -21,7 +21,7 @@ pub struct SbtOwnershipProofMsg {
     #[tlb(bits_len = 256)]
     pub item_id: BigUint,
     pub owner: MsgAddress,
-    pub data: TonCellRef,
+    pub data: TLBRef<TonCell>,
     pub revoked_at: u64,
-    pub content: Option<TonCellRef>,
+    pub content: Option<TLBRef<TonCell>>,
 }

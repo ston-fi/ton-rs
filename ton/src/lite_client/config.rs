@@ -31,9 +31,9 @@ impl LiteReqParams {
 }
 
 impl LiteClientConfig {
-    pub fn new(net_config: &str) -> Result<Self, TonError> {
+    pub fn new(net_config: TonNetConfig) -> Result<Self, TonError> {
         Ok(Self {
-            net_config: TonNetConfig::new(net_config)?,
+            net_config,
             connections_per_node: 1,
             conn_timeout: Duration::from_millis(500),
             default_req_params: LiteReqParams::new(10, 100, 5000),

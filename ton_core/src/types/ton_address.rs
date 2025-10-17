@@ -6,7 +6,7 @@ use crate::bits_utils::BitsUtils;
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
 use crate::types::tlb_core::*;
-use crate::{bail_ton_core, bail_ton_core_data, TON_TESTNET};
+use crate::{bail_ton_core, bail_ton_core_data};
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use base64::Engine;
 use crc::Crc;
@@ -101,7 +101,7 @@ impl FromStr for TonAddress {
 
 impl Display for TonAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.to_base64(!*TON_TESTNET, true, true))
+        f.write_str(&self.to_base64(true, true, true))
     }
 }
 
@@ -227,39 +227,6 @@ fn from_msg_address_int(msg_address: &MsgAddressInt) -> Result<TonAddress, TonCo
 fn raise_address_error<T: AsRef<str>>(address: &str, msg: T) -> Result<(), TonCoreError> {
     bail_ton_core_data!("Can't parse {address}, err: {}", msg.as_ref())
 }
-
-#[cfg(feature = "serde")]
-mod serde {
-    pub mod serde_ton_address_hex {
-        use crate::types::TonAddress;
-        use serde::de::Error;
-        use serde::{Deserialize, Deserializer, Serializer};
-        use std::str::FromStr;
-
-        pub fn serialize<S: Serializer>(hash: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
-            serializer.serialize_str(hash.to_hex().as_str())
-        }
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
-            TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
-        }
-    }
-
-    pub mod serde_ton_address_base64_url {
-        use crate::types::TonAddress;
-        use serde::de::Error;
-        use serde::{Deserialize, Deserializer, Serializer};
-        use std::str::FromStr;
-
-        pub fn serialize<S: Serializer>(hash: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
-            serializer.serialize_str(hash.to_string().as_str())
-        }
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
-            TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
-        }
-    }
-}
-#[cfg(feature = "serde")]
-pub use serde::*;
 
 #[cfg(test)]
 mod tests {

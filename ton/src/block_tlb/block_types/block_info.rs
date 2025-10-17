@@ -2,6 +2,7 @@ use crate::block_tlb::block_types::block_id_ext::BlockIdExt;
 use crate::block_tlb::block_types::block_prev_info::{BlockPrevInfoAfterMerge, PrevBlockInfo};
 use crate::block_tlb::GlobalVersion;
 use crate::block_tlb::ShardIdent;
+use std::ops::Deref;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
@@ -68,8 +69,8 @@ impl BlockInfo {
             PrevBlockInfo::AfterMerge(ext_refs) => {
                 let (shard1, shard2) = self.shard.split()?;
                 vec![
-                    make_block_id(ext_refs.prev1.clone(), shard1),
-                    make_block_id(ext_refs.prev2.clone(), shard2),
+                    make_block_id(ext_refs.prev1.deref().clone(), shard1),
+                    make_block_id(ext_refs.prev2.deref().clone(), shard2),
                 ]
             }
         };
@@ -179,12 +180,12 @@ impl TLB for BlockInfo {
             gen_software.write(builder)?;
         }
         if let Some(master_ref) = &self.master_ref {
-            builder.write_ref(master_ref.to_cell_ref()?)?;
+            builder.write_ref(master_ref.to_cell()?)?;
         }
 
-        builder.write_ref(self.prev_ref.to_cell_ref()?)?;
+        builder.write_ref(self.prev_ref.to_cell()?)?;
         if let Some(prev_vert_ref) = &self.prev_vert_ref {
-            builder.write_ref(prev_vert_ref.to_cell_ref()?)?;
+            builder.write_ref(prev_vert_ref.to_cell()?)?;
         }
 
         Ok(())
@@ -196,6 +197,7 @@ mod tests {
     use super::*;
     use crate::block_tlb::Block;
     use crate::block_tlb::_test_block_data::{MASTER_BLOCK_BOC_HEX, SHARD_BLOCK_BOC_HEX};
+    use std::ops::Deref;
     use std::str::FromStr;
 
     #[test]
@@ -239,10 +241,10 @@ mod tests {
             }),
             prev_vert_ref: None,
         };
-        assert_eq!(parsed_block_info, expected);
+        assert_eq!(parsed_block_info.deref(), &expected);
 
-        let parsed_back = BlockInfo::from_boc(&parsed_block_info.to_boc()?)?;
-        assert_eq!(parsed_block_info, parsed_back);
+        let parsed_back = BlockInfo::from_boc(parsed_block_info.to_boc()?)?;
+        assert_eq!(parsed_block_info.deref(), &parsed_back);
         assert_eq!(parsed_block_info.cell_hash()?, parsed_back.cell_hash()?);
         Ok(())
     }
@@ -293,9 +295,9 @@ mod tests {
             }),
             prev_vert_ref: None,
         };
-        assert_eq!(parsed_block_info, expected);
-        let parsed_back = BlockInfo::from_boc(&parsed_block_info.to_boc()?)?;
-        assert_eq!(parsed_block_info, parsed_back);
+        assert_eq!(parsed_block_info.deref(), &expected);
+        let parsed_back = BlockInfo::from_boc(parsed_block_info.to_boc()?)?;
+        assert_eq!(parsed_block_info.deref(), &parsed_back);
         assert_eq!(parsed_block_info.cell_hash()?, parsed_back.cell_hash()?);
         Ok(())
     }
@@ -311,13 +313,15 @@ mod tests {
                 seqno: 2,
                 root_hash: TonHash::from_slice_sized(&[3u8; 32]),
                 file_hash: TonHash::from_slice_sized(&[4u8; 32]),
-            },
+            }
+            .into(),
             prev2: ExtBlockRef {
                 end_lt: 5,
                 seqno: 6,
                 root_hash: TonHash::from_slice_sized(&[7u8; 32]),
                 file_hash: TonHash::from_slice_sized(&[8u8; 32]),
-            },
+            }
+            .into(),
         });
         let prev_block_ids = block_info.prev_block_ids()?;
         assert_eq!(prev_block_ids.len(), 2);

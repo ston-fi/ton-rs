@@ -1,4 +1,4 @@
-use crate::tlb_adapters::DictKeyAdapterInto;
+use crate::tlb_adapters::DictKeyAdapterUint;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMapE;
 use num_bigint::BigUint;
@@ -8,6 +8,7 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::types::tlb_core::VarLenBytes;
+use ton_lib_core::types::TonExtraCurrencyId;
 use ton_lib_core::{bail_ton_core_data, TLB};
 
 /// https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L116
@@ -18,8 +19,8 @@ pub struct Coins(VarLenBytes<u128, 4>);
 #[derive(Default, Clone, Debug, PartialEq, TLB)]
 pub struct CurrencyCollection {
     pub grams: Coins,
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32)")]
-    pub other: HashMap<u32, VarLenBytes<BigUint, 5>>,
+    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32)")]
+    pub other: HashMap<TonExtraCurrencyId, VarLenBytes<BigUint, 5>>,
 }
 
 impl Coins {

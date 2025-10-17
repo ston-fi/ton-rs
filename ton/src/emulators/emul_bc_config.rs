@@ -19,11 +19,11 @@ impl From<Arc<CString>> for EmulBCConfig {
 }
 
 impl EmulBCConfig {
-    pub fn from_boc(config_boc: &[u8]) -> Result<Self, TonError> { Self::from_boc_b64(&STANDARD.encode(config_boc)) }
+    pub fn from_boc(config_boc: &[u8]) -> Result<Self, TonError> { Self::from_boc_base64(&STANDARD.encode(config_boc)) }
     pub fn from_boc_hex(config_boc_hex: &str) -> Result<Self, TonError> {
-        Self::from_boc_b64(&STANDARD.encode(hex::decode(config_boc_hex)?))
+        Self::from_boc_base64(&STANDARD.encode(hex::decode(config_boc_hex)?))
     }
-    pub fn from_boc_b64(config_boc_base64: &str) -> Result<Self, TonError> {
+    pub fn from_boc_base64(config_boc_base64: &str) -> Result<Self, TonError> {
         Ok(Self(Arc::new(CString::new(config_boc_base64)?)))
     }
 }

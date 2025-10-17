@@ -5,14 +5,17 @@ mod tlb_opt;
 mod tlb_ptr;
 
 use crate::bail_ton_core_data;
-use crate::cell::BoC;
 use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::CellType;
-use crate::cell::{TonCell, TonCellRef, TonHash};
+use crate::cell::{BoC, INITIAL_STORAGE_CAPACITY};
+use crate::cell::{TonCell, TonHash};
 use crate::errors::TonCoreError;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use std::any::type_name;
+use std::ops::Deref;
+use std::sync::Arc;
 
 pub trait TLB: Sized {
     const PREFIX: TLBPrefix = TLBPrefix::NULL;
@@ -43,31 +46,28 @@ pub trait TLB: Sized {
     /// Reading
     fn from_cell(cell: &TonCell) -> Result<Self, TonCoreError> { Self::read(&mut cell.parser()) }
 
-    fn from_boc(boc: &[u8]) -> Result<Self, TonCoreError> {
-        match BoC::from_bytes(boc).and_then(|x| x.single_root()).and_then(|x| Self::from_cell(&x)) {
+    fn from_boc<T: Into<Arc<Vec<u8>>>>(boc: T) -> Result<Self, TonCoreError> {
+        let boc = boc.into();
+        match BoC::from_bytes(boc.clone()).and_then(|x| x.single_root()).and_then(|x| Self::from_cell(&x)) {
             Ok(cell) => Ok(cell),
-            Err(err) => {
-                bail_ton_core_data!(
-                    "Fail to read {} from bytes: {}, err: {err}",
-                    std::any::type_name::<Self>(),
-                    hex::encode(boc)
-                );
-            }
+            Err(err) => bail_ton_core_data!(
+                "Fail to read {} from bytes: {}, err: {err}",
+                type_name::<Self>(),
+                hex::encode(boc.deref())
+            ),
         }
     }
 
-    fn from_boc_hex(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&hex::decode(boc)?) }
+    fn from_boc_hex(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(hex::decode(boc)?) }
 
-    fn from_boc_b64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(&STANDARD.decode(boc)?) }
+    fn from_boc_base64(boc: &str) -> Result<Self, TonCoreError> { Self::from_boc(STANDARD.decode(boc)?) }
 
     /// Writing
     fn to_cell(&self) -> Result<TonCell, TonCoreError> {
-        let mut builder = TonCell::builder_typed(self.cell_type());
+        let mut builder = TonCell::builder_extra(self.ton_cell_type(), INITIAL_STORAGE_CAPACITY);
         self.write(&mut builder)?;
         builder.build()
     }
-
-    fn to_cell_ref(&self) -> Result<TonCellRef, TonCoreError> { Ok(self.to_cell()?.into_ref()) }
 
     fn to_boc(&self) -> Result<Vec<u8>, TonCoreError> { self.to_boc_extra(false) }
 
@@ -78,7 +78,7 @@ pub trait TLB: Sized {
     fn to_boc_extra(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
         let mut builder = TonCell::builder();
         self.write(&mut builder)?;
-        BoC::new(builder.build()?.into_ref()).to_bytes(add_crc32)
+        BoC::new(builder.build()?).to_bytes(add_crc32)
     }
 
     fn to_boc_hex_extra(&self, add_crc32: bool) -> Result<String, TonCoreError> {
@@ -104,8 +104,8 @@ pub trait TLB: Sized {
             })
         };
 
-        if reader.data_bits_remaining()? < Self::PREFIX.bits_len {
-            return prefix_error(0, reader.data_bits_remaining()?);
+        if reader.data_bits_left()? < Self::PREFIX.bits_len {
+            return prefix_error(0, reader.data_bits_left()?);
         }
 
         // we handle cell_underflow above - all other errors can be rethrown
@@ -113,7 +113,7 @@ pub trait TLB: Sized {
 
         if actual_val != Self::PREFIX.value {
             reader.seek_bits(-(Self::PREFIX.bits_len as i32))?; // revert reader position
-            return prefix_error(actual_val, reader.data_bits_remaining()?);
+            return prefix_error(actual_val, reader.data_bits_left()?);
         }
         Ok(())
     }
@@ -127,8 +127,8 @@ pub trait TLB: Sized {
 
     // when we write an object, we have to idea of it's type - including writing TonCell itself
     // so for all types except TonCell & TonCellRef we return Ordinary, but for them we return proper type
-    // it's required to build proper BOC
-    fn cell_type(&self) -> CellType { CellType::Ordinary }
+    // it's required to build a proper BOC
+    fn ton_cell_type(&self) -> CellType { CellType::Ordinary }
 }
 
 #[derive(Debug, Clone, PartialEq)]

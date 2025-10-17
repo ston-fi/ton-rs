@@ -16,7 +16,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 ## ton_core
 - 
 - [TonCell](ton_core/src/cell/ton_cell.rs)
-- [TonAddress](ton_core/src/types/ton_address.rs) (use `TON_TESTNET` env var to manage to_string() behavior)
+- [TonAddress](ton_core/src/types/ton_address.rs)
 - [TLB](ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
 - [Types](ton_core/src/types) - Few basic types, common and stable enough to be in core
 

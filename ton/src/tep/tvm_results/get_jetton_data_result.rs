@@ -3,26 +3,25 @@ use crate::errors::TonError;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use num_bigint::BigInt;
-use std::ops::Deref;
-use ton_lib_core::cell::TonCellRef;
+use ton_lib_core::cell::TonCell;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GetJettonDataResult {
     pub total_supply: Coins,
     pub mintable: bool,
     pub admin: TonAddress,
     pub content: MetadataContent,
-    pub wallet_code: TonCellRef,
+    pub wallet_code: TonCell,
 }
 
 impl TVMResult for GetJettonDataResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
         let wallet_code = stack.pop_cell()?;
-        let content = MetadataContent::from_cell(stack.pop_cell()?.deref())?;
-        let admin = TonAddress::from_cell(stack.pop_cell()?.deref())?;
+        let content = MetadataContent::from_cell(&stack.pop_cell()?)?;
+        let admin = TonAddress::from_cell(&stack.pop_cell()?)?;
         let mintable = stack.pop_int_or_tiny_int()? != BigInt::ZERO;
 
         let total_supply = Coins::from_signed::<i128>(stack.pop_int_or_tiny_int()?.try_into().map_err(|_| {

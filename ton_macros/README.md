@@ -20,9 +20,9 @@ pub struct StateInit {
     #[tlb(bits_len = 5)]
     pub split_depth: Option<u8>,
     pub tick_tock: Option<TickTock>,
-    pub code: Option<TonCellRef>,
-    pub data: Option<TonCellRef>,
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB, _, _>::new(256)")]
+    pub code: Option<TLBRef<TonCell>>,
+    pub data: Option<TLBRef<TonCell>>,
+    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
     pub library: HashMap<TonHash, SimpleLib>,
 }
 ```
@@ -32,6 +32,5 @@ pub struct StateInit {
 ```rust
 #[ton_contract]
 pub struct JettonMaster;
-impl GetJettonData for JettonMaster {}
-impl GetWalletAddress for JettonMaster {}
+impl JettonMasterMethods for JettonMaster {}
 ```

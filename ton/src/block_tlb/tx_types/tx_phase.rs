@@ -1,7 +1,6 @@
 use crate::block_tlb::*;
-use crate::tlb_adapters::TLBRef;
 use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::tlb_core::VarLenBytes;
+use ton_lib_core::types::tlb_core::{TLBRef, VarLenBytes};
 use ton_lib_core::TLB;
 
 #[derive(Clone, Debug, PartialEq, TLB)]
@@ -70,8 +69,7 @@ pub struct TrComputePhaseVM {
     pub msg_state_used: bool,
     pub account_activated: bool,
     pub gas_fees: Coins,
-    #[tlb(adapter = "TLBRef")]
-    pub compute_phase_vm_info: ComputePhaseVMInfo,
+    pub compute_phase_vm_info: TLBRef<ComputePhaseVMInfo>,
 }
 
 #[derive(Clone, Debug, PartialEq, TLB)]

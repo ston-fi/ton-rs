@@ -21,7 +21,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio_retry::strategy::FixedInterval;
 use tokio_retry::RetryIf;
-use ton_lib_core::cell::{TonCellRef, TonHash};
+use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
@@ -100,7 +100,7 @@ impl LiteClient {
         });
         let rsp = self.exec_with_timeout(req, Some(mc_seqno), params).await?;
         let account_state_rsp = unwrap_lite_rsp!(rsp, AccountState)?;
-        Ok(MaybeAccount::from_boc(&account_state_rsp.state)?)
+        Ok(MaybeAccount::from_boc(account_state_rsp.state)?)
     }
 
     pub async fn get_libs(&self, lib_ids: &[TonHash], params: Option<LiteReqParams>) -> Result<LibsDict, TonError> {
@@ -179,7 +179,7 @@ impl Inner {
                 .into_iter()
                 .map(|x| {
                     let hash = TonHash::from_slice_sized(&x.hash.0);
-                    let lib = TonCellRef::from_boc(x.data.as_slice())?;
+                    let lib = TonCell::from_boc(x.data)?;
                     Ok::<_, TonCoreError>((hash, lib))
                 })
                 .collect::<Result<Vec<_>, TonCoreError>>()?;
@@ -195,7 +195,7 @@ impl Inner {
                 );
             }
             for item in dict_items {
-                libs_dict.insert(item.0, item.1);
+                libs_dict.insert(item.0, item.1.into());
             }
         }
 

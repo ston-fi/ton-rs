@@ -5,7 +5,7 @@ pub use tx_emul_args::*;
 pub use tx_emul_response::*;
 
 use crate::emulators::emul_bc_config::EmulBCConfig;
-use crate::emulators::emul_utils::{convert_emulator_response, make_b64_c_str, set_param_failed};
+use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
 use crate::errors::TonError;
 use std::ffi::CString;
 use std::sync::Arc;
@@ -49,8 +49,8 @@ impl TXEmulator {
     /// You can't emulate tick-tock tx using this method
     pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> Result<TXEmulationSuccess, TonError> {
         self.prepare_emulator(&args.emul_args)?;
-        let state_c_str = make_b64_c_str(&args.emul_args.shard_account_boc)?;
-        let in_msg_c_str = make_b64_c_str(&args.in_msg_boc)?;
+        let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
+        let in_msg_c_str = make_base64_c_str(&args.in_msg_boc)?;
         let response_ptr = unsafe {
             transaction_emulator_emulate_transaction(self.emulator, state_c_str.as_ptr(), in_msg_c_str.as_ptr())
         };
@@ -60,7 +60,7 @@ impl TXEmulator {
 
     pub fn emulate_ticktock(&mut self, args: &TXEmulTickTockArgs) -> Result<TXEmulationSuccess, TonError> {
         self.prepare_emulator(&args.emul_args)?;
-        let state_c_str = make_b64_c_str(&args.emul_args.shard_account_boc)?;
+        let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
         let response_ptr = unsafe {
             transaction_emulator_emulate_tick_tock_transaction(self.emulator, state_c_str.as_ptr(), args.is_tock)
         };
@@ -135,7 +135,7 @@ impl TXEmulator {
         if self.cur_libs_hash == libs_hash {
             return Ok(());
         }
-        let libs = make_b64_c_str(libs_boc)?;
+        let libs = make_base64_c_str(libs_boc)?;
         match unsafe { transaction_emulator_set_libs(self.emulator, libs.as_ptr()) } {
             true => self.cur_libs_hash = libs_hash,
             false => return set_param_failed("libs"),
@@ -155,7 +155,7 @@ impl TXEmulator {
         if self.cur_prev_blocks_info_hash == prev_blocks_hash {
             return Ok(());
         }
-        let block_info = make_b64_c_str(prev_blocks_info)?;
+        let block_info = make_base64_c_str(prev_blocks_info)?;
         match unsafe { transaction_emulator_set_prev_blocks_info(self.emulator, block_info.as_ptr()) } {
             true => self.cur_prev_blocks_info_hash = prev_blocks_hash,
             false => return set_param_failed("prev_blocks_info"),

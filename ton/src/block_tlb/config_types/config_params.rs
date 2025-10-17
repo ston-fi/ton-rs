@@ -1,19 +1,20 @@
 use crate::block_tlb::{ConfigParam18, GlobalVersion};
-use crate::tlb_adapters::{DictKeyAdapterInto, DictValAdapterTLB, TLBHashMap};
+use crate::tlb_adapters::{DictKeyAdapterUint, DictValAdapterTLB, TLBHashMap};
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
+use ton_lib_core::types::tlb_core::TLBRef;
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L543
 #[derive(Debug, Default)]
 pub struct ConfigParams {
     pub config_addr: TonHash,
-    pub config: HashMap<u32, TonCellRef>,
+    pub config: HashMap<u32, TLBRef<TonCell>>,
     storage_prices: RwLock<Option<Arc<ConfigParam18>>>,
     global_version: RwLock<Option<Arc<GlobalVersion>>>,
 }
@@ -62,7 +63,7 @@ impl TLB for ConfigParams {
         let config_addr = TLB::read(parser)?;
         let config_ref = parser.read_next_ref()?;
         let config =
-            TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).read(&mut config_ref.parser())?;
+            TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32).read(&mut config_ref.parser())?;
         Ok(Self {
             config_addr,
             config,
@@ -73,8 +74,8 @@ impl TLB for ConfigParams {
     fn write_definition(&self, dst: &mut CellBuilder) -> Result<(), TonCoreError> {
         self.config_addr.write(dst)?;
         let mut config_cell = TonCell::builder();
-        TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32).write(&mut config_cell, &self.config)?;
-        dst.write_ref(config_cell.build()?.into_ref())?;
+        TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32).write(&mut config_cell, &self.config)?;
+        dst.write_ref(config_cell.build()?)?;
         Ok(())
     }
 }
@@ -91,7 +92,7 @@ mod tests {
     fn test_config_params() -> anyhow::Result<()> {
         let config_params = ConfigParams::from_boc_hex(CONFIG_BOC_HEX)?;
         let serialized = config_params.to_boc()?;
-        let parsed_back = ConfigParams::from_boc(&serialized)?;
+        let parsed_back = ConfigParams::from_boc(serialized)?;
         assert_eq!(config_params, parsed_back);
         Ok(())
     }

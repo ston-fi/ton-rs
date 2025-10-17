@@ -2,16 +2,16 @@ use crate::ton_wallet::WalletVersion;
 use crate::ton_wallet::WalletVersion::*;
 use std::collections::HashMap;
 use std::sync::LazyLock;
-use ton_lib_core::cell::{TonCellRef, TonHash};
+use ton_lib_core::cell::{TonCell, TonHash};
 use ton_lib_core::traits::tlb::TLB;
 
 macro_rules! load_code {
     ($path:expr) => {
-        TonCellRef::from_boc_b64(include_str!($path)).unwrap()
+        TonCell::from_boc_base64(include_str!($path)).unwrap()
     };
 }
 
-pub static TON_WALLET_CODE_BY_VERSION: LazyLock<HashMap<WalletVersion, TonCellRef>> = LazyLock::new(|| {
+pub static TON_WALLET_CODE_BY_VERSION: LazyLock<HashMap<WalletVersion, TonCell>> = LazyLock::new(|| {
     #[allow(clippy::all)]
     HashMap::from([
         (V1R1, load_code!("../../resources/ton_wallet_code/wallet_v1r1.code")),

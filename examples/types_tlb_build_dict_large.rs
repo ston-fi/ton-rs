@@ -1,6 +1,6 @@
 use num_bigint::BigUint;
 use std::collections::HashMap;
-use ton_lib::tlb_adapters::DictKeyAdapterInto;
+use ton_lib::tlb_adapters::DictKeyAdapterUint;
 use ton_lib::tlb_adapters::DictValAdapterNum;
 use ton_lib::tlb_adapters::TLBHashMap;
 use ton_lib_core::traits::tlb::TLB;
@@ -15,7 +15,7 @@ const ITEMS_COUNT: usize = 400000;
 
 #[derive(TLB)]
 struct MyDict {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto, DictValAdapterNum<256>, _, _>::new(256)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 256>>::new(256)")]
     pub data: HashMap<usize, BigUint>,
 }
 

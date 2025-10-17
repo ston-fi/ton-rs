@@ -1,13 +1,13 @@
 use crate::tests::utils::make_tl_client;
+use futures_util::try_join;
 use num_bigint::BigInt;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
-use std::time::Duration;
 use tokio_test::assert_ok;
 use ton_lib::contracts::tl_provider::TLProvider;
+use ton_lib::contracts::ContractClient;
 use ton_lib::contracts::NFTItemContract;
 use ton_lib::contracts::*;
-use ton_lib::contracts::{ContractClient, ContractClientConfig};
 use ton_lib::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton_lib::tep::nft::NFTItemMetadata;
 use ton_lib::tep::snake_data::SnakeData;
@@ -17,33 +17,37 @@ use ton_lib_core::types::TonAddress;
 #[tokio::test]
 async fn test_contracts() -> anyhow::Result<()> {
     let tl_client = make_tl_client(true, true).await?;
-    let config = ContractClientConfig::new_no_cache(Duration::from_millis(100));
-    let data_provider = TLProvider::new(tl_client.clone());
-    let ctr_cli = ContractClient::new(config, data_provider)?;
+    let data_provider = TLProvider::new(tl_client);
+    let ctr_cli = ContractClient::builder(data_provider)
+        .with_cache_capacity(0) // manually disable cache
+        .build()?;
 
-    assert_jetton_wallet_get_wallet(&ctr_cli).await?;
-    assert_jetton_master_get_jetton(&ctr_cli).await?;
-    assert_wallet_contract_get_public_key(&ctr_cli).await?;
-    assert_nft_item_load_full_nft_data(&ctr_cli).await?;
-    assert_nft_item_get_nft_data_external(&ctr_cli).await?;
-    assert_nft_item_get_nft_data_internal(&ctr_cli).await?;
-    assert_nft_collection_get_nft_address_by_index_is_valid(&ctr_cli).await?;
-    assert_nft_collection_get_nft_address_by_index(&ctr_cli).await?;
-    assert_nft_collection_get_collection_data_is_valid(&ctr_cli).await?;
-    assert_nft_collection_get_collection_data_nft(&ctr_cli).await?;
+    let res = try_join!(
+        assert_jetton_wallet_get_wallet(&ctr_cli),
+        assert_jetton_master_get_jetton(&ctr_cli),
+        assert_wallet_contract_get_public_key(&ctr_cli),
+        assert_nft_item_load_full_nft_data(&ctr_cli),
+        assert_nft_item_get_nft_data_external(&ctr_cli),
+        assert_nft_item_get_nft_data_internal(&ctr_cli),
+        assert_nft_collection_get_nft_address_by_index_is_valid(&ctr_cli),
+        assert_nft_collection_get_nft_address_by_index(&ctr_cli),
+        assert_nft_collection_get_collection_data_is_valid(&ctr_cli),
+        assert_nft_collection_get_collection_data_nft(&ctr_cli),
+    );
+    assert_ok!(res);
     Ok(())
 }
 
 async fn assert_jetton_wallet_get_wallet(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_wallet = TonAddress::from_str("EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM")?;
-    let contract = JettonWalletContract::new(ctr_cli, usdt_wallet, None).await?;
+    let contract = JettonWalletContract::new(ctr_cli, &usdt_wallet, None).await?;
     assert_ok!(contract.get_wallet_data().await);
     Ok(())
 }
 
 async fn assert_jetton_master_get_jetton(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
-    let contract = JettonMasterContract::new(ctr_cli, usdt_master, None).await?;
+    let contract = JettonMasterContract::new(ctr_cli, &usdt_master, None).await?;
     assert_ok!(contract.get_jetton_data().await);
     let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
     let wallet = assert_ok!(contract.get_wallet_address(&owner).await);
@@ -53,7 +57,7 @@ async fn assert_jetton_master_get_jetton(ctr_cli: &ContractClient) -> anyhow::Re
 
 async fn assert_wallet_contract_get_public_key(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let wallet = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
-    let contract = TonWalletContract::new(ctr_cli, wallet, None).await?;
+    let contract = TonWalletContract::new(ctr_cli, &wallet, None).await?;
     let seqno = contract.seqno().await?;
     assert!(seqno > 0);
     let public_key = contract.get_public_key().await?;
@@ -63,7 +67,7 @@ async fn assert_wallet_contract_get_public_key(ctr_cli: &ContractClient) -> anyh
 
 async fn assert_nft_item_load_full_nft_data(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let semichain = TonAddress::from_str("EQAbNqfCuv4Chy6D-2UBKzi3qYvVPrB-STOzBGQo5AKh4P9u")?;
-    let contract = NFTItemContract::new(ctr_cli, semichain, None).await?;
+    let contract = NFTItemContract::new(ctr_cli, &semichain, None).await?;
 
     let data = contract.load_full_nft_data().await?;
     let meta_loader = MetaLoader::builder().build()?;
@@ -90,7 +94,7 @@ async fn assert_nft_item_load_full_nft_data(ctr_cli: &ContractClient) -> anyhow:
 
 async fn assert_nft_item_get_nft_data_external(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let address = TonAddress::from_str("EQCGZEZZcYO9DK877fJSIEpYMSvfui7zmTXGhq0yq1Ce1Mb6")?;
-    let contract = NFTItemContract::new(ctr_cli, address, None).await?;
+    let contract = NFTItemContract::new(ctr_cli, &address, None).await?;
     let res = assert_ok!(contract.get_nft_data().await);
 
     let expected_collection_address =
@@ -111,7 +115,7 @@ async fn assert_nft_item_get_nft_data_external(ctr_cli: &ContractClient) -> anyh
 
 async fn assert_nft_item_get_nft_data_internal(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let address = TonAddress::from_str("EQDUF9cLVBH3BgziwOAIkezUdmfsDxxJHd6WSv0ChIUXYwCx")?;
-    let contract = NFTItemContract::new(ctr_cli, address, None).await?;
+    let contract = NFTItemContract::new(ctr_cli, &address, None).await?;
     let res = contract.get_nft_data().await?;
 
     let internal = match res.individual_content {
@@ -131,7 +135,7 @@ async fn assert_nft_item_get_nft_data_internal(ctr_cli: &ContractClient) -> anyh
 
 async fn assert_nft_collection_get_nft_address_by_index(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let address = TonAddress::from_str("EQBG-g6ahkAUGWpefWbx-D_9sQ8oWbvy6puuq78U2c4NUDFS")?;
-    let contract = NFTCollectionContract::new(ctr_cli, address, None).await?;
+    let contract = NFTCollectionContract::new(ctr_cli, &address, None).await?;
     assert_ok!(
         contract
             .get_nft_address_by_index(BigInt::from_str(
@@ -144,7 +148,7 @@ async fn assert_nft_collection_get_nft_address_by_index(ctr_cli: &ContractClient
 
 async fn assert_nft_collection_get_collection_data_nft(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let collection = TonAddress::from_str("EQC3dNlesgVD8YbAazcauIrXBPfiVhMMr5YYk2in0Mtsz0Bz")?;
-    let contract = NFTCollectionContract::new(ctr_cli, collection, None).await?;
+    let contract = NFTCollectionContract::new(ctr_cli, &collection, None).await?;
 
     let data = contract.get_collection_data().await?;
 
@@ -157,7 +161,7 @@ async fn assert_nft_collection_get_collection_data_nft(ctr_cli: &ContractClient)
 
 async fn assert_nft_collection_get_collection_data_is_valid(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let address = TonAddress::from_str("EQAOQdwdw8kGftJCSFgOErM1mBjYPe4DBPq8-AhF6vr9si5N")?;
-    let contract = NFTCollectionContract::new(ctr_cli, address, None).await?;
+    let contract = NFTCollectionContract::new(ctr_cli, &address, None).await?;
 
     let res = assert_ok!(contract.get_collection_data().await);
 
@@ -171,7 +175,7 @@ async fn assert_nft_collection_get_collection_data_is_valid(ctr_cli: &ContractCl
 
 async fn assert_nft_collection_get_nft_address_by_index_is_valid(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let address = TonAddress::from_str("EQB2iHQ9lmJ9zvYPauxN9hVOfHL3c_fuN5AyRq5Pm84UH6jC")?;
-    let contract = NFTCollectionContract::new(ctr_cli, address, None).await?;
+    let contract = NFTCollectionContract::new(ctr_cli, &address, None).await?;
 
     let res_0 = assert_ok!(contract.get_nft_address_by_index(0).await);
     let res_2 = assert_ok!(contract.get_nft_address_by_index(2).await);

@@ -7,23 +7,33 @@ publish = false
 [dependencies]
 ton_lib = { path = "../ton", version = "0" }
 ton_lib_core = { path = "../ton_core", version = "0" }
+
+ton_lib_core_008 = { package = "ton_lib_core", version = "0.0.8" }
+ton_lib_0039 = { package = "ton_lib", version = "0.0.39" }
+
 base64 = "0.22"
 criterion = "0.7"
 
+hex = "0.4"
+
 tonlib-core = "0.26"
 
-
 [[bench]]
-name = "boc_to_from_bytes"
-path = "boc_to_from_bytes.rs"
+name = "build_empty_cell"
+path = "build_empty_cell.rs"
 harness = false
 
 [[bench]]
-name = "build_cell"
-path = "build_cell.rs"
+name = "build_full_cell"
+path = "build_full_cell.rs"
 harness = false
 
 [[bench]]
 name = "build_dict_cell"
 path = "build_dict_cell.rs"
+harness = false
+
+[[bench]]
+name = "cell_read_write"
+path = "cell_read_write.rs"
 harness = false

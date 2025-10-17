@@ -1,5 +1,5 @@
-use ton_lib_core::cell::TonCellRef;
-use ton_lib_core::types::tlb_core::MsgAddress;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::{MsgAddress, TLBRef};
 use ton_lib_core::TLB;
 
 /// ```raw
@@ -15,6 +15,6 @@ use ton_lib_core::TLB;
 pub struct SbtRequestOwnerMsg {
     pub query_id: u64,
     pub dst: MsgAddress, // address of the contract to which the ownership of SBT should be proven
-    pub forward_payload: TonCellRef, // arbitrary data required by target contract
+    pub forward_payload: TLBRef<TonCell>, // arbitrary data required by target contract
     pub with_content: bool, // if true, SBT's content cell will be included in message to contract.
 }

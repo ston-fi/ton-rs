@@ -1,7 +1,8 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::*;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 /// WalletVersion::V5R1
@@ -12,7 +13,7 @@ pub struct WalletV5Data {
     pub seqno: u32,
     pub wallet_id: i32,
     pub public_key: TonHash,
-    pub extensions: Option<TonCellRef>,
+    pub extensions: Option<TLBRef<TonCell>>,
 }
 
 impl WalletV5Data {
@@ -37,7 +38,7 @@ pub struct WalletV5ExtMsgBody {
     pub valid_until: u32,
     pub msg_seqno: u32,
     pub msgs_modes: Vec<u8>,
-    pub msgs: Vec<TonCellRef>,
+    pub msgs: Vec<TonCell>,
 }
 
 impl TLB for WalletV5ExtMsgBody {
@@ -78,6 +79,7 @@ impl WalletV5ExtMsgBody {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::block_tlb::Msg;
     use crate::ton_wallet::{WALLET_V5R1_ID_DEFAULT, WALLET_V5R1_ID_DEFAULT_TESTNET};
     use std::str::FromStr;
     use ton_lib_core::cell::TonCell;
@@ -116,7 +118,7 @@ mod test {
         // https://tonviewer.com/transaction/b4c5eddc52d0e23dafb2da6d022a5b6ae7eba52876fa75d32b2a95fa30c7e2f0
         let body_signed_cell = TonCell::from_boc_hex("b5ee9c720101040100940001a17369676e7fffff11ffffffff00000000bc04889cb28b36a3a00810e363a413763ec34860bf0fce552c5d36e37289fafd442f1983d740f92378919d969dd530aec92d258a0779fb371d4659f10ca1b3826001020a0ec3c86d030302006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a1200000000000000000000000000000000")?;
         let mut parser = body_signed_cell.parser();
-        parser.read_bits(body_signed_cell.data_bits_len - 512)?;
+        parser.read_bits(body_signed_cell.data_len_bits() - 512)?;
         let sign = parser.read_bits(512)?;
 
         let body = WalletV5ExtMsgBody::read_signed(&mut body_signed_cell.parser())?.0;
@@ -132,6 +134,31 @@ mod test {
         signed_builder.write_bits(&sign, 512)?;
         let signed_serial = signed_builder.build()?;
         assert_eq!(body_signed_cell, signed_serial);
+        let parsed_back = WalletV5ExtMsgBody::from_cell(&signed_serial)?;
+        assert_eq!(body, parsed_back);
+        Ok(())
+    }
+
+    #[test]
+    fn test_wallet_ext_msg_body_v5_order() -> anyhow::Result<()> {
+        let body_signed = TonCell::from_boc_hex("b5ee9c7201020a0100014a0001a17369676e7fffff1168f168d80000010db3172ba8e30d093aa36ec6e9e1f1f874cf38fb4a7914c66a0afcbd562ec6b54537629c135ce86700ae64b87dfc85545b34d561a3f7b429512c8cc02edbedc0c2a001020a0ec3c86d030203020a0ec3c86d03040500644200658250f64e6b787bcaa22ed0e90f9a348a637e5f1e9f2c997923bd441a3dd24911389800000000000000000000000000020a0ec3c86d03060700644200658250f64e6b787bcaa22ed0e90f9a348a637e5f1e9f2c997923bd441a3dd24911389000000000000000000000000000020a0ec3c86d03080900644200658250f64e6b787bcaa22ed0e90f9a348a637e5f1e9f2c997923bd441a3dd24911388800000000000000000000000000000000644200658250f64e6b787bcaa22ed0e90f9a348a637e5f1e9f2c997923bd441a3dd24911388000000000000000000000000000")?;
+        let mut parser = body_signed.parser();
+        parser.read_bits(body_signed.data_len_bits() - 512)?;
+        let sign = parser.read_bits(512)?;
+
+        let body = WalletV5ExtMsgBody::read_signed(&mut body_signed.parser())?.0;
+        assert_eq!(body.msgs.len(), 4);
+
+        assert_eq!(Msg::from_cell(&body.msgs[0])?.info.as_int().unwrap().value.grams.to_u128(), 10000);
+        assert_eq!(Msg::from_cell(&body.msgs[1])?.info.as_int().unwrap().value.grams.to_u128(), 10001);
+        assert_eq!(Msg::from_cell(&body.msgs[2])?.info.as_int().unwrap().value.grams.to_u128(), 10002);
+        assert_eq!(Msg::from_cell(&body.msgs[3])?.info.as_int().unwrap().value.grams.to_u128(), 10003);
+
+        let mut signed_builder = TonCell::builder();
+        signed_builder.write_cell(&body.to_cell()?)?;
+        signed_builder.write_bits(&sign, 512)?;
+        let signed_serial = signed_builder.build()?;
+        assert_eq!(body_signed, signed_serial);
         let parsed_back = WalletV5ExtMsgBody::from_cell(&signed_serial)?;
         assert_eq!(body, parsed_back);
         Ok(())

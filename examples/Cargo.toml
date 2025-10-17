@@ -23,20 +23,20 @@ async-trait = "0.1"
 
 
 [[example]]
-name = "cell_perf_boc_from_bytes_tonlib"
-path = "cell_perf_boc_from_bytes_tonlib.rs"
+name = "perf_cell_from_boc_tonlib"
+path = "perf_cell_from_boc_tonlib.rs"
 
 [[example]]
-name = "cell_perf_boc_from_bytes"
-path = "cell_perf_boc_from_bytes.rs"
+name = "perf_cell_from_boc"
+path = "perf_cell_from_boc.rs"
 
 [[example]]
 name = "cell_perf_build_cell_tonlib"
 path = "cell_perf_build_cell_tonlib.rs"
 
 [[example]]
-name = "cell_perf_build_cell"
-path = "cell_perf_build_cell.rs"
+name = "perf_build_cell"
+path = "perf_build_cell.rs"
 
 [[example]]
 name = "types_tlb_build_dict_large"

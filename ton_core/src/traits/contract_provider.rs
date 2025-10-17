@@ -2,6 +2,7 @@ use crate::cell::TonHash;
 use crate::errors::TonCoreError;
 use crate::types::{TonAddress, TxLTHash};
 use async_trait::async_trait;
+use std::sync::Arc;
 
 #[async_trait]
 #[rustfmt::skip]
@@ -22,8 +23,8 @@ pub struct TonContractState {
     pub mc_seqno: Option<u32>,
     pub address: TonAddress,
     pub last_tx_id: TxLTHash,
-    pub code_boc: Option<Vec<u8>>,
-    pub data_boc: Option<Vec<u8>>,
+    pub code_boc: Option<Arc<Vec<u8>>>,
+    pub data_boc: Option<Arc<Vec<u8>>>,
     pub frozen_hash: Option<TonHash>,
     pub balance: i64,
 }

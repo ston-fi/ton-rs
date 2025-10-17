@@ -1,5 +1,5 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, write_up_to_4_msgs};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCellRef, TonHash};
+use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::TLB;
@@ -31,7 +31,7 @@ pub struct WalletV3ExtMsgBody {
     pub valid_until: u32,
     pub msg_seqno: u32,
     pub msgs_modes: Vec<u8>,
-    pub msgs: Vec<TonCellRef>,
+    pub msgs: Vec<TonCell>,
 }
 
 impl TLB for WalletV3ExtMsgBody {
@@ -95,7 +95,7 @@ mod tests {
         let body_signed_cell = TonCell::from_boc_hex("b5ee9c7201010201008500019a86be376ea96e2f1252377976716a3d252906151feabc8e4b51506405035e45a7b4ff81f783cfe3f86483c822bcbb4f9481804990868bac69caf7af56e30fe70b29a9a317ffffffff000000000301006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a120000000000000000000000000000")?;
         let mut parser = body_signed_cell.parser();
         parser.read_bits(512)?;
-        let body_no_sign = parser.read_cell()?;
+        let body_no_sign = parser.read_remaining()?;
 
         let body = WalletV3ExtMsgBody::read_signed(&mut body_signed_cell.parser())?.0;
         assert_eq!(body.subwallet_id, WALLET_ID_DEFAULT);

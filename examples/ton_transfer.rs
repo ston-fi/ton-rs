@@ -11,13 +11,13 @@ mod example {
     use ton_lib::block_tlb::{Coins, CommonMsgInfoInt, Msg};
     use ton_lib::block_tlb::{CommonMsgInfo, CurrencyCollection};
     use ton_lib::contracts::tl_provider::TLProvider;
-    use ton_lib::contracts::{ContractClient, ContractClientConfig};
+    use ton_lib::contracts::ContractClient;
     use ton_lib::contracts::{TonContract, TonWalletContract, TonWalletMethods};
+    use ton_lib::net_config::TonNetConfig;
     use ton_lib::sys_utils::sys_tonlib_set_verbosity_level;
-    use ton_lib::tl_client::TLClientConfig;
-    use ton_lib::tl_client::{TLClient, TLClientTrait};
+    use ton_lib::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};
+    use ton_lib::ton_wallet::TonWallet;
     use ton_lib::ton_wallet::WalletVersion;
-    use ton_lib::ton_wallet::{Mnemonic, TonWallet};
     use ton_lib_core::cell::TonCell;
     use ton_lib_core::traits::tlb::TLB;
     use ton_lib_core::types::tlb_core::{MsgAddress, TLBEitherRef};
@@ -53,29 +53,30 @@ mod example {
     async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<TLClient> {
         init_logging();
         log::info!("Initializing tl_client with mainnet={mainnet}, archive_only={archive_only}...");
-        let mut config = match mainnet {
-            true => TLClientConfig::new_mainnet(archive_only),
-            false => TLClientConfig::new_testnet(archive_only),
-        };
-        config.connections_count = 10;
-        config.retry_strategy.retry_count = 10;
-        let client = TLClient::new(config).await?;
+        let client = TLClient::builder()?
+            .with_net_config(&TonNetConfig::new_default(mainnet)?)?
+            .with_connection_check(LiteNodeFilter::Archive)
+            .with_connections_count(10)
+            .with_retry_strategy(RetryStrategy {
+                retry_count: 10,
+                retry_waiting: Duration::from_millis(200),
+            })
+            .build()
+            .await?;
         sys_tonlib_set_verbosity_level(0);
         Ok(client)
     }
 
     pub async fn real_main() -> anyhow::Result<()> {
         // ---------- Wallet initialization ----------
-        let mnemonic_str = std::env::var("MNEMONIC_STR")?;
-        let key_pair = Mnemonic::from_str(&mnemonic_str, None)?.to_key_pair()?;
+        let mnemonic = std::env::var("MNEMONIC_STR")?;
         // To create w5 ton_wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
-        let wallet = TonWallet::new(WalletVersion::V4R2, key_pair)?;
+        let wallet = TonWallet::new_with_creds(WalletVersion::V4R2, &mnemonic, None)?;
 
-        // Make testnet client
+        // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
         let provider = TLProvider::new(tl_client.clone());
-        let ctr_config = ContractClientConfig::new_no_cache(Duration::from_millis(100));
-        let ctr_cli = ContractClient::new(ctr_config, provider)?;
+        let ctr_cli = ContractClient::builder(provider).build()?;
 
         // ---------- Building transfer_msg ----------
         let transfer_msg = Msg {
@@ -84,7 +85,7 @@ mod example {
                 bounce: false,
                 bounced: false,
                 src: MsgAddress::NONE,
-                dst: MsgAddress::Int(wallet.address.to_msg_address_int()),
+                dst: wallet.address.to_msg_address(),
                 value: CurrencyCollection::new(50010u128),
                 ihr_fee: Coins::ZERO,
                 fwd_fee: Coins::ZERO,
@@ -92,17 +93,17 @@ mod example {
                 created_at: 0,
             }),
             init: None,
-            body: TLBEitherRef::new(TonCell::EMPTY),
+            body: TLBEitherRef::new(TonCell::empty().to_owned()),
         };
 
         let expired_at_time = std::time::SystemTime::now() + Duration::from_secs(600);
         let expire_at = expired_at_time.duration_since(std::time::UNIX_EPOCH)?.as_secs() as u32;
 
         // Get current ton_wallet seqno
-        let wallet_ctr = TonWalletContract::new(&ctr_cli, wallet.address.clone(), None).await?;
+        let wallet_ctr = TonWalletContract::new(&ctr_cli, &wallet.address, None).await?;
         let seqno = wallet_ctr.seqno().await?;
 
-        let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell_ref()?], seqno, expire_at, false)?;
+        let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell()?], seqno, expire_at, false)?;
         // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
         let _msg_hash = tl_client.send_msg(ext_in_msg.to_boc()?).await?;
 

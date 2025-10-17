@@ -1,15 +1,15 @@
 use crate::block_tlb::Coins;
-use crate::tlb_adapters::ConstLen;
-use crate::tlb_adapters::DictKeyAdapterAddress;
+use crate::tlb_adapters::DictKeyAdapterTonAddress;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
 use ton_lib_core::types::TonAddress;
 use ton_lib_core::TLB;
 // TODO not tested
 #[derive(Clone, Debug, TLB)]
 pub struct MintlessAirdropDict {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterAddress, DictValAdapterTLB, _, _>::new(267)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonAddress, DictValAdapterTLB<_>>::new(267)")]
     pub data: HashMap<TonAddress, MintlessAirdropData>,
 }
 

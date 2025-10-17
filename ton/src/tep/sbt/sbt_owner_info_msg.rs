@@ -1,7 +1,7 @@
-use crate::tlb_adapters::ConstLen;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use num_bigint::BigUint;
-use ton_lib_core::cell::TonCellRef;
-use ton_lib_core::types::tlb_core::MsgAddress;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::{MsgAddress, TLBRef};
 use ton_lib_core::TLB;
 
 /// ```raw
@@ -23,7 +23,7 @@ pub struct SbtOwnerInfoMsg {
     pub item_id: BigUint,
     pub initiator: MsgAddress, // address of request initiator
     pub owner: MsgAddress,
-    pub data: TonCellRef,            // data cell passed in prove_ownership.
-    pub revoked_at: u64,             // unixtime
-    pub content: Option<TonCellRef>, // NFT's content, it is passed if with_content was true in prove_ownership.
+    pub data: TLBRef<TonCell>,            // data cell passed in prove_ownership.
+    pub revoked_at: u64,                  // unixtime
+    pub content: Option<TLBRef<TonCell>>, // NFT's content, it is passed if with_content was true in prove_ownership.
 }

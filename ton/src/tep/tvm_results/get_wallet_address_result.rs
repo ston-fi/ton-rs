@@ -1,6 +1,5 @@
 use crate::block_tlb::TVMStack;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use std::ops::Deref;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
 use ton_lib_core::types::TonAddress;
@@ -12,7 +11,7 @@ pub struct GetWalletAddressResult {
 
 impl TVMResult for GetWalletAddressResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let address = TonAddress::from_cell(stack.pop_cell()?.deref())?;
+        let address = TonAddress::from_cell(&stack.pop_cell()?)?;
         Ok(Self { address })
     }
 }

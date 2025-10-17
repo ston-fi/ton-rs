@@ -66,7 +66,7 @@ impl TVMGetMethodResponse {
 }
 
 impl TVMGetMethodSuccess {
-    pub fn stack_parsed(&self) -> Result<TVMStack, TonError> { Ok(TVMStack::from_boc_b64(&self.stack_boc_base64)?) }
+    pub fn stack_parsed(&self) -> Result<TVMStack, TonError> { Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?) }
 
     pub fn stack_boc(&self) -> Result<Vec<u8>, TonError> {
         Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?)

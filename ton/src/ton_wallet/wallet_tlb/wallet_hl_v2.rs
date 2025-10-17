@@ -1,4 +1,5 @@
-use ton_lib_core::cell::{TonCellRef, TonHash};
+use ton_lib_core::cell::{TonCell, TonHash};
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 /// WalletVersion::HighloadV2R2, not tested
@@ -7,7 +8,7 @@ pub struct WalletHLV2R2Data {
     pub wallet_id: i32,
     pub last_cleaned_time: u64,
     pub public_key: TonHash,
-    pub queries: Option<TonCellRef>,
+    pub queries: Option<TLBRef<TonCell>>,
 }
 
 impl WalletHLV2R2Data {

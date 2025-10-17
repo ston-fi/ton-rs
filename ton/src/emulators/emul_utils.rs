@@ -26,6 +26,6 @@ pub(super) fn set_param_failed(param: &'static str) -> Result<(), TonError> {
     Err(TonError::EmulatorSetParamFailed(param))
 }
 
-pub(super) fn make_b64_c_str(data: &[u8]) -> Result<CString, TonError> {
+pub(super) fn make_base64_c_str(data: &[u8]) -> Result<CString, TonError> {
     Ok(CString::new(BASE64_STANDARD.encode(data))?)
 }

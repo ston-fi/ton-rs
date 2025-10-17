@@ -6,19 +6,18 @@ use ton_lib_core::bail_ton_core_data;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_lib_core::constants::TON_MAX_SPLIT_DEPTH;
 use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
 
 // for now it's used only only with ShardPfx in keys
-pub struct BinTree<VA: DictValAdapter<T>, T: TLB>(PhantomData<(VA, T)>);
+pub struct BinTree<VA: DictValAdapter>(PhantomData<VA>);
 
-impl<VA: DictValAdapter<T>, T: TLB> Default for BinTree<VA, T> {
+impl<VA: DictValAdapter> Default for BinTree<VA> {
     fn default() -> Self { Self::new() }
 }
 
-impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
+impl<VA: DictValAdapter> BinTree<VA> {
     pub fn new() -> Self { Self(PhantomData) }
 
-    pub fn read(parser: &mut CellParser) -> Result<HashMap<ShardPfx, T>, TonCoreError> {
+    pub fn read(parser: &mut CellParser) -> Result<HashMap<ShardPfx, VA::ValType>, TonCoreError> {
         let mut val = HashMap::new();
         Self::read_impl(parser, ShardPfx::default(), &mut val)?;
         Ok(val)
@@ -27,7 +26,7 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
     fn read_impl(
         parser: &mut CellParser,
         cur_key: ShardPfx,
-        cur_val: &mut HashMap<ShardPfx, T>,
+        cur_val: &mut HashMap<ShardPfx, VA::ValType>,
     ) -> Result<(), TonCoreError> {
         if cur_key.bits_len > TON_MAX_SPLIT_DEPTH as u32 {
             bail_ton_core_data!("[read] BinTree depth exceeded: {} > {TON_MAX_SPLIT_DEPTH}", cur_key.bits_len);
@@ -52,7 +51,7 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
         Ok(())
     }
 
-    pub fn write(builder: &mut CellBuilder, data: &HashMap<ShardPfx, T>) -> Result<(), TonCoreError> {
+    pub fn write(builder: &mut CellBuilder, data: &HashMap<ShardPfx, VA::ValType>) -> Result<(), TonCoreError> {
         if data.is_empty() {
             bail_ton_core_data!("BinTree can't be empty");
         }
@@ -62,7 +61,7 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
     fn write_impl(
         builder: &mut CellBuilder,
         cur_key: ShardPfx,
-        data: &HashMap<ShardPfx, T>,
+        data: &HashMap<ShardPfx, VA::ValType>,
     ) -> Result<(), TonCoreError> {
         if cur_key.bits_len > TON_MAX_SPLIT_DEPTH as u32 {
             bail_ton_core_data!("[write] BinTree depth exceeded: {} > {TON_MAX_SPLIT_DEPTH}", cur_key.bits_len);
@@ -85,11 +84,11 @@ impl<VA: DictValAdapter<T>, T: TLB> BinTree<VA, T> {
 
         let mut left_builder = TonCell::builder();
         Self::write_impl(&mut left_builder, left_key, data)?;
-        builder.write_ref(left_builder.build_ref()?)?;
+        builder.write_ref(left_builder.build()?)?;
 
         let mut right_builder = TonCell::builder();
         Self::write_impl(&mut right_builder, right_key, data)?;
-        builder.write_ref(right_builder.build_ref()?)?;
+        builder.write_ref(right_builder.build()?)?;
         Ok(())
     }
 }
@@ -150,10 +149,10 @@ mod tests {
             ),
         ]);
         let mut builder = TonCell::builder();
-        BinTree::<DictValAdapterNum<32>, u32>::write(&mut builder, &data)?;
+        BinTree::<DictValAdapterNum<u32, 32>>::write(&mut builder, &data)?;
         let cell = builder.build()?;
         let mut parser = cell.parser();
-        let parsed_data = BinTree::<DictValAdapterNum<32>, u32>::read(&mut parser)?;
+        let parsed_data = BinTree::<DictValAdapterNum<u32, 32>>::read(&mut parser)?;
         assert_eq!(data, parsed_data);
         Ok(())
     }

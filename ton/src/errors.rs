@@ -1,4 +1,6 @@
+use crate::tep::metadata::MetadataContent;
 use hmac::digest::crypto_common;
+use reqwest::StatusCode;
 use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
@@ -100,6 +102,9 @@ pub enum TonError {
     #[error("CustomError: {0}")]
     Custom(String),
 
+    #[error("MetaLoaderError: {0}")]
+    MetaLoaderError(#[from] MetaLoaderError),
+
     #[error("{0}")]
     HmacInvalidLen(#[from] crypto_common::InvalidLength),
     #[error("{0}")]
@@ -128,6 +133,24 @@ pub enum TonError {
     RecvError(#[from] tokio::sync::oneshot::error::RecvError),
     #[error("{0}")]
     AcquireError(#[from] tokio::sync::AcquireError),
+    #[error("Transport error ({0})")]
+    TransportError(#[from] reqwest::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum MetaLoaderError {
+    #[error("Unsupported content layout (Metadata content: {0:?})")]
+    ContentLayoutUnsupported(Box<MetadataContent>),
+
+    #[error("Failed to load jetton metadata (URI: {uri}, response status code: {status})")]
+    LoadMetadataFailed { uri: String, status: StatusCode },
+
+    #[error("IpfsLoaderError path: {path}, status: {status}, msg: {msg}")]
+    IpfsLoadError {
+        path: String,
+        status: StatusCode,
+        msg: String,
+    },
 }
 
 impl From<TonError> for TonCoreError {

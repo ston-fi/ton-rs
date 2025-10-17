@@ -1,5 +1,5 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::client::ContractClient;
+use crate::contracts::contract_client::ContractClient;
 use crate::emulators::tvm_emulator::TVMGetMethodID;
 use crate::errors::TonError;
 use std::sync::Arc;
@@ -9,7 +9,6 @@ use ton_lib_core::types::{TonAddress, TxLTHash};
 
 pub struct ContractCtx {
     pub client: ContractClient,
-    pub address: TonAddress,
     pub state: Arc<TonContractState>,
 }
 
@@ -18,13 +17,13 @@ pub trait TonContract: Send + Sync + Sized {
     fn ctx(&self) -> &ContractCtx;
     fn from_ctx(ctx: ContractCtx) -> Self;
 
-    async fn new(client: &ContractClient, address: TonAddress, tx_id: Option<TxLTHash>) -> Result<Self, TonError> {
-        let state = client.get_contract(&address, tx_id.as_ref()).await?;
-        Self::from_state(client.clone(), address, state)
+    async fn new(client: &ContractClient, address: &TonAddress, tx_id: Option<TxLTHash>) -> Result<Self, TonError> {
+        let state = client.get_contract(address, tx_id.as_ref()).await?;
+        Self::from_state(client.clone(), state)
     }
 
-    fn from_state(client: ContractClient, address: TonAddress, state: Arc<TonContractState>) -> Result<Self, TonError> {
-        Ok(Self::from_ctx(ContractCtx { client, address, state }))
+    fn from_state(client: ContractClient, state: Arc<TonContractState>) -> Result<Self, TonError> {
+        Ok(Self::from_ctx(ContractCtx { client, state }))
     }
 
     async fn get_state(&self) -> Result<&Arc<TonContractState>, TonError> { Ok(&self.ctx().state) }
@@ -43,7 +42,7 @@ pub trait TonContract: Send + Sync + Sized {
     async fn get_parsed_data<D: TLB>(&self) -> Result<D, TonError> {
         let state = self.get_state().await?;
         match &state.data_boc {
-            Some(data_boc) => Ok(D::from_boc(data_boc)?),
+            Some(data_boc) => Ok(D::from_boc(data_boc.to_owned())?),
             None => Err(TonError::TonContractNoData {
                 address: state.address.clone(),
                 tx_id: Some(state.last_tx_id.clone()),

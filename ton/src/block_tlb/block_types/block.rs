@@ -1,7 +1,7 @@
 use crate::block_tlb::BlockExtra;
 use crate::block_tlb::BlockInfo;
-use crate::tlb_adapters::TLBRef;
-use ton_lib_core::cell::TonCellRef;
+use ton_lib_core::cell::TonCell;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L462
@@ -9,23 +9,21 @@ use ton_lib_core::TLB;
 #[tlb(prefix = 0x11ef55aa, bits_len = 32)]
 pub struct Block {
     pub global_id: i32,
-    #[tlb(adapter = "TLBRef")]
-    pub info: BlockInfo,
-    pub value_flow: TonCellRef,   // TODO
-    pub state_update: TonCellRef, // TODO
-    #[tlb(adapter = "TLBRef")]
-    pub extra: BlockExtra,
+    pub info: TLBRef<BlockInfo>,
+    pub value_flow: TLBRef<TonCell>,   // TODO
+    pub state_update: TLBRef<TonCell>, // TODO
+    pub extra: TLBRef<BlockExtra>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
-
     use crate::block_tlb::block_types::block_info::ExtBlockRef;
     use crate::block_tlb::GlobalVersion;
     use crate::block_tlb::ShardIdent;
     use crate::block_tlb::_test_block_data::MASTER_BLOCK_BOC_HEX;
+    use std::collections::HashMap;
+    use std::ops::Deref;
     use std::str::FromStr;
     use tokio_test::assert_ok;
     use ton_lib_core::cell::TonHash;
@@ -82,10 +80,9 @@ mod tests {
 
             prev_vert_ref: None,
         };
-        assert_eq!(expected_block_info, parsed.info);
+        assert_eq!(&expected_block_info, parsed.info.deref());
 
         assert!(parsed.extra.mc_block_extra.is_some());
-
         // test block.extra.mc_block_extra.shard_hashes
         let expected_shards = HashMap::from([
             (0x2000000000000000u64, 52077744),
@@ -104,10 +101,16 @@ mod tests {
             let expected_seqno = expected_shards.get(&shard).unwrap();
             assert_eq!(*expected_seqno, descr.seqno);
         }
-
         // full serialization test
         let serialized = parsed.to_boc()?;
-        let parsed_back = Block::from_boc(&serialized)?;
+        let parsed_back = Block::from_boc(serialized)?;
+        // if check fail, it's impossible to read it based on blocks comparing assert
+        assert_eq!(parsed_back.global_id, parsed.global_id);
+        assert_eq!(parsed_back.info, parsed.info);
+        assert_eq!(parsed_back.value_flow, parsed.value_flow);
+        assert_eq!(parsed_back.state_update, parsed.state_update);
+        assert_eq!(parsed_back.extra.mc_block_extra, parsed.extra.mc_block_extra);
+        assert_eq!(parsed_back.extra, parsed.extra);
         assert_eq!(parsed_back, parsed);
         assert_eq!(
             parsed_back.cell_hash()?,

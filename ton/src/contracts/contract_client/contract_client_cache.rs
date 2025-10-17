@@ -1,5 +1,5 @@
-use crate::contracts::client::cache_stats::CacheStats;
-use crate::contracts::ContractClientConfig;
+use crate::contracts::contract_client::builder::Builder;
+use crate::contracts::contract_client::cache_stats::CacheStats;
 use crate::errors::TonError;
 use futures_util::future::join_all;
 use moka::future::Cache;
@@ -21,17 +21,17 @@ pub(super) struct ContractClientCache {
 }
 
 impl ContractClientCache {
-    pub(super) fn new(config: ContractClientConfig, provider: Arc<dyn TonProvider>) -> Result<Arc<Self>, TonError> {
-        let (capacity, ttl) = (config.cache_capacity, config.cache_ttl);
+    pub(super) fn new(builder: &Builder) -> Result<Arc<Self>, TonError> {
+        let (capacity, ttl) = (builder.cache_capacity, builder.cache_ttl);
         let client_cache = Arc::new(Self {
-            provider: provider.clone(),
+            provider: builder.provider.clone(),
             latest_tx_cache: init_cache(capacity, ttl),
             state_latest_cache: init_cache(capacity, ttl),
             state_by_tx_cache: init_cache(capacity, ttl),
             cache_stats: CacheStats::default(),
         });
         let weak = Arc::downgrade(&client_cache);
-        tokio::spawn(recent_tx_loop(weak, config.refresh_loop_idle_on_error));
+        tokio::spawn(recent_tx_loop(weak, builder.refresh_loop_idle_on_error));
         Ok(client_cache)
     }
 

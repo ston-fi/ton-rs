@@ -7,7 +7,7 @@ use num_traits::One;
 use ton_lib_core::cell::CellParser;
 use ton_lib_core::errors::TonCoreError;
 use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::UnaryLen;
+use ton_lib_core::types::tlb_core::adapters::UnaryLen;
 
 pub struct DictDataParser {
     key_bits_len: usize,
@@ -22,22 +22,22 @@ impl DictDataParser {
         }
     }
 
-    pub fn read<T, VA: DictValAdapter<T>>(
+    pub fn read<VA: DictValAdapter>(
         &mut self,
         parser: &mut CellParser,
-    ) -> Result<HashMap<BigUint, T>, TonCoreError> {
+    ) -> Result<HashMap<BigUint, VA::ValType>, TonCoreError> {
         // reset state in case of reusing
         self.cur_key_prefix = BigUint::one();
 
         let mut result = HashMap::new();
-        self.parse_impl::<T, VA>(parser, &mut result)?;
+        self.parse_impl::<VA>(parser, &mut result)?;
         Ok(result)
     }
 
-    fn parse_impl<T, VA: DictValAdapter<T>>(
+    fn parse_impl<VA: DictValAdapter>(
         &mut self,
         parser: &mut CellParser,
-        dst: &mut HashMap<BigUint, T>,
+        dst: &mut HashMap<BigUint, VA::ValType>,
     ) -> Result<(), TonCoreError> {
         // will rollback prefix to original value at the end of the function
         let origin_key_prefix_len = self.cur_key_prefix.bits();
@@ -81,11 +81,11 @@ impl DictDataParser {
         } else {
             let left_ref = parser.read_next_ref()?;
             self.cur_key_prefix <<= 1;
-            self.parse_impl::<T, VA>(&mut left_ref.parser(), dst)?;
+            self.parse_impl::<VA>(&mut left_ref.parser(), dst)?;
 
             let right_ref = parser.read_next_ref()?;
             self.cur_key_prefix += BigUint::one();
-            self.parse_impl::<T, VA>(&mut right_ref.parser(), dst)?;
+            self.parse_impl::<VA>(&mut right_ref.parser(), dst)?;
         }
         self.cur_key_prefix >>= self.cur_key_prefix.bits() - origin_key_prefix_len;
         Ok(())

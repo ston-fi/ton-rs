@@ -1,13 +1,10 @@
 use crate::errors::TonError;
 use crate::tep::metadata::Metadata;
 use crate::tep::metadata::*;
-use crate::tep::snake_data::SnakeData;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::fmt::Debug;
-use ton_lib_core::cell::TonHash;
 
 #[derive(Serialize, PartialEq, Eq, Deserialize, Debug, Clone)]
 pub struct NFTItemMetadata {
@@ -19,7 +16,7 @@ pub struct NFTItemMetadata {
 }
 
 impl Metadata for NFTItemMetadata {
-    fn from_data(dict: &HashMap<TonHash, SnakeData>, json: Option<&str>) -> Result<Self, TonError> {
+    fn from_data(dict: &MetadataDict, json: Option<&str>) -> Result<Self, TonError> {
         let mut external_meta: Option<Self> =
             json.map(serde_json::from_str).transpose().map_err(|_| TonError::MetadataParseError)?;
         Ok(NFTItemMetadata {

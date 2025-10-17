@@ -1,35 +1,30 @@
+mod builder;
 mod callback;
-mod config;
 mod connection;
-mod env_setup;
+
 pub mod tl;
 mod tl_client_trait;
 
 pub use callback::*;
-pub use config::*;
 pub use connection::*;
-pub use env_setup::*;
 pub use tl_client_trait::*;
 
-use crate::errors::TonError;
+use crate::errors::TonResult;
+use crate::tl_client::builder::Builder;
 use async_trait::async_trait;
-use futures_util::future::try_join_all;
 use rand::prelude::{IndexedRandom, StdRng};
-use rand::SeedableRng;
 use std::ops::DerefMut;
 use std::sync::{Arc, Mutex};
-use tokio::sync::Semaphore;
+use std::time::Duration;
 
-// /// Simple client with many connections
+// /// Simple contract_client with many connections
 #[derive(Clone)]
 pub struct TLClient {
     inner: Arc<Inner>,
 }
 
-struct Inner {
-    rnd: Mutex<StdRng>,
-    connections: Vec<TLConnection>,
-    config: TLClientConfig,
+impl TLClient {
+    pub fn builder() -> TonResult<Builder> { Builder::new() }
 }
 
 #[async_trait]
@@ -39,22 +34,23 @@ impl TLClientTrait for TLClient {
         self.inner.connections.choose(&mut rng_lock.deref_mut()).unwrap()
     }
 
-    fn get_retry_strategy(&self) -> &RetryStrategy { &self.inner.config.retry_strategy }
+    fn get_retry_strategy(&self) -> &RetryStrategy { &self.inner.retry_strategy }
 }
 
-impl TLClient {
-    pub async fn new(mut config: TLClientConfig) -> Result<TLClient, TonError> {
-        prepare_client_env(&mut config).await?;
+struct Inner {
+    rnd: Mutex<StdRng>,
+    connections: Vec<TLConnection>,
+    retry_strategy: RetryStrategy,
+}
 
-        let semaphore = Arc::new(Semaphore::new(config.max_parallel_requests));
-        let conn_futs = (0..config.connections_count).map(|_| TLConnection::new(&config, semaphore.clone()));
-        let connections = try_join_all(conn_futs).await?;
-        log::info!("[TLClient] {} connections initialized", connections.len());
-        let inner = Inner {
-            rnd: Mutex::new(StdRng::from_rng(&mut rand::rng())),
-            connections,
-            config,
-        };
-        Ok(TLClient { inner: Arc::new(inner) })
-    }
+#[derive(Debug, PartialEq, Clone)]
+pub enum LiteNodeFilter {
+    Healthy, // connect to healthy node only
+    Archive, // connect to archive node only
+}
+
+#[derive(Debug, Clone)]
+pub struct RetryStrategy {
+    pub retry_count: usize,
+    pub retry_waiting: Duration,
 }

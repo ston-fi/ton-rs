@@ -1,4 +1,4 @@
-use crate::tlb_adapters::DictKeyAdapterInto;
+use crate::tlb_adapters::DictKeyAdapterUint;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use ton_lib_core::{bail_ton_core_data, TLB};
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L698
 #[derive(Debug, Clone, PartialEq, TLB)]
 pub struct ConfigParam18 {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(32)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32)")]
     pub storage_prices: HashMap<u32, StoragePrices>,
 }
 

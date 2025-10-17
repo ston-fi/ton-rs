@@ -2,7 +2,7 @@ use crate::errors::TonError;
 use crate::tl_client::tl::request::TLRequest;
 use crate::tl_client::tl::response::TLResponse;
 use tonlib_sys::*;
-// Wrapper around ton client with support for TL data types
+// Wrapper around ton contract_client with support for TL data types
 
 pub(crate) struct TonLibJsonWrapper {
     ptr: *mut std::os::raw::c_void,

@@ -13,6 +13,6 @@ impl JettonWalletMethods for JettonWalletContract {}
 pub trait JettonWalletMethods: TonContract {
     async fn get_wallet_data(&self) -> Result<GetWalletDataResult, TonError> {
         let stack_boc = self.emulate_get_method("get_wallet_data", &TVMStack::EMPTY).await?;
-        Ok(GetWalletDataResult::from_boc(&stack_boc)?)
+        Ok(GetWalletDataResult::from_boc(stack_boc)?)
     }
 }

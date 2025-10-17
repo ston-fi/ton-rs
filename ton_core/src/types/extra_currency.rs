@@ -1,4 +1,5 @@
 use crate::{cell::TonHash, errors::TonCoreError, types::TonAddress};
+use ton_lib_macros::TLB;
 
 const EXTRA_CURRENCY_BASE_HASH: TonHash = {
     let mut prefix = [0u8; TonHash::BYTES_LEN];
@@ -9,7 +10,7 @@ const EXTRA_CURRENCY_BASE_HASH: TonHash = {
     TonHash::from_slice_sized(&prefix)
 };
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, TLB)]
 pub struct TonExtraCurrencyId(u32);
 
 impl TonExtraCurrencyId {
@@ -46,12 +47,13 @@ impl TonExtraCurrencyId {
 }
 
 mod traits_impl {
+    use crate::bail_ton_core_data;
+    use crate::errors::TonCoreError;
+    use crate::types::TonExtraCurrencyId;
+    use num_bigint::BigUint;
     use std::fmt::Display;
     use std::ops::Deref;
     use std::str::FromStr;
-
-    use crate::errors::TonCoreError;
-    use crate::types::TonExtraCurrencyId;
 
     impl Display for TonExtraCurrencyId {
         fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.0.fmt(formatter) }
@@ -69,5 +71,19 @@ mod traits_impl {
     impl FromStr for TonExtraCurrencyId {
         type Err = TonCoreError;
         fn from_str(string: &str) -> Result<Self, Self::Err> { Ok(u32::from_str(string)?.into()) }
+    }
+
+    impl From<TonExtraCurrencyId> for BigUint {
+        fn from(val: TonExtraCurrencyId) -> Self { BigUint::from(val.0) }
+    }
+
+    impl TryFrom<BigUint> for TonExtraCurrencyId {
+        type Error = TonCoreError;
+        fn try_from(value: BigUint) -> Result<Self, Self::Error> {
+            match u32::try_from(&value) {
+                Ok(id) => Ok(TonExtraCurrencyId::new(id)),
+                Err(err) => bail_ton_core_data!("Can't parse u32 from {value}: {err}"),
+            }
+        }
     }
 }

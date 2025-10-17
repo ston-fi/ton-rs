@@ -1,5 +1,5 @@
 use crate::block_tlb::block_types::block_info::ExtBlockRef;
-use crate::tlb_adapters::TLBRef;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -10,10 +10,8 @@ pub enum PrevBlockInfo {
 
 #[derive(Debug, Clone, PartialEq, TLB)]
 pub struct BlockPrevInfoAfterMerge {
-    #[tlb(adapter = "TLBRef")]
-    pub prev1: ExtBlockRef,
-    #[tlb(adapter = "TLBRef")]
-    pub prev2: ExtBlockRef,
+    pub prev1: TLBRef<ExtBlockRef>,
+    pub prev2: TLBRef<ExtBlockRef>,
 }
 
 impl Default for PrevBlockInfo {

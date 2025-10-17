@@ -92,7 +92,7 @@ mod tests {
         let msg_cell = TonCell::from_boc_hex("b5ee9c720101010100580000ab69fe00000000000000000000000000000000000000000000000000000000000000013fccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd3050ec744000000617bc90dda80cf41ab8e40")?;
         let parsed_msg = Msg::from_cell(&msg_cell)?;
         assert!(parsed_msg.init.is_none());
-        assert_eq!(parsed_msg.body.value.data_bits_len, 0); // quite useless assert, but let it be here
+        assert_eq!(parsed_msg.body.value.data_len_bits(), 0); // quite useless assert, but let it be here
 
         let info = match parsed_msg.info.clone() {
             CommonMsgInfo::Int(info) => info,
@@ -155,7 +155,7 @@ mod tests {
         let msg = Msg {
             info: msg_info,
             init: Some(TLBEitherRef {
-                value: StateInit::new(TonCell::EMPTY.into_ref(), TonCell::EMPTY.into_ref()),
+                value: StateInit::new(TonCell::empty().to_owned(), TonCell::empty().to_owned()),
                 layout: EitherRefLayout::ToRef,
             }),
             body: TLBEitherRef {

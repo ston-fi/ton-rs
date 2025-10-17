@@ -1,9 +1,8 @@
 use crate::block_tlb::*;
-use crate::tlb_adapters::ConstLen;
-use crate::tlb_adapters::TLBRef;
-use crate::tlb_adapters::TLBRefOpt;
+use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
 use std::ops::Deref;
 use ton_lib_core::cell::TonHash;
+use ton_lib_core::types::tlb_core::TLBRef;
 use ton_lib_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L353
@@ -25,8 +24,7 @@ pub struct TxDescrOrd {
     pub storage_phase: Option<TrStoragePhase>,
     pub credit_phase: Option<TrCreditPhase>,
     pub compute_phase: TrComputePhase,
-    #[tlb(adapter = "TLBRefOpt")]
-    pub action: Option<TrActionPhase>,
+    pub action: Option<TLBRef<TrActionPhase>>,
     pub aborted: bool,
     pub bounce: Option<TrBouncePhase>,
     pub destroyed: bool,
@@ -44,8 +42,7 @@ pub struct TxDescrTickTock {
     pub is_tock: bool,
     pub storage_phase: TrStoragePhase,
     pub compute_phase: TrComputePhase,
-    #[tlb(adapter = "TLBRefOpt")]
-    pub action: Option<TrActionPhase>,
+    pub action: Option<TLBRef<TrActionPhase>>,
     pub aborted: bool,
     pub destroyed: bool,
 }
@@ -56,8 +53,7 @@ pub struct TxDescrSplitPrepare {
     pub split_info: SplitMergeInfo,
     pub storage_phase: Option<TrStoragePhase>,
     pub compute_phase: TrComputePhase,
-    #[tlb(adapter = "TLBRefOpt")]
-    pub action: Option<TrActionPhase>,
+    pub action: Option<TLBRef<TrActionPhase>>,
     pub aborted: bool,
     pub destroyed: bool,
 }
@@ -66,8 +62,7 @@ pub struct TxDescrSplitPrepare {
 #[tlb(prefix = 0b0101, bits_len = 4)]
 pub struct TxDescrSplitInstall {
     pub split_info: SplitMergeInfo,
-    #[tlb(adapter = "TLBRef")]
-    pub prepare_tx: Box<Tx>,
+    pub prepare_tx: Box<TLBRef<Tx>>,
     pub installed: bool,
 }
 
@@ -83,15 +78,11 @@ pub struct TxDescrMergePrepare {
 #[tlb(prefix = 0b0111, bits_len = 4)]
 pub struct TxDescrMergeInstall {
     pub split_info: SplitMergeInfo,
-    #[tlb(adapter = "TLBRef")]
-    pub prepare_tx: Box<Tx>,
-    #[tlb(adapter = "TLBRefOpt")]
-    pub storage_phase: Option<TrStoragePhase>,
-    #[tlb(adapter = "TLBRefOpt")]
-    pub credit_phase: Option<TrCreditPhase>,
+    pub prepare_tx: Box<TLBRef<Tx>>,
+    pub storage_phase: Option<TLBRef<TrStoragePhase>>,
+    pub credit_phase: Option<TLBRef<TrCreditPhase>>,
     pub compute_phase: TrComputePhase,
-    #[tlb(adapter = "TLBRefOpt")]
-    pub action: Option<TrActionPhase>,
+    pub action: Option<TLBRef<TrActionPhase>>,
     pub aborted: bool,
     pub destroyed: bool,
 }
@@ -132,7 +123,7 @@ impl TxDescr {
             TxDescr::SplitPrepare(descr) => descr.storage_phase.as_ref(),
             TxDescr::SplitInstall(_) => None,
             TxDescr::MergePrepare(descr) => Some(&descr.storage_phase),
-            TxDescr::MergeInstall(descr) => descr.storage_phase.as_ref(),
+            TxDescr::MergeInstall(descr) => descr.storage_phase.as_deref(),
         }
     }
 

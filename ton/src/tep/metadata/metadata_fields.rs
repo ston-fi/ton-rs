@@ -1,11 +1,9 @@
+use crate::tep::metadata::MetadataDict;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::LazyLock;
 use ton_lib_core::cell::TonHash;
-
-use crate::tep::snake_data::SnakeData;
 
 pub struct MetadataField(TonHash);
 pub static META_NAME: LazyLock<MetadataField> = LazyLock::new(|| MetadataField::new("name"));
@@ -34,7 +32,7 @@ impl MetadataField {
         MetadataField(key)
     }
 
-    pub fn use_string_or(&self, src: Option<String>, dict: &HashMap<TonHash, SnakeData>) -> Option<String> {
+    pub fn use_string_or(&self, src: Option<String>, dict: &MetadataDict) -> Option<String> {
         if src.is_some() {
             return src;
         };
@@ -42,7 +40,7 @@ impl MetadataField {
         dict.get(self).map(|x| x.as_str().to_string())
     }
 
-    pub fn use_value_or(&self, src: Option<Value>, dict: &HashMap<TonHash, SnakeData>) -> Option<Value> {
+    pub fn use_value_or(&self, src: Option<Value>, dict: &MetadataDict) -> Option<Value> {
         if src.is_some() {
             return src;
         };
