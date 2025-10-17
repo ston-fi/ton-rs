@@ -1,5 +1,5 @@
 use crate::block_tlb::{ConfigParam18, GlobalVersion};
-use crate::tlb_adapters::{DictKeyAdapterInto, DictValAdapterTLB, TLBHashMap};
+use crate::tlb_adapters::{DictKeyAdapterUint, DictValAdapterTLB, TLBHashMap};
 use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -63,7 +63,7 @@ impl TLB for ConfigParams {
         let config_addr = TLB::read(parser)?;
         let config_ref = parser.read_next_ref()?;
         let config =
-            TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(32).read(&mut config_ref.parser())?;
+            TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32).read(&mut config_ref.parser())?;
         Ok(Self {
             config_addr,
             config,
@@ -74,7 +74,7 @@ impl TLB for ConfigParams {
     fn write_definition(&self, dst: &mut CellBuilder) -> Result<(), TonCoreError> {
         self.config_addr.write(dst)?;
         let mut config_cell = TonCell::builder();
-        TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(32).write(&mut config_cell, &self.config)?;
+        TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32).write(&mut config_cell, &self.config)?;
         dst.write_ref(config_cell.build()?)?;
         Ok(())
     }

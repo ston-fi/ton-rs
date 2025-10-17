@@ -45,7 +45,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tlb_adapters::{DictKeyAdapterInto, DictValAdapterNum};
+    use crate::tlb_adapters::{DictKeyAdapterUint, DictValAdapterNum};
     use num_bigint::BigUint;
     use ton_lib_core::traits::tlb::TLB;
 
@@ -61,11 +61,11 @@ mod tests {
         let mut parser = dict_cell.parser();
         let some_data = parser.read_bits(96)?;
 
-        let parsed_data = TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterNum<_, 150>>::new(8).read(&mut parser)?;
+        let parsed_data = TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(8).read(&mut parser)?;
         assert_eq!(expected_data, parsed_data);
         let mut builder = TonCell::builder();
         builder.write_bits(&some_data, 96)?;
-        TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterNum<_, 150>>::new(8).write(&mut builder, &expected_data)?;
+        TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(8).write(&mut builder, &expected_data)?;
         let constructed_cell = builder.build()?;
         assert_eq!(dict_cell, constructed_cell);
         Ok(())
@@ -83,12 +83,12 @@ mod tests {
 
         for key_len_bits in [8u32, 16, 32, 64, 111] {
             let mut builder = TonCell::builder();
-            TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterNum<_, 150>>::new(key_len_bits)
+            TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(key_len_bits)
                 .write(&mut builder, &data)?;
             let dict_cell = builder.build()?;
             let mut parser = dict_cell.parser();
             let parsed =
-                TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterNum<_, 150>>::new(key_len_bits).read(&mut parser)?;
+                TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterNum<_, 150>>::new(key_len_bits).read(&mut parser)?;
             assert_eq!(data, parsed, "key_len_bits: {key_len_bits}");
         }
         Ok(())

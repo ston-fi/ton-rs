@@ -2,7 +2,7 @@ use crate::block_tlb::block_types::block_id_ext::BlockIdExt;
 use crate::block_tlb::ShardDescr;
 use crate::block_tlb::{ConfigParams, CurrencyCollection};
 use crate::block_tlb::{ShardIdent, ShardPfx};
-use crate::tlb_adapters::{BinTree, DictKeyAdapterInto, DictValAdapterTLB, TLBHashMapE};
+use crate::tlb_adapters::{BinTree, DictKeyAdapterUint, DictValAdapterTLB, TLBHashMapE};
 use std::collections::HashMap;
 use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_lib_core::errors::TonCoreError;
@@ -49,7 +49,7 @@ impl TLB for MCBlockExtra {
     const PREFIX: TLBPrefix = TLBPrefix::new(0xcca5, 16);
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
         let key_block = TLB::read(parser)?;
-        let shards_dict = TLBHashMapE::<DictKeyAdapterInto<u32>, DictValAdapterTLB<TLBRef<TonCell>>>::new(32);
+        let shards_dict = TLBHashMapE::<DictKeyAdapterUint<u32>, DictValAdapterTLB<TLBRef<TonCell>>>::new(32);
         let mut shard_hashes = HashMap::new();
         for (wc_id, cell_ref) in shards_dict.read(parser)? {
             let cur_hashes = BinTree::<DictValAdapterTLB<_>>::read(&mut cell_ref.parser())?;
@@ -81,7 +81,7 @@ impl TLB for MCBlockExtra {
             BinTree::<DictValAdapterTLB<_>>::write(&mut val_builder, shards)?;
             shards_dict.insert(*wc_id as u32, val_builder.build()?.into());
         }
-        TLBHashMapE::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(32).write(builder, &shards_dict)?;
+        TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32).write(builder, &shards_dict)?;
         self.shard_fees.write(builder)?;
         self.shard_fees_crated.write(builder)?;
         self.ref_data.write(builder)?;

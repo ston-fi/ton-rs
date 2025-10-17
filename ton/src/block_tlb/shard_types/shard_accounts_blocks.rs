@@ -1,6 +1,6 @@
 pub struct ShardAccountBlocks; // TODO
                                // use crate::types::tlb::adapters::DictRef;
-                               // use crate::types::tlb::adapters::dict_key_adapters::DictKeyAdapterInto;
+                               // use crate::types::tlb::adapters::dict_key_adapters::DictKeyAdapterUint<_>;
                                // use crate::types::tlb::block_tlb::block::TLBRef;
                                // use crate::types::tlb::adapters::Dict;
                                // use crate::types::tlb::adapters::dict_val_adapters::DictValAdapterTLB;
@@ -28,7 +28,7 @@ pub struct ShardAccountBlocks; // TODO
                                // #[tlb_derive(prefix = 0x5, bits_len = 4)]
                                // pub struct AccountTxs {
                                //     pub address: TonHash,
-                               //     #[tlb_derive(adapter = "DictRef::<DictKeyAdapterInto, DictValAdapterTLB, _, _>::new(64)")]
+                               //     #[tlb_derive(adapter = "DictRef::<DictKeyAdapterUint<_>, DictValAdapterTLB, _, _>::new(64)")]
                                //     txs: HashMap<u64, AccountTx>,
                                //     #[tlb_derive(adapter = "TLBRef")]
                                //     pub state_update: HashUpdate

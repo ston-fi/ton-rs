@@ -1,5 +1,5 @@
 use crate::block_tlb::{TVMCellSlice, TVMStack, TVMTuple};
-use crate::tlb_adapters::DictKeyAdapterInto;
+use crate::tlb_adapters::DictKeyAdapterUint;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
 use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
@@ -84,7 +84,7 @@ pub struct VMControlData {
 
 #[derive(Debug, Clone, TLB)]
 pub struct VMSaveList {
-    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterInto<_>, DictValAdapterTLB<_>>::new(4)")]
+    #[tlb(adapter = "TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(4)")]
     pub cregs: HashMap<u8, TVMStackValue>,
 }
 
