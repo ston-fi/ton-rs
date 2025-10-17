@@ -90,7 +90,7 @@ impl<'a> CellParser<'a> {
             start_ref,
             end_ref,
         };
-        let slice = self.cell.slice(borders)?;
+        let slice = self.cell.slice(borders)?; // validation will be done in .slice()
         self.seek_bits(bits_len as i32)?;
         self.next_ref_pos += refs_len as usize;
         Ok(slice)

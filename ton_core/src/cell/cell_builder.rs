@@ -62,8 +62,8 @@ impl CellBuilder {
     pub fn write_bits_with_offset<T: AsRef<[u8]>>(
         &mut self,
         data: T,
-        mut bits_len: usize,
         mut bits_offset: usize,
+        mut bits_len: usize,
     ) -> Result<(), TonCoreError> {
         self.ensure_capacity(bits_len)?;
         let mut data_ref = data.as_ref();
@@ -104,7 +104,7 @@ impl CellBuilder {
     }
 
     pub fn write_bits<T: AsRef<[u8]>>(&mut self, data: T, bits_len: usize) -> Result<(), TonCoreError> {
-        self.write_bits_with_offset(data, bits_len, 0)
+        self.write_bits_with_offset(data, 0, bits_len)
     }
 
     pub fn write_cell(&mut self, cell: &TonCell) -> Result<(), TonCoreError> {
@@ -162,7 +162,7 @@ impl CellBuilder {
         self.write_bits(padding_to_write, padding_bits_len)?;
 
         let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
-        self.write_bits_with_offset(data_bytes, bits_len - padding_bits_len, bits_offset)
+        self.write_bits_with_offset(data_bytes, bits_offset, bits_len - padding_bits_len)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
@@ -219,15 +219,15 @@ mod tests {
     #[test]
     fn test_builder_write_bits_with_offset() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_bits_with_offset([0b1010_1010], 8, 0)?;
+        cell_builder.write_bits_with_offset([0b1010_1010], 0, 8)?;
         cell_builder.write_bits_with_offset([0b0000_1111], 4, 4)?;
-        cell_builder.write_bits_with_offset([0b1111_0011], 3, 4)?;
+        cell_builder.write_bits_with_offset([0b1111_0011], 4, 3)?;
         let cell = cell_builder.build()?;
         assert_eq!(cell.cell_data.data_storage.deref(), &[0b1010_1010, 0b1111_0010]);
         assert_eq!(cell.borders.end_bit, 15);
 
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_bits_with_offset([0b1010_1010, 0b0000_1111], 3, 10)?;
+        cell_builder.write_bits_with_offset([0b1010_1010, 0b0000_1111], 10, 3)?;
         let cell = cell_builder.build()?;
         assert_eq!(cell.cell_data.data_storage.deref(), &[0b0010_0000]);
         assert_eq!(cell.borders.end_bit, 3);
@@ -552,11 +552,11 @@ mod tests {
     fn test_builder_write_bits_with_offset_proper_data_len_bits() -> anyhow::Result<()> {
         let mut builder = TonCell::builder();
         let data = vec![0b1010_1010, 0b0000_1111];
-        builder.write_bits_with_offset(&data, 8, 0)?;
+        builder.write_bits_with_offset(&data, 0, 8)?;
         assert_eq!(builder.data_len_bits, 8);
         builder.write_bits_with_offset(&data, 4, 4)?;
         assert_eq!(builder.data_len_bits, 12);
-        builder.write_bits_with_offset(&data, 3, 4)?;
+        builder.write_bits_with_offset(&data, 4, 3)?;
         assert_eq!(builder.data_len_bits, 15);
         Ok(())
     }
