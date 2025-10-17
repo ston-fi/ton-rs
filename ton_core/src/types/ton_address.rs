@@ -6,7 +6,7 @@ use crate::bits_utils::BitsUtils;
 use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
 use crate::types::tlb_core::*;
-use crate::{bail_ton_core, bail_ton_core_data, TON_TESTNET};
+use crate::{bail_ton_core, bail_ton_core_data};
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use base64::Engine;
 use crc::Crc;
@@ -101,7 +101,7 @@ impl FromStr for TonAddress {
 
 impl Display for TonAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.to_base64(!*TON_TESTNET, true, true))
+        f.write_str(&self.to_base64(true, true, true))
     }
 }
 
