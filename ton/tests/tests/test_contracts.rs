@@ -1,4 +1,5 @@
 use crate::tests::utils::make_tl_client;
+use futures_util::try_join;
 use num_bigint::BigInt;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
@@ -21,16 +22,19 @@ async fn test_contracts() -> anyhow::Result<()> {
         .with_cache_capacity(0) // manually disable cache
         .build()?;
 
-    assert_jetton_wallet_get_wallet(&ctr_cli).await?;
-    assert_jetton_master_get_jetton(&ctr_cli).await?;
-    assert_wallet_contract_get_public_key(&ctr_cli).await?;
-    assert_nft_item_load_full_nft_data(&ctr_cli).await?;
-    assert_nft_item_get_nft_data_external(&ctr_cli).await?;
-    assert_nft_item_get_nft_data_internal(&ctr_cli).await?;
-    assert_nft_collection_get_nft_address_by_index_is_valid(&ctr_cli).await?;
-    assert_nft_collection_get_nft_address_by_index(&ctr_cli).await?;
-    assert_nft_collection_get_collection_data_is_valid(&ctr_cli).await?;
-    assert_nft_collection_get_collection_data_nft(&ctr_cli).await?;
+    let res = try_join!(
+        assert_jetton_wallet_get_wallet(&ctr_cli),
+        assert_jetton_master_get_jetton(&ctr_cli),
+        assert_wallet_contract_get_public_key(&ctr_cli),
+        assert_nft_item_load_full_nft_data(&ctr_cli),
+        assert_nft_item_get_nft_data_external(&ctr_cli),
+        assert_nft_item_get_nft_data_internal(&ctr_cli),
+        assert_nft_collection_get_nft_address_by_index_is_valid(&ctr_cli),
+        assert_nft_collection_get_nft_address_by_index(&ctr_cli),
+        assert_nft_collection_get_collection_data_is_valid(&ctr_cli),
+        assert_nft_collection_get_collection_data_nft(&ctr_cli),
+    );
+    assert_ok!(res);
     Ok(())
 }
 

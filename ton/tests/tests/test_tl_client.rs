@@ -1,4 +1,5 @@
 use crate::tests::utils::make_tl_client;
+use futures_util::try_join;
 use std::str::FromStr;
 use tokio_test::assert_ok;
 use ton_lib::block_tlb::{BlockIdExt, ShardIdent};
@@ -15,14 +16,16 @@ async fn test_tl_client_default() -> anyhow::Result<()> {
     assert_ne!(mc_info.last.seqno, 0);
 
     // tl_client methods
-    assert_tl_client_lookup_mc_block(&client, mc_info.last.seqno - 100).await?; // another node may be behind
-    assert_tl_client_get_block_header(&client, &mc_info.last).await?;
-    assert_tl_client_get_config(&client).await?;
-    assert_tl_client_get_libs(&client).await?;
-    assert_tl_client_get_account_state(&client).await?;
-    assert_tl_client_get_account_txs(&client).await?;
-    assert_tl_client_get_block_txs(&client).await?;
-
+    let res = try_join!(
+        assert_tl_client_lookup_mc_block(&client, mc_info.last.seqno - 100), // another node may be behind
+        assert_tl_client_get_block_header(&client, &mc_info.last),
+        assert_tl_client_get_config(&client),
+        assert_tl_client_get_libs(&client),
+        assert_tl_client_get_account_state(&client),
+        assert_tl_client_get_account_txs(&client),
+        assert_tl_client_get_block_txs(&client),
+    );
+    assert_ok!(res);
     Ok(())
 }
 
