@@ -15,7 +15,7 @@ base64 = "0.22"
 fastnum.workspace = true
 num-bigint.workspace = true
 criterion = "0.7"
-
+bitstream-io.workspace = true
 hex = "0.4"
 
 tonlib-core = "0.26"

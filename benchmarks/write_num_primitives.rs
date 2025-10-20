@@ -1,9 +1,10 @@
-use bitstream_io::write::BitWrite;
+use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use criterion::{criterion_group, criterion_main, Criterion};
 use fastnum::I512;
 use num_bigint::BigInt;
 use std::hint::black_box;
-use ton_lib_core::cell::{CellBitWriter, TonCell};
+
+use ton_lib_core::cell::TonCell;
 use ton_lib_core_008::cell::TonCell as TonCell008;
 use tonlib_core::cell::CellBuilder as TonlibCellBuilder;
 const ITERATIONS_COUNT: usize = 100;
@@ -38,7 +39,7 @@ fn write_primitive_bit_writer() {
     let mut buffer = Vec::new();
     buffer.reserve(128);
     let tvb = TEST_WRITE_BIT as u32;
-    let mut bit_writer = CellBitWriter::new(buffer);
+    let mut bit_writer = BitWriter::endian(buffer, BigEndian);
     for _ in 0..ITERATIONS_COUNT {
         bit_writer.write_var(tvb, TEST_VALUE).unwrap();
         black_box(&bit_writer);
