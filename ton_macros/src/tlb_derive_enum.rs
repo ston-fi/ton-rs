@@ -33,7 +33,7 @@ pub(crate) fn tlb_derive_enum(
         let variant_name = &variant.ident;
         // Expect single unnamed field (like `Std(...)`)
         let Fields::Unnamed(fields) = &variant.fields else {
-            panic!("tlb_derive_enum only supports tuple-like enums");
+            panic!("TLB derive only supports tuple-like enums");
         };
 
         if fields.unnamed.len() != 1 {

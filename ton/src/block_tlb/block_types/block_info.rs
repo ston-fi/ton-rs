@@ -12,7 +12,7 @@ const GEN_SOFTWARE_EXISTS_FLAG: u8 = 1;
 
 /// Struct doesn't check invariant during read/write. So you're free to build incorrect block_info cell
 /// For example, set is_master == false and master_ref != None
-/// Don't do it and everything will be fine
+/// Just don't do it.
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L457
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct BlockInfo {
