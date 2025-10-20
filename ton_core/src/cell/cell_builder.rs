@@ -268,8 +268,7 @@ mod tests {
     #[test]
     fn test_builder_write_num_negative() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert!(cell_builder.write_num(&-3i32, 3).is_err());
-        assert!(cell_builder.write_num(&-3i32, 31).is_err());
+        assert!(cell_builder.write_num(&-3i32, 2).is_err());
         cell_builder.write_num(&-3i16, 16)?;
         cell_builder.write_num(&-3i8, 8)?;
         let cell = cell_builder.build()?;

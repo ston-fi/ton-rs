@@ -585,7 +585,6 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 mod tests {
     use super::{bigint_to_i1024, biguint_to_u1024, i1024_to_bigint, u1024_to_biguint};
     use crate::cell::{CellParser, TonCell};
-    use crate::traits::tlb::TLB;
     use fastnum::{I128, I256, I512, U512};
     use num_bigint::{BigInt, BigUint};
 
