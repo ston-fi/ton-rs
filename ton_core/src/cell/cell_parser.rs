@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn test_parser_read_ref() -> anyhow::Result<()> {
         let mut ref_builder = TonCell::builder();
-        ref_builder.write_num(&0b11110000, 8)?;
+        ref_builder.write_num(&0b11110000u8, 8)?;
         let cell1 = ref_builder.build()?;
 
         let mut cell_builder = TonCell::builder();
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_parser_read_bits() -> anyhow::Result<()> {
-        let cell = make_test_cell(&[0b10101010, 0b01010101], 16)?;
+        let cell = make_test_cell(&[0b10101010u8, 0b01010101u8], 16)?;
         let mut parser = CellParser::new(&cell);
         let dst = parser.read_bits(3)?;
         assert_eq!(dst, [0b10100000]);
