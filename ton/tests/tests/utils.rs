@@ -4,8 +4,8 @@ use log4rs::config::{Appender, Root};
 use log4rs::Config;
 use std::sync::Once;
 use std::time::Duration;
-use ton_lib::lite_client::*;
-use ton_lib::net_config::TonNetConfig;
+use ton::lite_client::*;
+use ton::net_config::TonNetConfig;
 
 static LOG: Once = Once::new();
 
@@ -28,27 +28,27 @@ pub(crate) fn init_logging() {
 }
 
 #[cfg(feature = "tonlibjson")]
-pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<ton_lib::tl_client::TLClient> {
+pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<ton::tl_client::TLClient> {
     init_logging();
     log::info!("Initializing tl_client with mainnet: {mainnet}, archive_only: {archive_only} ...");
 
     let node_filter = if archive_only {
-        ton_lib::tl_client::LiteNodeFilter::Archive
+        ton::tl_client::LiteNodeFilter::Archive
     } else {
-        ton_lib::tl_client::LiteNodeFilter::Healthy
+        ton::tl_client::LiteNodeFilter::Healthy
     };
 
-    let client = ton_lib::tl_client::TLClient::builder()?
+    let client = ton::tl_client::TLClient::builder()?
         .with_net_config(&TonNetConfig::new_default(mainnet)?)?
         .with_connection_check(node_filter)
         .with_connections_count(2)
-        .with_retry_strategy(ton_lib::tl_client::RetryStrategy {
+        .with_retry_strategy(ton::tl_client::RetryStrategy {
             retry_count: 10,
             retry_waiting: Duration::from_millis(100),
         })
         .build()
         .await?;
-    ton_lib::sys_utils::sys_tonlib_set_verbosity_level(0);
+    ton::sys_utils::sys_tonlib_set_verbosity_level(0);
     Ok(client)
 }
 

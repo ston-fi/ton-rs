@@ -23,53 +23,58 @@ publish = false
 # Internal (stonfi-managed)
 ton_macros = {path = "ton_macros", version = "0"}
 ton_core = {path = "ton_core", version = "0"}
-ton_lib = {path = "ton", version = "0"}
 tonlib-sys = { version = "2025.10", features = ["with_debug_info"] }
 
 
 # External
 
 # ton_core
-bitstream-io = "4"
-thiserror = "2.0"
-log = "0.4"
-crc = "3"
-hex = "0.4"
+async-trait = "0.1"
 base64 = "0.22"
+bitstream-io = "4"
+bitvec = "1.0"
+crc = "3"
+fastnum =  "0.7"
+hex = "0.4"
+log = "0.4"
 num-bigint = "0.4"
 num-traits = "0.2"
-fastnum =  "0.7.3"
-async-trait = "0.1"
-sha2 = "0.10"
 once_cell = { version = "1", features = ["parking_lot"] }
+sha2 = "0.10"
+thiserror = "2.0"
+
 
 # ton
-moka = { version = "0.12", features = ["async-lock", "future"]}
-async-recursion = { version = "1" }
-parking_lot = "0.12"
-hmac = "0.12"
-pbkdf2 = { version = "0.12", features = ["simple"] }
-nacl = "0.5"
-ton_liteapi = "0.2"
-tokio = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-auto_pool = { version = "0.3", features = ["async"] }
 adnl = "2.0"
-tokio-tower = "0.6"
-tower = { version = "0.5", features = ["util"] }
-rand = "0.9"
-strum = { version = "0.27", features = ["derive"] }
-serde-aux = "4"
+async-recursion = { version = "1" }
+auto_pool = { version = "0.3", features = ["async"] }
 base64-serde = "0.8"
-futures-util = "0.3"
-libc = "0.2"
-tokio-retry = "0.3"
-reqwest = "0.12"
-smallvec = "1"
 derive_setters = "0.1"
+futures-util = "0.3"
+hmac = "0.12"
+libc = "0.2"
+moka = { version = "0.12", features = ["async-lock", "future"]}
+nacl = "0.5"
+parking_lot = "0.12"
+pbkdf2 = { version = "0.12", features = ["simple"] }
+rand = "0.9"
+reqwest = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde-aux = "4"
+serde_json = "1"
+smallvec = "1"
+strum = { version = "0.27", features = ["derive"] }
+tokio = "1"
+tokio-retry = "0.3"
+tokio-tower = "0.6"
+ton_liteapi = "0.2"
+tower = { version = "0.5", features = ["util"] }
 
 
+# tests
+anyhow = "1.0"
+log4rs = "1.4"
+tokio-test = "0.4"
 
 [profile.bench]
 debug = true

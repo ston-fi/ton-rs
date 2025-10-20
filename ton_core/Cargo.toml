@@ -37,11 +37,12 @@ fastnum.workspace = true
 async-trait.workspace = true
 sha2.workspace = true
 once_cell.workspace = true
-serde = { version = "1.0.219", features = ["derive"], optional = true }
-serde_json = { version = "1.0.145", optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 smallvec.workspace = true
-bitvec = "1"
+bitvec.workspace = true
 
 [dev-dependencies]
-anyhow = "1.0"
-tokio-test = "0.4"
+anyhow.workspace = true
+tokio-test.workspace = true
+log4rs.workspace = true

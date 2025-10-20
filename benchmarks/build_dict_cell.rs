@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::hint::black_box;
 use std::sync::LazyLock;
 use tlb_adapters_0039::TLBHashMap;
-use ton_lib::tlb_adapters as tlb_adapters_current;
+use ton::tlb_adapters as tlb_adapters_current;
 use ton_lib_0039::tlb_adapters as tlb_adapters_0039;
 use ton_core::cell::TonCell;
 use ton_lib_core_008::cell::TonCell as TonCell008;

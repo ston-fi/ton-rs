@@ -17,12 +17,13 @@ include = [
 ]
 
 [dependencies]
-syn = { version = "2.0", features = ["full", "extra-traits"] }
-quote = "1.0"
-deluxe = "0.5"
-proc-macro2 = "1.0"
-proc-macro-crate = "3.3"
 convert_case = "0.8"
+deluxe = "0.5"
+proc-macro-crate = "3.3"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+
 
 [lib]
 proc-macro = true

@@ -1,14 +1,14 @@
 #[cfg(feature = "tonlibjson")]
 mod example {
     use std::str::FromStr;
-    use ton_lib::block_tlb::TVMStack;
-    use ton_lib::contracts::tl_provider::TLProvider;
-    use ton_lib::contracts::{ContractClient, TonContract};
-    use ton_lib::emulators::tvm_emulator::TVMGetMethodID;
-    use ton_lib::errors::TonError;
-    use ton_lib::net_config::TonNetConfig;
-    use ton_lib::tl_client::TLClient;
-    use ton_lib::ton_contract;
+    use ton::block_tlb::TVMStack;
+    use ton::contracts::tl_provider::TLProvider;
+    use ton::contracts::{ContractClient, TonContract};
+    use ton::emulators::tvm_emulator::TVMGetMethodID;
+    use ton::errors::TonError;
+    use ton::net_config::TonNetConfig;
+    use ton::tl_client::TLClient;
+    use ton::ton_contract;
     use ton_core::traits::contract_provider::TonContractState;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;

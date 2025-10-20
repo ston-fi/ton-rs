@@ -36,8 +36,8 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
                 quote! { #ident }
             }
         }
-    } else if let Ok(ton_lib_crate) = crate_name("ton_lib") {
-        match ton_lib_crate {
+    } else if let Ok(ton_crate) = crate_name("ton") {
+        match ton_crate {
             FoundCrate::Itself => quote::quote! { crate::ton_core },
             FoundCrate::Name(name) => {
                 let ident = format_ident!("{name}");

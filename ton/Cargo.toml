@@ -1,5 +1,5 @@
 [package]
-name = "ton_lib"
+name = "ton"
 version = "0.0.1"
 description.workspace = true
 keywords.workspace = true
@@ -31,7 +31,6 @@ tonlib-sys = { workspace = true, optional = true }
 
 # External
 moka.workspace = true
-fastnum.workspace = true
 async-recursion.workspace = true
 parking_lot.workspace = true
 thiserror.workspace = true
@@ -65,7 +64,7 @@ reqwest.workspace = true
 derive_setters.workspace = true
 
 [dev-dependencies]
-anyhow = "1.0"
-tokio-test = "0.4"
-tokio = { version = "1.43", features = ["rt", "macros"] }
-log4rs = "1.3"
+anyhow.workspace = true
+tokio-test.workspace = true
+tokio.workspace = true
+log4rs.workspace = true

@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-ton_lib = { path = "../ton", version = "0" }
+ton = { path = "../ton", version = "0" }
 ton_core = { path = "../ton_core", version = "0" }
 
 ton_lib_core_008 = { package = "ton_lib_core", version = "0.0.8" }

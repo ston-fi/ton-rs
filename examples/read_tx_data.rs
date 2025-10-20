@@ -1,4 +1,4 @@
-use ton_lib::block_tlb::Tx;
+use ton::block_tlb::Tx;
 use ton_core::traits::tlb::TLB;
 
 fn main() -> anyhow::Result<()> {
