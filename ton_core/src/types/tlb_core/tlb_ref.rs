@@ -43,7 +43,7 @@ mod traits_impl {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ton_lib_macros::TLB;
+    use ton_macros::TLB;
 
     #[derive(TLB, PartialEq, Debug)]
     struct TestStruct {

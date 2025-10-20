@@ -1,4 +1,4 @@
-pub use ton_lib_macros::*; // re-export
+pub use ton_macros::*; // re-export
 pub mod bits_utils;
 pub mod cell;
 pub mod constants;

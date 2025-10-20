@@ -38,7 +38,7 @@ impl TLB for TonHash {
 mod tests {
     use super::*;
     use tokio_test::assert_err;
-    use ton_lib_macros::TLB;
+    use ton_macros::TLB;
 
     #[test]
     fn test_tlb_cell() -> anyhow::Result<()> {

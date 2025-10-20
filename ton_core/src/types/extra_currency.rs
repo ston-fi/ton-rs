@@ -1,5 +1,5 @@
 use crate::{cell::TonHash, errors::TonCoreError, types::TonAddress};
-use ton_lib_macros::TLB;
+use ton_macros::TLB;
 
 const EXTRA_CURRENCY_BASE_HASH: TonHash = {
     let mut prefix = [0u8; TonHash::BYTES_LEN];

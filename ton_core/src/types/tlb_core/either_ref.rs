@@ -91,7 +91,7 @@ mod tests {
     use super::*;
     use crate::cell::TonCell;
     use tokio_test::assert_ok;
-    use ton_lib_macros::TLB;
+    use ton_macros::TLB;
 
     #[derive(Debug, PartialEq, TLB)]
     struct TestType1(i32);

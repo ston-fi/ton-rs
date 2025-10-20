@@ -1,11 +1,11 @@
-# ton_lib_macros
+# ton_macros
 
 Automatically derive TLB and TonContract traits for your types
 
 ## TLB Derive
 
 ```rust
-use ton_lib_macros::TLB;
+use ton_macros::TLB;
 
 #[derive(Debug, Clone, PartialEq, TLB)]
 #[tlb(prefix = 0xc4, bits_len = 8)]

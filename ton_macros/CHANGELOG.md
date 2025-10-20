@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 
-- from_slize -> from_slice_sized, as_mut_mut -> as_smth_mut
+- from_slice -> from_slice_sized, as_mut_mut -> as_smth_mut
 - support ConfigParams
 - cleanup tvm_emulator
 

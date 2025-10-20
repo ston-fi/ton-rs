@@ -22,7 +22,7 @@ serde = ["dep:serde", "dep:serde_json"]
 
 [dependencies]
 # Internal
-ton_lib_macros.workspace = true
+ton_macros.workspace = true
 
 # External
 bitstream-io.workspace = true

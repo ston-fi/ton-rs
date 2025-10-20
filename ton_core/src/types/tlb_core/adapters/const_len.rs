@@ -98,7 +98,7 @@ mod tests {
     use super::*;
     use crate::cell::TonCell;
     use crate::traits::tlb::TLB;
-    use ton_lib_macros::TLB;
+    use ton_macros::TLB;
 
     #[test]
     fn test_const_len() -> anyhow::Result<()> {

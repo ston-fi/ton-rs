@@ -1,5 +1,5 @@
 [package]
-name = "ton_lib_macros"
+name = "ton_macros"
 version = "0.0.1"
 description.workspace = true
 keywords.workspace = true

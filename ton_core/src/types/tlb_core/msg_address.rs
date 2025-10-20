@@ -5,7 +5,7 @@ use crate::errors::TonCoreError;
 use crate::traits::tlb::{TLBPrefix, TLB};
 use crate::types::tlb_core::VarLenBits;
 use std::convert::Into;
-use ton_lib_macros::TLB;
+use ton_macros::TLB;
 
 /// https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L100
 /// Implemented in _core because TonAddress depends on it
