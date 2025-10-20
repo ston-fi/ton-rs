@@ -239,10 +239,10 @@ mod tests {
     #[test]
     fn test_builder_write_num_positive() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_num(&0b1010_1010, 8)?;
-        cell_builder.write_num(&0b0000_0101, 4)?;
+        cell_builder.write_num(&0b1010_1010u32, 8)?;
+        cell_builder.write_num(&0b0000_0101u32, 4)?;
         let cell = cell_builder.build()?;
-        assert_eq!(cell.cell_data.data_storage.deref(), &[0b1010_1010, 0b0101_0000]);
+        assert_eq!(cell.cell_data.data_storage.deref(), &[0b1010_1010u8, 0b0101_0000u8]);
         Ok(())
     }
 
