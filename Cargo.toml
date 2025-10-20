@@ -38,6 +38,7 @@ hex = "0.4"
 base64 = "0.22"
 num-bigint = "0.4"
 num-traits = "0.2"
+fastnum =  "0.7.3"
 async-trait = "0.1"
 sha2 = "0.10"
 once_cell = { version = "1", features = ["parking_lot"] }

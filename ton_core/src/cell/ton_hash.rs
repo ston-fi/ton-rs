@@ -3,8 +3,8 @@ use crate::cell::TonCellNum;
 use crate::errors::TonCoreError;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use bitstream_io::{BigEndian, BitWriter};
 use std::hash::Hash;
-
 #[derive(Clone, PartialEq, Hash, Eq, Ord, PartialOrd)]
 pub struct TonHash(TonHashData);
 
@@ -32,10 +32,10 @@ impl TonHash {
     }
 
     pub fn from_num<T: TonCellNum>(num: &T) -> Result<Self, TonCoreError> {
-        if T::IS_PRIMITIVE {
-            return Err(TonCoreError::data("TonHash", "Can't create from primitive type (not enough bytes)"));
-        }
-        Self::from_slice(&num.tcn_to_bytes())
+        let mut writer = BitWriter::endian(vec![], BigEndian);
+        num.tcn_write_bits(&mut writer, 32 * 8)?;
+        let bytes = writer.into_writer();
+        Self::from_slice(&bytes)
     }
 
     pub fn as_slice(&self) -> &[u8] { self.0.as_slice() }

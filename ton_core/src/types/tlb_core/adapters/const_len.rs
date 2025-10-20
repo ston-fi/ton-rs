@@ -1,6 +1,6 @@
-use crate::cell::CellBuilder;
-use crate::cell::CellParser;
+use crate::cell::{CellBuilder, CellParser};
 use crate::errors::TonCoreError;
+use fastnum::{I1024, I128, I256, I512, U1024, U128, U256, U512};
 use num_bigint::{BigInt, BigUint};
 use std::marker::PhantomData;
 
@@ -57,6 +57,14 @@ const_len_num_impl!(i64);
 const_len_num_impl!(u64);
 const_len_num_impl!(i128);
 const_len_num_impl!(u128);
+const_len_num_impl!(I128);
+const_len_num_impl!(U128);
+const_len_num_impl!(U256);
+const_len_num_impl!(I256);
+const_len_num_impl!(U512);
+const_len_num_impl!(I512);
+const_len_num_impl!(U1024);
+const_len_num_impl!(I1024);
 const_len_num_impl!(BigInt);
 const_len_num_impl!(BigUint);
 

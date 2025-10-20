@@ -141,28 +141,8 @@ impl CellBuilder {
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
 
-        if let Some(unsigned) = data_ref.tcn_to_unsigned_primitive() {
-            self.ensure_capacity(bits_len)?;
-            self.data_writer.write_var(bits_len as u32, unsigned)?;
-            return Ok(());
-        }
-
-        let min_bits_len = data_ref.tcn_min_bits_len();
-        if min_bits_len > bits_len {
-            bail_ton_core_data!("Can't write number {} ({} bits) in {} bits", data_ref, min_bits_len, bits_len);
-        }
-
-        let data_bytes = data_ref.tcn_to_bytes();
-        let padding_val: u8 = match (N::SIGNED, data_bytes[0] >> 7 != 0) {
-            (true, true) => 255,
-            _ => 0,
-        };
-        let padding_bits_len = bits_len.saturating_sub(min_bits_len);
-        let padding_to_write = vec![padding_val; padding_bits_len.div_ceil(8)];
-        self.write_bits(padding_to_write, padding_bits_len)?;
-
-        let bits_offset = (data_bytes.len() * 8).saturating_sub(min_bits_len);
-        self.write_bits_with_offset(data_bytes, bits_offset, bits_len - padding_bits_len)
+        self.ensure_capacity(bits_len)?;
+        data_ref.tcn_write_bits(&mut self.data_writer, bits_len as u32)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
@@ -259,10 +239,10 @@ mod tests {
     #[test]
     fn test_builder_write_num_positive() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_num(&0b1010_1010, 8)?;
-        cell_builder.write_num(&0b0000_0101, 4)?;
+        cell_builder.write_num(&0b1010_1010u32, 8)?;
+        cell_builder.write_num(&0b0000_0101u32, 4)?;
         let cell = cell_builder.build()?;
-        assert_eq!(cell.cell_data.data_storage.deref(), &[0b1010_1010, 0b0101_0000]);
+        assert_eq!(cell.cell_data.data_storage.deref(), &[0b1010_1010u8, 0b0101_0000u8]);
         Ok(())
     }
 
@@ -288,8 +268,7 @@ mod tests {
     #[test]
     fn test_builder_write_num_negative() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert!(cell_builder.write_num(&-3i32, 3).is_err());
-        assert!(cell_builder.write_num(&-3i32, 31).is_err());
+        assert!(cell_builder.write_num(&-3i32, 2).is_err());
         cell_builder.write_num(&-3i16, 16)?;
         cell_builder.write_num(&-3i8, 8)?;
         let cell = cell_builder.build()?;
