@@ -1,14 +1,14 @@
 use crate::tlb_adapters::DictKeyAdapterTonHash;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMapE;
-use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::types::TonAddress;
-use ton_lib_core::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::types::TonAddress;
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L281
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -58,7 +58,7 @@ impl StateInit {
 mod tests {
     use super::*;
     use std::str::FromStr;
-    use ton_lib_core::cell::TonCell;
+    use ton_core::cell::TonCell;
 
     #[test]
     fn test_state_init_regular_contract() -> anyhow::Result<()> {

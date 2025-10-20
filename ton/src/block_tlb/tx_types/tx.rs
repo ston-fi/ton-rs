@@ -1,12 +1,12 @@
 use crate::block_tlb::*;
 use crate::tlb_adapters::*;
-use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
-use ton_lib_core::cell::*;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::{bail_ton_core_data, TLB};
+use ton_core::cell::*;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L291
 #[derive(Default, Clone, Debug, PartialEq, TLB)]
@@ -77,7 +77,7 @@ mod tests {
         TrComputePhaseVM, TrStoragePhase, TxDescrTickTock,
     };
     use std::str::FromStr;
-    use ton_lib_core::types::tlb_core::VarLen;
+    use ton_core::types::tlb_core::VarLen;
 
     #[test]
     fn test_block_tlb_tx_tick_tock() -> anyhow::Result<()> {

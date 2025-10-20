@@ -1,7 +1,7 @@
 use crate::block_tlb::*;
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::types::tlb_core::{MsgAddressInt, TLBRef};
-use ton_lib_core::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::types::tlb_core::{MsgAddressInt, TLBRef};
+use ton_core::TLB;
 
 #[derive(Default, Debug, Clone, PartialEq, TLB)]
 pub struct ShardAccount {
@@ -68,9 +68,9 @@ mod tests {
     use crate::block_tlb::account_types::account_storage::{StorageExtraInfoNone, StorageUsed};
     use std::str::FromStr;
     use tokio_test::assert_ok;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::tlb_core::{MsgAddressIntStd, VarLen, VarLenBytes};
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::tlb_core::{MsgAddressIntStd, VarLen, VarLenBytes};
 
     #[test]
     fn test_block_tlb_account_some() -> anyhow::Result<()> {

@@ -18,9 +18,9 @@ mod example {
     use ton_lib::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};
     use ton_lib::ton_wallet::TonWallet;
     use ton_lib::ton_wallet::WalletVersion;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::tlb_core::{MsgAddress, TLBEitherRef};
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
 
     // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
     // How external and internal messages work: https://docs.ton.org/v3/guidelines/smart-contracts/howto/wallet#-external-and-internal-messages

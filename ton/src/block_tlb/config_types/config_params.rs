@@ -4,11 +4,11 @@ use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
-use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::TLBRef;
+use ton_core::bail_ton_core_data;
+use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBRef;
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L543
 #[derive(Debug, Default)]
@@ -86,7 +86,7 @@ mod tests {
     use crate::block_tlb::{ConfigParam18, ConfigParams, GlobalVersion, StoragePrices};
     use std::collections::HashMap;
     use std::ops::Deref;
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_config_params() -> anyhow::Result<()> {

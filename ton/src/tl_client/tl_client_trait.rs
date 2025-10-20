@@ -7,9 +7,9 @@ use crate::unwrap_tl_rsp;
 use async_trait::async_trait;
 use tokio_retry::strategy::FixedInterval;
 use tokio_retry::RetryIf;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::cell::TonHash;
+use ton_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
+use ton_core::types::{TonAddress, TxLTHash};
 
 #[async_trait]
 pub trait TLClientTrait: Send + Sync {

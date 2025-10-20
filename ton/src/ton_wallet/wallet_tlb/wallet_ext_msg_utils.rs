@@ -1,9 +1,9 @@
 use crate::block_tlb::{OutAction, OutActionSendMsg, OutList};
 use std::ops::Deref;
-use ton_lib_core::bail_ton_core;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::bail_ton_core;
+use ton_core::cell::{CellBuilder, CellParser, TonCell};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 pub(super) fn write_up_to_4_msgs(
     dst: &mut CellBuilder,
@@ -113,7 +113,7 @@ pub(super) fn build_inner_request(msgs: &[TonCell], msgs_modes: &[u8]) -> Result
 mod test {
     use super::*;
     use tokio_test::{assert_err, assert_ok};
-    use ton_lib_core::cell::TonCell;
+    use ton_core::cell::TonCell;
 
     #[test]
     fn test_write_up_to_4_msgs() -> anyhow::Result<()> {

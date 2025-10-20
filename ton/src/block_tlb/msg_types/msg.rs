@@ -1,10 +1,10 @@
 use crate::block_tlb::msg_types::common_msg_info::CommonMsgInfo;
 use crate::block_tlb::*;
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::*;
-use ton_lib_core::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::*;
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L157
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -84,8 +84,8 @@ mod tests {
     use super::*;
     use std::str::FromStr;
     use tokio_test::assert_ok;
-    use ton_lib_core::types::tlb_core::{Anycast, MsgAddressExtern, MsgAddressIntStd, VarLenBits};
-    use ton_lib_core::types::TonAddress;
+    use ton_core::types::tlb_core::{Anycast, MsgAddressExtern, MsgAddressIntStd, VarLenBits};
+    use ton_core::types::TonAddress;
 
     #[test]
     fn test_common_msg_info_int() -> anyhow::Result<()> {

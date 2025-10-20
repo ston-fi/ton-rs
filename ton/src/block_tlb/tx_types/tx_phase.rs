@@ -1,7 +1,7 @@
 use crate::block_tlb::*;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::tlb_core::{TLBRef, VarLenBytes};
-use ton_lib_core::TLB;
+use ton_core::cell::TonHash;
+use ton_core::types::tlb_core::{TLBRef, VarLenBytes};
+use ton_core::TLB;
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 pub struct TrStoragePhase {

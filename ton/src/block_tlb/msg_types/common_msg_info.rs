@@ -1,7 +1,7 @@
 use crate::block_tlb::*;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::tlb_core::{MsgAddress, MsgAddressExt, MsgAddressInt, MsgAddressIntStd};
-use ton_lib_core::TLB;
+use ton_core::cell::TonHash;
+use ton_core::types::tlb_core::{MsgAddress, MsgAddressExt, MsgAddressInt, MsgAddressIntStd};
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L155
 #[derive(Debug, Clone, PartialEq, TLB)]

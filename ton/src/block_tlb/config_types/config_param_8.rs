@@ -1,4 +1,4 @@
-use ton_lib_core::TLB;
+use ton_core::TLB;
 
 #[derive(Debug, Clone, PartialEq, TLB)]
 #[tlb(prefix = 0xc4, bits_len = 8)]

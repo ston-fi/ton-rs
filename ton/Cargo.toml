@@ -25,7 +25,7 @@ tonlibjson = ["dep:tonlib-sys"]
 
 [dependencies]
 # Internal
-ton_lib_core = {workspace = true, features = ["serde"] }
+ton_core = {workspace = true, features = ["serde"] }
 tonlib-sys = { workspace = true, optional = true }
 
 

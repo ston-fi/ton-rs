@@ -1,8 +1,8 @@
 use std::sync::{Arc, LazyLock};
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::cell::TonCell;
+use ton_core::traits::tlb::TLB;
 
-extern crate ton_lib_core;
+extern crate ton_core;
 
 static SHARD_BLOCK_BOC: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
     let hex = include_str!("../resources/tests/shard_block_6000000000000000_52111590.hex");

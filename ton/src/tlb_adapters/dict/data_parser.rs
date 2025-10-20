@@ -4,10 +4,10 @@ use super::label_type::DictLabelType;
 use crate::tlb_adapters::DictValAdapter;
 use num_bigint::BigUint;
 use num_traits::One;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::adapters::UnaryLen;
+use ton_core::cell::CellParser;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::adapters::UnaryLen;
 
 pub struct DictDataParser {
     key_bits_len: usize,

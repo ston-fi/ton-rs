@@ -1,10 +1,10 @@
 use crate::block_tlb::CurrencyCollection;
-use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::{TLBEither, TLBRef};
-use ton_lib_core::TLB;
+use crate::ton_core::types::tlb_core::adapters::ConstLen;
+use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::{TLBEither, TLBRef};
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/2a68c8610bf28b43b2019a479a70d0606c2a0aa1/crypto/block/block.tlb#L399
 #[derive(Debug, PartialEq, Clone, Default)]

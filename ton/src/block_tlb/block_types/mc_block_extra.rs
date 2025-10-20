@@ -4,11 +4,11 @@ use crate::block_tlb::{ConfigParams, CurrencyCollection};
 use crate::block_tlb::{ShardIdent, ShardPfx};
 use crate::tlb_adapters::{BinTree, DictKeyAdapterUint, DictValAdapterTLB, TLBHashMapE};
 use std::collections::HashMap;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::{bail_ton_core_data, TLB};
+use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::{TLBPrefix, TLB};
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L593
 #[derive(Debug, Clone, PartialEq)]

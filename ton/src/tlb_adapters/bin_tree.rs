@@ -2,10 +2,10 @@ use crate::block_tlb::ShardPfx;
 use crate::tlb_adapters::DictValAdapter;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_lib_core::constants::TON_MAX_SPLIT_DEPTH;
-use ton_lib_core::errors::TonCoreError;
+use ton_core::bail_ton_core_data;
+use ton_core::cell::{CellBuilder, CellParser, TonCell};
+use ton_core::constants::TON_MAX_SPLIT_DEPTH;
+use ton_core::errors::TonCoreError;
 
 // for now it's used only only with ShardPfx in keys
 pub struct BinTree<VA: DictValAdapter>(PhantomData<VA>);

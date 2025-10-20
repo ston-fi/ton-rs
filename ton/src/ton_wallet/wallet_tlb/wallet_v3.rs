@@ -1,8 +1,8 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, write_up_to_4_msgs};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::TLB;
+use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::TLB;
 
 /// WalletVersion::V3R1 | WalletVersion::V3R2
 #[derive(Debug, PartialEq, Clone, TLB)]
@@ -69,8 +69,8 @@ impl WalletV3ExtMsgBody {
 mod tests {
     use crate::ton_wallet::{WalletV3Data, WalletV3ExtMsgBody, WALLET_ID_DEFAULT};
     use std::str::FromStr;
-    use ton_lib_core::cell::{TonCell, TonHash};
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::cell::{TonCell, TonHash};
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_wallet_v3_data() -> anyhow::Result<()> {

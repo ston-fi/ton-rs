@@ -1,5 +1,5 @@
 use super::*;
-use ton_lib_core::TLB;
+use ton_core::TLB;
 
 #[derive(Debug, Clone, PartialEq, TLB)]
 pub enum JettonWalletMsgBody {

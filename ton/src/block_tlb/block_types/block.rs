@@ -1,8 +1,8 @@
 use crate::block_tlb::BlockExtra;
 use crate::block_tlb::BlockInfo;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L462
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -26,8 +26,8 @@ mod tests {
     use std::ops::Deref;
     use std::str::FromStr;
     use tokio_test::assert_ok;
-    use ton_lib_core::cell::TonHash;
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::cell::TonHash;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_block_tlb_block() -> anyhow::Result<()> {

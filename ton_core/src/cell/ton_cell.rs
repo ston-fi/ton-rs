@@ -14,8 +14,7 @@ use std::ops::Deref;
 use std::sync::{Arc, LazyLock};
 
 /// ```rust
-/// use ton_lib_core::cell::TonCell;
-/// let mut builder = TonCell::builder();
+/// let mut builder = ton_core::cell::TonCell::builder();
 /// builder.write_bits([1,2,3], 24).unwrap();
 /// let cell = builder.build().unwrap();
 /// assert_eq!(cell.data_len_bits(), 24);

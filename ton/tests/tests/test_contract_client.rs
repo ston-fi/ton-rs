@@ -7,9 +7,9 @@ use ton_lib::contracts::tl_provider::TLProvider;
 use ton_lib::contracts::ContractClient;
 use ton_lib::contracts::{JettonMasterContract, TonContract};
 use ton_lib::tl_client::TLClient;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::traits::contract_provider::TonProvider;
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::cell::TonHash;
+use ton_core::traits::contract_provider::TonProvider;
+use ton_core::types::{TonAddress, TxLTHash};
 
 #[tokio::test]
 async fn test_contract_client() -> anyhow::Result<()> {

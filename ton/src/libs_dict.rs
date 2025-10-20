@@ -2,10 +2,10 @@ use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::{DictKeyAdapterTonHash, TLBHashMap};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 /// Contains dict (TLBHashMap), no 'present' marker in root cell
 #[derive(Debug, Clone, PartialEq, Default, TLB)]
@@ -45,7 +45,7 @@ mod tests {
     use super::*;
 
     use std::str::FromStr;
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_libs_dict() -> anyhow::Result<()> {

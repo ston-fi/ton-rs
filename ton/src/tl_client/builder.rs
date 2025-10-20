@@ -13,9 +13,9 @@ use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::Semaphore;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::cell::TonCell;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 use ton_liteapi::tl::response::BlockData;
 
 #[derive(Setters)]

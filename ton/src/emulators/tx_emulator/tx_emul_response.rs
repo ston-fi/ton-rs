@@ -4,8 +4,8 @@ use crate::errors::TonError;
 use base64::prelude::BASE64_STANDARD;
 use base64_serde::base64_serde_type;
 use serde::Deserialize;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 base64_serde_type!(Base64Standard, BASE64_STANDARD);
 

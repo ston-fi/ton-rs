@@ -2,8 +2,8 @@ use crate::ton_wallet::WalletVersion;
 use crate::ton_wallet::WalletVersion::*;
 use std::collections::HashMap;
 use std::sync::LazyLock;
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::traits::tlb::TLB;
 
 macro_rules! load_code {
     ($path:expr) => {

@@ -1,5 +1,5 @@
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::TLB;
+use ton_core::cell::TonHash;
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L302
 #[derive(Default, Debug, PartialEq, Clone, TLB)]

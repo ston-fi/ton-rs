@@ -3,11 +3,11 @@ use crate::errors::TonError;
 use num_bigint::{BigInt, BigUint, Sign};
 use num_traits::One;
 use std::marker::PhantomData;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::MsgAddressInt;
-use ton_lib_core::types::TonAddress;
+use ton_core::cell::TonCell;
+use ton_core::cell::TonHash;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::MsgAddressInt;
+use ton_core::types::TonAddress;
 
 pub trait DictKeyAdapter {
     type KeyType;

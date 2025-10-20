@@ -1,4 +1,4 @@
-use ton_lib_core::TLB;
+use ton_core::TLB;
 
 /// ```raw
 /// revoke#6f89f5e3

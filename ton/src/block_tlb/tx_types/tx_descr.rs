@@ -1,9 +1,9 @@
 use crate::block_tlb::*;
-use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use std::ops::Deref;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::TonHash;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L353
 #[derive(Debug, Clone, PartialEq, TLB)]

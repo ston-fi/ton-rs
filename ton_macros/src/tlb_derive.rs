@@ -28,8 +28,8 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
         Err(e) => return e.into_compile_error(),
     };
 
-    let crate_path = if let Ok(ton_lib_core_crate) = crate_name("ton_lib_core") {
-        match ton_lib_core_crate {
+    let crate_path = if let Ok(ton_core_crate) = crate_name("ton_core") {
+        match ton_core_crate {
             FoundCrate::Itself => quote::quote! { crate },
             FoundCrate::Name(name) => {
                 let ident = format_ident!("{name}");
@@ -38,10 +38,10 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
         }
     } else if let Ok(ton_lib_crate) = crate_name("ton_lib") {
         match ton_lib_crate {
-            FoundCrate::Itself => quote::quote! { crate::ton_lib_core },
+            FoundCrate::Itself => quote::quote! { crate::ton_core },
             FoundCrate::Name(name) => {
                 let ident = format_ident!("{name}");
-                quote! { #ident::ton_lib_core }
+                quote! { #ident::ton_core }
             }
         }
     } else {

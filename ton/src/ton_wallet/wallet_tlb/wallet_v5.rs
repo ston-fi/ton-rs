@@ -1,9 +1,9 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::*;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::{TLBPrefix, TLB};
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 /// WalletVersion::V5R1
 /// https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb#L29
@@ -82,7 +82,7 @@ mod test {
     use crate::block_tlb::Msg;
     use crate::ton_wallet::{WALLET_V5R1_ID_DEFAULT, WALLET_V5R1_ID_DEFAULT_TESTNET};
     use std::str::FromStr;
-    use ton_lib_core::cell::TonCell;
+    use ton_core::cell::TonCell;
 
     #[test]
     fn test_wallet_data_v5() -> anyhow::Result<()> {

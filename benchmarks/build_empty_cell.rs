@@ -4,7 +4,7 @@ use ton_lib_core_008::cell::TonCell as TonCellTonLibCore008;
 use tonlib_core::cell::CellBuilder;
 
 use std::hint::black_box;
-use ton_lib_core::cell::TonCell as TonCellCurrent;
+use ton_core::cell::TonCell as TonCellCurrent;
 
 const ITERATIONS_COUNT: usize = 100;
 

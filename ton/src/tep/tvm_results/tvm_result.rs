@@ -2,8 +2,8 @@ use crate::block_tlb::TVMStack;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use std::sync::Arc;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 #[rustfmt::skip]
 pub trait TVMResult: Sized {

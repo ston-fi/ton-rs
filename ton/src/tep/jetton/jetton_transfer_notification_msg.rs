@@ -1,8 +1,8 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::types::tlb_core::TLBEitherRef;
-use ton_lib_core::types::TonAddress;
-use ton_lib_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::tlb_core::TLBEitherRef;
+use ton_core::types::TonAddress;
+use ton_core::TLB;
 
 /// ```raw
 /// transfer_notification#7362d09c query_id:uint64 amount:(VarUInteger 16)
@@ -33,9 +33,9 @@ impl JettonTransferNotificationMsg {
 mod tests {
     use super::*;
     use std::str::FromStr;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::TonAddress;
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::TonAddress;
 
     #[test]
     fn test_jetton_transfer_notification_parser() -> anyhow::Result<()> {

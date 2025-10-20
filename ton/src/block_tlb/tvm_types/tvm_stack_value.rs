@@ -2,15 +2,15 @@ use crate::block_tlb::{TVMCellSlice, TVMStack, TVMTuple};
 use crate::tlb_adapters::DictKeyAdapterUint;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
-use crate::ton_lib_core::types::tlb_core::adapters::ConstLen;
+use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use num_bigint::BigInt;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 #[derive(Clone, TLB)]
 pub enum TVMStackValue {
@@ -181,7 +181,7 @@ impl Display for TVMStackValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_tvm_tiny_int_serialization() -> anyhow::Result<()> {

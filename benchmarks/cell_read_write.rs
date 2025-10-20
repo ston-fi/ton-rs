@@ -7,8 +7,8 @@ use tonlib_core::cell::BagOfCells;
 use crate::benchmark_utils::SHARD_BLOCK_BOC;
 use std::hint::black_box;
 use std::ops::Deref;
-use ton_lib_core::cell::TonCell as TonCellCurrent;
-use ton_lib_core::traits::tlb::TLB as TLBCurrent;
+use ton_core::cell::TonCell as TonCellCurrent;
+use ton_core::traits::tlb::TLB as TLBCurrent;
 use ton_lib_core_008::traits::tlb::TLB as TLB008;
 
 const ITERATIONS_COUNT: usize = 20;

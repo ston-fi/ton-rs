@@ -2,8 +2,8 @@ use crate::tlb_adapters::DictKeyAdapterUint;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
 use std::collections::HashMap;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::{bail_ton_core_data, TLB};
+use ton_core::errors::TonCoreError;
+use ton_core::{bail_ton_core_data, TLB};
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L698
 #[derive(Debug, Clone, PartialEq, TLB)]

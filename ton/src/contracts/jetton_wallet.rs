@@ -4,7 +4,7 @@ use crate::contracts::ContractClient;
 use crate::errors::TonError;
 use crate::tep::tvm_results::{GetWalletDataResult, TVMResult};
 use crate::ton_contract;
-use crate::ton_lib_core::traits::contract_provider::TonContractState;
+use crate::ton_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
 
 ton_contract!(JettonWalletContract: JettonWalletMethods);

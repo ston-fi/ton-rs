@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::time::error::Elapsed;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::errors::TonCoreError;
+use ton_core::types::{TonAddress, TxLTHash};
 use ton_liteapi::tl::request::Request;
 use ton_liteapi::types::LiteError;
 

@@ -9,8 +9,8 @@ use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str,
 use crate::errors::TonError;
 use std::ffi::CString;
 use std::sync::Arc;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::constants::TON_ZERO_CONFIG_BOC_B64;
+use ton_core::cell::TonHash;
+use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
 use tonlib_sys::*;
 
 pub struct TXEmulator {
@@ -201,7 +201,7 @@ mod tests {
     use std::str::FromStr;
     use std::sync::LazyLock;
     use tokio_test::{assert_err, assert_ok};
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::traits::tlb::TLB;
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
         EmulBCConfig::from_boc_hex(include_str!("../../../resources/tests/bc_config_key_block_42123611.hex")).unwrap()

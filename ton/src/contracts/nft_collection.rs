@@ -4,10 +4,10 @@ use crate::contracts::ContractClient;
 use crate::errors::TonResult;
 use crate::tep::tvm_results::*;
 use crate::ton_contract;
-use crate::ton_lib_core::traits::contract_provider::TonContractState;
+use crate::ton_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
 use num_bigint::BigInt;
-use ton_lib_core::cell::TonCell;
+use ton_core::cell::TonCell;
 
 ton_contract!(NFTCollectionContract: NFTCollectionMethods);
 

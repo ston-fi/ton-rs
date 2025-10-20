@@ -94,6 +94,6 @@ mod tests {
     fn test_bail_ton_core_data() {
         let rs = make_data_error();
         let err = assert_err!(rs);
-        assert_eq!(err.to_string(), "DataError: [ton_lib_core::errors::tests] some_error, val=42");
+        assert_eq!(err.to_string(), "DataError: [ton_core::errors::tests] some_error, val=42");
     }
 }

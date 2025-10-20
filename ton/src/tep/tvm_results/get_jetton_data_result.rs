@@ -3,10 +3,10 @@ use crate::errors::TonError;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use num_bigint::BigInt;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::TonAddress;
+use ton_core::cell::TonCell;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::TonAddress;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GetJettonDataResult {

@@ -6,7 +6,7 @@ pub(crate) mod serde_block_id_ext {
     use crate::block_tlb::{BlockIdExt, ShardIdent};
     use crate::tl_client::tl::Base64Standard;
     use serde_aux::prelude::deserialize_number_from_string;
-    use ton_lib_core::cell::TonHash;
+    use ton_core::cell::TonHash;
 
     // tonlib_api.tl_api, line 51
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]

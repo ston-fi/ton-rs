@@ -2,9 +2,9 @@ use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt}
 use crate::errors::TonError;
 use num_bigint::BigInt;
 use std::ops::{Deref, DerefMut};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
+use ton_core::cell::{CellBuilder, CellParser, TonCell};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::{TLBPrefix, TLB};
 
 macro_rules! extract_tuple_val {
     ($maybe_result:expr, $variant:ident) => {

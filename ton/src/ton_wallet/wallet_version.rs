@@ -1,10 +1,10 @@
 use crate::errors::TonError;
 use crate::ton_wallet::WalletVersion::*;
 use crate::ton_wallet::*;
-use ton_lib_core::bail_ton_core;
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::bail_ton_core;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum WalletVersion {

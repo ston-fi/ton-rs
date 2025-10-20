@@ -1,7 +1,7 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::types::tlb_core::{MsgAddress, TLBEitherRef};
-use ton_lib_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
+use ton_core::TLB;
 
 /// ```raw
 /// internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16)
@@ -27,10 +27,10 @@ mod tests {
     use crate::block_tlb::Coins;
     use crate::tep::jetton::JettonInternalTransferMsg;
     use std::str::FromStr;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::tlb_core::TLBEitherRef;
-    use ton_lib_core::types::TonAddress;
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::tlb_core::TLBEitherRef;
+    use ton_core::types::TonAddress;
 
     #[test]
     fn test_jetton_internal_transfer_msg() -> anyhow::Result<()> {

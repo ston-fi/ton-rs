@@ -3,9 +3,9 @@ use crate::contracts::contract_client::ContractClient;
 use crate::emulators::tvm_emulator::TVMGetMethodID;
 use crate::errors::TonError;
 use std::sync::Arc;
-use ton_lib_core::traits::contract_provider::TonContractState;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::traits::contract_provider::TonContractState;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::{TonAddress, TxLTHash};
 
 #[async_trait::async_trait]
 pub trait TonContract: Send + Sync + Sized {

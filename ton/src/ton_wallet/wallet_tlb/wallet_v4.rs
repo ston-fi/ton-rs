@@ -1,9 +1,9 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, write_up_to_4_msgs};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::{bail_ton_core, TLB};
+use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::{bail_ton_core, TLB};
 
 #[derive(Debug, PartialEq, Clone, TLB)]
 pub struct WalletV4Data {
@@ -80,8 +80,8 @@ impl WalletV4ExtMsgBody {
 mod tests {
     use crate::ton_wallet::{WalletV4Data, WalletV4ExtMsgBody, WALLET_ID_DEFAULT};
     use std::str::FromStr;
-    use ton_lib_core::cell::{TonCell, TonHash};
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::cell::{TonCell, TonHash};
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_wallet_data_v4() -> anyhow::Result<()> {

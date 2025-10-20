@@ -2,7 +2,7 @@ use crate::tests::utils::make_lite_client;
 use std::str::FromStr;
 use ton_lib::errors::TonError;
 use ton_lib::unwrap_lite_rsp;
-use ton_lib_core::types::TonAddress;
+use ton_core::types::TonAddress;
 use ton_liteapi::tl::request::Request;
 use ton_liteapi::tl::response::Response;
 

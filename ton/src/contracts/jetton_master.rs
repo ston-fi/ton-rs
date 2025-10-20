@@ -4,10 +4,10 @@ use crate::contracts::ContractClient;
 use crate::errors::TonError;
 use crate::tep::tvm_results::{GetJettonDataResult, GetWalletAddressResult, TVMResult};
 use crate::ton_contract;
-use crate::ton_lib_core::traits::contract_provider::TonContractState;
+use crate::ton_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::TonAddress;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::TonAddress;
 
 ton_contract!(JettonMasterContract: JettonMasterMethods);
 

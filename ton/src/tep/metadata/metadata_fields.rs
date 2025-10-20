@@ -3,7 +3,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::ops::Deref;
 use std::sync::LazyLock;
-use ton_lib_core::cell::TonHash;
+use ton_core::cell::TonHash;
 
 pub struct MetadataField(TonHash);
 pub static META_NAME: LazyLock<MetadataField> = LazyLock::new(|| MetadataField::new("name"));

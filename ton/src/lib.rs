@@ -1,4 +1,4 @@
-pub use ton_lib_core; // re-export
+pub use ton_core; // re-export
 pub mod block_tlb;
 pub mod errors;
 pub mod libs_dict;

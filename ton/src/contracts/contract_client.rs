@@ -14,11 +14,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::OnceCell;
-use ton_lib_core::cell::{TonCell, TonCellUtils, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::contract_provider::{TonContractState, TonProvider};
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::cell::{TonCell, TonCellUtils, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::contract_provider::{TonContractState, TonProvider};
+use ton_core::traits::tlb::TLB;
+use ton_core::types::{TonAddress, TxLTHash};
 
 #[derive(Clone)]
 pub struct ContractClient {

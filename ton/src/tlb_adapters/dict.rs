@@ -17,11 +17,11 @@ mod tests {
     use crate::tlb_adapters::{DictKeyAdapterInt, DictValAdapterTLB, TLBHashMap};
     use num_bigint::{BigInt, BigUint};
     use std::collections::HashMap;
-    use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
-    use ton_lib_core::errors::TonCoreError;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::tlb_core::adapters::ConstLen;
-    use ton_lib_core::TLB;
+    use ton_core::cell::{CellBuilder, CellParser, TonCell};
+    use ton_core::errors::TonCoreError;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::tlb_core::adapters::ConstLen;
+    use ton_core::TLB;
 
     #[derive(Clone, Debug, PartialEq, TLB)]
     pub struct DictionaryTickInfo {

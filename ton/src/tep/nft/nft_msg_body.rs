@@ -1,5 +1,5 @@
 use crate::tep::nft::*;
-use ton_lib_core::TLB;
+use ton_core::TLB;
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 pub enum NFTMsgBody {

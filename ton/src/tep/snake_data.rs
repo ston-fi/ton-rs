@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 use std::cmp::min;
 use std::str::FromStr;
-use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::bail_ton_core_data;
+use ton_core::cell::{CellBuilder, CellParser, TonCell};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 // https://docs.ton.org/v3/guidelines/dapps/asset-processing/nft-processing/metadata-parsing#snake-data-encoding
 
@@ -92,8 +92,8 @@ impl SnakeData {
 mod tests {
     use std::str::FromStr;
 
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
 
     use crate::tep::snake_data::SnakeData;
 

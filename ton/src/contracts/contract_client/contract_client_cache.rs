@@ -8,9 +8,9 @@ use std::hash::Hash;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, Weak};
 use std::time::Duration;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::contract_provider::{TonContractState, TonProvider};
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::contract_provider::{TonContractState, TonProvider};
+use ton_core::types::{TonAddress, TxLTHash};
 
 pub(super) struct ContractClientCache {
     provider: Arc<dyn TonProvider>,

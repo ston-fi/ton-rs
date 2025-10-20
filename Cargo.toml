@@ -22,7 +22,7 @@ publish = false
 [workspace.dependencies]
 # Internal (stonfi-managed)
 ton_macros = {path = "ton_macros", version = "0"}
-ton_lib_core = {path = "ton_core", version = "0"}
+ton_core = {path = "ton_core", version = "0"}
 ton_lib = {path = "ton", version = "0"}
 tonlib-sys = { version = "2025.10", features = ["with_debug_info"] }
 

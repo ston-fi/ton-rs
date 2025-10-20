@@ -6,7 +6,7 @@ use std::sync::LazyLock;
 use tlb_adapters_0039::TLBHashMap;
 use ton_lib::tlb_adapters as tlb_adapters_current;
 use ton_lib_0039::tlb_adapters as tlb_adapters_0039;
-use ton_lib_core::cell::TonCell;
+use ton_core::cell::TonCell;
 use ton_lib_core_008::cell::TonCell as TonCell008;
 use tonlib_core::cell::dict::predefined_writers::val_writer_unsigned_min_size;
 use tonlib_core::cell::CellBuilder as TonlibCellBuilder;

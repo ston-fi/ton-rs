@@ -1,6 +1,6 @@
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 /// WalletVersion::HighloadV2R2, not tested
 #[derive(Clone, Debug, TLB)]

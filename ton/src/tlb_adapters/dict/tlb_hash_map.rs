@@ -5,10 +5,10 @@ use crate::tlb_adapters::{DictKeyAdapter, DictValAdapter};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::errors::TonCoreError;
+use ton_core::bail_ton_core_data;
+use ton_core::cell::CellBuilder;
+use ton_core::cell::CellParser;
+use ton_core::errors::TonCoreError;
 
 // https://github.com/ton-blockchain/ton/blame/72056a2261cbb11f7cf0f20b389bcbffe018b1a8/crypto/block/block.tlb#L22
 /// Adapter to write HashMap with arbitrary key/values into a cell

@@ -1,14 +1,14 @@
 use crate::tl_client::tl::ser_de::*;
 use crate::tl_client::tl::Base64Standard;
-use crate::ton_lib_core::serde::*;
+use crate::ton_core::serde::*;
 use std::borrow::Cow;
 use std::fmt::Debug;
 
 use crate::block_tlb::BlockIdExt;
 use serde::{Deserialize, Serialize};
 use serde_aux::prelude::*;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::cell::TonHash;
+use ton_core::types::{TonAddress, TxLTHash};
 
 // tonlib_api.tl_api, line 23
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]

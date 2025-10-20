@@ -11,8 +11,8 @@ use ton_lib::contracts::*;
 use ton_lib::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton_lib::tep::nft::NFTItemMetadata;
 use ton_lib::tep::snake_data::SnakeData;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::TonAddress;
+use ton_core::cell::TonHash;
+use ton_core::types::TonAddress;
 
 #[tokio::test]
 async fn test_contracts() -> anyhow::Result<()> {

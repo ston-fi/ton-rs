@@ -5,9 +5,9 @@ use tokio_test::assert_ok;
 use ton_lib::block_tlb::{BlockIdExt, ShardIdent};
 use ton_lib::tl_client::tl::TLAccountState;
 use ton_lib::tl_client::{TLClient, TLClientTrait};
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::TonAddress;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::traits::tlb::TLB;
+use ton_core::types::TonAddress;
 
 #[tokio::test]
 async fn test_tl_client_default() -> anyhow::Result<()> {

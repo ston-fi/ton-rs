@@ -6,7 +6,7 @@ use derive_setters::Setters;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::OnceCell;
-use ton_lib_core::traits::contract_provider::TonProvider;
+use ton_core::traits::contract_provider::TonProvider;
 
 #[derive(Setters)]
 #[setters(prefix = "with_", strip_option)]

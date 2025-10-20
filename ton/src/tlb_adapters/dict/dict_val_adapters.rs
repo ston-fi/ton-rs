@@ -1,8 +1,8 @@
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::cell::TonCellNum;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::cell::CellBuilder;
+use ton_core::cell::CellParser;
+use ton_core::cell::TonCellNum;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 pub trait DictValAdapter {
     type ValType;

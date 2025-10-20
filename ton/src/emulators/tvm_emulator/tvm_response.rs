@@ -4,7 +4,7 @@ use crate::errors::TonError;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::traits::tlb::TLB;
 
 #[derive(Debug, Clone)]
 pub struct TVMGetMethodSuccess {

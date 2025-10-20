@@ -4,7 +4,7 @@ use fastnum::I512;
 use num_bigint::BigInt;
 use std::hint::black_box;
 
-use ton_lib_core::cell::TonCell;
+use ton_core::cell::TonCell;
 use ton_lib_core_008::cell::TonCell as TonCell008;
 use tonlib_core::cell::CellBuilder as TonlibCellBuilder;
 const ITERATIONS_COUNT: usize = 100;

@@ -1,8 +1,8 @@
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::errors::TonError;
 use std::time::{SystemTime, UNIX_EPOCH};
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::TonAddress;
+use ton_core::cell::TonHash;
+use ton_core::types::TonAddress;
 
 #[derive(Clone, Debug)]
 pub struct TVMEmulatorC7 {

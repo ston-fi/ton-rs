@@ -10,7 +10,7 @@ tonlibjson = ["ton_lib/tonlibjson"]
 
 [dependencies]
 ton_lib = { path = "../ton", version = "0" }
-ton_lib_core = { path = "../ton_core", version = "0" }
+ton_core = { path = "../ton_core", version = "0" }
 
 hex = "0.4"
 num-bigint = { version = "0.4" }

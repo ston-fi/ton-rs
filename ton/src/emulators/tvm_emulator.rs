@@ -124,9 +124,9 @@ mod tests {
     use std::str::FromStr;
     use std::sync::LazyLock;
     use tokio_test::{assert_err, assert_ok};
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::TonAddress;
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::TonAddress;
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
         EmulBCConfig::from_boc_hex(include_str!("../../../resources/tests/bc_config_key_block_42123611.hex")).unwrap()

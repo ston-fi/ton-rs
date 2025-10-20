@@ -4,9 +4,9 @@ use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMapE;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use ton_lib_core::cell::{TonCell, TonHash};
-use ton_lib_core::types::tlb_core::TLBRef;
-use ton_lib_core::TLB;
+use ton_core::cell::{TonCell, TonHash};
+use ton_core::types::tlb_core::TLBRef;
+use ton_core::TLB;
 
 pub type MetadataDict = HashMap<TonHash, TLBRef<SnakeData>>;
 

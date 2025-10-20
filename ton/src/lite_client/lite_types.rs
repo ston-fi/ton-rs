@@ -1,5 +1,5 @@
 use crate::block_tlb::BlockIdExt;
-use ton_lib_core::cell::TonHash;
+use ton_core::cell::TonHash;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BlockId {

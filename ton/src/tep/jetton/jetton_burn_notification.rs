@@ -1,6 +1,6 @@
 use crate::block_tlb::Coins;
-use ton_lib_core::types::tlb_core::MsgAddress;
-use ton_lib_core::TLB;
+use ton_core::types::tlb_core::MsgAddress;
+use ton_core::TLB;
 
 /// ```raw
 /// burn_notification#7bdd97de query_id:uint64 amount:(VarUInteger 16)

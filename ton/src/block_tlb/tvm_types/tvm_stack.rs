@@ -4,9 +4,9 @@ use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
-use ton_lib_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
+use ton_core::cell::{CellBuilder, CellParser, TonCell};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
 
 macro_rules! extract_stack_val {
     ($maybe_result:expr, $variant:ident) => {
@@ -136,7 +136,7 @@ mod tests {
     use super::*;
 
     use tokio_test::assert_ok;
-    use ton_lib_core::types::TonAddress;
+    use ton_core::types::TonAddress;
 
     #[test]
     fn test_vm_stack_empty() -> anyhow::Result<()> {

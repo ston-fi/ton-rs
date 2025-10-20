@@ -5,12 +5,12 @@ use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use std::marker::PhantomData;
 use std::mem::swap;
-use ton_lib_core::bail_ton_core_data;
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::adapters::UnaryLen;
+use ton_core::bail_ton_core_data;
+use ton_core::cell::CellBuilder;
+use ton_core::cell::TonCell;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::adapters::UnaryLen;
 
 pub struct DictDataBuilder<'a, VA: DictValAdapter> {
     keys_sorted: Vec<BigUint>, // contains 1 extra leading bit set to 1

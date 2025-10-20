@@ -9,9 +9,9 @@ mod example {
     use ton_lib::net_config::TonNetConfig;
     use ton_lib::tl_client::TLClient;
     use ton_lib::ton_contract;
-    use ton_lib_core::traits::contract_provider::TonContractState;
-    use ton_lib_core::traits::tlb::TLB;
-    use ton_lib_core::types::TonAddress;
+    use ton_core::traits::contract_provider::TonContractState;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::TonAddress;
 
     ton_contract!(StonfiPool);
 

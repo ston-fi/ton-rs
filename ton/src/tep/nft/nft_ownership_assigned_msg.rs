@@ -1,7 +1,7 @@
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::types::tlb_core::TLBEitherRef;
-use ton_lib_core::types::TonAddress;
-use ton_lib_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::tlb_core::TLBEitherRef;
+use ton_core::types::TonAddress;
+use ton_core::TLB;
 
 /// ```raw
 /// ownership_assigned#0x05138d91

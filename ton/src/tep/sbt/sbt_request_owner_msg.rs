@@ -1,6 +1,6 @@
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::types::tlb_core::{MsgAddress, TLBRef};
-use ton_lib_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::tlb_core::{MsgAddress, TLBRef};
+use ton_core::TLB;
 
 /// ```raw
 /// request_owner#d0c3bfea

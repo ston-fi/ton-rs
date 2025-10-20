@@ -14,10 +14,10 @@ use super::*;
 use crate::block_tlb::*;
 use crate::errors::TonError;
 use nacl::sign::signature;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::types::tlb_core::{MsgAddressExt, TLBEitherRef};
-use ton_lib_core::types::TonAddress;
+use ton_core::cell::TonCell;
+use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::{MsgAddressExt, TLBEitherRef};
+use ton_core::types::TonAddress;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct TonWallet {

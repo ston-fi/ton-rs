@@ -3,10 +3,10 @@ use crate::block_tlb::block_types::block_prev_info::{BlockPrevInfoAfterMerge, Pr
 use crate::block_tlb::GlobalVersion;
 use crate::block_tlb::ShardIdent;
 use std::ops::Deref;
-use ton_lib_core::cell::{CellBuilder, CellParser, TonHash};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
-use ton_lib_core::TLB;
+use ton_core::cell::{CellBuilder, CellParser, TonHash};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::{TLBPrefix, TLB};
+use ton_core::TLB;
 
 const GEN_SOFTWARE_EXISTS_FLAG: u8 = 1;
 

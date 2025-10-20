@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use ton_lib::tlb_adapters::DictKeyAdapterUint;
 use ton_lib::tlb_adapters::DictValAdapterNum;
 use ton_lib::tlb_adapters::TLBHashMap;
-use ton_lib_core::traits::tlb::TLB;
-use ton_lib_core::TLB;
+use ton_core::traits::tlb::TLB;
+use ton_core::TLB;
 
 extern crate num_bigint;
 extern crate ton_lib;

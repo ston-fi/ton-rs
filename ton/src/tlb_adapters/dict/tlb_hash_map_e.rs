@@ -1,10 +1,10 @@
 use crate::tlb_adapters::{DictKeyAdapter, DictValAdapter, TLBHashMap};
 use std::collections::HashMap;
 use std::hash::Hash;
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::cell::TonCell;
-use ton_lib_core::errors::TonCoreError;
+use ton_core::cell::CellBuilder;
+use ton_core::cell::CellParser;
+use ton_core::cell::TonCell;
+use ton_core::errors::TonCoreError;
 
 // https://github.com/ton-blockchain/ton/blame/72056a2261cbb11f7cf0f20b389bcbffe018b1a8/crypto/block/block.tlb#L37
 /// Write present marker (0|1 bit) to root cell, and then Dict data to first ref cell.
@@ -47,7 +47,7 @@ mod tests {
     use super::*;
     use crate::tlb_adapters::{DictKeyAdapterUint, DictValAdapterNum};
     use num_bigint::BigUint;
-    use ton_lib_core::traits::tlb::TLB;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_dict_blockchain_data() -> anyhow::Result<()> {

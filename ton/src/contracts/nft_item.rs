@@ -5,9 +5,9 @@ use crate::errors::TonError;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::{GetNFTDataResult, TVMResult};
 use crate::ton_contract;
-use crate::ton_lib_core::traits::contract_provider::TonContractState;
+use crate::ton_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
-use ton_lib_core::errors::TonCoreError;
+use ton_core::errors::TonCoreError;
 
 ton_contract!(NFTItemContract: NFTItemMethods);
 

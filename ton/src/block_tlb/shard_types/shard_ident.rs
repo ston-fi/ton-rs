@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Display, Formatter};
-use ton_lib_core::bits_utils::BitsUtils;
-use ton_lib_core::cell::{CellBuilder, CellParser};
-use ton_lib_core::constants::{TON_MASTERCHAIN, TON_MAX_SPLIT_DEPTH, TON_SHARD_FULL};
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::tlb::{TLBPrefix, TLB};
-use ton_lib_core::types::tlb_core::MsgAddressInt;
-use ton_lib_core::{bail_ton_core, bail_ton_core_data};
+use ton_core::bits_utils::BitsUtils;
+use ton_core::cell::{CellBuilder, CellParser};
+use ton_core::constants::{TON_MASTERCHAIN, TON_MAX_SPLIT_DEPTH, TON_SHARD_FULL};
+use ton_core::errors::TonCoreError;
+use ton_core::traits::tlb::{TLBPrefix, TLB};
+use ton_core::types::tlb_core::MsgAddressInt;
+use ton_core::{bail_ton_core, bail_ton_core_data};
 
 #[derive(Clone, Eq, Hash, PartialEq, Default)]
 pub struct ShardPfx {
@@ -122,8 +122,8 @@ impl Display for ShardIdent {
 mod tests {
     use super::*;
     use std::str::FromStr;
-    use ton_lib_core::cell::TonCell;
-    use ton_lib_core::types::TonAddress;
+    use ton_core::cell::TonCell;
+    use ton_core::types::TonAddress;
 
     #[test]
     fn test_block_tlb_shard_ident_master() -> anyhow::Result<()> {

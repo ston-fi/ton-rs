@@ -1,6 +1,6 @@
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use std::fmt::{Display, Formatter};
-use ton_lib_core::cell::TonHash;
+use ton_core::cell::TonHash;
 
 #[derive(Debug, Clone)]
 pub struct TXEmulOrdArgs {

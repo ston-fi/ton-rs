@@ -1,15 +1,15 @@
 use crate::tl_client::tl::ser_de::serde_block_id_ext;
 use crate::tl_client::tl::tl_types::*;
 use crate::tl_client::tl::Base64Standard;
-use crate::ton_lib_core::serde::*;
+use crate::ton_core::serde::*;
 
 use crate::block_tlb::BlockIdExt;
 use crate::errors::TonError;
 use serde::{Deserialize, Serialize};
 use std::ffi::CString;
 use strum::IntoStaticStr;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::types::TxLTHash;
+use ton_core::cell::TonHash;
+use ton_core::types::TxLTHash;
 
 #[derive(IntoStaticStr, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type", rename_all = "camelCase")]

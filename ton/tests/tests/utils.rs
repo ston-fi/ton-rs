@@ -41,7 +41,7 @@ pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow:
     let client = ton_lib::tl_client::TLClient::builder()?
         .with_net_config(&TonNetConfig::new_default(mainnet)?)?
         .with_connection_check(node_filter)
-        .with_connections_count(10)
+        .with_connections_count(2)
         .with_retry_strategy(ton_lib::tl_client::RetryStrategy {
             retry_count: 10,
             retry_waiting: Duration::from_millis(100),

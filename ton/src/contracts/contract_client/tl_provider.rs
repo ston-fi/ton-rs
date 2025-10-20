@@ -10,10 +10,10 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Duration;
-use ton_lib_core::cell::TonHash;
-use ton_lib_core::errors::TonCoreError;
-use ton_lib_core::traits::contract_provider::{TonContractState, TonProvider};
-use ton_lib_core::types::{TonAddress, TxLTHash};
+use ton_core::cell::TonHash;
+use ton_core::errors::TonCoreError;
+use ton_core::traits::contract_provider::{TonContractState, TonProvider};
+use ton_core::types::{TonAddress, TxLTHash};
 
 static BLOCK_IDS_CACHE_SIZE: u64 = 200;
 
