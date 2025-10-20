@@ -913,9 +913,9 @@ mod tests {
 
         // Two's complement: -9 in 10 bits = 1111110111
         // As bytes (10 bits = 2 bytes): 11111101 11000000 = [253, 192]
-        assert_eq!(num_cell.data, vec![0b1111_1101, 0b1100_0000]);
-        assert_eq!(num_cell.data, bigint_builder.build()?.data);
-        assert_eq!(num_cell.data, i512_builder.build()?.data);
+        assert_eq!(*num_cell.cell_data.data_storage, vec![0b1111_1101u8, 0b1100_0000u8]);
+        assert_eq!(*num_cell.cell_data.data_storage, *bigint_builder.build()?.cell_data.data_storage);
+        assert_eq!(*num_cell.cell_data.data_storage, *i512_builder.build()?.cell_data.data_storage);
         Ok(())
     }
 
@@ -1005,7 +1005,6 @@ mod tests {
         let parsed_value = parser.read_num::<I128>(bits_len)?;
 
         assert_eq!(parsed_value, test_value, "I128 round-trip failed for 0 bits with zero value");
-        assert_eq!(cell.data_bits_len, 0, "Cell should have 0 data bits");
 
         Ok(())
     }

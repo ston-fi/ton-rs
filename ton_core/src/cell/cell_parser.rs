@@ -4,7 +4,6 @@ use crate::cell::ton_cell_num::TonCellNum;
 use crate::cell::TonCell;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
-use num_traits::Zero;
 use std::io::{Cursor, SeekFrom};
 
 #[derive(Debug)]
@@ -302,14 +301,14 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_write_cell_slice() -> anyhow::Result<()> {
+    fn test_parser_read_slice() -> anyhow::Result<()> {
         let mut builder = TonCell::builder();
         builder.write_bits([255, 0, 255, 0], 24)?;
 
         for i in 0..3 {
             let mut ref_builder = TonCell::builder();
             ref_builder.write_bits([i], 8)?;
-            builder.write_ref(ref_builder.build()?.into_ref())?;
+            builder.write_ref(ref_builder.build()?)?;
         }
 
         let orig_cell = builder.build()?;
