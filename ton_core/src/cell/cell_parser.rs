@@ -193,8 +193,8 @@ mod tests {
 
     #[test]
     fn test_parser_read_bit() -> anyhow::Result<()> {
-        let cell_slice = make_test_cell(&[0b10101010, 0b01010101], 16)?;
-        let mut parser = CellParser::new(&cell_slice);
+        let cell = make_test_cell(&[0b10101010, 0b01010101], 16)?;
+        let mut parser = CellParser::new(&cell);
         for i in 0..8 {
             assert_eq!(assert_ok!(parser.read_bit()), i % 2 == 0);
         }
