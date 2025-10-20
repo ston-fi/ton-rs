@@ -1,9 +1,8 @@
+use crate::cell::{CellBuilder, CellParser};
+use crate::errors::TonCoreError;
 use fastnum::{I1024, I128, I256, I512, U1024, U128, U256, U512};
 use num_bigint::{BigInt, BigUint};
 use std::marker::PhantomData;
-use ton_lib_core::cell::CellBuilder;
-use ton_lib_core::cell::CellParser;
-use ton_lib_core::errors::TonCoreError;
 
 /// Adapter to write data with fixed length into a cell.
 /// use `#[tlb(bits_len={BITS_LEN})]` to apply it using TLB macro

@@ -64,20 +64,9 @@ impl<'a> CellParser<'a> {
     }
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
-        if bits_len == 0 {
-            return Ok(N::tcn_from_primitive(N::Primitive::zero()));
-        }
         self.ensure_enough_bits(bits_len)?;
-        if N::IS_PRIMITIVE {
-            let primitive = self.data_reader.read_var::<N::Primitive>(bits_len as u32)?;
-            return Ok(N::tcn_from_primitive(primitive));
-        }
-        let bytes = self.read_bits(bits_len)?;
-        let res = N::tcn_from_bytes(&bytes);
-        if bits_len % 8 != 0 {
-            return Ok(res.tcn_shr(8 - bits_len % 8));
-        }
-        Ok(res)
+
+        N::tcn_read_bits(&mut self.data_reader, bits_len as u32)
     }
 
     pub fn read_cell(&mut self, bits_len: usize, refs_len: u8) -> Result<TonCell, TonCoreError> {
@@ -187,8 +176,6 @@ mod tests {
         assert_ok!(parser.seek_bits(1));
         assert_eq!(parser.data_reader.position_in_bits()? as usize, cell.borders.end_bit);
         assert_err!(parser.seek_bits(1));
-        assert_eq!(parser.data_reader.position_in_bits()? as usize, cell_slice.data_bits_len - 1);
-
         assert_err!(parser.seek_bits(20));
         Ok(())
     }

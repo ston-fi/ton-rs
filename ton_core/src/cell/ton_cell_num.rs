@@ -1,4 +1,4 @@
-use crate::cell::{CellBitReader, CellBitWriter};
+use crate::cell::{CellBitWriter, CellBitsReader};
 use bitstream_io::{BitRead, BitWrite};
 use fastnum::{TryCast, I1024, I128, I256, I512};
 use fastnum::{U1024, U128, U256, U512};
@@ -69,7 +69,7 @@ macro_rules! primitive_highest_bit_pos {
 pub trait TonCellNum: Display + Sized + Clone {
     fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError>;
 
-    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError>;
+    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError>;
 
     fn tcn_is_zero(&self) -> bool;
 
@@ -92,7 +92,7 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 writer.write_var(bits_len, *self)?;
                 Ok(())
             }
-            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+            fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len != 0 {
                     let val: Self = reader.read_var(bits_len)?;
                     Ok(val)
@@ -130,7 +130,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                 Ok(())
             }
 
-            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+            fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len != 0 {
                     let uval: $u_src = reader.read_var(bits_len)?;
                     let ret: Self = primitive_convert_to_signed!(uval, Self, $u_src, bits_len);
@@ -173,7 +173,7 @@ impl TonCellNum for usize {
         (*self as u64).tcn_write_bits(writer, bits_len)
     }
 
-    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
         let val: u64 = u64::tcn_read_bits(reader, bits_len)?;
         Ok(val as usize)
     }
@@ -283,7 +283,7 @@ impl TonCellNum for BigUint {
         curr_u1024.tcn_write_bits(writer, bits_len)
     }
 
-    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigUint::zero());
         }
@@ -315,7 +315,7 @@ impl TonCellNum for BigInt {
         bigint_to_i1024(self).tcn_write_bits(writer, bits_len)
     }
 
-    fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
         if bits_len == 0 {
             return Ok(BigInt::zero());
         }
@@ -387,7 +387,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 Ok(())
             }
 
-            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+            fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
@@ -496,7 +496,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 masked_uval.tcn_write_bits(writer, bits_len)
             }
 
-            fn tcn_read_bits(reader: &mut CellBitReader, bits_len: u32) -> Result<Self, TonCoreError> {
+            fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
