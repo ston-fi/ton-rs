@@ -1,4 +1,5 @@
 use crate::cell::TonHash;
+use crate::types::*;
 use ::serde::de::Error;
 use ::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
@@ -42,13 +43,10 @@ pub mod serde_ton_hash_vec_base64 {
 
 // TonAddress
 pub mod serde_ton_address_hex {
-    use crate::types::TonAddress;
-    use serde::de::Error;
-    use serde::{Deserialize, Deserializer, Serializer};
-    use std::str::FromStr;
+    pub use super::*;
 
-    pub fn serialize<S: Serializer>(hash: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(hash.to_hex().as_str())
+    pub fn serialize<S: Serializer>(address: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(address.to_hex().as_str())
     }
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
         TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
@@ -56,13 +54,21 @@ pub mod serde_ton_address_hex {
 }
 
 pub mod serde_ton_address_base64_url {
-    use crate::types::TonAddress;
-    use serde::de::Error;
-    use serde::{Deserialize, Deserializer, Serializer};
-    use std::str::FromStr;
+    pub use super::*;
 
-    pub fn serialize<S: Serializer>(hash: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(hash.to_string().as_str())
+    pub fn serialize<S: Serializer>(address: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&address.to_base64(true, true, true))
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
+        TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
+    }
+}
+
+pub mod serde_ton_address_base64_url_testnet {
+    pub use super::*;
+
+    pub fn serialize<S: Serializer>(address: &TonAddress, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&address.to_base64(false, true, true))
     }
     pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonAddress, D::Error> {
         TonAddress::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
@@ -72,7 +78,6 @@ pub mod serde_ton_address_base64_url {
 // TxLTHash
 pub mod serde_tx_lt_hash_json {
     use super::*;
-    use crate::types::TxLTHash;
 
     pub fn serialize<S: Serializer>(data: &TxLTHash, serializer: S) -> Result<S::Ok, S::Error> {
         let json_val = serde_json::json!({

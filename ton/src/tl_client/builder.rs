@@ -21,6 +21,7 @@ use ton_liteapi::tl::response::BlockData;
 #[derive(Setters)]
 #[setters(prefix = "with_", strip_option)]
 pub struct Builder {
+    pub(super) mainnet: bool,
     pub(super) init_opts: TLOptions,
     pub(super) connection_check: LiteNodeFilter,
     pub(super) connections_count: usize,
@@ -36,9 +37,10 @@ impl Builder {
     /// May fail to read net config
     pub(super) fn new() -> TonResult<Self> {
         let builder = Self {
+            mainnet: true,
             init_opts: TLOptions {
                 config: TLConfig {
-                    net_config_json: TonNetConfig::new_default(true)?.to_json()?,
+                    net_config_json: "".to_string(),
                     blockchain_name: None,
                     use_callbacks_for_network: false,
                     ignore_cache: false,
@@ -65,6 +67,10 @@ impl Builder {
             bail_ton!("connections_count must be > 0");
         }
 
+        if self.init_opts.config.net_config_json.is_empty() {
+            self.init_opts.config.net_config_json = TonNetConfig::new_default(self.mainnet)?.to_json()?;
+        }
+
         if self.update_init_block {
             if let Some(net_config) = update_net_config(&self).await? {
                 self.init_opts.config.net_config_json = net_config.to_json()?;
@@ -76,8 +82,14 @@ impl Builder {
 
         let semaphore = Arc::new(Semaphore::new(self.max_parallel_requests));
         let conn_futs = (0..self.connections_count).map(|_| TLConnection::new(&self, semaphore.clone()));
-        let connections = try_join_all(conn_futs).await?;
-        log::info!("[TLClient] {} connections initialized", connections.len());
+        let connections = match try_join_all(conn_futs).await {
+            Ok(conns) => {
+                log::info!("[TLClient] {} connections initialized", conns.len());
+                conns
+            }
+            Err(err) => bail_ton!("[TLClient] Failed to initialize TLConnection: {:?}", err),
+        };
+
         let inner = Inner {
             rnd: Mutex::new(StdRng::from_rng(&mut rand::rng())),
             connections,
@@ -121,8 +133,9 @@ impl Debug for Builder {
 async fn update_net_config(builder: &Builder) -> TonResult<Option<TonNetConfig>> {
     log::info!("Updating init_block...");
     let net_config = TonNetConfig::new(&builder.init_opts.config.net_config_json)?;
+    let cur_init_seqno = net_config.get_init_block_seqno();
+
     let lite_config = LiteClientConfig::new(net_config)?;
-    let cur_init_seqno = lite_config.net_config.get_init_block_seqno();
     let lite_client = LiteClient::new(lite_config.clone())?;
     let lite_client_ref = &lite_client;
 

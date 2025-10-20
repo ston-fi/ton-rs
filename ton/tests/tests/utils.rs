@@ -30,7 +30,7 @@ pub(crate) fn init_logging() {
 #[cfg(feature = "tonlibjson")]
 pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow::Result<ton_lib::tl_client::TLClient> {
     init_logging();
-    log::info!("Initializing tl_client with mainnet={mainnet}...");
+    log::info!("Initializing tl_client with mainnet: {mainnet}, archive_only: {archive_only} ...");
 
     let node_filter = if archive_only {
         ton_lib::tl_client::LiteNodeFilter::Archive

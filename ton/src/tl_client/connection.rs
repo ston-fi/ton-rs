@@ -15,6 +15,7 @@ use tokio::sync::{oneshot, Mutex, Semaphore};
 use ton_lib_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
 
 static CONNECTION_COUNTER: AtomicU64 = AtomicU64::new(0);
+static SLEEP_ON_INIT_ERROR: Duration = Duration::from_millis(100);
 
 #[derive(Clone)]
 pub struct TLConnection {
@@ -117,7 +118,14 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
 
 async fn new_connection_checked(config: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
     let conn = loop {
-        let conn = new_connection(config, semaphore.clone()).await?;
+        let conn = match new_connection(config, semaphore.clone()).await {
+            Ok(c) => c,
+            Err(err) => {
+                log::info!("Failed to establish connection: {err:?}, retrying...");
+                tokio::time::sleep(SLEEP_ON_INIT_ERROR).await;
+                continue;
+            }
+        };
         match config.connection_check {
             LiteNodeFilter::Healthy => match conn.get_mc_info().await {
                 Ok(info) => match conn.get_block_header(info.last).await {
@@ -132,7 +140,11 @@ async fn new_connection_checked(config: &Builder, semaphore: Arc<Semaphore>) -> 
                     shard: TON_SHARD_FULL as i64,
                     seqno: 1,
                 };
-                conn.sync().await?;
+                if let Err(err) = conn.sync().await {
+                    log::warn!("[TLConnection] .sync() failed with error: {err:?}, retrying...");
+                    tokio::time::sleep(SLEEP_ON_INIT_ERROR).await;
+                    continue;
+                }
                 match conn.lookup_block(1, block_id, 0, 0).await {
                     Ok(_) => break conn,
                     Err(err) => log::info!("Dropping connection to non-archive node: {err:?}"),
