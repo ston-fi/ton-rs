@@ -585,6 +585,7 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 mod tests {
     use super::{bigint_to_i1024, biguint_to_u1024, i1024_to_bigint, u1024_to_biguint};
     use crate::cell::{CellParser, TonCell};
+    use crate::traits::tlb::TLB;
     use fastnum::{I128, I256, I512, U512};
     use num_bigint::{BigInt, BigUint};
 
@@ -751,9 +752,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn test_toncellnum_fastnum_known_bug_i512() -> () {
-        // in case this test stop failng - the fastnum  fixed issue
+    fn test_toncellnum_fastnum_i512_negation() -> () {
+        // Fastnum now correctly handles negation
         let test_value1 = -I512::from(1234i64);
         let test_value2 = I512::from(-1234i64);
         assert_eq!(test_value1, test_value2);
@@ -761,18 +761,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn test_toncellnum_fastnum_known_bug_i256() -> () {
-        // in case this test stop failng - the fastnum  fixed issue
+    fn test_toncellnum_fastnum_i256_negation() -> () {
+        // Fastnum now correctly handles negation
         let test_value1 = -I256::from(1234i64);
         let test_value2 = I256::from(-1234i64);
         assert_eq!(test_value1, test_value2);
         ()
     }
+
     #[test]
-    #[should_panic]
-    fn test_toncellnum_fastnum_known_bug_i128() -> () {
-        // in case this test stop failng - the fastnum  fixed issue
+    fn test_toncellnum_fastnum_i128_negation() -> () {
+        // Fastnum now correctly handles negation
         let test_value1 = -I128::from(1234i64);
         let test_value2 = I128::from(-1234i64);
         assert_eq!(test_value1, test_value2);

@@ -49,7 +49,6 @@ impl<'a> CellParser<'a> {
             bail_ton_core_data!("Can't write {bits_len} bits into {}-bytes buffer", dst.len());
         }
         self.ensure_enough_bits(bits_len)?;
-        let mut dst = vec![0; bits_len.div_ceil(8)];
         let full_bytes = bits_len / 8;
         let remaining_bits = bits_len % 8;
 
