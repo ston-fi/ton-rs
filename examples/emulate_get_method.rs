@@ -3,18 +3,18 @@ mod example {
     use std::str::FromStr;
     use ton_lib::block_tlb::TVMStack;
     use ton_lib::contracts::tl_provider::TLProvider;
-    use ton_lib::contracts::ContractCtx;
     use ton_lib::contracts::{ContractClient, TonContract};
     use ton_lib::emulators::tvm_emulator::TVMGetMethodID;
     use ton_lib::errors::TonError;
     use ton_lib::net_config::TonNetConfig;
     use ton_lib::tl_client::TLClient;
-    use ton_lib_core::ton_contract;
+    use ton_lib::ton_contract;
+    use ton_lib_core::traits::contract_provider::TonContractState;
     use ton_lib_core::traits::tlb::TLB;
     use ton_lib_core::types::TonAddress;
 
-    #[ton_contract]
-    struct StonfiPool;
+    ton_contract!(StonfiPool);
+
     impl StonfiPool {
         async fn get_jetton_data(&self) -> Result<TVMStack, TonError> {
             let boc = self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY).await?;

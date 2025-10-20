@@ -1,16 +1,15 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::ton_contract::ContractCtx;
 use crate::contracts::ton_contract::TonContract;
+use crate::contracts::ContractClient;
 use crate::errors::TonResult;
 use crate::tep::tvm_results::*;
+use crate::ton_contract;
+use crate::ton_lib_core::traits::contract_provider::TonContractState;
 use async_trait::async_trait;
 use num_bigint::BigInt;
 use ton_lib_core::cell::TonCell;
-use ton_lib_core::ton_contract;
 
-#[ton_contract]
-pub struct NFTCollectionContract;
-impl NFTCollectionMethods for NFTCollectionContract {}
+ton_contract!(NFTCollectionContract: NFTCollectionMethods);
 
 #[async_trait]
 pub trait NFTCollectionMethods: TonContract {
