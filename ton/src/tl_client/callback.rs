@@ -1,5 +1,6 @@
 use crate::errors::TonError;
 use crate::tl_client::tl::{TLRequest, TLRequestCtx, TLResponse};
+use std::fmt::Debug;
 use std::sync::Arc;
 
 /// Check tl_conn_default (mostly `run_loop` method) for method execution flow
@@ -39,6 +40,12 @@ impl TLCallback for TLCallbacksStore {
     }
     fn on_notify_error(&self, tag: &str, rsp: &Result<TLResponse, TonError>) {
         self.callbacks.iter().for_each(|cb| cb.on_notify_error(tag, rsp));
+    }
+}
+
+impl Debug for TLCallbacksStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TLCallbacksStore with {} callbacks", self.callbacks.len())
     }
 }
 

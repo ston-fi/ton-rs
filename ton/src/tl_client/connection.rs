@@ -15,7 +15,6 @@ use tokio::sync::{oneshot, Mutex, Semaphore};
 use ton_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
 
 static CONNECTION_COUNTER: AtomicU64 = AtomicU64::new(0);
-static SLEEP_ON_INIT_ERROR: Duration = Duration::from_millis(100);
 
 #[derive(Clone)]
 pub struct TLConnection {
@@ -44,8 +43,19 @@ impl TLClientTrait for TLConnection {
 }
 
 impl TLConnection {
-    pub async fn new(config: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
-        new_connection_checked(config, semaphore).await
+    pub(super) async fn new(builder: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
+        let checked_connection = loop {
+            match new_checked_connection(builder, semaphore.clone()).await {
+                Ok(conn) => break conn,
+                Err(err) => {
+                    log::warn!("[TLConnection] Failed to establish connection: {err:?}, retrying...");
+                    tokio::time::sleep(builder.sleep_on_connection_error_ms).await;
+                }
+            };
+        };
+        log::debug!("Connection {} established", checked_connection.inner.tonlibjson_wrapper.tag());
+        sys_tonlib_set_verbosity_level(builder.tonlib_verbosity_level);
+        Ok(checked_connection)
     }
 
     pub async fn exec_impl(&self, req: &TLRequest) -> Result<TLResponse, TonError> { self.inner.exec_impl(req).await }
@@ -116,45 +126,36 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
     callbacks.on_loop_exit(&tag);
 }
 
-async fn new_connection_checked(config: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
-    let conn = loop {
-        let conn = match new_connection(config, semaphore.clone()).await {
-            Ok(c) => c,
-            Err(err) => {
-                log::info!("Failed to establish connection: {err:?}, retrying...");
-                tokio::time::sleep(SLEEP_ON_INIT_ERROR).await;
-                continue;
-            }
-        };
-        match config.connection_check {
-            LiteNodeFilter::Healthy => match conn.get_mc_info().await {
-                Ok(info) => match conn.get_block_header(info.last).await {
-                    Ok(_) => break conn,
-                    Err(err) => log::info!("Dropping connection to unhealthy node: {err:?}"),
-                },
-                Err(err) => log::info!("Dropping connection to unhealthy node: {err:?}"),
-            },
-            LiteNodeFilter::Archive => {
-                let block_id = TLBlockId {
-                    workchain: TON_MASTERCHAIN,
-                    shard: TON_SHARD_FULL as i64,
-                    seqno: 1,
-                };
-                if let Err(err) = conn.sync().await {
-                    log::warn!("[TLConnection] .sync() failed with error: {err:?}, retrying...");
-                    tokio::time::sleep(SLEEP_ON_INIT_ERROR).await;
-                    continue;
-                }
-                match conn.lookup_block(1, block_id, 0, 0).await {
-                    Ok(_) => break conn,
-                    Err(err) => log::info!("Dropping connection to non-archive node: {err:?}"),
-                }
-            }
-        };
-    };
-    log::debug!("Connection {} established", conn.inner.tonlibjson_wrapper.tag());
-    sys_tonlib_set_verbosity_level(config.tonlib_verbosity_level);
-    Ok(conn)
+async fn new_checked_connection(builder: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {
+    let new_conn = new_connection(builder, semaphore).await?;
+
+    match builder.connection_check {
+        LiteNodeFilter::Healthy => {
+            let mc_info = new_conn
+                .get_mc_info()
+                .await
+                .map_err(|err| TonError::Custom(format!(".get_mc_info() failed with error: {err:?}")))?;
+            let _header = new_conn
+                .get_block_header(mc_info.last)
+                .await
+                .map_err(|err| TonError::Custom(format!(".get_block_header() failed with error: {err:?}")))?;
+            Ok(new_conn)
+        }
+        LiteNodeFilter::Archive => {
+            let block_id = TLBlockId {
+                workchain: TON_MASTERCHAIN,
+                shard: TON_SHARD_FULL as i64,
+                seqno: 1,
+            };
+            let _block_id =
+                new_conn.sync().await.map_err(|err| TonError::Custom(format!(".sync() failed with error: {err:?}")))?;
+            new_conn
+                .lookup_block(1, block_id, 0, 0)
+                .await
+                .map_err(|err| TonError::Custom(format!(".lookup_block() failed with error: {err:?}")))?;
+            Ok(new_conn)
+        }
+    }
 }
 
 async fn new_connection(builder: &Builder, semaphore: Arc<Semaphore>) -> Result<TLConnection, TonError> {

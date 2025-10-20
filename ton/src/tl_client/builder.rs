@@ -18,7 +18,7 @@ use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_liteapi::tl::response::BlockData;
 
-#[derive(Setters)]
+#[derive(Setters, Debug)]
 #[setters(prefix = "with_", strip_option)]
 pub struct Builder {
     pub(super) mainnet: bool,
@@ -29,6 +29,7 @@ pub struct Builder {
     pub(super) retry_strategy: RetryStrategy,
     pub(super) update_init_block: bool,
     pub(super) update_init_block_timeout_sec: u64,
+    pub(super) sleep_on_connection_error_ms: Duration,
     pub(super) tonlib_verbosity_level: u32,
     pub(super) callbacks: TLCallbacksStore,
 }
@@ -56,6 +57,7 @@ impl Builder {
             },
             update_init_block: true,
             update_init_block_timeout_sec: 10,
+            sleep_on_connection_error_ms: Duration::from_millis(100),
             tonlib_verbosity_level: 1,
             callbacks: Default::default(),
         };
@@ -111,22 +113,6 @@ impl Builder {
     pub fn with_tl_config(mut self, tl_config: TLConfig) -> Self {
         self.init_opts.config = tl_config;
         self
-    }
-}
-
-impl Debug for Builder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TLClientConfig")
-            .field("init_opts", &self.init_opts)
-            .field("connection_check", &self.connection_check)
-            .field("connections_count", &self.connections_count)
-            .field("max_parallel_requests", &self.max_parallel_requests)
-            .field("retry_strategy", &self.retry_strategy)
-            .field("update_init_block", &self.update_init_block)
-            .field("update_init_block_timeout_sec", &self.update_init_block_timeout_sec)
-            .field("tonlib_verbosity_level", &self.tonlib_verbosity_level)
-            .field("callbacks_cnt", &self.callbacks.callbacks.len())
-            .finish()
     }
 }
 

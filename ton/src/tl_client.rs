@@ -45,7 +45,7 @@ struct Inner {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteNodeFilter {
-    Healthy, // connect to healthy node only
+    Healthy, // connect to any healthy node
     Archive, // connect to archive node only
 }
 
