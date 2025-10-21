@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.1...ton-v0.0.2) - 2025-10-21
+
+### Fixed
+
+- fix stack pop error msg
+
+### Other
+
+- cleanup tlconnection
+- typos fix
+
 ## [0.0.39](https://github.com/Sild/ton_lib_rs/compare/ton_lib-v0.0.38...ton_lib-v0.0.39) - 2025-08-20
 
 ### Fixed
