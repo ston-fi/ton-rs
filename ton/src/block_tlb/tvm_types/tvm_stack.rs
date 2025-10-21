@@ -72,7 +72,7 @@ impl TVMStack {
             None => Err(TonError::TVMStackEmpty),
             Some(TVMStackValue::Cell(cell)) => Ok(cell.value.into_inner()),
             Some(TVMStackValue::CellSlice(slice)) => Ok(slice.to_cell()?),
-            _ => Err(TonError::TVMStackWrongType("Cell".to_string(), format!("{self:?}"))),
+            Some(other) => Err(TonError::TVMStackWrongType("Cell".to_string(), format!("{other:?}"))),
         }
     }
     pub fn pop_tuple(&mut self) -> Result<TVMTuple, TonError> {
