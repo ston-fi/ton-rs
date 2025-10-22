@@ -1,15 +1,10 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::ton_contract::TonContract;
-use crate::contracts::ContractClient;
+use crate::contracts::TonContract;
 use crate::errors::TonResult;
-use crate::tep::tvm_results::*;
-use crate::ton_contract;
-use crate::ton_core::traits::contract_provider::TonContractState;
+use crate::tep::tvm_results::{GetCollectionDataResult, GetNFTAddressByIndexResult, GetNFTContentResult, TVMResult};
 use async_trait::async_trait;
 use num_bigint::BigInt;
 use ton_core::cell::TonCell;
-
-ton_contract!(NFTCollectionContract: NFTCollectionMethods);
 
 #[async_trait]
 pub trait NFTCollectionMethods: TonContract {
