@@ -61,7 +61,96 @@ impl TonCell {
         size
     }
 
-    pub fn deep_copy() -> Result<TonCell, TonCoreError> { unimplemented!() }
+    pub fn deep_copy(cell: &TonCell) -> Result<TonCell, TonCoreError> {
+        #[derive(Clone)]
+        struct NodeInfo {
+            cell_type: CellType,
+            start_bit: usize,
+            end_bit: usize,
+            meta: CellMeta,
+            children: SmallVec<[usize; TonCell::MAX_REFS_COUNT]>,
+        }
+
+        let total_bits = TonCell::count_tree_len(cell);
+        let mut storage = vec![0u8; total_bits.div_ceil(8)];
+        let mut nodes: Vec<NodeInfo> = Vec::new();
+        let mut queue: VecDeque<(&TonCell, Option<usize>)> = VecDeque::new();
+        queue.push_back((cell, None));
+
+        let mut current_offset = 0usize;
+
+        while let Some((src, parent_idx)) = queue.pop_front() {
+            let data_len_bits = src.data_len_bits();
+            let start_bit = current_offset;
+            let end_bit = start_bit + data_len_bits;
+
+            if data_len_bits > 0
+                && !BitsUtils::rewrite(
+                    &src.cell_data.data_storage,
+                    src.borders.start_bit,
+                    &mut storage,
+                    start_bit,
+                    data_len_bits,
+                )
+            {
+                bail_ton_core_data!("Can't copy cell data during deep copy");
+            }
+
+            let node_idx = nodes.len();
+            nodes.push(NodeInfo {
+                cell_type: src.cell_type(),
+                start_bit,
+                end_bit,
+                meta: (&*src.meta).clone(),
+                children: SmallVec::new(),
+            });
+
+            if let Some(parent_idx) = parent_idx {
+                nodes[parent_idx].children.push(node_idx);
+            }
+
+            for child in src.refs() {
+                queue.push_back((child, Some(node_idx)));
+            }
+
+            current_offset = end_bit;
+        }
+
+        let storage_arc = Arc::new(storage);
+        let mut new_cells: Vec<Option<TonCell>> = vec![None; nodes.len()];
+
+        for idx in (0..nodes.len()).rev() {
+            let info = &nodes[idx];
+            let mut refs = RefStorage::new();
+            for &child_idx in &info.children {
+                let child_cell = new_cells[child_idx].as_ref().expect("child cell must be constructed before parent");
+                refs.push(child_cell.clone());
+            }
+
+            let cell_data = CellData {
+                data_storage: storage_arc.clone(),
+                refs,
+            };
+
+            let new_cell = TonCell {
+                cell_type: info.cell_type,
+                cell_data: Arc::new(cell_data),
+                borders: CellBorders {
+                    start_bit: info.start_bit,
+                    end_bit: info.end_bit,
+                    start_ref: 0,
+                    end_ref: info.children.len() as u8,
+                },
+                meta: Arc::new(info.meta.clone()),
+            };
+            new_cells[idx] = Some(new_cell);
+        }
+
+        let Some(root_cell) = new_cells.into_iter().next().and_then(|cell| cell) else {
+            unreachable!("TonCell::deep_copy must produce a root cell");
+        };
+        Ok(root_cell)
+    }
 
     // Borders are relative to origin cell
     pub fn slice(&self, borders: CellBorders) -> Result<Self, TonCoreError> {
@@ -218,6 +307,12 @@ fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize
 #[cfg(test)]
 mod tests {
     use crate::cell::{CellBorders, TonCell};
+    use std::collections::VecDeque;
+
+    fn collect_bits(cell: &TonCell) -> anyhow::Result<Vec<u8>> {
+        let mut parser = cell.parser();
+        Ok(parser.read_bits(cell.data_len_bits())?)
+    }
 
     #[test]
     fn test_ton_cell_slice() -> anyhow::Result<()> {
@@ -284,6 +379,105 @@ mod tests {
         })?;
 
         assert_eq!(TonCell::count_tree_len(&slice), 24);
+        Ok(())
+    }
+
+    #[test]
+    fn test_deep_copy_allocates_single_storage() -> anyhow::Result<()> {
+        let mut grand_builder = TonCell::builder();
+        grand_builder.write_bits([0b1110_0000], 7)?;
+        let grandchild = grand_builder.build()?;
+
+        let mut first_child_builder = TonCell::builder();
+        first_child_builder.write_bits([0b1100_0000], 6)?;
+        let first_child = first_child_builder.build()?;
+
+        let mut second_child_builder = TonCell::builder();
+        second_child_builder.write_bits([0xAA, 0xCC], 14)?;
+        second_child_builder.write_ref(grandchild)?;
+        let second_child = second_child_builder.build()?;
+
+        let mut root_builder = TonCell::builder();
+        root_builder.write_bits([0xDE], 8)?;
+        root_builder.write_ref(first_child.clone())?;
+        root_builder.write_ref(second_child.clone())?;
+        let root = root_builder.build()?;
+
+        let copy = TonCell::deep_copy(&root)?;
+
+        // Offsets must be contiguous in BFS order starting at 0
+        assert_bfs_offsets_linear(&copy)?;
+
+        assert_eq!(collect_bits(&root)?, collect_bits(&copy)?);
+        assert_eq!(root.refs().len(), copy.refs().len());
+        assert_ne!(root.underlying_storage().as_ptr(), copy.underlying_storage().as_ptr());
+
+        let copy_storage_ptr = copy.underlying_storage().as_ptr();
+        for (original_ref, copied_ref) in root.refs().iter().zip(copy.refs()) {
+            assert_eq!(collect_bits(original_ref)?, collect_bits(copied_ref)?);
+            assert_eq!(original_ref.refs().len(), copied_ref.refs().len());
+            assert_eq!(copied_ref.underlying_storage().as_ptr(), copy_storage_ptr);
+            for grand in copied_ref.refs() {
+                assert_eq!(grand.underlying_storage().as_ptr(), copy_storage_ptr);
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_deep_copy_slice_preserves_view() -> anyhow::Result<()> {
+        let mut builder = TonCell::builder();
+        builder.write_bits([0x12, 0x34], 16)?;
+
+        for i in 0..4 {
+            let mut child_builder = TonCell::builder();
+            child_builder.write_num(&i, 6)?;
+            builder.write_ref(child_builder.build()?)?;
+        }
+
+        let root = builder.build()?;
+        let slice = root.slice(CellBorders {
+            start_bit: 4,
+            end_bit: 12,
+            start_ref: 1,
+            end_ref: 3,
+        })?;
+
+        let copy = TonCell::deep_copy(&slice)?;
+
+        assert_eq!(collect_bits(&slice)?, collect_bits(&copy)?);
+        assert_eq!(slice.refs().len(), copy.refs().len());
+        assert_ne!(slice.underlying_storage().as_ptr(), copy.underlying_storage().as_ptr());
+
+        let copy_storage_ptr = copy.underlying_storage().as_ptr();
+        for (original_ref, copied_ref) in slice.refs().iter().zip(copy.refs()) {
+            assert_eq!(collect_bits(original_ref)?, collect_bits(copied_ref)?);
+            assert_eq!(copied_ref.underlying_storage().as_ptr(), copy_storage_ptr);
+        }
+
+        // Offsets must be contiguous in BFS order for the slice view as well
+        assert_bfs_offsets_linear(&copy)?;
+
+        Ok(())
+    }
+
+    fn assert_bfs_offsets_linear(cell: &TonCell) -> anyhow::Result<()> {
+        let mut queue = VecDeque::new();
+        queue.push_back(cell);
+        let mut expected_start = 0usize;
+        let mut total_bits = 0usize;
+        while let Some(cur) = queue.pop_front() {
+            assert_eq!(cur.borders.start_bit, expected_start, "non-linear start offset for node");
+            assert_eq!(cur.borders.end_bit, expected_start + cur.data_len_bits(), "bad end offset for node");
+            expected_start += cur.data_len_bits();
+            total_bits += cur.data_len_bits();
+            for r in cur.refs() {
+                queue.push_back(r);
+            }
+        }
+        // Final offset equals total bits copied
+        assert_eq!(expected_start, total_bits);
         Ok(())
     }
 }
