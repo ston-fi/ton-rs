@@ -8,6 +8,7 @@ use crate::cell::{CellBuilder, CellParser, LevelMask};
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitReader, BitWriter, ByteReader};
 use smallvec::SmallVec;
+use std::collections::VecDeque;
 use std::fmt::Formatter;
 use std::io::Cursor;
 use std::ops::Deref;
@@ -45,6 +46,22 @@ impl TonCell {
     pub fn builder_extra(cell_type: CellType, initial_capacity: usize) -> CellBuilder {
         CellBuilder::new(cell_type, initial_capacity)
     }
+
+    fn count_tree_len(cell: &TonCell) -> usize {
+        let mut queue = VecDeque::new();
+        let mut size = 0;
+        queue.push_back(cell);
+
+        while let Some(next_cell) = queue.pop_front() {
+            size += next_cell.data_len_bits();
+            for cell in next_cell.refs() {
+                queue.push_back(cell);
+            }
+        }
+        size
+    }
+
+    pub fn deep_copy() -> Result<TonCell, TonCoreError> { unimplemented!() }
 
     // Borders are relative to origin cell
     pub fn slice(&self, borders: CellBorders) -> Result<Self, TonCoreError> {
@@ -228,6 +245,45 @@ mod tests {
         assert_eq!(slice.refs().len(), 2);
         assert_eq!(slice.refs()[0].underlying_storage(), &[1]);
         assert_eq!(slice.refs()[1].underlying_storage(), &[2]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_count_tree_len_correctness() -> anyhow::Result<()> {
+        let mut grand_builder = TonCell::builder();
+        grand_builder.write_bits([0b1110_0000], 7)?;
+        let grandchild = grand_builder.build()?;
+
+        let mut child_two_builder = TonCell::builder();
+        child_two_builder.write_bits([0b1111_0000], 6)?;
+        child_two_builder.write_ref(grandchild.clone())?;
+        let child_two = child_two_builder.build()?;
+
+        let mut child_one_builder = TonCell::builder();
+        child_one_builder.write_bits([0b1010_0000], 5)?;
+        let child_one = child_one_builder.build()?;
+
+        let mut child_three_builder = TonCell::builder();
+        child_three_builder.write_bits([0b1000_0000], 3)?;
+        let child_three = child_three_builder.build()?;
+
+        let mut root_builder = TonCell::builder();
+        root_builder.write_bits([0xDE, 0xAD], 16)?;
+        root_builder.write_ref(child_one.clone())?;
+        root_builder.write_ref(child_two.clone())?;
+        root_builder.write_ref(child_three.clone())?;
+        let root = root_builder.build()?;
+
+        assert_eq!(TonCell::count_tree_len(&root), 37);
+
+        let slice = root.slice(CellBorders {
+            start_bit: 8,
+            end_bit: 16,
+            start_ref: 1,
+            end_ref: 3,
+        })?;
+
+        assert_eq!(TonCell::count_tree_len(&slice), 24);
         Ok(())
     }
 }
