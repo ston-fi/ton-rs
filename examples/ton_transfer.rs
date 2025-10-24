@@ -11,8 +11,8 @@ mod example {
     use ton::block_tlb::{Coins, CommonMsgInfoInt, Msg};
     use ton::block_tlb::{CommonMsgInfo, CurrencyCollection};
     use ton::contracts::tl_provider::TLProvider;
-    use ton::contracts::ContractClient;
-    use ton::contracts::{TonContract, TonWalletContract, TonWalletMethods};
+    use ton::contracts::TonWalletMethods;
+    use ton::contracts::{ContractClient, TonContract, TonWalletContract};
     use ton::net_config::TonNetConfig;
     use ton::sys_utils::sys_tonlib_set_verbosity_level;
     use ton::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};

@@ -5,7 +5,6 @@ use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use tokio_test::assert_ok;
 use ton::contracts::tl_provider::TLProvider;
-use ton::contracts::ContractClient;
 use ton::contracts::NFTItemContract;
 use ton::contracts::*;
 use ton::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
@@ -24,7 +23,8 @@ async fn test_contracts() -> anyhow::Result<()> {
 
     let res = try_join!(
         assert_jetton_wallet_get_wallet(&ctr_cli),
-        assert_jetton_master_get_jetton(&ctr_cli),
+        assert_jetton_master(&ctr_cli),
+        assert_jetton_scaled_ui_master_contract(&ctr_cli),
         assert_wallet_contract_get_public_key(&ctr_cli),
         assert_nft_item_load_full_nft_data(&ctr_cli),
         assert_nft_item_get_nft_data_external(&ctr_cli),
@@ -45,13 +45,25 @@ async fn assert_jetton_wallet_get_wallet(ctr_cli: &ContractClient) -> anyhow::Re
     Ok(())
 }
 
-async fn assert_jetton_master_get_jetton(ctr_cli: &ContractClient) -> anyhow::Result<()> {
+async fn assert_jetton_master(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
     let contract = JettonMasterContract::new(ctr_cli, &usdt_master, None).await?;
     assert_ok!(contract.get_jetton_data().await);
     let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
     let wallet = assert_ok!(contract.get_wallet_address(&owner).await);
     assert_eq!(wallet.address.to_string(), "EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM");
+    Ok(())
+}
+
+async fn assert_jetton_scaled_ui_master_contract(ctr_cli: &ContractClient) -> anyhow::Result<()> {
+    let scaled_ui_master = TonAddress::from_str("EQBlPUnynlpSjj65sPc-3Ckdeugoodeu3fOxJdYK3V4AMp87")?;
+    let contract = JettonScaledUIMasterContract::new(ctr_cli, &scaled_ui_master, None).await?;
+    assert_ok!(contract.get_jetton_data().await);
+    let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
+    assert_ok!(contract.get_wallet_address(&owner).await);
+    let multiplier = contract.get_display_multiplier().await?;
+    assert_eq!(multiplier.numerator, 0xc8.into());
+    assert_eq!(multiplier.denominator, 0x64.into());
     Ok(())
 }
 

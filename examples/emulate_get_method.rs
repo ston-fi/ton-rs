@@ -3,7 +3,8 @@ mod example {
     use std::str::FromStr;
     use ton::block_tlb::TVMStack;
     use ton::contracts::tl_provider::TLProvider;
-    use ton::contracts::{ContractClient, TonContract};
+    use ton::contracts::ContractClient;
+    use ton::contracts::TonContract;
     use ton::emulators::tvm_emulator::TVMGetMethodID;
     use ton::errors::TonError;
     use ton::net_config::TonNetConfig;

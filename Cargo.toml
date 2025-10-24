@@ -64,7 +64,7 @@ serde-aux = "4"
 serde_json = "1"
 smallvec = "1"
 strum = { version = "0.27", features = ["derive"] }
-tokio = "1"
+tokio = { version = "1", features = ["default", "rt", "macros"] }
 tokio-retry = "0.3"
 tokio-tower = "0.6"
 ton_liteapi = "0.2"
