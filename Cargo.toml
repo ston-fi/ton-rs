@@ -28,6 +28,8 @@ tonlib-sys = { version = "2025.11", features = ["with_debug_info"] }
 
 # External
 
+
+
 # ton_core
 async-trait = "0.1"
 base64 = "0.22"
