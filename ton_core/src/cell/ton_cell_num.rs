@@ -9,6 +9,16 @@ use std::fmt::Display;
 use crate::bail_ton_core_data;
 use crate::errors::TonCoreError;
 
+/// Allows generic read/write operation for any numeric type
+pub trait TonCellNum: Display + Sized + Clone {
+    /// CellBuilder guarantees 0 < bits_len < 1024
+    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError>;
+    /// CellWriter guarantees 0 <= bits_len < 1024
+    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError>;
+    fn tcn_is_zero(&self) -> bool;
+    fn tcn_min_bits_len(&self) -> u32;
+}
+
 macro_rules! primitive_convert_to_unsigned {
     ($val:expr,$T:ty,$bit_count:expr) => {{
         // Two's complement: cast to unsigned and mask to bit_count
@@ -62,21 +72,6 @@ macro_rules! primitive_highest_bit_pos {
     }};
 }
 
-/// Allows generic read/write operation for any numeric type
-///
-/// Questions
-/// Split on Primitive and not Primitive?
-pub trait TonCellNum: Display + Sized + Clone {
-    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError>;
-
-    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError>;
-
-    fn tcn_is_zero(&self) -> bool;
-
-    fn tcn_shr(&self, bits: usize) -> Self;
-
-    fn tcn_min_bits_len(&self) -> u32;
-}
 macro_rules! ton_cell_num_primitive_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
@@ -101,7 +96,6 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 }
             }
             fn tcn_is_zero(&self) -> bool { *self == 0 }
-            fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
                 if *self == 0 {
                     0u32
@@ -141,7 +135,6 @@ macro_rules! ton_cell_num_primitive_signed_impl {
             }
 
             fn tcn_is_zero(&self) -> bool { *self == 0 }
-            fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
                 if *self == 0 {
                     0u32
@@ -178,7 +171,6 @@ impl TonCellNum for usize {
         Ok(val as usize)
     }
     fn tcn_is_zero(&self) -> bool { *self == 0 }
-    fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
 
     fn tcn_min_bits_len(&self) -> u32 {
         if *self == 0 {
@@ -314,8 +306,6 @@ impl TonCellNum for BigUint {
 
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
-    fn tcn_shr(&self, bits: usize) -> Self { self >> bits }
-
     fn tcn_min_bits_len(&self) -> u32 {
         if self.tcn_is_zero() {
             0u32
@@ -343,7 +333,6 @@ impl TonCellNum for BigInt {
         Ok(result)
     }
     fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
-    fn tcn_shr(&self, _bits: usize) -> Self { self >> _bits }
     fn tcn_min_bits_len(&self) -> u32 {
         if self.tcn_is_zero() {
             0u32
@@ -431,7 +420,6 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
 
-            fn tcn_shr(&self, bits: usize) -> Self { *self >> bits }
             fn tcn_min_bits_len(&self) -> u32 {
                 if self.tcn_is_zero() {
                     0u32
@@ -443,7 +431,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
     };
 }
 macro_rules! ton_cell_num_fastnum_signed_impl {
-    ($src:ty,$u_src:ty) => {
+    ($src:ty) => {
         impl TonCellNum for $src {
             fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
                 if bits_len == 0 {
@@ -461,7 +449,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let abs_val = -*self;
 
                     // Then compute: 2^bits_len - abs_val
-                    let modulus = <$u_src>::ONE << bits_len;
+                    let modulus = U1024::ONE << bits_len;
 
                     // Convert abs_val to unsigned byte by byte
                     let bytes_count = std::mem::size_of::<$src>();
@@ -475,9 +463,9 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     }
                     bytes_vec.reverse();
 
-                    let mut abs_unsigned = <$u_src>::from(0u32);
+                    let mut abs_unsigned = U1024::from(0u32);
                     for byte in bytes_vec {
-                        abs_unsigned = (abs_unsigned << 8) | <$u_src>::from(byte);
+                        abs_unsigned = (abs_unsigned << 8) | U1024::from(byte);
                     }
 
                     // Compute two's complement
@@ -495,16 +483,16 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     }
                     bytes_vec.reverse();
 
-                    let mut result = <$u_src>::from(0u32);
+                    let mut result = U1024::from(0u32);
                     for byte in bytes_vec {
-                        result = (result << 8) | <$u_src>::from(byte);
+                        result = (result << 8) | U1024::from(byte);
                     }
                     result
                 };
 
                 // Mask to bits_len
                 let masked_uval = if (bits_len as usize) < std::mem::size_of::<$src>() * 8 {
-                    let mask = (<$u_src>::ONE << bits_len) - <$u_src>::ONE;
+                    let mask = (U1024::ONE << bits_len) - U1024::ONE;
                     uval & mask
                 } else {
                     uval
@@ -519,20 +507,20 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     return Ok(Self::from(0u32));
                 }
 
-                let unsigned_val = <$u_src>::tcn_read_bits(reader, bits_len)?;
+                let unsigned_val = U1024::tcn_read_bits(reader, bits_len)?;
 
                 // Two's complement decoding: check sign bit
                 let sign_bit_pos = bits_len - 1;
-                let sign_bit = <$u_src>::ONE << sign_bit_pos;
+                let sign_bit = U1024::ONE << sign_bit_pos;
 
                 // Convert unsigned to signed using two's complement arithmetic
-                if (unsigned_val & sign_bit) != <$u_src>::from(0u32) {
+                if (unsigned_val & sign_bit) != U1024::from(0u32) {
                     // Negative number: subtract 2^bits_len
                     // First, convert unsigned_val to a temporary signed value
                     // We do this by creating the positive part and then negating
 
                     // Calculate: value - 2^bits_len = -(2^bits_len - value)
-                    let modulus_unsigned = <$u_src>::ONE << bits_len;
+                    let modulus_unsigned = U1024::ONE << bits_len;
                     let abs_val = modulus_unsigned - unsigned_val;
 
                     // Convert abs_val to signed and negate
@@ -542,7 +530,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let mut temp = abs_val.clone();
 
                     for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
+                        let byte_val = (temp.clone() & U1024::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
                         bytes_vec.push(byte_val);
                         temp >>= 8;
                     }
@@ -561,7 +549,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     let mut temp = unsigned_val.clone();
 
                     for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & <$u_src>::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
+                        let byte_val = (temp.clone() & U1024::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
                         bytes_vec.push(byte_val);
                         temp >>= 8;
                     }
@@ -576,7 +564,6 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
             }
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
-            fn tcn_shr(&self, _bits: usize) -> Self { *self >> _bits }
             fn tcn_min_bits_len(&self) -> u32 {
                 if self.tcn_is_zero() {
                     0u32
@@ -594,16 +581,16 @@ ton_cell_num_fastnum_unsigned_impl!(U256);
 ton_cell_num_fastnum_unsigned_impl!(U512);
 ton_cell_num_fastnum_unsigned_impl!(U1024);
 
-ton_cell_num_fastnum_signed_impl!(I128, U128);
-ton_cell_num_fastnum_signed_impl!(I256, U256);
-ton_cell_num_fastnum_signed_impl!(I512, U512);
-ton_cell_num_fastnum_signed_impl!(I1024, U1024);
+ton_cell_num_fastnum_signed_impl!(I128);
+ton_cell_num_fastnum_signed_impl!(I256);
+ton_cell_num_fastnum_signed_impl!(I512);
+ton_cell_num_fastnum_signed_impl!(I1024);
 
 #[cfg(test)]
 mod tests {
     use super::{bigint_to_i1024, biguint_to_u1024, i1024_to_bigint, u1024_to_biguint};
     use crate::cell::{CellParser, TonCell};
-    use fastnum::{I128, I256, I512, U512};
+    use fastnum::*;
     use num_bigint::{BigInt, BigUint};
 
     #[test]
@@ -1022,6 +1009,22 @@ mod tests {
 
         assert_eq!(parsed_value, test_value, "I128 round-trip failed for 0 bits with zero value");
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_ton_cell_num_fastnum_i256_negative_256_bits() -> anyhow::Result<()> {
+        let mut builder = TonCell::builder();
+        let test_value = I256::from(-32);
+        let bits_len = 256;
+
+        builder.write_num(&test_value, bits_len)?;
+        let cell = builder.build()?;
+
+        let mut parser = CellParser::new(&cell);
+        let parsed_value = parser.read_num::<I256>(bits_len)?;
+
+        assert_eq!(parsed_value, test_value);
         Ok(())
     }
 }

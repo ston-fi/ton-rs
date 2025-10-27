@@ -63,7 +63,6 @@ impl<'a> CellParser<'a> {
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
         self.ensure_enough_bits(bits_len)?;
-
         N::tcn_read_bits(&mut self.data_reader, bits_len as u32)
     }
 
