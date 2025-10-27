@@ -39,3 +39,30 @@ tlb_num_impl!(I512, 512);
 tlb_num_impl!(U128, 128);
 tlb_num_impl!(U256, 256);
 tlb_num_impl!(U512, 512);
+
+#[cfg(test)]
+mod tests {
+    use crate::traits::tlb::TLB;
+    use fastnum::{i256, i512, u256, u512};
+    use fastnum::{I256, I512, U256, U512};
+    use tokio_test::assert_ok;
+
+    #[test]
+
+    fn test_tlb_num() -> anyhow::Result<()> {
+        assert_ok!((-1i8).to_cell());
+        assert_ok!(1u8.to_cell());
+        assert_ok!((-32i32).to_cell());
+        assert_ok!(u256!(123).to_cell());
+        assert_ok!(U256::from(32u8).to_cell());
+        assert_ok!(i256!(123).to_cell());
+        assert_ok!(I256::from(-32i32).to_cell());
+
+        assert_ok!(u512!(123).to_cell());
+        assert_ok!(U512::from(32u8).to_cell());
+        assert_ok!(i512!(-123).to_cell());
+        assert_ok!(I512::from(-32i32).to_cell());
+
+        Ok(())
+    }
+}
