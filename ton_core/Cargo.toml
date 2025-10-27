@@ -1,6 +1,6 @@
 [package]
 name = "ton_core"
-version = "0.0.3"
+version = "0.0.4"
 description.workspace = true
 keywords.workspace = true
 edition.workspace = true
