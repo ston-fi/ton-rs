@@ -368,6 +368,35 @@ use fastnum::bint::{Int, UInt};
 fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Result<UInt<N>, TonCoreError> {
     // Sanity: Int/UInt<N> hold N*64 bits.
     assert!((bits_len as usize) <= N * 64, "bits_len exceeds width");
+
+    // Special case: when bits_len == N*64, we can't compute 2^bits_len without overflow.
+    // In this case, we handle the conversion differently.
+    if bits_len == (N * 64) as u32 {
+        // For full-width values, we can't use the normal modulo approach.
+        // Instead, we handle negatives by treating the bit pattern directly.
+        if src < Int::<N>::ZERO {
+            // For negative values: compute unsigned_value = signed_value + 2^(N*64)
+            // Since 2^(N*64) can't be represented in UInt<N>, we work around it by
+            // using the fact that UInt<N>::MAX + 1 wraps to 0, so we can compute
+            // the complement. For a negative value n, the unsigned representation is
+            // -n as UInt, but in two's complement it's UInt::MAX - |n| + 1.
+
+            // Get the absolute value as an unsigned type
+            let abs_val: UInt<N> = (-src)
+                .try_cast()
+                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "abs conversion failed"))?;
+
+            // Compute two's complement: UInt::MAX - abs + 1 = -abs (in two's complement)
+            return Ok(UInt::<N>::MAX - abs_val + UInt::<N>::ONE);
+        } else {
+            // For non-negative values, direct cast works
+            let u_value: UInt<N> = src
+                .try_cast()
+                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "full-width conversion failed"))?;
+            return Ok(u_value);
+        }
+    }
+
     // 2^bits_len as UInt<N>
     let modulus_u = UInt::<N>::ONE << bits_len;
 
@@ -390,6 +419,15 @@ pub fn fastnum_convert_to_signed<const N: usize>(src: UInt<N>, bits_len: u32) ->
     // Special-case 0 bits: by convention return 0.
     if bits_len == 0 {
         return Ok(Int::<N>::from(0u8));
+    }
+
+    // Special case: when bits_len == N*64, we can't compute 2^bits_len without overflow.
+    if bits_len == (N * 64) as u32 {
+        // Direct conversion for full-width values
+        let i_value: Int<N> = src
+            .try_cast()
+            .map_err(|_| TonCoreError::data("fastnum_convert_to_signed", "full-width conversion failed"))?;
+        return Ok(i_value);
     }
 
     // 2^bits_len

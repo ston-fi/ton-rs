@@ -44,8 +44,11 @@ tlb_num_impl!(U512, 512);
 mod tests {
     use super::*;
     use fastnum::{i256, i512, u256, u512};
+    use fastnum::{I256, I512, U256, U512};
     use tokio_test::assert_ok;
+
     #[test]
+
     fn test_tlb_num() -> anyhow::Result<()> {
         assert_ok!((-1i8).to_cell());
         assert_ok!(1u8.to_cell());
