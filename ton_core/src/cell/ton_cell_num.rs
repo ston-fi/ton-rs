@@ -72,11 +72,6 @@ macro_rules! primitive_highest_bit_pos {
     }};
 }
 
-/// Allows generic read/write operation for any numeric type
-///
-/// Questions
-/// Split on Primitive and not Primitive?
-
 macro_rules! ton_cell_num_primitive_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
