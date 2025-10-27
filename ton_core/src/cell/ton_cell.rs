@@ -72,7 +72,7 @@ impl TonCell {
                 idx
             } else {
                 let idx = nodes.len();
-                registry.insert(hash.clone(), idx);
+                registry.insert(hash, idx);
                 total_bits += src.data_len_bits();
 
                 nodes.push(NodeInfo {
@@ -101,8 +101,7 @@ impl TonCell {
         let mut storage = vec![0u8; total_bits.div_ceil(8)];
         let mut current_offset = 0usize;
 
-        for idx in 0..nodes.len() {
-            let node = &mut nodes[idx];
+        for node in nodes.iter_mut() {
             if node.data_len_bits > 0
                 && !BitsUtils::rewrite(
                     node.data_storage.as_ref(),
@@ -128,7 +127,11 @@ impl TonCell {
             let info = &nodes[idx];
             let mut refs = RefStorage::new();
             for &child_idx in &info.children {
-                let child_cell = new_cells[child_idx].as_ref().expect("child cell must be constructed before parent");
+                let child_cell = new_cells[child_idx].as_ref().ok_or_else(|| {
+                    TonCoreError::Custom(
+                        "deep_copy: Algorithm must be broken child cell must be constructed before parent".to_string(),
+                    )
+                })?;
                 refs.push(child_cell.clone());
             }
 
