@@ -189,9 +189,9 @@ impl TonCellNum for usize {
     }
 }
 
-fn u1024_to_biguint(val: U1024) -> BigUint {
+fn u1024_to_biguint(val: U1024) -> Result<BigUint, TonCoreError> {
     if val.is_zero() {
-        return BigUint::zero();
+        return Ok(BigUint::zero());
     }
 
     let mut tmp = val;
@@ -199,7 +199,10 @@ fn u1024_to_biguint(val: U1024) -> BigUint {
 
     // Extract bytes from least significant to most significant
     for _ in 0..128 {
-        bytes.push((tmp & 0xFFu8.into()).to_u8().unwrap());
+        let byte_val = (tmp & 0xFFu8.into())
+            .to_u8()
+            .map_err(|_| TonCoreError::data("u1024_to_biguint", "Failed to extract byte from U1024"))?;
+        bytes.push(byte_val);
         tmp >>= 8;
         if tmp.is_zero() {
             break; // Stop early if remaining value is zero
@@ -207,19 +210,19 @@ fn u1024_to_biguint(val: U1024) -> BigUint {
     }
 
     bytes.reverse();
-    BigUint::from_bytes_be(&bytes)
+    Ok(BigUint::from_bytes_be(&bytes))
 }
 
-fn biguint_to_u1024(value: &BigUint) -> U1024 {
+fn biguint_to_u1024(value: &BigUint) -> Result<U1024, TonCoreError> {
     if value.is_zero() {
-        return U1024::ZERO;
+        return Ok(U1024::ZERO);
     }
 
     let bytes = value.to_bytes_be();
 
     // U1024 can hold at most 128 bytes (1024 bits)
     if bytes.len() > 128 {
-        panic!("BigUint value exceeds U1024 capacity: {} bytes > 128 bytes", bytes.len());
+        bail_ton_core_data!("BigUint value exceeds U1024 capacity: {} bytes > 128 bytes", bytes.len());
     }
 
     let mut uval = U1024::ZERO;
@@ -227,23 +230,27 @@ fn biguint_to_u1024(value: &BigUint) -> U1024 {
         uval = (uval << 8) | U1024::from(b);
     }
 
-    uval
+    Ok(uval)
 }
 
-fn i1024_to_bigint(val: I1024) -> BigInt {
+fn i1024_to_bigint(val: I1024) -> Result<BigInt, TonCoreError> {
     if val.is_zero() {
-        return BigInt::zero();
+        return Ok(BigInt::zero());
     }
 
     let is_negative = val < I1024::ZERO;
     let abs_val = if is_negative { -val } else { val };
 
-    let mut tmp: U1024 = TryCast::<U1024>::try_cast(abs_val).expect("cast to U1024 failed");
+    let mut tmp: U1024 = TryCast::<U1024>::try_cast(abs_val)
+        .map_err(|_| TonCoreError::data("i1024_to_bigint", "Failed to cast to BigInt"))?;
     let mut bytes = Vec::with_capacity(128);
 
     // Extract bytes from least significant to most significant
     for _ in 0..128 {
-        bytes.push((tmp & 0xFFu8.into()).to_u8().unwrap());
+        let byte_val = (tmp & 0xFFu8.into())
+            .to_u8()
+            .map_err(|_| TonCoreError::data("i1024_to_bigint", "Failed to extract byte from U1024"))?;
+        bytes.push(byte_val);
         tmp >>= 8;
         if tmp.is_zero() {
             break; // Stop early if remaining value is zero
@@ -251,26 +258,37 @@ fn i1024_to_bigint(val: I1024) -> BigInt {
     }
 
     bytes.reverse();
-    BigInt::from_bytes_be(if is_negative { Sign::Minus } else { Sign::Plus }, &bytes)
+    Ok(BigInt::from_bytes_be(if is_negative { Sign::Minus } else { Sign::Plus }, &bytes))
 }
 
-fn bigint_to_i1024(value: &BigInt) -> I1024 {
+fn bigint_to_i1024(value: &BigInt) -> Result<I1024, TonCoreError> {
     if value.is_zero() {
-        return I1024::ZERO;
+        return Ok(I1024::ZERO);
     }
 
     let (sign, bytes) = value.to_bytes_be();
+
+    // I1024 can hold at most 128 bytes (1024 bits)
+    if bytes.len() > 128 {
+        bail_ton_core_data!("BigInt value exceeds I1024 capacity: {} bytes > 128 bytes", bytes.len());
+    }
 
     let mut uval = U1024::ZERO;
     for &b in &bytes {
         uval = (uval << 8) | U1024::from(b);
     }
 
-    match sign {
-        Sign::Plus => TryCast::<I1024>::try_cast(uval).expect("cast to I1024 failed"),
+    let result = match sign {
+        Sign::Plus => TryCast::<I1024>::try_cast(uval)
+            .map_err(|_| TonCoreError::data("bigint_to_i1024", "Failed to cast to I1024"))?,
         Sign::NoSign => I1024::ZERO,
-        Sign::Minus => -TryCast::<I1024>::try_cast(uval).expect("cast to I1024 failed"),
-    }
+        Sign::Minus => {
+            let abs_val = TryCast::<I1024>::try_cast(uval)
+                .map_err(|_| TonCoreError::data("bigint_to_i1024", "Failed to cast to I1024"))?;
+            -abs_val
+        }
+    };
+    Ok(result)
 }
 
 impl TonCellNum for BigUint {
@@ -278,7 +296,7 @@ impl TonCellNum for BigUint {
         if bits_len == 0 {
             return Ok(());
         }
-        let curr_u1024 = biguint_to_u1024(self);
+        let curr_u1024 = biguint_to_u1024(self)?;
 
         curr_u1024.tcn_write_bits(writer, bits_len)
     }
@@ -289,7 +307,7 @@ impl TonCellNum for BigUint {
         }
 
         let val = U1024::tcn_read_bits(reader, bits_len)?;
-        let result = u1024_to_biguint(val);
+        let result = u1024_to_biguint(val)?;
 
         Ok(result)
     }
@@ -312,7 +330,7 @@ impl TonCellNum for BigInt {
         if bits_len == 0 {
             return Ok(());
         }
-        bigint_to_i1024(self).tcn_write_bits(writer, bits_len)
+        bigint_to_i1024(self)?.tcn_write_bits(writer, bits_len)
     }
 
     fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
@@ -320,7 +338,7 @@ impl TonCellNum for BigInt {
             return Ok(BigInt::zero());
         }
         let val = I1024::tcn_read_bits(reader, bits_len)?;
-        let result = i1024_to_bigint(val);
+        let result = i1024_to_bigint(val)?;
 
         Ok(result)
     }
@@ -801,8 +819,8 @@ mod tests {
     #[test]
     fn test_toncellnum_bigint_toi1024_conv() {
         let test_big_int = -1 * BigInt::from(1234i64);
-        let test_fastnum = bigint_to_i1024(&test_big_int);
-        let result_big_int = i1024_to_bigint(test_fastnum);
+        let test_fastnum = bigint_to_i1024(&test_big_int).unwrap();
+        let result_big_int = i1024_to_bigint(test_fastnum).unwrap();
 
         assert_eq!(test_big_int, result_big_int);
     }
@@ -814,26 +832,26 @@ mod tests {
 
         // Test with a simple value
         let test_big_uint = BigUint::from(1234u64);
-        let test_fastnum = biguint_to_u1024(&test_big_uint);
-        let result_big_uint = u1024_to_biguint(test_fastnum);
+        let test_fastnum = biguint_to_u1024(&test_big_uint).unwrap();
+        let result_big_uint = u1024_to_biguint(test_fastnum).unwrap();
         assert_eq!(test_big_uint, result_big_uint);
 
         // Test with zero
         let test_big_uint = BigUint::from(0u32);
-        let test_fastnum = biguint_to_u1024(&test_big_uint);
-        let result_big_uint = u1024_to_biguint(test_fastnum);
+        let test_fastnum = biguint_to_u1024(&test_big_uint).unwrap();
+        let result_big_uint = u1024_to_biguint(test_fastnum).unwrap();
         assert_eq!(test_big_uint, result_big_uint);
 
         // Test with a large value
         let test_big_uint = BigUint::from(u128::MAX);
-        let test_fastnum = biguint_to_u1024(&test_big_uint);
-        let result_big_uint = u1024_to_biguint(test_fastnum);
+        let test_fastnum = biguint_to_u1024(&test_big_uint).unwrap();
+        let result_big_uint = u1024_to_biguint(test_fastnum).unwrap();
         assert_eq!(test_big_uint, result_big_uint);
 
         // Test with a very large value (256 bits)
         let test_big_uint = (BigUint::from(1u32) << 255) + BigUint::from(12345u64);
-        let test_fastnum = biguint_to_u1024(&test_big_uint);
-        let result_big_uint = u1024_to_biguint(test_fastnum);
+        let test_fastnum = biguint_to_u1024(&test_big_uint).unwrap();
+        let result_big_uint = u1024_to_biguint(test_fastnum).unwrap();
         assert_eq!(test_big_uint, result_big_uint);
     }
 
