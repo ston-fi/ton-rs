@@ -372,8 +372,6 @@ fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Re
     // Special case: when bits_len == N*64, we can't compute 2^bits_len without overflow.
     // In this case, we handle the conversion differently.
     if bits_len == (N * 64) as u32 {
-        // For full-width values, we can't use the normal modulo approach.
-        // Instead, we handle negatives by treating the bit pattern directly.
         if src < Int::<N>::ZERO {
             // For negative values: compute unsigned_value = signed_value + 2^(N*64)
             // Since 2^(N*64) can't be represented in UInt<N>, we work around it by
@@ -415,7 +413,10 @@ fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Re
 }
 
 pub fn fastnum_convert_to_signed<const N: usize>(src: UInt<N>, bits_len: u32) -> Result<Int<N>, TonCoreError> {
-    assert!((bits_len as usize) <= N * 64, "bits_len exceeds width");
+    if bits_len > (N * 64) as u32 {
+        bail_ton_core_data!("bits_len exceeds width");
+    }
+
     // Special-case 0 bits: by convention return 0.
     if bits_len == 0 {
         return Ok(Int::<N>::from(0u8));
