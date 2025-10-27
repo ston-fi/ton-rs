@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.2...ton_core-v0.0.3) - 2025-10-27
+
+### Other
+
+- add fastnum I/U 128,256,512 to tlb_num ([#114](https://github.com/ston-fi/ton-rs/pull/114))
+- additional unwraps fould
+- rm panic
+
 ## [0.0.2](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.1...ton_core-v0.0.2) - 2025-10-21
 
 ### Other
