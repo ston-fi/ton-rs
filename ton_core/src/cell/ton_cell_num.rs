@@ -342,6 +342,57 @@ impl TonCellNum for BigInt {
     }
 }
 
+use fastnum::bint::{Int, UInt};
+// fastnum
+fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Result<UInt<N>, TonCoreError> {
+    // Sanity: Int/UInt<N> hold N*64 bits.
+    assert!((bits_len as usize) <= N * 64, "bits_len exceeds width");
+    // 2^bits_len as UInt<N>
+    let modulus_u = UInt::<N>::ONE << bits_len;
+
+    // Cast modulus to Int<N> so we can use rem_euclid on the signed value.
+    let modulus_i: Int<N> = modulus_u
+        .try_cast()
+        .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "2^bits_len fits into Int<N>"))?;
+
+    // (a mod m) in the mathematical sense (always >= 0), even for negatives.
+    let reduced_i = src.rem_euclid(modulus_i);
+
+    // Cast the non-negative remainder back to UInt<N>.
+    reduced_i
+        .try_cast()
+        .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "non-negative remainder fits into UInt<N>"))
+}
+
+pub fn fastnum_convert_to_signed<const N: usize>(src: UInt<N>, bits_len: u32) -> Result<Int<N>, TonCoreError> {
+    assert!((bits_len as usize) <= N * 64, "bits_len exceeds width");
+    // Special-case 0 bits: by convention return 0.
+    if bits_len == 0 {
+        return Ok(Int::<N>::from(0u8));
+    }
+
+    // 2^bits_len
+    let two_pow_bits_u = UInt::<N>::ONE << bits_len;
+    let two_pow_bits_i: Int<N> = two_pow_bits_u.try_cast().expect("cast 2^bits_len to Int");
+
+    // Mask to exactly `bits_len` low bits (in case higher bits are set)
+    let mask = &two_pow_bits_u - UInt::<N>::ONE;
+    let v = src & mask;
+
+    // Sign bit (2^(bits_len-1)): if set -> negative branch
+    let sign_bit = UInt::<N>::ONE << (bits_len - 1);
+
+    // Cast the (masked) magnitude into Int
+    let mut as_i: Int<N> = v.try_cast().expect("masked value fits into Int");
+
+    if v >= sign_bit {
+        // Negative value: subtract 2^bits_len to get the proper two's-complement Int
+        as_i -= two_pow_bits_i;
+    }
+
+    as_i
+}
+
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
