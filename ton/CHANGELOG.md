@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.3...ton-v0.0.4) - 2025-10-28
+
+### Fixed
+
+- fix signed dict keys ([#119](https://github.com/ston-fi/ton-rs/pull/119))
+
 ## [0.0.3](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.2...ton-v0.0.3) - 2025-10-24
 
 ### Other
