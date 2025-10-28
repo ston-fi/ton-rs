@@ -96,6 +96,7 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 }
             }
             fn tcn_is_zero(&self) -> bool { *self == 0 }
+
             fn tcn_min_bits_len(&self) -> u32 {
                 if *self == 0 {
                     0u32
@@ -135,6 +136,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
             }
 
             fn tcn_is_zero(&self) -> bool { *self == 0 }
+
             fn tcn_min_bits_len(&self) -> u32 {
                 if *self == 0 {
                     0u32
@@ -333,6 +335,7 @@ impl TonCellNum for BigInt {
         Ok(result)
     }
     fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+
     fn tcn_min_bits_len(&self) -> u32 {
         if self.tcn_is_zero() {
             0u32
@@ -340,6 +343,121 @@ impl TonCellNum for BigInt {
             (self.bits() as u32) + 1u32
         }
     }
+}
+
+use fastnum::bint::{Int, UInt};
+// fastnum
+fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Result<UInt<N>, TonCoreError> {
+    // Sanity: Int/UInt<N> hold N*64 bits.
+    assert!((bits_len as usize) <= N * 64, "bits_len exceeds width");
+
+    // Special case: when bits_len == N*64, we can't compute 2^bits_len without overflow.
+    // In this case, we handle the conversion differently.
+    if bits_len == (N * 64) as u32 {
+        if src < Int::<N>::ZERO {
+            // For negative values: compute unsigned_value = signed_value + 2^(N*64)
+            // Since 2^(N*64) can't be represented in UInt<N>, we work around it by
+            // using the fact that UInt<N>::MAX + 1 wraps to 0, so we can compute
+            // the complement. For a negative value n, the unsigned representation is
+            // -n as UInt, but in two's complement it's UInt::MAX - |n| + 1.
+
+            // Get the absolute value as an unsigned type
+            let abs_val: UInt<N> = (-src)
+                .try_cast()
+                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "abs conversion failed"))?;
+
+            // Compute two's complement: UInt::MAX - abs + 1 = -abs (in two's complement)
+            return Ok(UInt::<N>::MAX - abs_val + UInt::<N>::ONE);
+        } else {
+            // For non-negative values, direct cast works
+            let u_value: UInt<N> = src
+                .try_cast()
+                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "full-width conversion failed"))?;
+            return Ok(u_value);
+        }
+    }
+
+    // 2^bits_len as UInt<N>
+    let modulus_u = UInt::<N>::ONE << bits_len;
+
+    // Cast modulus to Int<N> so we can use rem_euclid on the signed value.
+    let modulus_i: Int<N> = modulus_u
+        .try_cast()
+        .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "2^bits_len fits into Int<N>"))?;
+
+    // (a mod m) in the mathematical sense (always >= 0), even for negatives.
+    let reduced_i = src.rem_euclid(modulus_i);
+
+    // Cast the non-negative remainder back to UInt<N>.
+    reduced_i
+        .try_cast()
+        .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "non-negative remainder fits into UInt<N>"))
+}
+
+pub fn fastnum_convert_to_signed<const N: usize>(src: UInt<N>, bits_len: u32) -> Result<Int<N>, TonCoreError> {
+    if bits_len > (N * 64) as u32 {
+        bail_ton_core_data!("bits_len exceeds width");
+    }
+
+    // Special-case 0 bits: by convention return 0.
+    if bits_len == 0 {
+        return Ok(Int::<N>::from(0u8));
+    }
+
+    // Special case: when bits_len == N*64, we can't compute 2^bits_len without overflow.
+    if bits_len == (N * 64) as u32 {
+        // For full-width values, the unsigned value IS the bit pattern.
+        // To convert to signed two's complement: signed = unsigned - 2^(N*64)
+        // Since 2^(N*64) can't be represented in UInt<N>, we use: signed = unsigned - (MAX + 1)
+        // Where MAX + 1 wraps to 0, so signed = unsigned - MAX - 1
+        // Simplifying: signed = -(MAX - unsigned + 1)
+
+        // Check if this represents a negative value (sign bit set)
+        let sign_bit_pos = (N * 64 - 1) as u32;
+        let sign_bit = UInt::<N>::ONE << sign_bit_pos;
+
+        if src >= sign_bit {
+            // Negative value: compute signed = unsigned - 2^(N*64)
+            // Since 2^(N*64) = UInt::MAX + 1, and MAX + 1 wraps to 0:
+            // signed = unsigned - (MAX + 1) = unsigned + (!MAX) = unsigned - MAX - 1
+            let diff = UInt::<N>::MAX - src;
+            let i_value = (diff + UInt::<N>::ONE).try_cast().map_err(|_| {
+                TonCoreError::data("fastnum_convert_to_signed", "Failed to convert negative full-width value")
+            })?;
+            return Ok(-i_value);
+        } else {
+            // Positive value: direct cast works
+            let i_value: Int<N> = src.try_cast().map_err(|_| {
+                TonCoreError::data("fastnum_convert_to_signed", "Failed to convert positive full-width value")
+            })?;
+            return Ok(i_value);
+        }
+    }
+
+    // 2^bits_len
+    let two_pow_bits_u = UInt::<N>::ONE << bits_len;
+    let two_pow_bits_i: Int<N> = two_pow_bits_u
+        .try_cast()
+        .map_err(|_| TonCoreError::data("fastnum_convert_to_signed", "Failed to cast 2^bits_len to Int"))?;
+
+    // Mask to exactly `bits_len` low bits (in case higher bits are set)
+    let mask = two_pow_bits_u - UInt::<N>::ONE;
+    let v = src & mask;
+
+    // Sign bit (2^(bits_len-1)): if set -> negative branch
+    let sign_bit = UInt::<N>::ONE << (bits_len - 1);
+
+    // Cast the (masked) magnitude into Int
+    let mut as_i: Int<N> = v
+        .try_cast()
+        .map_err(|_| TonCoreError::data("fastnum_convert_to_signed", "Failed to cast masked value to Int"))?;
+
+    if v >= sign_bit {
+        // Negative value: subtract 2^bits_len to get the proper two's-complement Int
+        as_i -= two_pow_bits_i;
+    }
+
+    Ok(as_i)
 }
 
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
@@ -431,144 +549,26 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
     };
 }
 macro_rules! ton_cell_num_fastnum_signed_impl {
-    ($src:ty) => {
+    ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-                if bits_len == 0 {
-                    return Ok(());
-                }
-
-                // Convert signed to unsigned using two's complement arithmetic
-                let uval = if *self < Self::from(0u32) {
-                    // Negative number: add 2^type_bits to get unsigned representation
-                    // We compute this as: (2^type_bits - 1) + 1 + signed_value
-                    // But since we can't represent 2^type_bits directly, we use:
-                    // unsigned = (signed + 2^bits_len) & mask for the specific bits_len
-
-                    // First convert to positive abs value by negating
-                    let abs_val = -*self;
-
-                    // Then compute: 2^bits_len - abs_val
-                    let modulus = U1024::ONE << bits_len;
-
-                    // Convert abs_val to unsigned byte by byte
-                    let bytes_count = std::mem::size_of::<$src>();
-                    let mut bytes_vec = Vec::with_capacity(bytes_count);
-                    let mut temp = abs_val.clone();
-
-                    for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
-                        bytes_vec.push(byte_val);
-                        temp >>= 8;
-                    }
-                    bytes_vec.reverse();
-
-                    let mut abs_unsigned = U1024::from(0u32);
-                    for byte in bytes_vec {
-                        abs_unsigned = (abs_unsigned << 8) | U1024::from(byte);
-                    }
-
-                    // Compute two's complement
-                    modulus - abs_unsigned
-                } else {
-                    // Positive number: direct conversion
-                    let bytes_count = std::mem::size_of::<$src>();
-                    let mut bytes_vec = Vec::with_capacity(bytes_count);
-                    let mut temp = self.clone();
-
-                    for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & Self::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
-                        bytes_vec.push(byte_val);
-                        temp >>= 8;
-                    }
-                    bytes_vec.reverse();
-
-                    let mut result = U1024::from(0u32);
-                    for byte in bytes_vec {
-                        result = (result << 8) | U1024::from(byte);
-                    }
-                    result
-                };
-
-                // Mask to bits_len
-                let masked_uval = if (bits_len as usize) < std::mem::size_of::<$src>() * 8 {
-                    let mask = (U1024::ONE << bits_len) - U1024::ONE;
-                    uval & mask
-                } else {
-                    uval
-                };
-
-                // Now write the unsigned value
-                masked_uval.tcn_write_bits(writer, bits_len)
-            }
-
             fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
-                if bits_len == 0 {
-                    return Ok(Self::from(0u32));
-                }
-
-                let unsigned_val = U1024::tcn_read_bits(reader, bits_len)?;
-
-                // Two's complement decoding: check sign bit
-                let sign_bit_pos = bits_len - 1;
-                let sign_bit = U1024::ONE << sign_bit_pos;
-
-                // Convert unsigned to signed using two's complement arithmetic
-                if (unsigned_val & sign_bit) != U1024::from(0u32) {
-                    // Negative number: subtract 2^bits_len
-                    // First, convert unsigned_val to a temporary signed value
-                    // We do this by creating the positive part and then negating
-
-                    // Calculate: value - 2^bits_len = -(2^bits_len - value)
-                    let modulus_unsigned = U1024::ONE << bits_len;
-                    let abs_val = modulus_unsigned - unsigned_val;
-
-                    // Convert abs_val to signed and negate
-                    // We need to convert the unsigned value to signed byte by byte
-                    let bytes_count = std::mem::size_of::<$src>();
-                    let mut bytes_vec = Vec::with_capacity(bytes_count);
-                    let mut temp = abs_val.clone();
-
-                    for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & U1024::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
-                        bytes_vec.push(byte_val);
-                        temp >>= 8;
-                    }
-                    bytes_vec.reverse();
-
-                    let mut result = Self::from(0u32);
-                    for byte in bytes_vec {
-                        result = (result << 8) | Self::from(byte);
-                    }
-
-                    Ok(-result)
-                } else {
-                    // Positive number: direct conversion
-                    let bytes_count = std::mem::size_of::<$src>();
-                    let mut bytes_vec = Vec::with_capacity(bytes_count);
-                    let mut temp = unsigned_val.clone();
-
-                    for _ in 0..bytes_count {
-                        let byte_val = (temp.clone() & U1024::from(0xFFu32)).to_u64().unwrap_or(0) as u8;
-                        bytes_vec.push(byte_val);
-                        temp >>= 8;
-                    }
-                    bytes_vec.reverse();
-
-                    let mut result = Self::from(0u32);
-                    for byte in bytes_vec {
-                        result = (result << 8) | Self::from(byte);
-                    }
-
-                    Ok(result)
-                }
+                let u_sibling = <$u_src>::tcn_read_bits(reader, bits_len)?;
+                let rz = fastnum_convert_to_signed(u_sibling, bits_len)?;
+                Ok(rz)
             }
+            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
+                let u_sibling: $u_src = fastnum_convert_to_unsigned(*self, bits_len)?;
+                u_sibling.tcn_write_bits(writer, bits_len)
+            }
+
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+
             fn tcn_min_bits_len(&self) -> u32 {
                 if self.tcn_is_zero() {
                     0u32
                 } else {
                     // Two's complement: same as primitives
+
                     primitive_highest_bit_pos!(*self, $src, true) as u32 + 2u32
                 }
             }
@@ -581,10 +581,10 @@ ton_cell_num_fastnum_unsigned_impl!(U256);
 ton_cell_num_fastnum_unsigned_impl!(U512);
 ton_cell_num_fastnum_unsigned_impl!(U1024);
 
-ton_cell_num_fastnum_signed_impl!(I128);
-ton_cell_num_fastnum_signed_impl!(I256);
-ton_cell_num_fastnum_signed_impl!(I512);
-ton_cell_num_fastnum_signed_impl!(I1024);
+ton_cell_num_fastnum_signed_impl!(I128, U128);
+ton_cell_num_fastnum_signed_impl!(I256, U256);
+ton_cell_num_fastnum_signed_impl!(I512, U512);
+ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {

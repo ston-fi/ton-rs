@@ -1,6 +1,6 @@
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use criterion::{criterion_group, criterion_main, Criterion};
-use fastnum::I512;
+use fastnum::{I512, U512};
 use num_bigint::BigInt;
 use std::hint::black_box;
 
@@ -79,6 +79,17 @@ fn write_bigint_ton_rs_current_negative() {
         black_box(&builder);
     }
 }
+fn write_u512_ton_rs_current_negative() {
+    let mut builder = TonCell::builder();
+    let tv = U512::from(TEST_VALUE);
+    for i in 0..ITERATIONS_COUNT {
+        if i % THRESHOLD_TO_RECREATE_BUILDER == 0 {
+            builder = TonCell::builder();
+        }
+        builder.write_num(&tv, TEST_WRITE_BIT).unwrap();
+        black_box(&builder);
+    }
+}
 fn write_i512_ton_rs_current_negative() {
     let mut builder = TonCell::builder();
     let tv = -I512::from(TEST_VALUE);
@@ -98,6 +109,7 @@ fn benchmark_functions(c: &mut Criterion) {
     c.bench_function("write_primitive_ton_rs_current", |b| b.iter(write_primitive_ton_rs_current));
     c.bench_function("write_primitive_ton_rs_current_negative", |b| b.iter(write_primitive_ton_rs_current_negative));
     c.bench_function("write_bigint_ton_rs_current_negative", |b| b.iter(write_bigint_ton_rs_current_negative));
+    c.bench_function("write_u512_ton_rs_current_negative", |b| b.iter(write_u512_ton_rs_current_negative));
     c.bench_function("write_i512_ton_rs_current_negative", |b| b.iter(write_i512_ton_rs_current_negative));
 }
 
