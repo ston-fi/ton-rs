@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.4...ton_core-v0.0.5) - 2025-10-28
+
+### Other
+
+- fastnum simplification - fastnum signed writes as unsigned ([#115](https://github.com/ston-fi/ton-rs/pull/115))
+
 ## [0.0.4](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.3...ton_core-v0.0.4) - 2025-10-27
 
 ### Fixed
