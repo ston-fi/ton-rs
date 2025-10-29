@@ -5,17 +5,6 @@ use ::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 
 // TonHash
-pub mod serde_ton_hash_base64 {
-    use super::*;
-
-    pub fn serialize<S: Serializer>(hash: &TonHash, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(hash.to_base64().as_str())
-    }
-    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonHash, D::Error> {
-        TonHash::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
-    }
-}
-
 pub mod serde_ton_hash_hex {
     use super::*;
 
@@ -27,6 +16,50 @@ pub mod serde_ton_hash_hex {
     }
 }
 
+pub mod serde_ton_hash_base64 {
+    use super::*;
+
+    pub fn serialize<S: Serializer>(hash: &TonHash, se: S) -> Result<S::Ok, S::Error> {
+        se.serialize_str(hash.to_base64().as_str())
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<TonHash, D::Error> {
+        TonHash::from_str(&String::deserialize(deserializer)?).map_err(Error::custom)
+    }
+}
+
+// Option<TonHash>
+pub mod serde_ton_hash_hex_opt {
+    use super::*;
+
+    pub fn serialize<S: Serializer>(hash: &Option<TonHash>, serializer: S) -> Result<S::Ok, S::Error> {
+        match hash {
+            Some(h) => serde_ton_hash_hex::serialize(h, serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<TonHash>, D::Error> {
+        let opt_val = Option::<serde_json::Value>::deserialize(deserializer)?;
+        opt_val.map(serde_ton_hash_hex::deserialize).transpose().map_err(Error::custom)
+    }
+}
+
+pub mod serde_ton_hash_base64_opt {
+    use super::*;
+
+    pub fn serialize<S: Serializer>(hash: &Option<TonHash>, serializer: S) -> Result<S::Ok, S::Error> {
+        match hash {
+            Some(h) => serde_ton_hash_base64::serialize(h, serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<TonHash>, D::Error> {
+        let opt_val = Option::<serde_json::Value>::deserialize(deserializer)?;
+        opt_val.map(serde_ton_hash_base64::deserialize).transpose().map_err(Error::custom)
+    }
+}
+
+// Vec<TonHash>
 pub mod serde_ton_hash_vec_base64 {
     pub use super::*;
 
@@ -75,6 +108,52 @@ pub mod serde_ton_address_base64_url_testnet {
     }
 }
 
+// Option<TonAddress>
+pub mod serde_ton_address_hex_opt {
+    pub use super::*;
+
+    pub fn serialize<S: Serializer>(address: &Option<TonAddress>, serializer: S) -> Result<S::Ok, S::Error> {
+        match address {
+            Some(addr) => serde_ton_address_hex::serialize(addr, serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<TonAddress>, D::Error> {
+        let opt_val = Option::<serde_json::Value>::deserialize(deserializer)?;
+        opt_val.map(serde_ton_address_hex::deserialize).transpose().map_err(Error::custom)
+    }
+}
+
+pub mod serde_ton_address_base64_url_opt {
+    pub use super::*;
+
+    pub fn serialize<S: Serializer>(address: &Option<TonAddress>, serializer: S) -> Result<S::Ok, S::Error> {
+        match address {
+            Some(addr) => serde_ton_address_base64_url::serialize(addr, serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<TonAddress>, D::Error> {
+        let opt_val = Option::<serde_json::Value>::deserialize(deserializer)?;
+        opt_val.map(serde_ton_address_base64_url::deserialize).transpose().map_err(Error::custom)
+    }
+}
+
+pub mod serde_ton_address_base64_url_testnet_opt {
+    pub use super::*;
+
+    pub fn serialize<S: Serializer>(address: &Option<TonAddress>, serializer: S) -> Result<S::Ok, S::Error> {
+        match address {
+            Some(addr) => serde_ton_address_base64_url_testnet::serialize(addr, serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<TonAddress>, D::Error> {
+        let opt_val = Option::<serde_json::Value>::deserialize(deserializer)?;
+        opt_val.map(serde_ton_address_base64_url_testnet::deserialize).transpose().map_err(Error::custom)
+    }
+}
+
 // TxLTHash
 pub mod serde_tx_lt_hash_json {
     use super::*;
@@ -118,22 +197,29 @@ mod tests {
             hash: TonHash,
             #[serde(with = "serde_ton_hash_vec_base64")]
             hash_vec: Vec<TonHash>,
+            #[serde(with = "serde_ton_hash_hex_opt")]
+            hash_opt: Option<TonHash>,
         }
 
         let val = TestStruct {
             hash: TonHash::from_slice(&[1u8; 32])?,
             hash_vec: vec![TonHash::from_slice(&[2u8; 32])?, TonHash::from_slice(&[3u8; 32])?],
+            hash_opt: Some(TonHash::from_slice(&[3u8; 32])?),
         };
-        let val_json = serde_json::to_string(&val)?;
-        let expected = json!({
+        let val_json_str = serde_json::to_string(&val)?;
+        let val_json = serde_json::from_str::<serde_json::Value>(&val_json_str)?;
+
+        let expected_json = json!({
             "hash": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
             "hash_vec": [
                 "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI=",
                 "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM="
-            ]
-        })
-        .to_string();
-        assert_eq!(val_json, expected);
+            ],
+            "hash_opt": "0303030303030303030303030303030303030303030303030303030303030303",
+        });
+        assert_eq!(val_json, expected_json);
+        let parsed_val = serde_json::from_str::<TestStruct>(&val_json.to_string())?;
+        assert_eq!(parsed_val, val);
         Ok(())
     }
 }
