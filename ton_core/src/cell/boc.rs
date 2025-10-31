@@ -1,5 +1,5 @@
-mod raw_boc;
-mod raw_cell;
+pub(crate) mod raw_boc;
+pub(crate) mod raw_cell;
 mod read_var_size;
 
 use crate::bail_ton_core_data;
@@ -43,7 +43,7 @@ impl BoC {
     }
 
     pub fn to_bytes(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
-        RawBoC::from_ton_cells(self.roots.as_slice())?.to_bytes(add_crc32)
+        RawBoC::from_ton_cells(self.roots.as_slice(), false)?.to_bytes(add_crc32)
     }
     pub fn to_hex(&self, add_crc32: bool) -> Result<String, TonCoreError> { Ok(hex::encode(self.to_bytes(add_crc32)?)) }
     pub fn to_base64(&self, add_crc32: bool) -> Result<String, TonCoreError> {

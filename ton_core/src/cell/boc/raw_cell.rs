@@ -2,33 +2,36 @@ use crate::bail_ton_core_data;
 use crate::bits_utils::BitsUtils;
 use crate::cell::boc::read_var_size::read_var_size;
 use crate::cell::ton_cell::{CellBitWriter, CellBytesReader, CellData, RefStorage};
-use crate::cell::{CellBorders, CellMeta, CellType, LevelMask, TonCell};
+use crate::cell::{CellBorders, CellMeta, CellType, HashesDepthsStorage, LevelMask, TonCell};
 use crate::errors::TonCoreError;
 use bitstream_io::{BitWrite, ByteRead};
+use once_cell;
+use once_cell::sync::OnceCell;
 use smallvec::SmallVec;
 use std::sync::Arc;
 
 /// References are stored as indices in BagOfCells.
 #[derive(PartialEq, Debug, Clone)]
-pub(super) struct RawCell {
-    pub(super) cell_type: CellType,
-    pub(super) data_storage: Arc<Vec<u8>>,
-    pub(super) start_bit: usize,
-    pub(super) end_bit: usize,
-    pub(super) refs_pos: RefPosStorage,
-    pub(super) level_mask: LevelMask,
+pub(crate) struct RawCell {
+    pub(crate) cell_type: CellType,
+    pub(crate) data_storage: Arc<Vec<u8>>,
+    pub(crate) start_bit: usize,
+    pub(crate) end_bit: usize,
+    pub(crate) refs_pos: RefPosStorage,
+    pub(crate) level_mask: LevelMask,
+    pub(crate) hashes_depths: Option<HashesDepthsStorage>,
 }
 
-pub(super) type RefPosStorage = SmallVec<[usize; TonCell::MAX_REFS_COUNT]>;
+pub(crate) type RefPosStorage = SmallVec<[usize; TonCell::MAX_REFS_COUNT]>;
 
 impl RawCell {
-    pub(super) fn data_len_bits(&self) -> usize { self.end_bit - self.start_bit }
-    pub(super) fn data_len_bytes(&self) -> usize { self.data_len_bits().div_ceil(8) }
-    pub(super) fn size_in_boc_bytes(&self, ref_size_bytes: u32) -> u32 {
+    pub(crate) fn data_len_bits(&self) -> usize { self.end_bit - self.start_bit }
+    pub(crate) fn data_len_bytes(&self) -> usize { self.data_len_bits().div_ceil(8) }
+    pub(crate) fn size_in_boc_bytes(&self, ref_size_bytes: u32) -> u32 {
         2 + self.data_len_bytes() as u32 + self.refs_pos.len() as u32 * ref_size_bytes
     }
 
-    pub(super) fn write_to(&self, writer: &mut CellBitWriter, ref_size_bytes: u32) -> std::io::Result<()> {
+    pub(crate) fn write_to(&self, writer: &mut CellBitWriter, ref_size_bytes: u32) -> std::io::Result<()> {
         let level = self.level_mask;
         let is_exotic = self.cell_type.is_exotic() as u32;
         let num_refs = self.refs_pos.len() as u32;
@@ -64,7 +67,7 @@ impl RawCell {
         Ok(())
     }
 
-    pub(super) fn read(
+    pub(crate) fn read(
         reader: &mut CellBytesReader,
         ref_pos_size_bytes: u8,
         data_storage: Arc<Vec<u8>>,
@@ -131,12 +134,17 @@ impl RawCell {
             end_bit,
             refs_pos,
             level_mask,
+            hashes_depths: None,
         };
         Ok(cell)
     }
 
-    pub(super) fn into_ton_cell(self, refs: RefStorage) -> TonCell {
+    pub(crate) fn into_ton_cell(self, refs: RefStorage) -> TonCell {
         let end_ref = refs.len() as u8;
+        let hashes_depths = match self.hashes_depths {
+            Some(value) => OnceCell::with_value(value),
+            None => OnceCell::default(),
+        };
         TonCell {
             cell_type: self.cell_type,
             cell_data: Arc::new(CellData {
@@ -151,7 +159,7 @@ impl RawCell {
             },
             meta: Arc::new(CellMeta {
                 level_mask: self.level_mask.into(),
-                hashes_depths: Default::default(),
+                hashes_depths,
             }),
         }
     }

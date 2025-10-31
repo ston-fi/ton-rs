@@ -3,6 +3,7 @@ use crate::bits_utils::BitsUtils;
 use crate::cell::cell_builder::INITIAL_STORAGE_CAPACITY;
 use crate::cell::cell_meta::CellMeta;
 use crate::cell::cell_meta::CellType;
+use crate::cell::raw_boc::RawBoC;
 use crate::cell::ton_hash::TonHash;
 use crate::cell::{CellBuilder, CellParser, LevelMask};
 use crate::errors::TonCoreError;
@@ -44,6 +45,45 @@ impl TonCell {
     pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary, INITIAL_STORAGE_CAPACITY) }
     pub fn builder_extra(cell_type: CellType, initial_capacity: usize) -> CellBuilder {
         CellBuilder::new(cell_type, initial_capacity)
+    }
+    // This function was originally written to traverse once and avoid allocating unified memory, but benchmarking showed that this implementation performs better.
+    pub fn deep_copy(&self) -> Result<TonCell, TonCoreError> {
+        let mut raw_boc = RawBoC::from_ton_cells(std::slice::from_ref(self), true)?;
+        let mut total_bytes = 0;
+        for raw_cell in &raw_boc.raw_cells {
+            total_bytes += raw_cell.data_len_bytes();
+        }
+        let mut new_storage = vec![0u8; total_bytes];
+
+        debug_assert!(raw_boc.roots_pos.len() == 1);
+
+        let mut next_start_bit = 0;
+        for raw_cell in raw_boc.raw_cells.iter_mut() {
+            let new_start_bit = next_start_bit;
+            let new_end_bit = next_start_bit + raw_cell.data_len_bits();
+
+            if !BitsUtils::rewrite(
+                &raw_cell.data_storage,
+                raw_cell.start_bit,
+                &mut new_storage,
+                new_start_bit,
+                raw_cell.data_len_bits(),
+            ) {
+                bail_ton_core_data!("Can't copy cell data during deep copy");
+            };
+
+            raw_cell.start_bit = new_start_bit;
+            raw_cell.end_bit = new_end_bit;
+
+            next_start_bit += raw_cell.data_len_bytes() * 8;
+        }
+        let arc_new_storage = Arc::new(new_storage);
+        for raw_cell in raw_boc.raw_cells.iter_mut() {
+            raw_cell.data_storage = arc_new_storage.clone();
+        }
+
+        raw_boc.roots_pos = SmallVec::from_elem(0, 1);
+        raw_boc.into_ton_cells().map(|mut vec| vec.swap_remove(0))
     }
 
     // Borders are relative to origin cell
@@ -200,7 +240,8 @@ fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::{CellBorders, TonCell};
+    use crate::cell::{BoC, CellBorders, TonCell};
+    use std::sync::Arc;
 
     #[test]
     fn test_ton_cell_slice() -> anyhow::Result<()> {
@@ -228,6 +269,57 @@ mod tests {
         assert_eq!(slice.refs().len(), 2);
         assert_eq!(slice.refs()[0].underlying_storage(), &[1]);
         assert_eq!(slice.refs()[1].underlying_storage(), &[2]);
+        Ok(())
+    }
+
+    #[test]
+    fn test_deep_copy_subtree_from_right_child() -> anyhow::Result<()> {
+        //      /  left_child \
+        // root                 shared_leaf
+        //      \ right_child /
+        let mut leaf_builder = TonCell::builder();
+        leaf_builder.write_bits([0b1110_0000], 7)?;
+        let shared_leaf = leaf_builder.build()?;
+
+        let mut left_builder = TonCell::builder();
+        left_builder.write_bits([0b1011_0000], 6)?;
+        left_builder.write_ref(shared_leaf.clone())?;
+        let left = left_builder.build()?;
+
+        let mut right_builder = TonCell::builder();
+        right_builder.write_bits([0b0101_0000], 6)?;
+        right_builder.write_ref(shared_leaf.clone())?;
+        let right = right_builder.build()?;
+
+        let mut root_builder = TonCell::builder();
+        root_builder.write_bits([0xF0], 8)?;
+        root_builder.write_ref(left.clone())?;
+        root_builder.write_ref(right.clone())?;
+        let _root = root_builder.build()?;
+
+        // Deep copy only the right subtree
+        let copy = TonCell::deep_copy(&right)?;
+        let copy_bytes = BoC::new(copy.clone()).to_bytes(false)?;
+        let parsed_copy = BoC::from_bytes(copy_bytes)?.single_root()?;
+        assert_eq!(right, parsed_copy);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ton_cell_deep_copy_shard_block() -> anyhow::Result<()> {
+        let boc_hex = include_str!("../../resources/tests/shard_block_6000000000000000_52111590.hex");
+        let cell = BoC::from_hex(&boc_hex)?.single_root()?;
+        let weak_data_ptr = Arc::downgrade(&cell.cell_data.data_storage);
+
+        let copy = TonCell::deep_copy(&cell).unwrap();
+        let copy_bytes = BoC::new(copy.clone()).to_bytes(false)?;
+        let parsed_copy = BoC::from_bytes(copy_bytes)?.single_root()?;
+        assert_eq!(cell.hash()?, parsed_copy.hash()?);
+
+        drop(cell);
+        assert!(weak_data_ptr.upgrade().is_none());
+
         Ok(())
     }
 }
