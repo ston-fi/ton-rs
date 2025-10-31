@@ -45,3 +45,8 @@ harness = false
 name = "write_num_primitives"
 path = "write_num_primitives.rs"
 harness = false
+
+[[bench]]
+name = "cell_deep_copy"
+path = "cell_deep_copy.rs"
+harness = false

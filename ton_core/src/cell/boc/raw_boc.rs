@@ -19,14 +19,14 @@ const CRC_32_ISCSI: Crc<u32> = Crc::<u32>::new(&crc::CRC_32_ISCSI);
 
 /// `cells` must be topologically sorted.
 #[derive(PartialEq, Debug, Clone)]
-pub(super) struct RawBoC {
-    pub(super) raw_cells: Vec<RawCell>,
-    pub(super) roots_pos: RefPosStorage, // Usually one, sometimes two. Haven't seen more in practice.
+pub(crate) struct RawBoC {
+    pub(crate) raw_cells: Vec<RawCell>,
+    pub(crate) roots_pos: RefPosStorage, // Usually one, sometimes two. Haven't seen more in practice.
 }
 
 impl RawBoC {
     // https://github.com/ton-blockchain/ton/blob/24dc184a2ea67f9c47042b4104bbb4d82289fac1/crypto/tl/boc.tlb#L25
-    pub(super) fn from_bytes(data_storage: Arc<Vec<u8>>) -> Result<RawBoC, TonCoreError> {
+    pub(crate) fn from_bytes(data_storage: Arc<Vec<u8>>) -> Result<RawBoC, TonCoreError> {
         let cursor = Cursor::new(data_storage.as_slice());
         let mut reader = CellBytesReader::new(cursor);
         let magic = reader.read::<u32>()?;
@@ -96,7 +96,7 @@ impl RawBoC {
     }
 
     //Based on https://github.com/toncenter/tonweb/blob/c2d5d0fc23d2aec55a0412940ce6e580344a288c/src/boc/Cell.js#L198
-    pub(super) fn to_bytes(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
+    pub(crate) fn to_bytes(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
         let root_count = self.roots_pos.len();
         let ref_size_bits = 32 - (self.raw_cells.len() as u32).leading_zeros();
         let ref_pos_size_bytes = ref_size_bits.div_ceil(8);
@@ -150,7 +150,7 @@ impl RawBoC {
     }
 
     //Based on https://github.com/toncenter/tonweb/blob/c2d5d0fc23d2aec55a0412940ce6e580344a288c/src/boc/Cell.js#L198
-    pub(super) fn into_ton_cells(self) -> Result<Vec<TonCell>, TonCoreError> {
+    pub(crate) fn into_ton_cells(self) -> Result<Vec<TonCell>, TonCoreError> {
         let cells_len = self.raw_cells.len();
         let mut cells: Vec<TonCell> = Vec::with_capacity(cells_len);
 
@@ -172,7 +172,7 @@ impl RawBoC {
         Ok(roots)
     }
 
-    pub(super) fn from_ton_cells(roots: &[TonCell]) -> Result<Self, TonCoreError> {
+    pub(crate) fn from_ton_cells(roots: &[TonCell], preserve_hash: bool) -> Result<Self, TonCoreError> {
         let cell_by_hash = build_and_verify_index(roots)?;
 
         // Sort indexed cells by their index value.
@@ -187,7 +187,7 @@ impl RawBoC {
 
         let raw_cells = cell_sorted
             .into_iter()
-            .map(|indexed| raw_from_indexed(indexed.cell, &cell_by_hash))
+            .map(|indexed| raw_from_indexed(indexed.cell, &cell_by_hash, preserve_hash))
             .collect::<Result<_, TonCoreError>>()?;
 
         let roots_pos = roots.iter().map(|x| get_position(x, &cell_by_hash)).collect::<Result<_, TonCoreError>>()?;
@@ -252,7 +252,11 @@ fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedC
     Ok(cells_by_hash)
 }
 
-fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell>) -> Result<RawCell, TonCoreError> {
+fn raw_from_indexed(
+    cell: &TonCell,
+    cells_by_hash: &HashMap<TonHash, IndexedCell>,
+    preserve_hash: bool,
+) -> Result<RawCell, TonCoreError> {
     let refs_positions = raw_cell_refs_indexes(cell, cells_by_hash)?;
     Ok(RawCell {
         cell_type: cell.cell_type(),
@@ -261,6 +265,11 @@ fn raw_from_indexed(cell: &TonCell, cells_by_hash: &HashMap<TonHash, IndexedCell
         end_bit: cell.borders.end_bit,
         refs_pos: refs_positions,
         level_mask: cell.level_mask(),
+        hashes_depths: if preserve_hash {
+            cell.meta.hashes_depths.get().cloned()
+        } else {
+            None
+        },
     })
 }
 

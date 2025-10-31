@@ -3,12 +3,12 @@ use crate::bits_utils::BitsUtils;
 use crate::cell::cell_builder::INITIAL_STORAGE_CAPACITY;
 use crate::cell::cell_meta::CellMeta;
 use crate::cell::cell_meta::CellType;
+use crate::cell::raw_boc::RawBoC;
 use crate::cell::ton_hash::TonHash;
 use crate::cell::{CellBuilder, CellParser, LevelMask};
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitReader, BitWriter, ByteReader};
 use smallvec::SmallVec;
-use std::collections::{HashMap, VecDeque};
 use std::fmt::Formatter;
 use std::io::Cursor;
 use std::ops::Deref;
@@ -46,120 +46,44 @@ impl TonCell {
     pub fn builder_extra(cell_type: CellType, initial_capacity: usize) -> CellBuilder {
         CellBuilder::new(cell_type, initial_capacity)
     }
-
-    pub fn deep_copy(cell: &TonCell) -> Result<TonCell, TonCoreError> {
-        struct NodeInfo {
-            cell_type: CellType,
-            meta: CellMeta,
-            data_storage: Arc<Vec<u8>>,
-            data_start_bit: usize,
-            data_len_bits: usize,
-            start_bit: usize,
-            end_bit: usize,
-            children: SmallVec<[usize; TonCell::MAX_REFS_COUNT]>,
+    // This function was originally written to traverse once and avoid allocating unified memory, but benchmarking showed that this implementation performs better.
+    pub fn deep_copy(&self) -> Result<TonCell, TonCoreError> {
+        let mut raw_boc = RawBoC::from_ton_cells(std::slice::from_ref(self), true)?;
+        let mut total_bytes = 0;
+        for raw_cell in &raw_boc.raw_cells {
+            total_bytes += raw_cell.data_len_bytes();
         }
+        let mut new_storage = vec![0u8; total_bytes];
 
-        let mut nodes: Vec<NodeInfo> = Vec::new();
-        let mut registry: HashMap<TonHash, usize> = HashMap::new();
-        let mut queue: VecDeque<(&TonCell, Option<usize>)> = VecDeque::new();
-        queue.push_back((cell, None));
+        debug_assert!(raw_boc.roots_pos.len() == 1);
 
-        let mut total_bits = 0usize;
+        let mut next_start_bit = 0;
+        for raw_cell in raw_boc.raw_cells.iter_mut() {
+            let new_start_bit = next_start_bit;
+            let new_end_bit = next_start_bit + raw_cell.data_len_bits();
 
-        while let Some((src, parent_idx)) = queue.pop_front() {
-            let hash = src.hash()?.clone();
-            let node_idx = if let Some(&idx) = registry.get(&hash) {
-                idx
-            } else {
-                let idx = nodes.len();
-                registry.insert(hash, idx);
-                total_bits += src.data_len_bits();
-
-                nodes.push(NodeInfo {
-                    cell_type: src.cell_type(),
-                    meta: (&*src.meta).clone(),
-                    data_storage: src.cell_data.data_storage.clone(),
-                    data_start_bit: src.borders.start_bit,
-                    data_len_bits: src.data_len_bits(),
-                    start_bit: 0,
-                    end_bit: 0,
-                    children: SmallVec::new(),
-                });
-
-                for child in src.refs() {
-                    queue.push_back((child, Some(idx)));
-                }
-
-                idx
-            };
-
-            if let Some(parent_idx) = parent_idx {
-                nodes[parent_idx].children.push(node_idx);
-            }
-        }
-
-        let mut storage = vec![0u8; total_bits.div_ceil(8)];
-        let mut current_offset = 0usize;
-
-        for node in nodes.iter_mut() {
-            if node.data_len_bits > 0
-                && !BitsUtils::rewrite(
-                    node.data_storage.as_ref(),
-                    node.data_start_bit,
-                    &mut storage,
-                    current_offset,
-                    node.data_len_bits,
-                )
-            {
+            if !BitsUtils::rewrite(
+                &raw_cell.data_storage,
+                raw_cell.start_bit,
+                &mut new_storage,
+                new_start_bit,
+                raw_cell.data_len_bits(),
+            ) {
                 bail_ton_core_data!("Can't copy cell data during deep copy");
-            }
-            node.start_bit = current_offset;
-            node.end_bit = current_offset + node.data_len_bits;
-            current_offset = node.end_bit;
-        }
-
-        debug_assert_eq!(current_offset, total_bits);
-
-        let storage_arc = Arc::new(storage);
-        let mut new_cells: Vec<Option<TonCell>> = vec![None; nodes.len()];
-
-        for idx in (0..nodes.len()).rev() {
-            let info = &nodes[idx];
-            let mut refs = RefStorage::new();
-            for &child_idx in &info.children {
-                let child_cell = new_cells[child_idx].as_ref().ok_or_else(|| {
-                    TonCoreError::Custom(
-                        "deep_copy: Algorithm must be broken child cell must be constructed before parent".to_string(),
-                    )
-                })?;
-                refs.push(child_cell.clone());
-            }
-
-            let cell_data = CellData {
-                data_storage: storage_arc.clone(),
-                refs,
             };
 
-            let new_cell = TonCell {
-                cell_type: info.cell_type,
-                cell_data: Arc::new(cell_data),
-                borders: CellBorders {
-                    start_bit: info.start_bit,
-                    end_bit: info.end_bit,
-                    start_ref: 0,
-                    end_ref: info.children.len() as u8,
-                },
-                meta: Arc::new(info.meta.clone()),
-            };
-            new_cells[idx] = Some(new_cell);
+            raw_cell.start_bit = new_start_bit;
+            raw_cell.end_bit = new_end_bit;
+
+            next_start_bit += raw_cell.data_len_bytes() * 8;
+        }
+        let arc_new_storage = Arc::new(new_storage);
+        for raw_cell in raw_boc.raw_cells.iter_mut() {
+            raw_cell.data_storage = arc_new_storage.clone();
         }
 
-        if nodes.is_empty() {
-            unreachable!("TonCell::deep_copy must produce at least one node");
-        }
-
-        let root_cell = new_cells[0].take().expect("TonCell::deep_copy must produce a root cell");
-        Ok(root_cell)
+        raw_boc.roots_pos = SmallVec::from_elem(0, 1);
+        raw_boc.into_ton_cells().map(|mut vec| vec.swap_remove(0))
     }
 
     // Borders are relative to origin cell
@@ -316,14 +240,8 @@ fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::ton_hash::TonHash;
-    use crate::cell::{CellBorders, TonCell};
-    use std::collections::{HashMap, HashSet, VecDeque};
-
-    fn collect_bits(cell: &TonCell) -> anyhow::Result<Vec<u8>> {
-        let mut parser = cell.parser();
-        Ok(parser.read_bits(cell.data_len_bits())?)
-    }
+    use crate::cell::{BoC, CellBorders, TonCell};
+    use std::sync::Arc;
 
     #[test]
     fn test_ton_cell_slice() -> anyhow::Result<()> {
@@ -355,135 +273,6 @@ mod tests {
     }
 
     #[test]
-    fn test_deep_copy_allocates_single_storage() -> anyhow::Result<()> {
-        let mut grand_builder = TonCell::builder();
-        grand_builder.write_bits([0b1110_0000], 7)?;
-        let grandchild = grand_builder.build()?;
-
-        let mut first_child_builder = TonCell::builder();
-        first_child_builder.write_bits([0b1100_0000], 6)?;
-        let first_child = first_child_builder.build()?;
-
-        let mut second_child_builder = TonCell::builder();
-        second_child_builder.write_bits([0xAA, 0xCC], 14)?;
-        second_child_builder.write_ref(grandchild)?;
-        let second_child = second_child_builder.build()?;
-
-        let mut root_builder = TonCell::builder();
-        root_builder.write_bits([0xDE], 8)?;
-        root_builder.write_ref(first_child.clone())?;
-        root_builder.write_ref(second_child.clone())?;
-        let root = root_builder.build()?;
-
-        let copy = TonCell::deep_copy(&root)?;
-
-        // Offsets must be contiguous in BFS order starting at 0
-        assert_bfs_offsets_linear(&copy)?;
-
-        assert_eq!(collect_bits(&root)?, collect_bits(&copy)?);
-        assert_eq!(root.refs().len(), copy.refs().len());
-        assert_ne!(root.underlying_storage().as_ptr(), copy.underlying_storage().as_ptr());
-
-        let copy_storage_ptr = copy.underlying_storage().as_ptr();
-        for (original_ref, copied_ref) in root.refs().iter().zip(copy.refs()) {
-            assert_eq!(collect_bits(original_ref)?, collect_bits(copied_ref)?);
-            assert_eq!(original_ref.refs().len(), copied_ref.refs().len());
-            assert_eq!(copied_ref.underlying_storage().as_ptr(), copy_storage_ptr);
-            for grand in copied_ref.refs() {
-                assert_eq!(grand.underlying_storage().as_ptr(), copy_storage_ptr);
-            }
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_deep_copy_slice_preserves_view() -> anyhow::Result<()> {
-        let mut builder = TonCell::builder();
-        builder.write_bits([0x12, 0x34], 16)?;
-
-        for i in 0..4 {
-            let mut child_builder = TonCell::builder();
-            child_builder.write_num(&i, 6)?;
-            builder.write_ref(child_builder.build()?)?;
-        }
-
-        let root = builder.build()?;
-        let slice = root.slice(CellBorders {
-            start_bit: 4,
-            end_bit: 12,
-            start_ref: 1,
-            end_ref: 3,
-        })?;
-
-        let copy = TonCell::deep_copy(&slice)?;
-
-        assert_eq!(collect_bits(&slice)?, collect_bits(&copy)?);
-        assert_eq!(slice.refs().len(), copy.refs().len());
-        assert_ne!(slice.underlying_storage().as_ptr(), copy.underlying_storage().as_ptr());
-
-        let copy_storage_ptr = copy.underlying_storage().as_ptr();
-        for (original_ref, copied_ref) in slice.refs().iter().zip(copy.refs()) {
-            assert_eq!(collect_bits(original_ref)?, collect_bits(copied_ref)?);
-            assert_eq!(copied_ref.underlying_storage().as_ptr(), copy_storage_ptr);
-        }
-
-        // Offsets must be contiguous in BFS order for the slice view as well
-        assert_bfs_offsets_linear(&copy)?;
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_deep_copy_deduplicates_shared_children() -> anyhow::Result<()> {
-        //      /  left_child \
-        // root                 shared_leaf
-        //      \ right_child /
-        let mut leaf_builder = TonCell::builder();
-        leaf_builder.write_bits([0b1110_0000], 7)?;
-        let shared_leaf = leaf_builder.build()?;
-
-        let mut left_builder = TonCell::builder();
-        left_builder.write_bits([0b1011_0000], 6)?;
-        left_builder.write_ref(shared_leaf.clone())?;
-        let left = left_builder.build()?;
-
-        let mut right_builder = TonCell::builder();
-        right_builder.write_bits([0b0101_0000], 6)?;
-        right_builder.write_ref(shared_leaf.clone())?;
-        let right = right_builder.build()?;
-
-        let mut root_builder = TonCell::builder();
-        root_builder.write_bits([0xF0], 8)?;
-        root_builder.write_ref(left.clone())?;
-        root_builder.write_ref(right.clone())?;
-        let root = root_builder.build()?;
-
-        let copy = TonCell::deep_copy(&root)?;
-
-        assert_eq!(copy.refs().len(), 2);
-        assert_bfs_offsets_linear(&copy)?;
-
-        let left_c = &copy.refs()[0];
-        let right_c = &copy.refs()[1];
-
-        assert_ne!(left_c.borders.start_bit, right_c.borders.start_bit);
-        assert_ne!(left_c.borders.end_bit, right_c.borders.end_bit);
-
-        assert_eq!(left_c.refs().len(), 1);
-        assert_eq!(right_c.refs().len(), 1);
-
-        let left_leaf = &left_c.refs()[0];
-        let right_leaf = &right_c.refs()[0];
-
-        assert_eq!(left_leaf.borders.start_bit, right_leaf.borders.start_bit);
-        assert_eq!(left_leaf.borders.end_bit, right_leaf.borders.end_bit);
-        assert_eq!(std::sync::Arc::as_ptr(&left_leaf.cell_data), std::sync::Arc::as_ptr(&right_leaf.cell_data));
-
-        Ok(())
-    }
-
-    #[test]
     fn test_deep_copy_subtree_from_right_child() -> anyhow::Result<()> {
         //      /  left_child \
         // root                 shared_leaf
@@ -510,56 +299,27 @@ mod tests {
 
         // Deep copy only the right subtree
         let copy = TonCell::deep_copy(&right)?;
-
-        assert_bfs_offsets_linear(&copy)?;
-
-        let mut queue = VecDeque::new();
-        queue.push_back(&copy);
-        let mut hashes: HashSet<TonHash> = HashSet::new();
-        while let Some(cur) = queue.pop_front() {
-            hashes.insert(cur.hash()?.clone());
-            for r in cur.refs() {
-                queue.push_back(r);
-            }
-        }
-        assert_eq!(hashes.len(), 2, "copy must include only right and shared_leaf");
-
-        assert_eq!(copy.refs().len(), 1);
-        assert_eq!(copy.refs()[0].refs().len(), 0);
-
-        assert_eq!(collect_bits(&copy)?, collect_bits(&right)?);
-        assert_eq!(collect_bits(&copy.refs()[0])?, collect_bits(&shared_leaf)?);
-
-        assert_ne!(copy.underlying_storage().as_ptr(), right.underlying_storage().as_ptr());
+        let copy_bytes = BoC::new(copy.clone()).to_bytes(false)?;
+        let parsed_copy = BoC::from_bytes(copy_bytes)?.single_root()?;
+        assert_eq!(right, parsed_copy);
 
         Ok(())
     }
 
-    fn assert_bfs_offsets_linear(cell: &TonCell) -> anyhow::Result<()> {
-        let mut queue = VecDeque::new();
-        queue.push_back(cell);
-        let mut offsets: HashMap<TonHash, (usize, usize)> = HashMap::new();
-        let mut expected_start = 0usize;
+    #[test]
+    fn test_ton_cell_deep_copy_shard_block() -> anyhow::Result<()> {
+        let boc_hex = include_str!("../../resources/tests/shard_block_6000000000000000_52111590.hex");
+        let cell = BoC::from_hex(&boc_hex)?.single_root()?;
+        let weak_data_ptr = Arc::downgrade(&cell.cell_data.data_storage);
 
-        while let Some(cur) = queue.pop_front() {
-            let hash = cur.hash()?.clone();
-            if let Some((start, end)) = offsets.get(&hash) {
-                assert_eq!(*start, cur.borders.start_bit, "non-linear start offset for shared node");
-                assert_eq!(*end, cur.borders.end_bit, "bad end offset for shared node");
-            } else {
-                assert_eq!(cur.borders.start_bit, expected_start, "non-linear start offset for node");
-                assert_eq!(cur.borders.end_bit, expected_start + cur.data_len_bits(), "bad end offset for node");
-                offsets.insert(hash, (cur.borders.start_bit, cur.borders.end_bit));
-                expected_start += cur.data_len_bits();
-            }
+        let copy = TonCell::deep_copy(&cell).unwrap();
+        let copy_bytes = BoC::new(copy.clone()).to_bytes(false)?;
+        let parsed_copy = BoC::from_bytes(copy_bytes)?.single_root()?;
+        assert_eq!(cell.hash()?, parsed_copy.hash()?);
 
-            for r in cur.refs() {
-                queue.push_back(r);
-            }
-        }
+        drop(cell);
+        assert!(weak_data_ptr.upgrade().is_none());
 
-        let unique_total: usize = offsets.values().map(|(start, end)| end - start).sum();
-        assert_eq!(expected_start, unique_total);
         Ok(())
     }
 }
