@@ -2,9 +2,8 @@
 
 Set of general-purpose rust libraries to interact with [TON](https://ton.org/) blockchain.
 
-[![CI](https://github.com/sild/ton_lib_rs/actions/workflows/build.yml/badge.svg)](https://github.com/sild/ton_lib_rs/actions/workflows/build.yml)
-[![Crates.io](https://img.shields.io/crates/v/ton_lib.svg)](https://crates.io/crates/ton_lib)
-[![codecov](https://codecov.io/gh/sild/ton_lib_rs/branch/main/graph/badge.svg)](https://codecov.io/gh/sild/ton_lib_rs)
+[![CI](https://github.com/ston-fi/ton-rs/actions/workflows/build.yml/badge.svg)](https://github.com/ston-fi/ton-rs/actions/workflows/build.yml)
+[![Crates.io](https://img.shields.io/crates/v/ton.svg)](https://crates.io/crates/ton)
 
 This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib-rs) repository and also uses [tonlib-sys](https://github.com/ston-fi/tonlib-sys) underneath for the [tonlibjson_client](ton/src/clients/tonlibjson) implementation.
 
