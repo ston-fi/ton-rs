@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.5...ton_core-v0.0.6) - 2025-10-31
+
+### Other
+
+- TonCell::deep_copy ([#111](https://github.com/ston-fi/ton-rs/pull/111))
+
 ## [0.0.5](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.4...ton_core-v0.0.5) - 2025-10-28
 
 ### Other
