@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.4...ton-v0.0.5) - 2025-11-10
+
+### Fixed
+
+- fix typo in readme
+
+### Other
+
+- up badges in readme
+
 ## [0.0.4](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.3...ton-v0.0.4) - 2025-10-28
 
 ### Fixed
