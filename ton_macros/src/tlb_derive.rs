@@ -3,13 +3,13 @@ use crate::tlb_derive_struct::tlb_derive_struct;
 use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
-use syn::Data;
+use syn::{Data, Expr};
 
 #[derive(deluxe::ExtractAttributes)]
 #[deluxe(attributes(tlb))]
 pub(crate) struct TLBHeaderAttrs {
-    pub(crate) prefix: Option<usize>,      // use 0 as default
-    pub(crate) bits_len: Option<usize>,    // use 0 as default
+    pub(crate) prefix: Option<Expr>,       // expression (const, literal, path, etc.)
+    pub(crate) bits_len: Option<Expr>,     // expression (const, literal, path, etc.)
     pub(crate) ensure_empty: Option<bool>, // use false as default
 }
 
@@ -88,12 +88,18 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
         _ => panic!("TLB derive macros only supports structs and enums"),
     };
 
-    let prefix_val = header_attrs.prefix.unwrap_or(0);
-    let prefix_bits_len = header_attrs.bits_len.unwrap_or(0);
+    let prefix_expr: TokenStream = match &header_attrs.prefix {
+        Some(e) => quote!(#e),
+        None => quote!(0),
+    };
+    let bits_len_expr: TokenStream = match &header_attrs.bits_len {
+        Some(e) => quote!(#e),
+        None => quote!(0),
+    };
 
     quote::quote! {
         impl #impl_generics #crate_path::traits::tlb::TLB for #ident #ty_generics #where_clause {
-            const PREFIX: #crate_path::traits::tlb::TLBPrefix = #crate_path::traits::tlb::TLBPrefix::new(#prefix_val, #prefix_bits_len);
+            const PREFIX: #crate_path::traits::tlb::TLBPrefix = #crate_path::traits::tlb::TLBPrefix::new(#prefix_expr, #bits_len_expr);
 
             fn read_definition(parser: &mut #crate_path::cell::CellParser) -> Result<Self, #crate_path::errors::TonCoreError> {
                 use #crate_path::traits::tlb::TLB;
