@@ -27,10 +27,10 @@ pub(crate) fn tlb_derive_enum(
         })
         .collect();
 
-    // Fallback reader: try each variant sequentially
+    // Fallback reader: try each variant sequentially (use full trait qualification)
     let fallback_readers = variant_infos.iter().map(|(variant_name, field_type)| {
         quote! {
-            match #field_type::read(parser) {
+            match <#field_type as #crate_path::traits::tlb::TLB>::read(parser) {
                 Ok(res) => return Ok(#ident::#variant_name(res)),
                 Err(#crate_path::errors::TonCoreError::TLBWrongPrefix { .. }) => {},
                 Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions { .. }) => {},
@@ -42,7 +42,7 @@ pub(crate) fn tlb_derive_enum(
     // Generate const bits_len values for each variant
     let const_bits_decls = variant_infos.iter().enumerate().map(|(i, (_, ty))| {
         let name = Ident::new(&format!("PREFIX_BITS_LEN_{i}"), ident.span());
-        quote! { const #name: usize = #ty::PREFIX.bits_len; }
+        quote! { const #name: usize = <#ty as TLB>::PREFIX.bits_len; }
     });
 
     let first_bits_ident = Ident::new("PREFIX_BITS_LEN_0", ident.span());
@@ -66,7 +66,7 @@ pub(crate) fn tlb_derive_enum(
     // Optimized match arms: use guard with equality against Type::PREFIX.value
     let match_arms = variant_infos.iter().map(|(_, ty)| {
         quote! {
-            actual_prefix if actual_prefix == #ty::PREFIX.value => #ty::read(parser).map(Into::into),
+            actual_prefix if actual_prefix == <#ty as TLB>::PREFIX.value => <#ty as TLB>::read(parser).map(Into::into),
         }
     });
 

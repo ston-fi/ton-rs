@@ -15,8 +15,7 @@ pub struct ShardAccount {
 #[derive(Debug, Clone, PartialEq, TLB)]
 pub enum MaybeAccount {
     None(AccountNone),
-    #[rustfmt::skip]
-    Account(Box::<Account>),
+    Account(Box<Account>),
 }
 
 #[derive(Debug, Clone, PartialEq, TLB)]
