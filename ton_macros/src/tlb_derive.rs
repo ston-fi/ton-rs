@@ -20,6 +20,33 @@ pub(crate) struct TLBFieldAttrs {
     pub(crate) adapter: Option<String>,
 }
 
+fn strip_defaults(mut generics: syn::Generics) -> syn::Generics {
+    for param in generics.params.iter_mut() {
+        if let syn::GenericParam::Type(tp) = param {
+            tp.default = None;
+        }
+    }
+    generics
+}
+
+fn add_tlb_bounds(mut generics: syn::Generics, crate_path: &TokenStream) -> syn::Generics {
+    let mut where_clause = generics.where_clause.clone().unwrap_or_else(|| syn::WhereClause {
+        where_token: Default::default(),
+        predicates: Default::default(),
+    });
+
+    for param in generics.params.iter() {
+        if let syn::GenericParam::Type(tp) = param {
+            let ident = &tp.ident;
+            let pred: syn::WherePredicate = syn::parse_quote!(#ident: #crate_path::traits::tlb::TLB);
+            where_clause.predicates.push(pred);
+        }
+    }
+
+    generics.where_clause = Some(where_clause);
+    generics
+}
+
 pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let mut input = syn::parse::<syn::DeriveInput>(input).unwrap();
     // Extract a description, modifying `input.attrs` to remove the matched attributes.
@@ -50,9 +77,14 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
 
     let ident = &input.ident;
 
+    // Use original generics for type usage (may include defaults), but strip defaults for impl
+    let ty_generics = input.generics.split_for_impl().1;
+    let generics_for_impl = add_tlb_bounds(strip_defaults(input.generics.clone()), &crate_path);
+    let (impl_generics, _, where_clause) = generics_for_impl.split_for_impl();
+
     let (read_def_tokens, write_def_tokens, extra_impl_tokens) = match &mut input.data {
         Data::Struct(data) => tlb_derive_struct(&header_attrs, data),
-        Data::Enum(data) => tlb_derive_enum(&crate_path, ident, data),
+        Data::Enum(data) => tlb_derive_enum(&crate_path, ident, data, &input.generics),
         _ => panic!("TLB derive macros only supports structs and enums"),
     };
 
@@ -60,7 +92,7 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let prefix_bits_len = header_attrs.bits_len.unwrap_or(0);
 
     quote::quote! {
-        impl #crate_path::traits::tlb::TLB for #ident {
+        impl #impl_generics #crate_path::traits::tlb::TLB for #ident #ty_generics #where_clause {
             const PREFIX: #crate_path::traits::tlb::TLBPrefix = #crate_path::traits::tlb::TLBPrefix::new(#prefix_val, #prefix_bits_len);
 
             fn read_definition(parser: &mut #crate_path::cell::CellParser) -> Result<Self, #crate_path::errors::TonCoreError> {

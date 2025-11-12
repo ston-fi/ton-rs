@@ -8,6 +8,7 @@ pub(crate) fn tlb_derive_enum(
     crate_path: &TokenStream,
     ident: &Ident,
     data: &mut DataEnum,
+    generics: &syn::Generics,
 ) -> (TokenStream, TokenStream, TokenStream) {
     let variant_readers = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
@@ -58,8 +59,8 @@ pub(crate) fn tlb_derive_enum(
         Ok(())
     };
 
-    let variants_access = variants_access_impl(ident, data);
-    let variants_into = variants_into_impl(ident, data);
+    let variants_access = variants_access_impl(ident, data, generics);
+    let variants_into = variants_into_impl(ident, data, generics);
     let extra_impl = quote! {
         #variants_access
         #variants_into
@@ -70,7 +71,8 @@ pub(crate) fn tlb_derive_enum(
 }
 
 // generate From<X> for each enum variant
-fn variants_into_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
+fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generics) -> TokenStream {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let from_impls = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
 
@@ -79,7 +81,7 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
                 let ty = &fields.unnamed.first().unwrap().ty;
 
                 Some(quote! {
-                    impl From<#ty> for #ident {
+                    impl #impl_generics From<#ty> for #ident #ty_generics #where_clause {
                         fn from(v: #ty) -> Self {
                             #ident::#variant_name(v)
                         }
@@ -95,7 +97,8 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
 }
 
 // generate as_X and is_X methods for each enum variant
-fn variants_access_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
+fn variants_access_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generics) -> TokenStream {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let methods = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
         let method_suffix = variant_name.to_string().to_case(Case::Snake);
@@ -135,7 +138,7 @@ fn variants_access_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
     });
 
     quote! {
-        impl #ident {
+        impl #impl_generics #ident #ty_generics #where_clause {
             #(#methods)*
         }
     }
