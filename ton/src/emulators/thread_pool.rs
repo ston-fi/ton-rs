@@ -8,10 +8,11 @@ use std::thread;
 use tokio::sync::oneshot;
 
 /// A command sent to worker threads.
-
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
 }
+
+type CommandChannel<T, R> = (Sender<Command<T, R>>, Receiver<Command<T, R>>);
 
 enum Command<T, R>
 where
@@ -19,6 +20,7 @@ where
     R: Send,
 {
     Execute(T, oneshot::Sender<R>),
+    #[allow(dead_code)]
     Stop,
 }
 
@@ -29,6 +31,7 @@ where
     Retval: Send + 'static,
 {
     senders: Vec<Sender<Command<Task, TonResult<Retval>>>>,
+    #[allow(dead_code)]
     workers: Vec<thread::JoinHandle<TonResult<u64>>>,
     cnt_sended: AtomicUsize,
     _phantom: std::marker::PhantomData<Obj>,
@@ -50,8 +53,7 @@ where
         let num_threads = obj_arr.len();
 
         for _ in 0..num_threads {
-            let (tx, rx): (Sender<Command<Task, TonResult<Retval>>>, Receiver<Command<Task, TonResult<Retval>>>) =
-                mpsc::channel();
+            let (tx, rx): CommandChannel<Task, TonResult<Retval>> = mpsc::channel();
             let obj = obj_arr.pop().ok_or(TonError::Custom("Not enough pooled objects for threads".to_string()))?;
 
             let handle = thread::spawn(move || {
