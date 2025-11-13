@@ -243,13 +243,10 @@ impl CpuLoadObject {
                 if let Some(tx_emul) = &mut self.tx_emulator {
                     // For modes that reuse the existing TXEmulator
                     return tx_emul.emulate_ord(emul_args);
-                }
-                else {
+                } else {
                     let mut tx_emul = TXEmulator::new(0, false)?;
                     tx_emul.emulate_ord(emul_args)?
                 }
-
-
             }
         };
 
@@ -314,7 +311,9 @@ fn benchmark_functions(c: &mut Criterion) {
             c.bench_function("cpu_task_bench", |b| b.iter(|| rt.block_on(cpu_task_bench()).unwrap()));
         }
         RunMode::RecreateEmulTest => {
-            c.bench_function("emulator_task_bench_recreate", |b| b.iter(|| rt.block_on(emulator_task_bench_recreate()).unwrap()));
+            c.bench_function("emulator_task_bench_recreate", |b| {
+                b.iter(|| rt.block_on(emulator_task_bench_recreate()).unwrap())
+            });
         }
     }
     // c.bench_function("sleep_task_bench", |b| b.iter(|| rt.block_on(sleep_task_bench()).unwrap()));
