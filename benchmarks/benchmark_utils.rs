@@ -1,8 +1,6 @@
 use std::sync::{Arc, LazyLock};
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use ton::emulators::tx_emulator::TXEmulator;
-use ton::errors::TonError;
+use std::time::{ SystemTime, UNIX_EPOCH};
 use ton_core::errors::TonCoreError;
 
 #[macro_export]
@@ -51,32 +49,3 @@ pub fn cpu_load_function(load_microseconds: u64) -> u64 {
     }
     sum
 }
-
-//
-//
-// /// Fast, unsynchronized timestamp counter (like DPDK `rte_rdtsc()`).
-// /// Returns a monotonically increasing counter (CPU-dependent units).
-// #[inline(always)]
-// pub fn rdtsc() -> u64 {
-//     // x86 / x86_64: use the CPU TSC
-//     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-//     unsafe {
-//         core::arch::x86_64::_rdtsc()
-//     }
-//
-//     // AArch64: read the virtual count register (CNTVCT_EL0)
-//     #[cfg(target_arch = "aarch64")]
-//     unsafe {
-//         let v: u64;
-//         core::arch::asm!("isb", "mrs {v}, cntvct_el0", v = out(reg) v, options(nomem, nostack, preserves_flags));
-//         v
-//     }
-//
-//     // RISC-V: read cycle CSR
-//     #[cfg(target_arch = "riscv64")]
-//     unsafe {
-//         let lo: u64;
-//         core::arch::asm!("rdcycle {0}", out(reg) lo, options(nomem, nostack, preserves_flags));
-//         lo
-//     }
-// }
