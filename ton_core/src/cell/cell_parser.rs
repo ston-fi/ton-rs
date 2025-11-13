@@ -6,7 +6,7 @@ use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use std::io::{Cursor, SeekFrom};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CellParser<'a> {
     cell: &'a TonCell,
     data_reader: CellBitsReader<'a>,
