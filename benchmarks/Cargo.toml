@@ -10,9 +10,9 @@ tonlibjson = ["ton/tonlibjson"]
 
 
 [dev-dependencies]
-ton = { path = "../ton", version = "0" }
+ton = { path = "../ton", version = "0",features=["tonlibjson"] }
 ton_core = { path = "../ton_core", version = "0" }
-
+auto_pool.workspace = true
 ton_lib_core_008 = { package = "ton_lib_core", version = "0.0.8" }
 ton_lib_0039 = { package = "ton_lib", version = "0.0.39" }
 

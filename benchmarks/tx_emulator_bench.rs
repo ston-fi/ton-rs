@@ -2,6 +2,8 @@ mod benchmark_utils;
 use crate::benchmark_utils::check_cpu_id;
 use crate::benchmark_utils::cpu_load_function;
 use crate::benchmark_utils::get_now_ns;
+use auto_pool::pool;
+use auto_pool::pool::AutoPool;
 use clap::Parser;
 use core_affinity::set_for_current;
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -15,10 +17,10 @@ use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
 use ton::bail_ton;
 use ton::block_tlb::{Msg, ShardAccount, Tx};
+use ton::emulators::async_tx_emulator::AsyncTxEmulator;
 use ton::emulators::emul_bc_config::EmulBCConfig;
 use ton::emulators::thread_pool::PooledObject;
 use ton::emulators::thread_pool::ThreadPool;
-
 use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
 use ton::errors::TonResult;
 use ton::sys_utils::sys_tonlib_set_verbosity_level;
@@ -54,6 +56,12 @@ struct Args {
     #[arg(long = "mode", alias = "mode", default_value_t = 1, action = clap::ArgAction::Set)]
     mode: u32,
 }
+
+type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
+type TxEmulatorPool = AutoPool<AsyncTxEmulator>;
+
+static THREAD_POOL: OnceLock<PoolUnderTest> = OnceLock::new();
+static ASYNC_OBJECT_POOL: OnceLock<TxEmulatorPool> = OnceLock::new();
 
 fn parse_custom_args() -> Args {
     let mut filtered: Vec<String> = vec![std::env::args().next().unwrap_or_else(|| "bench".into())];
@@ -254,12 +262,29 @@ impl CpuLoadObject {
 impl PooledObject<Task, TXEmulationSuccess> for CpuLoadObject {
     fn handle(&mut self, task: Task) -> TonResult<TXEmulationSuccess> { self.do_task(&task) }
 }
-static POOL: OnceLock<PoolUnderTest> = OnceLock::new();
+
+async fn run_autopool_test() -> TonResult<()> {
+    apply_main_thread_params();
+    let mut answer_keeper = Vec::with_capacity(total_requests());
+    let test_arg = get_test_args().unwrap();
+
+    for _ in 0..total_requests() {
+        answer_keeper.push(ASYNC_OBJECT_POOL.get().unwrap().get().unwrap().emulate_ord(&test_arg));
+    }
+
+    let answer = join_all(answer_keeper).await;
+    for res in answer {
+        let val = res?;
+        black_box(val);
+    }
+    Ok(())
+}
+
 async fn run_pool_test(task: &Task) -> TonResult<()> {
     apply_main_thread_params();
     let mut answer_keeper = Vec::with_capacity(total_requests());
     for _ in 0..total_requests() {
-        answer_keeper.push(POOL.get().unwrap().execute_task(task.clone()));
+        answer_keeper.push(THREAD_POOL.get().unwrap().execute_task(task.clone()));
     }
 
     let answer = join_all(answer_keeper).await;
@@ -291,8 +316,6 @@ async fn emulator_task_bench_recreate() -> TonResult<()> {
     let task = Task::TxEmulOrd(get_test_args().unwrap());
     run_pool_test(&task).await
 }
-
-type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
 
 fn benchmark_functions(c: &mut Criterion) {
     let rt = Runtime::new().expect("Failed to create tokio runtime");
@@ -339,7 +362,7 @@ fn main() {
     }
 
     let pool = PoolUnderTest::new(objects, Some(apply_thread_params)).unwrap();
-    let _ = POOL.set(pool);
+    let _ = THREAD_POOL.set(pool);
 
     benchmark_functions(&mut criterion);
 

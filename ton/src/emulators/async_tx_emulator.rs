@@ -27,12 +27,15 @@ pub struct AsyncTxEmulator {
 }
 
 impl AsyncTxEmulator {
-    pub fn new(log_level: u32, debug_enabled: bool) -> TonResult<Self> {
+    pub fn new(log_level: u32, debug_enabled: bool, init_f: fn()) -> TonResult<Self> {
         let obj = TXEmulator::new(log_level, debug_enabled)?;
 
         let (tx, rx): CmdChannel = mpsc::channel();
 
-        let handler = thread::spawn(move || Self::worker_loop(obj, rx));
+        let handler = thread::spawn(move || {
+            init_f();
+            Self::worker_loop(obj, rx)
+        });
         Ok(Self { tx, _handler: handler })
     }
 
