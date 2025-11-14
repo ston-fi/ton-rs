@@ -5,7 +5,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-ton = { path = "../ton", version = "0", features = ["tonlibjson"] }
+ton = { path = "../ton", version = "0"  }
+#ton = { path = "../ton", version = "0" ,features = ["tonlibjson"] }
 ton_core = { path = "../ton_core", version = "0" }
 
 ton_lib_core_008 = { package = "ton_lib_core", version = "0.0.8" }
@@ -57,9 +58,9 @@ name = "cell_deep_copy"
 path = "cell_deep_copy.rs"
 harness = false
 
-[[bench]]
-name = "tx_emulator_bench"
-path = "tx_emulator_bench.rs"
-harness = false
+#[[bench]]
+#name = "tx_emulator_bench"
+#path = "tx_emulator_bench.rs"
+#harness = false
 
 
