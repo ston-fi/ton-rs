@@ -4,11 +4,15 @@ rust-version.workspace = true
 edition.workspace = true
 publish = false
 
+[features]
+tx_emul_dep = ["dep:core_affinity"]
 
-
-
+[dependencies]
+# Dependency only needed for tx_emulator_bench
+core_affinity = { version = "0.5", optional = true }
+ton = { path = "../ton", version = "0" ,features = ["tonlibjson"]}
 [dev-dependencies]
-ton = { path = "../ton", version = "0" ,features = ["tonlibjson"] }
+ton = { path = "../ton", version = "0" }
 ton_core = { path = "../ton_core", version = "0" }
 
 ton_lib_core_008 = { package = "ton_lib_core", version = "0.0.8" }
@@ -24,11 +28,10 @@ anyhow = "1.0"
 tokio-test = "0.4"
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 futures-util.workspace = true
-core_affinity="0.5"
 
 tonlib-core = "0.26"
 libc = "0.2.176"
-clap = { version = "4.5.51", features = ["derive"]}
+clap = { version = "4.5.51", features = ["derive"] }
 
 [[bench]]
 name = "build_empty_cell"
@@ -64,5 +67,4 @@ harness = false
 name = "tx_emulator_bench"
 path = "tx_emulator_bench.rs"
 harness = false
-
-
+required-features = ["tx_emul_dep"]
