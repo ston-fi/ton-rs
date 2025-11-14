@@ -90,6 +90,7 @@ def run_benchmark(
     cmd = [
         'cargo', 'bench',
         '--bench', 'tx_emulator_bench',
+        '--features', 'tonlibjson',
         '--',
         '--pin-to-core', 'true' if pin_to_core else 'false',
         '--mode', str(mode),
@@ -153,7 +154,7 @@ def main():
         type=int,
         required=True,
         choices=[0, 1, 2, 3, 4],
-        help='Mode integer: 0 = run all modes (1,2,3,4), 1-4 = specific mode'
+        help='Mode integer: 0 = run all modes (1,2,3,4), 1-4 = specific mode (1: SleepTest, 2: EmulatorTest, 3: RecreateEmulTest, 4: AutoPoolAsyncEmul)'
     )
     parser.add_argument(
         '--threads',
@@ -207,7 +208,7 @@ def main():
         f.write(f"Test Configuration\n")
         f.write(f"{'=' * 50}\n")
         f.write(f"Timestamp: {full_timestamp}\n")
-        f.write(f"Mode: {args.mode} {'(all modes: 1,2,3,4)' if args.mode == 0 else ''}\n")
+        f.write(f"Mode: {args.mode} {'(all modes: 1,2,3,4 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul)' if args.mode == 0 else ''}\n")
         f.write(f"Pin-to-core: {args.pin_to_core}\n")
         f.write(f"Threads: {args.threads}\n")
         f.write(f"Path: {path}\n")
@@ -271,7 +272,7 @@ def main():
                             benchmark_to_mode[benchmark] = mode
         
         # Sort benchmarks alphabetically to ensure consistent column order
-        # Expected benchmarks: cpu_task_bench, emulator_task_bench, emulator_task_bench_recreate, sleep_task_bench
+        # Expected benchmarks: autopool_async_emul_bench, cpu_task_bench, emulator_task_bench, emulator_task_bench_recreate, sleep_task_bench
         sorted_benchmarks = sorted(all_benchmarks)
         
         # Create table with one row per thread
@@ -319,7 +320,7 @@ def main():
     with open(table_file, 'w') as f:
         f.write("Benchmark Results (time in microseconds)\n")
         f.write("=" * 80 + "\n")
-        f.write(f"Mode: {args.mode} {'(all modes: 1,2,3,4)' if args.mode == 0 else ''}\n")
+        f.write(f"Mode: {args.mode} {'(all modes: 1,2,3,4 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul)' if args.mode == 0 else ''}\n")
         f.write(f"Pin-to-core: {args.pin_to_core}\n")
         f.write(f"Threads: {args.threads}\n")
         f.write(f"Timestamp: {full_timestamp}\n")
@@ -343,6 +344,7 @@ def main():
     print(f"  - Summary table (CSV): {csv_file.name}")
     if args.mode == 0:
         print(f"  - Individual outputs: bench_mode1_threads*.txt, bench_mode2_threads*.txt, bench_mode3_threads*.txt, bench_mode4_threads*.txt")
+        print(f"    (Mode 1: SleepTest, Mode 2: EmulatorTest, Mode 3: RecreateEmulTest, Mode 4: AutoPoolAsyncEmul)")
     else:
         print(f"  - Individual outputs: bench_mode{args.mode}_threads*.txt")
 

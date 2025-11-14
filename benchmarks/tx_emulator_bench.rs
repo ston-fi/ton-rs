@@ -2,6 +2,7 @@ mod benchmark_utils;
 use crate::benchmark_utils::check_cpu_id;
 use crate::benchmark_utils::cpu_load_function;
 use crate::benchmark_utils::get_now_ns;
+use auto_pool::config::{AutoPoolConfig, PickStrategy};
 use auto_pool::pool;
 use auto_pool::pool::AutoPool;
 use clap::Parser;
@@ -37,6 +38,7 @@ enum RunMode {
     SleepTest,
     EmulatorTest,
     RecreateEmulTest,
+    AutoPoolAsyncEmul,
     CpuLoadTest,
 }
 
@@ -92,7 +94,8 @@ fn configure_criterion() -> (Criterion, String) {
             1 => RunMode::SleepTest,
             2 => RunMode::EmulatorTest,
             3 => RunMode::RecreateEmulTest,
-            4 => RunMode::CpuLoadTest,
+            4 => RunMode::AutoPoolAsyncEmul,
+            5 => RunMode::CpuLoadTest,
             _ => {
                 panic!("Invalid mode: {}", args.mode);
             }
@@ -269,7 +272,12 @@ async fn run_autopool_test() -> TonResult<()> {
     let test_arg = get_test_args().unwrap();
 
     for _ in 0..total_requests() {
-        answer_keeper.push(ASYNC_OBJECT_POOL.get().unwrap().get().unwrap().emulate_ord(&test_arg));
+        let arg = test_arg.clone();
+        answer_keeper.push(async move {
+            let pool = ASYNC_OBJECT_POOL.get().unwrap();
+            let emulator = pool.get_async().await.unwrap();
+            emulator.emulate_ord(&arg).await
+        });
     }
 
     let answer = join_all(answer_keeper).await;
@@ -336,6 +344,9 @@ fn benchmark_functions(c: &mut Criterion) {
                 b.iter(|| rt.block_on(emulator_task_bench_recreate()).unwrap())
             });
         }
+        RunMode::AutoPoolAsyncEmul => {
+            c.bench_function("autopool_async_emul_bench", |b| b.iter(|| rt.block_on(run_autopool_test()).unwrap()));
+        }
     }
     // c.bench_function("sleep_task_bench", |b| b.iter(|| rt.block_on(sleep_task_bench()).unwrap()));
 }
@@ -343,9 +354,28 @@ fn benchmark_functions(c: &mut Criterion) {
 fn main() {
     sys_tonlib_set_verbosity_level(0);
     let (mut criterion, run_params) = configure_criterion();
+    let mode = RUN_MODE.get().unwrap();
+
+    // Initialize AutoPool for AsyncTxEmulator if needed
+    if matches!(mode, RunMode::AutoPoolAsyncEmul) {
+        let mut async_emulators = Vec::with_capacity(threads_count() as usize);
+        for _ in 0..threads_count() {
+            let emulator = AsyncTxEmulator::new(0, false, Some(apply_thread_params)).unwrap();
+            async_emulators.push(emulator);
+        }
+        let ap_config = AutoPoolConfig {
+            wait_duration: Duration::from_secs(10),
+            lock_duration: Duration::from_millis(2),
+            sleep_duration: Duration::from_millis(5),
+            pick_strategy: PickStrategy::RANDOM,
+        };
+        let async_pool = AutoPool::new_with_config(ap_config, async_emulators);
+        let _ = ASYNC_OBJECT_POOL.set(async_pool);
+    }
+
     let mut objects = Vec::with_capacity(threads_count() as usize);
     for _ in 0..threads_count() {
-        match RUN_MODE.get().unwrap() {
+        match mode {
             RunMode::EmulatorTest => {
                 let tx_emul = TXEmulator::new(0, false).unwrap();
                 objects.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul)).unwrap());
