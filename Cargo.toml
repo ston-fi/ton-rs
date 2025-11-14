@@ -23,7 +23,7 @@ publish = false
 # Internal (stonfi-managed)
 ton_macros = {path = "ton_macros", version = "0"}
 ton_core = {path = "ton_core", version = "0"}
-tonlib-sys = { version = "2025.11", features = ["with_debug_info"] }
+tonlib-sys = { version = "2025.10", features = ["with_debug_info"] }
 
 
 # External
