@@ -5,12 +5,10 @@ edition.workspace = true
 publish = false
 
 [features]
-tx_emul_dep = ["dep:core_affinity"]
+tonlibjson = ["ton/tonlibjson"]
 
-[dependencies]
-# Dependency only needed for tx_emulator_bench
-core_affinity = { version = "0.5", optional = true }
-ton = { path = "../ton", version = "0" ,features = ["tonlibjson"]}
+
+
 [dev-dependencies]
 ton = { path = "../ton", version = "0" }
 ton_core = { path = "../ton_core", version = "0" }
@@ -28,7 +26,7 @@ anyhow = "1.0"
 tokio-test = "0.4"
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 futures-util.workspace = true
-
+core_affinity = { version = "0.5" }
 tonlib-core = "0.26"
 libc = "0.2.176"
 clap = { version = "4.5.51", features = ["derive"] }
@@ -67,4 +65,4 @@ harness = false
 name = "tx_emulator_bench"
 path = "tx_emulator_bench.rs"
 harness = false
-required-features = ["tx_emul_dep"]
+required-features = ["tonlibjson"]
