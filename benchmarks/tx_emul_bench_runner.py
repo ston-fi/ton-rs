@@ -151,10 +151,9 @@ def main():
     )
     parser.add_argument(
         '--mode',
-        type=int,
+        type=str,
         required=True,
-        choices=[0, 1, 2, 3, 4, 5],
-        help='Mode integer: 0 = run all modes (1,2,3,4,5), 1-5 = specific mode (1: SleepTest, 2: EmulatorTest, 3: RecreateEmulTest, 4: AutoPoolAsyncEmul, 5: CpuLoadTest)'
+        help='Mode(s): 0 = run all modes (1,2,3,4,5), or comma-separated list like "1,3,5" for specific modes (1: SleepTest, 2: EmulatorTest, 3: RecreateEmulTest, 4: AutoPoolAsyncEmul, 5: CpuLoadTest)'
     )
     parser.add_argument(
         '--threads',
@@ -177,11 +176,26 @@ def main():
     # Convert pin-to-core string to boolean
     pin_to_core_bool = args.pin_to_core.lower() == 'true'
     
-    # Determine which modes to run
-    if args.mode == 0:
-        modes_to_run = [1, 2, 3, 4, 5]
-    else:
-        modes_to_run = [args.mode]
+    # Parse mode argument - can be "0" or comma-separated list like "1,3,5"
+    try:
+        mode_str = args.mode.strip()
+        if mode_str == '0':
+            modes_to_run = [1, 2, 3, 4, 5]
+            mode_display = '0 (all modes)'
+        else:
+            # Parse comma-separated modes
+            mode_list = [int(m.strip()) for m in mode_str.split(',')]
+            # Validate mode values
+            valid_modes = {1, 2, 3, 4, 5}
+            invalid_modes = [m for m in mode_list if m not in valid_modes]
+            if invalid_modes:
+                print(f"Error: Invalid mode values: {invalid_modes}. Valid modes are 1-5.", file=sys.stderr)
+                sys.exit(1)
+            modes_to_run = sorted(set(mode_list))  # Remove duplicates and sort
+            mode_display = ','.join(str(m) for m in modes_to_run)
+    except ValueError:
+        print(f"Error: Invalid mode format: {args.mode}. Expected '0' or comma-separated integers (e.g., '1,3,5').", file=sys.stderr)
+        sys.exit(1)
     
     # Parse thread counts
     try:
@@ -197,7 +211,9 @@ def main():
     # Create a unique test folder for this run
     # Format: {mode}_isol{true/false}_{HHMMSS} or 0_isol{true/false}_{HHMMSS} for all modes
     time_str = datetime.now().strftime('%H%M%S')  # Hours, minutes, seconds
-    test_dir_name = f'{args.mode}_isol{args.pin_to_core}_{time_str}'
+    # Sanitize mode_display for directory name
+    mode_dir_name = mode_display.replace(" ", "_").replace("(", "").replace(")", "").replace(",", "_")
+    test_dir_name = f'{mode_dir_name}_isol{args.pin_to_core}_{time_str}'
     test_dir = work_dir / test_dir_name
     test_dir.mkdir(parents=True, exist_ok=True)
     
@@ -208,7 +224,8 @@ def main():
         f.write(f"Test Configuration\n")
         f.write(f"{'=' * 50}\n")
         f.write(f"Timestamp: {full_timestamp}\n")
-        f.write(f"Mode: {args.mode} {'(all modes: 1,2,3,4,5 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul, CpuLoadTest)' if args.mode == 0 else ''}\n")
+        f.write(f"Mode: {mode_display} {'(all modes: 1,2,3,4,5 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul, CpuLoadTest)' if mode_display == '0 (all modes)' else ''}\n")
+        f.write(f"Modes to run: {', '.join(str(m) for m in modes_to_run)}\n")
         f.write(f"Pin-to-core: {args.pin_to_core}\n")
         f.write(f"Threads: {args.threads}\n")
         f.write(f"Path: {path}\n")
@@ -219,7 +236,7 @@ def main():
     # Structure: all_results[mode][threads][benchmark_name] = time_us
     all_results: Dict[int, Dict[int, Dict[str, float]]] = {}
     
-    print(f"Running benchmarks with mode={args.mode} {'(all modes)' if args.mode == 0 else ''}, threads={thread_counts}, pin-to-core={args.pin_to_core}")
+    print(f"Running benchmarks with mode={mode_display}, threads={thread_counts}, pin-to-core={args.pin_to_core}")
     print(f"Test directory: {test_dir}\n")
     
     for mode in modes_to_run:
@@ -260,7 +277,7 @@ def main():
     # Build table data
     table_data = []
     
-    if args.mode == 0:
+    if len(modes_to_run) > 1:
         # For mode 0, map each benchmark to its mode and create one row per thread
         # Find which mode has which benchmark
         benchmark_to_mode: Dict[str, int] = {}
@@ -297,12 +314,13 @@ def main():
         # For single mode, show: Threads, Benchmark1, Benchmark2, ...
         headers = ['Threads'] + sorted(all_benchmarks)
         
+        mode = modes_to_run[0]  # Single mode
         for threads in sorted(thread_counts):
-            if args.mode in all_results and threads in all_results[args.mode]:
+            if mode in all_results and threads in all_results[mode]:
                 row = [str(threads)]
                 for benchmark in sorted(all_benchmarks):
-                    if benchmark in all_results[args.mode][threads]:
-                        time_us = all_results[args.mode][threads][benchmark]
+                    if benchmark in all_results[mode][threads]:
+                        time_us = all_results[mode][threads][benchmark]
                         row.append(f"{time_us:.2f} μs")
                     else:
                         row.append("N/A")
@@ -317,11 +335,12 @@ def main():
     
     # Save table to file in the test directory
     full_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    table_file = test_dir / f'results_mode{args.mode}.txt'
+    table_file = test_dir / f'results_mode{mode_display.replace(" ", "_").replace("(", "").replace(")", "").replace(",", "_")}.txt'
     with open(table_file, 'w') as f:
         f.write("Benchmark Results (time in microseconds)\n")
         f.write("=" * 80 + "\n")
-        f.write(f"Mode: {args.mode} {'(all modes: 1,2,3,4,5 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul, CpuLoadTest)' if args.mode == 0 else ''}\n")
+        f.write(f"Mode: {mode_display} {'(all modes: 1,2,3,4,5 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul, CpuLoadTest)' if mode_display == '0 (all modes)' else ''}\n")
+        f.write(f"Modes to run: {', '.join(str(m) for m in modes_to_run)}\n")
         f.write(f"Pin-to-core: {args.pin_to_core}\n")
         f.write(f"Threads: {args.threads}\n")
         f.write(f"Timestamp: {full_timestamp}\n")
@@ -330,7 +349,7 @@ def main():
         f.write("\n")
     
     # Save table as CSV
-    csv_file = test_dir / f'results_mode{args.mode}.csv'
+    csv_file = test_dir / f'results_mode{mode_display.replace(" ", "_").replace("(", "").replace(")", "").replace(",", "_")}.csv'
     with open(csv_file, 'w', newline='') as f:
         writer = csv.writer(f)
         # Write headers
@@ -343,11 +362,13 @@ def main():
     print(f"  - Configuration: {config_file.name}")
     print(f"  - Summary table (text): {table_file.name}")
     print(f"  - Summary table (CSV): {csv_file.name}")
-    if args.mode == 0:
-        print(f"  - Individual outputs: bench_mode1_threads*.txt, bench_mode2_threads*.txt, bench_mode3_threads*.txt, bench_mode4_threads*.txt, bench_mode5_threads*.txt")
+    if len(modes_to_run) > 1:
+        mode_files = ', '.join(f'bench_mode{m}_threads*.txt' for m in sorted(modes_to_run))
+        print(f"  - Individual outputs: {mode_files}")
         print(f"    (Mode 1: SleepTest, Mode 2: EmulatorTest, Mode 3: RecreateEmulTest, Mode 4: AutoPoolAsyncEmul, Mode 5: CpuLoadTest)")
     else:
-        print(f"  - Individual outputs: bench_mode{args.mode}_threads*.txt")
+        mode = modes_to_run[0]
+        print(f"  - Individual outputs: bench_mode{mode}_threads*.txt")
 
 
 if __name__ == '__main__':

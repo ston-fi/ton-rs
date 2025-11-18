@@ -24,6 +24,10 @@ where
     Stop,
 }
 
+struct Params {
+    timeout_emulation: u64,  //
+    max_tasks_in_queue: u32, //
+}
 struct Inner<Obj, Task, Retval>
 where
     Obj: PooledObject<Task, Retval> + Send + 'static,
@@ -34,6 +38,7 @@ where
     #[allow(dead_code)]
     workers: Vec<thread::JoinHandle<TonResult<u64>>>,
     cnt_sended: AtomicUsize,
+
     _phantom: std::marker::PhantomData<Obj>,
 }
 
@@ -76,6 +81,7 @@ where
     async fn execute_task(&self, task: Task) -> TonResult<Retval> {
         let (tx, rx) = oneshot::channel();
         let idx = self.cnt_sended.fetch_add(1, Ordering::Relaxed) % self.senders.len();
+
         self.senders[idx]
             .send(Command::Execute(task, tx))
             .map_err(|e| TonError::Custom(format!("send task error: {e}")))?;

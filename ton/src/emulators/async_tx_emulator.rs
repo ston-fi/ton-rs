@@ -27,14 +27,13 @@ pub struct AsyncTxEmulator {
 }
 
 impl AsyncTxEmulator {
-    pub fn new(log_level: u32, debug_enabled: bool, init_f: Option<fn()> ) -> TonResult<Self> {
+    pub fn new(log_level: u32, debug_enabled: bool, init_f: Option<fn()>) -> TonResult<Self> {
         let obj = TXEmulator::new(log_level, debug_enabled)?;
 
         let (tx, rx): CmdChannel = mpsc::channel();
 
         let handler = thread::spawn(move || {
-            if let Some(init_fn)=init_f
-            {
+            if let Some(init_fn) = init_f {
                 init_fn();
             }
 
