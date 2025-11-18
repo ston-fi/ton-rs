@@ -6,9 +6,10 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::OnceLock;
 use std::thread;
 use std::thread::JoinHandle;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 
-const MAX_QUEUE_SIZE: usize = 10;
+const MAX_QUEUE_SIZE: usize = 14;
 /// A command sent to worker threads.
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
@@ -21,14 +22,9 @@ where
     T: Send,
     R: Send,
 {
-    Execute(T, oneshot::Sender<R>),
+    Execute(T, oneshot::Sender<R>, u128),
     #[allow(dead_code)]
     Stop,
-}
-
-struct Params {
-    timeout_emulation: u64,  //
-    max_tasks_in_queue: u32, //
 }
 
 struct ThreadItem<Task, Retval>
@@ -49,9 +45,16 @@ where
     Retval: Send + 'static,
 {
     fn get_queue_size(&self) -> usize {
-        self.cnd_in_queue_jobs.load(Ordering::Relaxed) - self.cnd_done_jobs.load(Ordering::Relaxed)
+        let in_queue = self.cnd_in_queue_jobs.load(Ordering::Relaxed);
+        let done_jbs = self.cnd_done_jobs.load(Ordering::Relaxed);
+        if (in_queue < done_jbs) {
+            0
+        } else {
+            in_queue - done_jbs
+        }
     }
 }
+fn get_now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros() }
 
 pub enum PoolPickStrategy {
     OneByOne,
@@ -83,6 +86,8 @@ where
     cnt_sended: AtomicUsize,
     cnt_done: AtomicUsize,
     mode: PoolPickStrategy,
+    timeout_emulation: u64,
+    max_tasks_in_queue: u32,
     _phantom: std::marker::PhantomData<Obj>,
 }
 
@@ -95,10 +100,12 @@ where
     fn increment_id_and_get_index(&self) -> usize {
         let rv = match self.mode {
             PoolPickStrategy::OneByOne => {
+                // For OneByOne, increment atomically to get unique sequence number for round-robin
                 let curr_id = self.cnt_sended.fetch_add(1, Ordering::Relaxed);
                 curr_id % self.items.len()
             }
             PoolPickStrategy::MinQueue => {
+                // For MinQueue, find thread with minimum queue size
                 let mut rv = MAX_QUEUE_SIZE;
                 let mut answer_id = self.items.len();
                 for i in 0..self.items.len() {
@@ -108,16 +115,20 @@ where
                         answer_id = i;
                         break;
                     } else {
-                        panic!("WOOW");
-                        if rv < qs {
+                        if qs < rv {
                             rv = qs;
                             answer_id = i;
                         }
                     }
                 }
                 if answer_id == self.items.len() {
-                    panic!("NO FREE QUEUE")
+                    let mut q_st = Vec::new();
+                    for i in 0..self.items.len() {
+                        q_st.push(self.items[i].get_queue_size());
+                    }
+                    panic!("NO FREE QUEUE {:?}", q_st)
                 }
+
                 answer_id
             }
         };
@@ -129,7 +140,13 @@ where
         rv
     }
 
-    fn new(mut obj_arr: Vec<Obj>, pick_strategy: PoolPickStrategy, th_init: Option<fn()>) -> TonResult<Self> {
+    fn new(
+        mut obj_arr: Vec<Obj>,
+        pick_strategy: PoolPickStrategy,
+        th_init: Option<fn()>,
+        timeout_emulation: u64,
+        max_tasks_in_queue: u32,
+    ) -> TonResult<Self> {
         if obj_arr.is_empty() {
             bail_ton!("Object array for ThreadPool is empty");
         }
@@ -156,6 +173,8 @@ where
             cnt_sended: AtomicUsize::new(0),
             cnt_done: AtomicUsize::new(0),
             mode: pick_strategy,
+            timeout_emulation,
+            max_tasks_in_queue,
             _phantom: std::marker::PhantomData,
         })
     }
@@ -164,11 +183,15 @@ where
 
         let idx = self.increment_id_and_get_index();
 
+        // For MinQueue strategy, increment cnt_sended here (OneByOne already increments it in increment_id_and_get_index)
+        if matches!(self.mode, PoolPickStrategy::MinQueue) {
+            self.cnt_sended.fetch_add(1, Ordering::Relaxed);
+        }
+        let deadline_time = get_now_ms() + self.timeout_emulation as u128;
+
+        let command = Command::Execute(task, tx, deadline_time);
         self.items[idx].cnd_in_queue_jobs.fetch_add(1, Ordering::Relaxed);
-        self.items[idx]
-            .sender
-            .send(Command::Execute(task, tx))
-            .map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
+        self.items[idx].sender.send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
         let res = rx.await.map_err(|e| TonError::Custom(format!("receive task error: {e}")))??;
         self.cnt_done.fetch_add(1, Ordering::SeqCst);
         self.items[idx].cnd_done_jobs.fetch_add(1, Ordering::Relaxed);
@@ -181,7 +204,7 @@ where
             let command = receiver.recv();
             counter += 1;
             match command {
-                Ok(Command::Execute(task, resp_sender)) => {
+                Ok(Command::Execute(task, resp_sender, deadline_time)) => {
                     let result = obj.handle(task)?;
                     let _ = resp_sender.send(Ok(result));
                 }
@@ -208,8 +231,14 @@ where
     Task: Send + 'static,
     Retval: Send + 'static,
 {
-    pub fn new(obj_arr: Vec<Obj>, pick_strategy: PoolPickStrategy, th_init: Option<fn()>) -> TonResult<Self> {
-        let inner = Inner::new(obj_arr, pick_strategy, th_init)?;
+    pub fn new(
+        obj_arr: Vec<Obj>,
+        pick_strategy: PoolPickStrategy,
+        th_init: Option<fn()>,
+        timeout_emulation: u64,
+        max_tasks_in_queue: u32,
+    ) -> TonResult<Self> {
+        let inner = Inner::new(obj_arr, pick_strategy, th_init, timeout_emulation, max_tasks_in_queue)?;
         let pool = Self { inner: OnceLock::new() };
         pool.inner.set(inner).map_err(|_| TonError::Custom("Failed to initialize ThreadPool".to_string()))?;
         Ok(pool)
@@ -218,5 +247,50 @@ where
     pub async fn execute_task(&self, task: Task) -> TonResult<Retval> {
         let inner = self.inner.get().ok_or(TonError::Custom("Inner ThreadPool not initialized".to_string()))?;
         inner.execute_task(task).await
+    }
+
+    pub fn print_stat(&self) -> String {
+        let inner = match self.inner.get() {
+            Some(inner) => inner,
+            None => return "ThreadPool not initialized".to_string(),
+        };
+
+        let mut result = String::new();
+
+        // Table header
+        result.push_str("ThreadPool Statistics\n");
+        result.push_str(&"=".repeat(80));
+        result.push('\n');
+        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", "Thread", "In Queue", "Done Jobs", "Queue Size"));
+        result.push_str(&"-".repeat(80));
+        result.push('\n');
+
+        // Collect per-thread statistics
+        let mut total_in_queue = 0;
+        let mut total_done = 0;
+
+        for (idx, item) in inner.items.iter().enumerate() {
+            let in_queue = item.cnd_in_queue_jobs.load(Ordering::Relaxed);
+            let done_jobs = item.cnd_done_jobs.load(Ordering::Relaxed);
+            let queue_size = item.get_queue_size();
+
+            total_in_queue += in_queue;
+            total_done += done_jobs;
+
+            result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", idx, in_queue, done_jobs, queue_size));
+        }
+
+        // Total row
+        result.push_str(&"-".repeat(80));
+        result.push('\n');
+        let total_sended = inner.cnt_sended.load(Ordering::Relaxed);
+        let total_done_global = inner.cnt_done.load(Ordering::Relaxed);
+
+        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", "TOTAL", total_sended, total_done_global, ""));
+        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", "(sum)", total_in_queue, total_done, ""));
+        result.push_str(&"=".repeat(80));
+        result.push('\n');
+
+        result
     }
 }

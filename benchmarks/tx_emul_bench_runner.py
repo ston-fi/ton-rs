@@ -74,6 +74,83 @@ def parse_benchmark_output(output: str) -> Dict[str, float]:
     return results
 
 
+def get_available_modes(path: Path) -> Dict[int, str]:
+    """
+    Get available modes from the benchmark by running with --help-modes.
+    
+    Returns: Dictionary mapping mode number to mode name
+    """
+    cmd = [
+        'cargo', 'bench',
+        '--bench', 'tx_emulator_bench',
+        '--features', 'tonlibjson',
+        '--',
+        '--help-modes',
+    ]
+    
+    try:
+        process = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=30,
+            cwd=str(path)
+        )
+        
+        if process.returncode != 0:
+            # Fallback to hardcoded modes if --help-modes fails
+            return {
+                1: 'SleepTest',
+                2: 'CpuLoadTest',
+                3: 'EmulatorPoolOneByOne',
+                4: 'EmulatorPoolMinQueue',
+                5: 'RecreateEmulTest',
+                6: 'AutoPoolAsyncGet',
+            }
+        
+        stdout = process.stdout or ''
+        modes = {}
+        in_modes_section = False
+        
+        for line in stdout.split('\n'):
+            line = line.strip()
+            if line == 'AVAILABLE_MODES_START':
+                in_modes_section = True
+                continue
+            if line == 'AVAILABLE_MODES_END':
+                break
+            if in_modes_section and ':' in line:
+                parts = line.split(':', 1)
+                if len(parts) == 2:
+                    try:
+                        mode_num = int(parts[0].strip())
+                        mode_name = parts[1].strip()
+                        modes[mode_num] = mode_name
+                    except ValueError:
+                        continue
+        
+        return modes if modes else {
+            1: 'SleepTest',
+            2: 'CpuLoadTest',
+            3: 'EmulatorPoolOneByOne',
+            4: 'EmulatorPoolMinQueue',
+            5: 'RecreateEmulTest',
+            6: 'AutoPoolAsyncGet',
+        }
+    except Exception as e:
+        # Fallback to hardcoded modes on any error
+        print(f"Warning: Could not get modes from benchmark: {e}", file=sys.stderr)
+        return {
+            1: 'SleepTest',
+            2: 'CpuLoadTest',
+            3: 'EmulatorPoolOneByOne',
+            4: 'EmulatorPoolMinQueue',
+            5: 'RecreateEmulTest',
+            6: 'AutoPoolAsyncGet',
+        }
+
+
 def run_benchmark(
     path: Path,
     mode: int,
@@ -97,6 +174,9 @@ def run_benchmark(
         '--threads', str(threads),
     ]
     
+    # Build full command string for output
+    full_cmd_str = ' '.join(cmd)
+    
     # Run the benchmark from the ton-rs directory
     # Redirect STDERR to /dev/null, only capture stdout
     process = subprocess.run(
@@ -114,7 +194,7 @@ def run_benchmark(
     output_file = test_dir / f'bench_mode{mode}_threads{threads}.txt'
     with open(output_file, 'w') as f:
         f.write('=== COMMAND ===\n')
-        f.write(' '.join(cmd) + '\n')
+        f.write(full_cmd_str + '\n')
         f.write('\n=== STDOUT ===\n')
         f.write(stdout)
         f.write(f'\n=== RETURN CODE ===\n{process.returncode}\n')
@@ -153,7 +233,7 @@ def main():
         '--mode',
         type=str,
         required=True,
-        help='Mode(s): 0 = run all modes (1,2,3,4,5), or comma-separated list like "1,3,5" for specific modes (1: SleepTest, 2: EmulatorTest, 3: RecreateEmulTest, 4: AutoPoolAsyncEmul, 5: CpuLoadTest)'
+        help='Mode(s): 0 = run all modes, or comma-separated list like "1,3,5" for specific modes. Available modes will be determined from the benchmark.'
     )
     parser.add_argument(
         '--threads',
@@ -173,6 +253,15 @@ def main():
     work_dir = Path(args.work_dir).resolve()
     work_dir.mkdir(parents=True, exist_ok=True)
     
+    # Get available modes from the benchmark
+    available_modes = get_available_modes(path)
+    if not available_modes:
+        print("Error: Could not determine available modes from benchmark", file=sys.stderr)
+        sys.exit(1)
+    
+    max_mode = max(available_modes.keys())
+    valid_modes = set(available_modes.keys())
+    
     # Convert pin-to-core string to boolean
     pin_to_core_bool = args.pin_to_core.lower() == 'true'
     
@@ -180,16 +269,16 @@ def main():
     try:
         mode_str = args.mode.strip()
         if mode_str == '0':
-            modes_to_run = [1, 2, 3, 4, 5]
+            modes_to_run = sorted(valid_modes)
             mode_display = '0 (all modes)'
         else:
             # Parse comma-separated modes
             mode_list = [int(m.strip()) for m in mode_str.split(',')]
             # Validate mode values
-            valid_modes = {1, 2, 3, 4, 5}
             invalid_modes = [m for m in mode_list if m not in valid_modes]
             if invalid_modes:
-                print(f"Error: Invalid mode values: {invalid_modes}. Valid modes are 1-5.", file=sys.stderr)
+                valid_range = f"1-{max_mode}" if max_mode > 1 else "1"
+                print(f"Error: Invalid mode values: {invalid_modes}. Valid modes are {valid_range}.", file=sys.stderr)
                 sys.exit(1)
             modes_to_run = sorted(set(mode_list))  # Remove duplicates and sort
             mode_display = ','.join(str(m) for m in modes_to_run)
@@ -224,8 +313,12 @@ def main():
         f.write(f"Test Configuration\n")
         f.write(f"{'=' * 50}\n")
         f.write(f"Timestamp: {full_timestamp}\n")
-        f.write(f"Mode: {mode_display} {'(all modes: 1,2,3,4,5 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul, CpuLoadTest)' if mode_display == '0 (all modes)' else ''}\n")
-        f.write(f"Modes to run: {', '.join(str(m) for m in modes_to_run)}\n")
+        f.write(f"Mode: {mode_display}\n")
+        if mode_display == '0 (all modes)':
+            mode_list_str = ', '.join([f"{m}:{available_modes.get(m, 'Unknown')}" for m in sorted(available_modes.keys())])
+            f.write(f"All available modes: {mode_list_str}\n")
+        mode_list_str = ', '.join([f'{m}:{available_modes.get(m, "Unknown")}' for m in modes_to_run])
+        f.write(f"Modes to run: {mode_list_str}\n")
         f.write(f"Pin-to-core: {args.pin_to_core}\n")
         f.write(f"Threads: {args.threads}\n")
         f.write(f"Path: {path}\n")
@@ -246,7 +339,10 @@ def main():
         print(f"{'='*60}\n")
         
         for threads in thread_counts:
-            print(f"Running benchmark with mode={mode}, threads={threads}...")
+            mode_name = available_modes.get(mode, f'Mode{mode}')
+            cmd_str = f"cargo bench --bench tx_emulator_bench --features tonlibjson -- --pin-to-core {'true' if pin_to_core_bool else 'false'} --mode {mode} --threads {threads}"
+            print(f"Running benchmark with mode={mode} ({mode_name}), threads={threads}...")
+            print(f"  Command: {cmd_str}")
             stdout = run_benchmark(path, mode, threads, pin_to_core_bool, test_dir)
             
             # Parse results
@@ -339,8 +435,12 @@ def main():
     with open(table_file, 'w') as f:
         f.write("Benchmark Results (time in microseconds)\n")
         f.write("=" * 80 + "\n")
-        f.write(f"Mode: {mode_display} {'(all modes: 1,2,3,4,5 - SleepTest, EmulatorTest, RecreateEmulTest, AutoPoolAsyncEmul, CpuLoadTest)' if mode_display == '0 (all modes)' else ''}\n")
-        f.write(f"Modes to run: {', '.join(str(m) for m in modes_to_run)}\n")
+        f.write(f"Mode: {mode_display}\n")
+        if mode_display == '0 (all modes)':
+            mode_list_str = ', '.join([f"{m}:{available_modes.get(m, 'Unknown')}" for m in sorted(available_modes.keys())])
+            f.write(f"All available modes: {mode_list_str}\n")
+        mode_list_str = ', '.join([f'{m}:{available_modes.get(m, "Unknown")}' for m in modes_to_run])
+        f.write(f"Modes to run: {mode_list_str}\n")
         f.write(f"Pin-to-core: {args.pin_to_core}\n")
         f.write(f"Threads: {args.threads}\n")
         f.write(f"Timestamp: {full_timestamp}\n")
@@ -365,7 +465,8 @@ def main():
     if len(modes_to_run) > 1:
         mode_files = ', '.join(f'bench_mode{m}_threads*.txt' for m in sorted(modes_to_run))
         print(f"  - Individual outputs: {mode_files}")
-        print(f"    (Mode 1: SleepTest, Mode 2: EmulatorTest, Mode 3: RecreateEmulTest, Mode 4: AutoPoolAsyncEmul, Mode 5: CpuLoadTest)")
+        mode_descriptions = ', '.join([f"Mode {m}: {available_modes.get(m, 'Unknown')}" for m in sorted(modes_to_run)])
+        print(f"    ({mode_descriptions})")
     else:
         mode = modes_to_run[0]
         print(f"  - Individual outputs: bench_mode{mode}_threads*.txt")

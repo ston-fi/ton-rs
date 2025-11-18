@@ -34,6 +34,7 @@ const DEFAULT_SLEEP_TIME_MICROS: u64 = 1000;
 const BENCH_ITERATIONS_COUNT: u32 = 100;
 const BENCH_TASK_PER_CORE_COUNT: u32 = 10;
 const CRITERION_SAMPLES_COUNT: u32 = 10;
+const DEFAULT_DEADLINE_MS: u64 = 1000; //1 sec
 
 #[derive(Debug)]
 enum RunMode {
@@ -48,7 +49,6 @@ enum RunMode {
 //MinQueue
 static PIN_TO_CORE: OnceLock<bool> = OnceLock::new();
 static WORKER_THREADS_COUNT: OnceLock<u32> = OnceLock::new();
-
 static RUN_MODE: OnceLock<RunMode> = OnceLock::new();
 
 #[derive(Parser, Debug)]
@@ -61,6 +61,9 @@ struct Args {
     threads: u32,
     #[arg(long = "mode", alias = "mode", default_value_t = 1, action = clap::ArgAction::Set)]
     mode: u32,
+    /// Print available modes and exit
+    #[arg(long = "help-modes", action = clap::ArgAction::SetTrue)]
+    help_modes: bool,
 }
 
 type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
@@ -78,9 +81,10 @@ fn parse_custom_args() -> Args {
         if normalized.starts_with("--pin-to-core")
             || normalized.starts_with("--threads")
             || normalized.starts_with("--mode")
+            || normalized.starts_with("--help-modes")
         {
             filtered.push(arg.clone());
-            if !arg.contains('=') {
+            if !arg.contains('=') && !normalized.starts_with("--help-modes") {
                 if let Some(value) = iter.next() {
                     filtered.push(value);
                 }
@@ -88,6 +92,18 @@ fn parse_custom_args() -> Args {
         }
     }
     Args::parse_from(filtered)
+}
+
+fn print_available_modes() {
+    println!("AVAILABLE_MODES_START");
+    println!("1:SleepTest");
+    println!("2:CpuLoadTest");
+    println!("3:EmulatorPoolOneByOne");
+    println!("4:EmulatorPoolMinQueue");
+    println!("5:RecreateEmulTest");
+    println!("6:AutoPoolAsyncGet");
+    println!("AVAILABLE_MODES_END");
+    println!("TOTAL_MODES:6");
 }
 
 fn configure_criterion() -> (Criterion, String) {
@@ -398,6 +414,16 @@ fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
 fn main() {
     let aval_cores = std::thread::available_parallelism();
     sys_tonlib_set_verbosity_level(0);
+
+    let max_queue_size = total_requests() as u32 / threads_count() + 1;
+
+    // Check for --help-modes first (configure_criterion will exit if found)
+    let args = parse_custom_args();
+    if args.help_modes {
+        print_available_modes();
+        std::process::exit(0);
+    }
+
     let (mut criterion, run_params) = configure_criterion();
     let mode = RUN_MODE.get().unwrap();
 
@@ -447,9 +473,22 @@ fn main() {
         }
     }
 
-    let pool_one_by_one =
-        PoolUnderTest::new(objects_one, PoolPickStrategy::OneByOne, Some(apply_thread_params)).unwrap();
-    let pool_min_queue = PoolUnderTest::new(objects_mq, PoolPickStrategy::OneByOne, Some(apply_thread_params)).unwrap();
+    let pool_one_by_one = PoolUnderTest::new(
+        objects_one,
+        PoolPickStrategy::OneByOne,
+        Some(apply_thread_params),
+        DEFAULT_DEADLINE_MS,
+        max_queue_size,
+    )
+    .unwrap();
+    let pool_min_queue = PoolUnderTest::new(
+        objects_mq,
+        PoolPickStrategy::MinQueue,
+        Some(apply_thread_params),
+        DEFAULT_DEADLINE_MS,
+        max_queue_size,
+    )
+    .unwrap();
     let _ = THREAD_POOL_ONE_BY_ONE.set(pool_one_by_one);
     let _ = THREAD_POOL_MIN_QUEUE.set(pool_min_queue);
 
@@ -460,4 +499,5 @@ fn main() {
     println!("Available parallelism: {:?}", aval_cores);
 
     println!("{}", run_params);
+    println!("{}", THREAD_POOL_MIN_QUEUE.get().unwrap().print_stat());
 }
