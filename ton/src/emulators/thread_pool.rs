@@ -22,7 +22,7 @@ where
     T: Send,
     R: Send,
 {
-    Execute(T, oneshot::Sender<R>, u128),
+    Execute(T, oneshot::Sender<R>, u128, u64), // task, sender, deadline_time, timeout
     #[allow(dead_code)]
     Stop,
 }
@@ -97,8 +97,8 @@ where
     Task: Send + 'static,
     Retval: Send + 'static,
 {
-    fn increment_id_and_get_index(&self) -> usize {
-        let rv = match self.mode {
+    fn increment_id_and_get_index(&self) -> TonResult<usize> {
+        let target_queue_index = match self.mode {
             PoolPickStrategy::OneByOne => {
                 // For OneByOne, increment atomically to get unique sequence number for round-robin
                 let curr_id = self.cnt_sended.fetch_add(1, Ordering::Relaxed);
@@ -106,38 +106,42 @@ where
             }
             PoolPickStrategy::MinQueue => {
                 // For MinQueue, find thread with minimum queue size
-                let mut rv = MAX_QUEUE_SIZE;
-                let mut answer_id = self.items.len();
+                let mut min_queue_value = self.max_tasks_in_queue as usize;
+                let mut target_queue_index = self.items.len(); // set bad index
                 for i in 0..self.items.len() {
-                    let qs = self.items[i].get_queue_size();
-                    if qs == 0 {
-                        rv = 0;
-                        answer_id = i;
+                    let current_queue_size = self.items[i].get_queue_size();
+                    if current_queue_size == 0 {
+                        min_queue_value = 0;
+                        target_queue_index = i;
                         break;
                     } else {
-                        if qs < rv {
-                            rv = qs;
-                            answer_id = i;
+                        if current_queue_size < min_queue_value {
+                            min_queue_value = current_queue_size;
+                            target_queue_index = i;
                         }
                     }
                 }
-                if answer_id == self.items.len() {
+                if target_queue_index == self.items.len() {
                     let mut q_st = Vec::new();
                     for i in 0..self.items.len() {
                         q_st.push(self.items[i].get_queue_size());
                     }
-                    panic!("NO FREE QUEUE {:?}", q_st)
+                    let max_queue = q_st.iter().max().copied().unwrap_or(0);
+                    return Err(TonError::EmulatorQueueIsFull {
+                        msg: format!("All queues are full, queue_sizes={:?}", q_st),
+                        queue_size: max_queue,
+                    });
                 }
 
-                answer_id
+                target_queue_index
             }
         };
 
-        if rv >= self.items.len() {
-            panic!("wrond logic");
+        if target_queue_index >= self.items.len() {
+            return Err(TonError::Custom("Unexpected error".to_string()));
         }
 
-        rv
+        Ok(target_queue_index)
     }
 
     fn new(
@@ -181,7 +185,7 @@ where
     async fn execute_task(&self, task: Task) -> TonResult<Retval> {
         let (tx, rx) = oneshot::channel();
 
-        let idx = self.increment_id_and_get_index();
+        let idx = self.increment_id_and_get_index()?;
 
         // For MinQueue strategy, increment cnt_sended here (OneByOne already increments it in increment_id_and_get_index)
         if matches!(self.mode, PoolPickStrategy::MinQueue) {
@@ -189,7 +193,16 @@ where
         }
         let deadline_time = get_now_ms() + self.timeout_emulation as u128;
 
-        let command = Command::Execute(task, tx, deadline_time);
+        // Check if queue is full before sending
+        let queue_size = self.items[idx].get_queue_size();
+        if queue_size >= self.max_tasks_in_queue as usize {
+            return Err(TonError::EmulatorQueueIsFull {
+                msg: format!("Thread {} queue is full", idx),
+                queue_size,
+            });
+        }
+
+        let command = Command::Execute(task, tx, deadline_time, self.timeout_emulation);
         self.items[idx].cnd_in_queue_jobs.fetch_add(1, Ordering::Relaxed);
         self.items[idx].sender.send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
         let res = rx.await.map_err(|e| TonError::Custom(format!("receive task error: {e}")))??;
@@ -204,7 +217,13 @@ where
             let command = receiver.recv();
             counter += 1;
             match command {
-                Ok(Command::Execute(task, resp_sender, deadline_time)) => {
+                Ok(Command::Execute(task, resp_sender, deadline_time, timeout)) => {
+                    // Check if deadline has passed
+                    let current_time = get_now_ms();
+                    if current_time > deadline_time {
+                        let _ = resp_sender.send(Err(TonError::EmulatorTimeout { current_time, timeout }));
+                        continue;
+                    }
                     let result = obj.handle(task)?;
                     let _ = resp_sender.send(Ok(result));
                 }

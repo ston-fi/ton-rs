@@ -31,10 +31,10 @@ use ton_core::traits::tlb::TLB;
 
 const AFFINITY_CORE_ID: usize = 1;
 const DEFAULT_SLEEP_TIME_MICROS: u64 = 1000;
-const BENCH_ITERATIONS_COUNT: u32 = 100;
-const BENCH_TASK_PER_CORE_COUNT: u32 = 10;
+
+const BENCH_TASK_PER_CORE_COUNT: usize = 10;
 const CRITERION_SAMPLES_COUNT: u32 = 10;
-const DEFAULT_DEADLINE_MS: u64 = 1000; //1 sec
+const DEFAULT_DEADLINE_MS: u64 = 5000; //5 sec   for bench
 
 #[derive(Debug)]
 enum RunMode {
@@ -128,19 +128,19 @@ fn configure_criterion() -> (Criterion, String) {
         "Benchmark config: PIN_TO_CORE = {}, THREADS_COUNT = {}, ITERATIONS_COUNT = {}, Mode={}, StrMode={:?}",
         args.pin_to_core,
         args.threads,
-        BENCH_ITERATIONS_COUNT,
+        total_requests(),
         args.mode,
         RUN_MODE.get().unwrap()
     )
     .to_string();
     println!("Running config:\n{}", run_str);
-    if (args.threads < 1 || args.threads > BENCH_ITERATIONS_COUNT) {
+    if (args.threads < 1 || args.threads > total_requests() as u32) {
         panic!("Invalid threads count: {}", args.threads);
     }
 
     // You can stash these globals for later if needed
-    PIN_TO_CORE.set(args.pin_to_core).unwrap();
-    WORKER_THREADS_COUNT.set(args.threads).unwrap();
+    let _ = PIN_TO_CORE.set(args.pin_to_core);
+    let _ = WORKER_THREADS_COUNT.set(args.threads);
 
     (
         Criterion::default()
@@ -214,7 +214,20 @@ fn pin_to_core() -> bool { *PIN_TO_CORE.get_or_init(|| true) }
 
 fn threads_count() -> u32 { *WORKER_THREADS_COUNT.get_or_init(|| 1) } // *THREADS_COUNT.get_or_init(|| 5)
 
-fn total_requests() -> usize { BENCH_ITERATIONS_COUNT as usize }
+fn total_requests() -> usize {
+    let mut paralel_req = std::thread::available_parallelism().unwrap().get();
+    if paralel_req < 2 {
+        panic!("WTF");
+    }
+    if threads_count() < paralel_req as u32 {
+        paralel_req = threads_count() as usize;
+    }
+    if paralel_req < 2 {
+        panic!("WTF");
+    }
+
+    BENCH_TASK_PER_CORE_COUNT * paralel_req
+}
 
 fn check_thread_params(msg: &str) {
     if pin_to_core() {
@@ -492,7 +505,7 @@ fn main() {
     let _ = THREAD_POOL_ONE_BY_ONE.set(pool_one_by_one);
     let _ = THREAD_POOL_MIN_QUEUE.set(pool_min_queue);
 
-    benchmark_functions(&mut criterion, BENCH_ITERATIONS_COUNT);
+    benchmark_functions(&mut criterion, total_requests() as u32);
 
     criterion.final_summary();
 
