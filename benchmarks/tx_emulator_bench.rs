@@ -20,6 +20,7 @@ use ton::bail_ton;
 use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::async_tx_emulator::AsyncTxEmulator;
 use ton::emulators::emul_bc_config::EmulBCConfig;
+use ton::emulators::thread_pool::PoolPickStrategy;
 use ton::emulators::thread_pool::PooledObject;
 use ton::emulators::thread_pool::ThreadPool;
 use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
@@ -38,12 +39,13 @@ const CRITERION_SAMPLES_COUNT: u32 = 10;
 enum RunMode {
     SleepTest,
     CpuLoadTest,
-    EmulatorTest,
+    EmulatorPoolOneByOne,
+    EmulatorPoolMinQueue,
     RecreateEmulTest,
     // AutoPoolSyncGet,
     AutoPoolAsyncGet,
 }
-
+//MinQueue
 static PIN_TO_CORE: OnceLock<bool> = OnceLock::new();
 static WORKER_THREADS_COUNT: OnceLock<u32> = OnceLock::new();
 
@@ -64,7 +66,8 @@ struct Args {
 type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
 type TxEmulatorPool = AutoPool<AsyncTxEmulator>;
 
-static THREAD_POOL: OnceLock<PoolUnderTest> = OnceLock::new();
+static THREAD_POOL_ONE_BY_ONE: OnceLock<PoolUnderTest> = OnceLock::new();
+static THREAD_POOL_MIN_QUEUE: OnceLock<PoolUnderTest> = OnceLock::new();
 static ASYNC_OBJECT_POOL: OnceLock<TxEmulatorPool> = OnceLock::new();
 
 fn parse_custom_args() -> Args {
@@ -95,9 +98,10 @@ fn configure_criterion() -> (Criterion, String) {
         .set(match args.mode {
             1 => RunMode::SleepTest,
             2 => RunMode::CpuLoadTest,
-            3 => RunMode::EmulatorTest,
-            4 => RunMode::RecreateEmulTest,
-            5 => RunMode::AutoPoolAsyncGet,
+            3 => RunMode::EmulatorPoolOneByOne,
+            4 => RunMode::EmulatorPoolMinQueue,
+            5 => RunMode::RecreateEmulTest,
+            6 => RunMode::AutoPoolAsyncGet,
             _ => {
                 panic!("Invalid mode: {}", args.mode);
             }
@@ -312,11 +316,11 @@ async fn run_autopool_async_get_test() -> TonResult<()> {
 //     Ok(())
 // }
 
-async fn run_pool_test(task: &Task) -> TonResult<()> {
+async fn run_pool_test(pool: &PoolUnderTest, task: &Task) -> TonResult<()> {
     apply_main_thread_params();
     let mut answer_keeper = Vec::with_capacity(total_requests());
     for _ in 0..total_requests() {
-        answer_keeper.push(THREAD_POOL.get().unwrap().execute_task(task.clone()));
+        answer_keeper.push(pool.execute_task(task.clone()));
     }
 
     let answer = join_all(answer_keeper).await;
@@ -331,22 +335,27 @@ async fn sleep_task_bench(iter_count: u32) -> TonResult<()> {
     let task = Task::StdSleep {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
-    run_pool_test(&task).await
+
+    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
 }
 async fn cpu_task_bench() -> TonResult<()> {
     let task = Task::CpuFullLoad {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
-    run_pool_test(&task).await
+    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
 }
-async fn emulator_task_bench() -> TonResult<()> {
+async fn emulator_one_by_one_task_bench() -> TonResult<()> {
     let task = Task::TxEmulOrd(get_test_args().unwrap());
-    run_pool_test(&task).await
+    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
+}
+async fn emulator_min_queue_task_bench() -> TonResult<()> {
+    let task = Task::TxEmulOrd(get_test_args().unwrap());
+    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
 }
 
 async fn emulator_task_bench_recreate() -> TonResult<()> {
     let task = Task::TxEmulOrd(get_test_args().unwrap());
-    run_pool_test(&task).await
+    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
 }
 
 fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
@@ -356,12 +365,18 @@ fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
         RunMode::SleepTest => {
             c.bench_function("sleep_task_bench", |b| b.iter(|| rt.block_on(sleep_task_bench(iter_count)).unwrap()));
         }
-
-        RunMode::EmulatorTest => {
-            c.bench_function("emulator_task_bench", |b| b.iter(|| rt.block_on(emulator_task_bench()).unwrap()));
-        }
         RunMode::CpuLoadTest => {
             c.bench_function("cpu_task_bench", |b| b.iter(|| rt.block_on(cpu_task_bench()).unwrap()));
+        }
+        RunMode::EmulatorPoolOneByOne => {
+            c.bench_function("emulator_one_by_one_task_bench", |b| {
+                b.iter(|| rt.block_on(emulator_one_by_one_task_bench()).unwrap())
+            });
+        }
+        RunMode::EmulatorPoolMinQueue => {
+            c.bench_function("emulator_min_queue_task_bench", |b| {
+                b.iter(|| rt.block_on(emulator_min_queue_task_bench()).unwrap())
+            });
         }
         RunMode::RecreateEmulTest => {
             c.bench_function("emulator_task_bench_recreate", |b| {
@@ -403,31 +418,46 @@ fn main() {
         let _ = ASYNC_OBJECT_POOL.set(async_pool);
     }
 
-    let mut objects = Vec::with_capacity(threads_count() as usize);
+    let mut objects_one = Vec::with_capacity(threads_count() as usize);
+    let mut objects_mq = Vec::with_capacity(threads_count() as usize);
     for _ in 0..threads_count() {
         match mode {
-            RunMode::EmulatorTest => {
-                let tx_emul = TXEmulator::new(0, false).unwrap();
-                objects.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul)).unwrap());
+            RunMode::EmulatorPoolOneByOne => {
+                let tx_emul1 = TXEmulator::new(0, false).unwrap();
+                let tx_emul2 = TXEmulator::new(0, false).unwrap();
+                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul1)).unwrap());
+                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul2)).unwrap());
+            }
+            RunMode::EmulatorPoolMinQueue => {
+                let tx_emul1 = TXEmulator::new(0, false).unwrap();
+                let tx_emul2 = TXEmulator::new(0, false).unwrap();
+                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul1)).unwrap());
+                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul2)).unwrap());
             }
             RunMode::RecreateEmulTest => {
                 // For recreate mode, we don't need to pre-create the emulator
                 // It will be created on each task
-                objects.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
+                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
+                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
             }
             _ => {
-                objects.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
+                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
+                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
             }
         }
     }
 
-    let pool = PoolUnderTest::new(objects, Some(apply_thread_params)).unwrap();
-    let _ = THREAD_POOL.set(pool);
+    let pool_one_by_one =
+        PoolUnderTest::new(objects_one, PoolPickStrategy::OneByOne, Some(apply_thread_params)).unwrap();
+    let pool_min_queue = PoolUnderTest::new(objects_mq, PoolPickStrategy::OneByOne, Some(apply_thread_params)).unwrap();
+    let _ = THREAD_POOL_ONE_BY_ONE.set(pool_one_by_one);
+    let _ = THREAD_POOL_MIN_QUEUE.set(pool_min_queue);
 
     benchmark_functions(&mut criterion, BENCH_ITERATIONS_COUNT);
 
     criterion.final_summary();
 
     println!("Available parallelism: {:?}", aval_cores);
+
     println!("{}", run_params);
 }
