@@ -9,7 +9,6 @@ use std::thread::JoinHandle;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 
-const MAX_QUEUE_SIZE: usize = 14;
 /// A command sent to worker threads.
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
@@ -47,7 +46,7 @@ where
     fn get_queue_size(&self) -> usize {
         let in_queue = self.cnd_in_queue_jobs.load(Ordering::Relaxed);
         let done_jbs = self.cnd_done_jobs.load(Ordering::Relaxed);
-        if (in_queue < done_jbs) {
+        if in_queue < done_jbs {
             0
         } else {
             in_queue - done_jbs
@@ -111,21 +110,18 @@ where
                 for i in 0..self.items.len() {
                     let current_queue_size = self.items[i].get_queue_size();
                     if current_queue_size == 0 {
-                        min_queue_value = 0;
                         target_queue_index = i;
                         break;
-                    } else {
-                        if current_queue_size < min_queue_value {
-                            min_queue_value = current_queue_size;
-                            target_queue_index = i;
-                        }
+                    }
+                    if current_queue_size < min_queue_value {
+                        min_queue_value = current_queue_size;
+                        target_queue_index = i;
                     }
                 }
                 if target_queue_index == self.items.len() {
-                    let mut q_st = Vec::new();
-                    for i in 0..self.items.len() {
-                        q_st.push(self.items[i].get_queue_size());
-                    }
+                    let q_st: Vec<usize> = (0..self.items.len())
+                        .map(|i| self.items[i].get_queue_size())
+                        .collect();
                     let max_queue = q_st.iter().max().copied().unwrap_or(0);
                     return Err(TonError::EmulatorQueueIsFull {
                         msg: format!("All queues are full, queue_sizes={:?}", q_st),
@@ -137,6 +133,8 @@ where
             }
         };
 
+        // This check is redundant for MinQueue (already checked above) but kept for OneByOne safety
+        #[allow(clippy::manual_range_contains)]
         if target_queue_index >= self.items.len() {
             return Err(TonError::Custom("Unexpected error".to_string()));
         }

@@ -1,14 +1,11 @@
 mod benchmark_utils;
 use crate::benchmark_utils::check_cpu_id;
 use crate::benchmark_utils::cpu_load_function;
-use crate::benchmark_utils::get_now_ns;
 use auto_pool::config::{AutoPoolConfig, PickStrategy};
-use auto_pool::pool;
 use auto_pool::pool::AutoPool;
 use clap::Parser;
 use core_affinity::set_for_current;
-use criterion::{criterion_group, criterion_main, Criterion};
-use futures_util::future;
+use criterion::Criterion;
 use futures_util::future::join_all;
 use std::hint::black_box;
 use std::str::FromStr;
@@ -16,7 +13,6 @@ use std::sync::{LazyLock, OnceLock};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
-use ton::bail_ton;
 use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::async_tx_emulator::AsyncTxEmulator;
 use ton::emulators::emul_bc_config::EmulBCConfig;
@@ -134,7 +130,7 @@ fn configure_criterion() -> (Criterion, String) {
     )
     .to_string();
     println!("Running config:\n{}", run_str);
-    if (args.threads < 1 || args.threads > total_requests() as u32) {
+    if args.threads < 1 || args.threads > total_requests() as u32 {
         panic!("Invalid threads count: {}", args.threads);
     }
 
@@ -272,14 +268,13 @@ impl CpuLoadObject {
     }
 
     fn do_task(&mut self, task: &Task) -> TonResult<TXEmulationSuccess> {
-        let run_time_cycles = get_now_ns();
         check_thread_params("CpuLoadObject::do_task");
         let ret_val = match task {
             Task::CpuFullLoad { run_time, .. } => {
                 cpu_load_function(*run_time);
                 get_empty_tx_emul_success()
             }
-            Task::StdSleep { run_time, .. } => {
+            Task::StdSleep { run_time: _run_time, .. } => {
                 std::thread::sleep(self.duration);
                 get_empty_tx_emul_success()
             }
@@ -360,7 +355,7 @@ async fn run_pool_test(pool: &PoolUnderTest, task: &Task) -> TonResult<()> {
     Ok(())
 }
 
-async fn sleep_task_bench(iter_count: u32) -> TonResult<()> {
+async fn sleep_task_bench(_iter_count: u32) -> TonResult<()> {
     let task = Task::StdSleep {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
