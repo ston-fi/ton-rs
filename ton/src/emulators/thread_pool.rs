@@ -119,9 +119,7 @@ where
                     }
                 }
                 if target_queue_index == self.items.len() {
-                    let q_st: Vec<usize> = (0..self.items.len())
-                        .map(|i| self.items[i].get_queue_size())
-                        .collect();
+                    let q_st: Vec<usize> = (0..self.items.len()).map(|i| self.items[i].get_queue_size()).collect();
                     let max_queue = q_st.iter().max().copied().unwrap_or(0);
                     return Err(TonError::EmulatorQueueIsFull {
                         msg: format!("All queues are full, queue_sizes={:?}", q_st),

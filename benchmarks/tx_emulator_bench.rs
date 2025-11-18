@@ -274,7 +274,9 @@ impl CpuLoadObject {
                 cpu_load_function(*run_time);
                 get_empty_tx_emul_success()
             }
-            Task::StdSleep { run_time: _run_time, .. } => {
+            Task::StdSleep {
+                run_time: _run_time, ..
+            } => {
                 std::thread::sleep(self.duration);
                 get_empty_tx_emul_success()
             }
