@@ -1,8 +1,6 @@
 mod benchmark_utils;
 use crate::benchmark_utils::check_cpu_id;
 use crate::benchmark_utils::cpu_load_function;
-use auto_pool::config::{AutoPoolConfig, PickStrategy};
-use auto_pool::pool::AutoPool;
 use clap::Parser;
 use core_affinity::set_for_current;
 use criterion::Criterion;
@@ -14,7 +12,6 @@ use std::time::Duration;
 use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::{Msg, ShardAccount, Tx};
-use ton::emulators::async_tx_emulator::AsyncTxEmulator;
 use ton::emulators::emul_bc_config::EmulBCConfig;
 use ton::emulators::thread_pool::PoolPickStrategy;
 use ton::emulators::thread_pool::PooledObject;
@@ -39,8 +36,6 @@ enum RunMode {
     EmulatorPoolOneByOne,
     EmulatorPoolMinQueue,
     RecreateEmulTest,
-    // AutoPoolSyncGet,
-    AutoPoolAsyncGet,
 }
 //MinQueue
 static PIN_TO_CORE: OnceLock<bool> = OnceLock::new();
@@ -63,11 +58,9 @@ struct Args {
 }
 
 type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
-type TxEmulatorPool = AutoPool<AsyncTxEmulator>;
 
 static THREAD_POOL_ONE_BY_ONE: OnceLock<PoolUnderTest> = OnceLock::new();
 static THREAD_POOL_MIN_QUEUE: OnceLock<PoolUnderTest> = OnceLock::new();
-static ASYNC_OBJECT_POOL: OnceLock<TxEmulatorPool> = OnceLock::new();
 
 fn parse_custom_args() -> Args {
     let mut filtered: Vec<String> = vec![std::env::args().next().unwrap_or_else(|| "bench".into())];
@@ -113,7 +106,6 @@ fn configure_criterion() -> (Criterion, String) {
             3 => RunMode::EmulatorPoolOneByOne,
             4 => RunMode::EmulatorPoolMinQueue,
             5 => RunMode::RecreateEmulTest,
-            6 => RunMode::AutoPoolAsyncGet,
             _ => {
                 panic!("Invalid mode: {}", args.mode);
             }
@@ -298,50 +290,6 @@ impl PooledObject<Task, TXEmulationSuccess> for CpuLoadObject {
     fn handle(&mut self, task: Task) -> TonResult<TXEmulationSuccess> { self.do_task(&task) }
 }
 
-async fn run_autopool_async_get_test() -> TonResult<()> {
-    apply_main_thread_params();
-    let mut answer_keeper = Vec::with_capacity(total_requests());
-    let test_arg = get_test_args().unwrap();
-
-    for _ in 0..total_requests() {
-        let arg = test_arg.clone();
-        answer_keeper.push(async move {
-            let pool = ASYNC_OBJECT_POOL.get().unwrap();
-            let emulator = pool.get_async().await.unwrap();
-            emulator.emulate_ord(&arg).await
-        });
-    }
-
-    let answer = join_all(answer_keeper).await;
-    for res in answer {
-        let val = res?;
-        black_box(val);
-    }
-    Ok(())
-}
-// async fn run_autopool_sync_get_test() -> TonResult<()> {
-//     apply_main_thread_params();
-//     let mut answer_keeper = Vec::with_capacity(total_requests());
-//     let test_arg = get_test_args().unwrap();
-//
-//     for _ in 0..total_requests() {
-//         let arg = test_arg.clone();
-//         answer_keeper.push(async move {
-//             let pool = ASYNC_OBJECT_POOL.get().unwrap();
-//
-//             let emulator = pool.get().unwrap();
-//             emulator.emulate_ord(&arg).await
-//         });
-//     }
-//
-//     let answer = join_all(answer_keeper).await;
-//     for res in answer {
-//         let val = res?;
-//         black_box(val);
-//     }
-//     Ok(())
-// }
-
 async fn run_pool_test(pool: &PoolUnderTest, task: &Task) -> TonResult<()> {
     apply_main_thread_params();
     let mut answer_keeper = Vec::with_capacity(total_requests());
@@ -409,14 +357,6 @@ fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
                 b.iter(|| rt.block_on(emulator_task_bench_recreate()).unwrap())
             });
         }
-        // RunMode::AutoPoolSyncGet => {
-        //      c.bench_function("run_autopool_sync_get_test", |b| b.iter(|| rt.block_on(run_autopool_sync_get_test()).unwrap()));
-        //  }
-        RunMode::AutoPoolAsyncGet => {
-            c.bench_function("run_autopool_async_get_test", |b| {
-                b.iter(|| rt.block_on(run_autopool_async_get_test()).unwrap())
-            });
-        }
     }
     // c.bench_function("sleep_task_bench", |b| b.iter(|| rt.block_on(sleep_task_bench()).unwrap()));
 }
@@ -436,23 +376,6 @@ fn main() {
 
     let (mut criterion, run_params) = configure_criterion();
     let mode = RUN_MODE.get().unwrap();
-
-    // Initialize AutoPool for AsyncTxEmulator if needed
-    {
-        let mut async_emulators = Vec::with_capacity(threads_count() as usize);
-        for _ in 0..threads_count() {
-            let emulator = AsyncTxEmulator::new(0, false, Some(apply_thread_params)).unwrap();
-            async_emulators.push(emulator);
-        }
-        let ap_config = AutoPoolConfig {
-            wait_duration: Duration::from_secs(10),
-            lock_duration: Duration::from_millis(2),
-            sleep_duration: Duration::from_millis(5),
-            pick_strategy: PickStrategy::RANDOM,
-        };
-        let async_pool = AutoPool::new_with_config(ap_config, async_emulators);
-        let _ = ASYNC_OBJECT_POOL.set(async_pool);
-    }
 
     let mut objects_one = Vec::with_capacity(threads_count() as usize);
     let mut objects_mq = Vec::with_capacity(threads_count() as usize);
