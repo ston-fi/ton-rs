@@ -21,6 +21,7 @@ include = [
 
 [features]
 tonlibjson = ["dep:tonlib-sys"]
+unstable = []
 
 
 [dependencies]

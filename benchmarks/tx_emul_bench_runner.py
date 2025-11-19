@@ -83,7 +83,7 @@ def get_available_modes(path: Path) -> Dict[int, str]:
     cmd = [
         'cargo', 'bench',
         '--bench', 'tx_emulator_bench',
-        '--features', 'tonlibjson',
+        '--features', 'tonlibjson,tonunstable',
         '--',
         '--help-modes',
     ]
@@ -167,7 +167,7 @@ def run_benchmark(
     cmd = [
         'cargo', 'bench',
         '--bench', 'tx_emulator_bench',
-        '--features', 'tonlibjson',
+        '--features', 'tonlibjson,tonunstable',
         '--',
         '--pin-to-core', 'true' if pin_to_core else 'false',
         '--mode', str(mode),
@@ -340,7 +340,7 @@ def main():
         
         for threads in thread_counts:
             mode_name = available_modes.get(mode, f'Mode{mode}')
-            cmd_str = f"cargo bench --bench tx_emulator_bench --features tonlibjson -- --pin-to-core {'true' if pin_to_core_bool else 'false'} --mode {mode} --threads {threads}"
+            cmd_str = f"cargo bench --bench tx_emulator_bench --features tonlibjson,tonunstable -- --pin-to-core {'true' if pin_to_core_bool else 'false'} --mode {mode} --threads {threads}"
             print(f"Running benchmark with mode={mode} ({mode_name}), threads={threads}...")
             print(f"  Command: {cmd_str}")
             stdout = run_benchmark(path, mode, threads, pin_to_core_bool, test_dir)

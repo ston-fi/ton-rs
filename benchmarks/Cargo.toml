@@ -6,7 +6,7 @@ publish = false
 
 [features]
 tonlibjson = ["ton/tonlibjson"]
-
+tonunstable=["ton/unstable"]
 
 
 [dev-dependencies]
@@ -65,4 +65,4 @@ harness = false
 name = "tx_emulator_bench"
 path = "tx_emulator_bench.rs"
 harness = false
-required-features = ["tonlibjson"]
+required-features = ["tonlibjson","tonunstable"]
