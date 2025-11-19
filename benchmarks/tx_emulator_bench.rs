@@ -46,9 +46,9 @@ static RUN_MODE: OnceLock<RunMode> = OnceLock::new();
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Pin threads to specific cores
-    #[arg(long = "pin-to-core", alias = "pin_to_core", default_value_t = true, action = clap::ArgAction::Set)]
+    #[arg(long = "pin-to-core", alias = "pin_to_core", default_value_t = false, action = clap::ArgAction::Set)]
     pin_to_core: bool,
-    #[arg(long = "threads", alias = "threads", default_value_t = 1, action = clap::ArgAction::Set)]
+    #[arg(long = "threads", alias = "threads", default_value_t = 0, action = clap::ArgAction::Set)]
     threads: u32,
     #[arg(long = "mode", alias = "mode", default_value_t = 1, action = clap::ArgAction::Set)]
     mode: u32,
@@ -96,6 +96,7 @@ fn print_available_modes() {
 }
 
 fn configure_criterion() -> (Criterion, String) {
+    let aval_cores = std::thread::available_parallelism().unwrap().get();
     // Parse both Criterion's and your own arguments
     let args = parse_custom_args();
 
@@ -122,13 +123,18 @@ fn configure_criterion() -> (Criterion, String) {
     )
     .to_string();
     println!("Running config:\n{}", run_str);
-    if args.threads < 1 || args.threads > total_requests() as u32 {
-        panic!("Invalid threads count: {}", args.threads);
+    let threads = if args.threads == 0 {
+        aval_cores as u32
+    } else {
+        args.threads
+    };
+    if threads > total_requests() as u32 {
+        panic!("Invalid threads count: {}", threads);
     }
 
     // You can stash these globals for later if needed
     let _ = PIN_TO_CORE.set(args.pin_to_core);
-    let _ = WORKER_THREADS_COUNT.set(args.threads);
+    let _ = WORKER_THREADS_COUNT.set(threads);
 
     (
         Criterion::default()
@@ -202,20 +208,19 @@ fn pin_to_core() -> bool { *PIN_TO_CORE.get_or_init(|| true) }
 
 fn threads_count() -> u32 { *WORKER_THREADS_COUNT.get_or_init(|| 1) } // *THREADS_COUNT.get_or_init(|| 5)
 
-fn total_requests() -> usize {
+static TOTAL_REQUESTS: LazyLock<usize> = LazyLock::new(|| {
     let mut paralel_req = std::thread::available_parallelism().unwrap().get();
     if paralel_req < 2 {
-        panic!("WTF");
+        panic!("WTF parralel requests:{}", paralel_req);
     }
     if threads_count() < paralel_req as u32 {
         paralel_req = threads_count() as usize;
     }
-    if paralel_req < 2 {
-        panic!("WTF");
-    }
 
     BENCH_TASK_PER_CORE_COUNT * paralel_req
-}
+});
+
+fn total_requests() -> usize { *TOTAL_REQUESTS }
 
 fn check_thread_params(msg: &str) {
     if pin_to_core() {
@@ -299,7 +304,7 @@ async fn run_pool_test(pool: &PoolUnderTest, task: &Task) -> TonResult<()> {
 
     let answer = join_all(answer_keeper).await;
     for res in answer {
-        let val = res?;
+        let val = res.unwrap();
         black_box(val);
     }
     Ok(())
