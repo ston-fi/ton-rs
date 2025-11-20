@@ -9,6 +9,7 @@ use std::thread::JoinHandle;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 
+
 /// A command sent to worker threads.
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
@@ -163,19 +164,24 @@ where
     }
 
     pub async fn execute_task(&self, task: Task, maybe_custom_timeout: Option<u64>) -> TonResult<Retval> {
-        let (tx, rx) = oneshot::channel();
-
-        let idx = self.increment_id_and_get_index()?;
-
-        // For MinQueue strategy, increment cnt_sended here (OneByOne already increments it in increment_id_and_get_index)
-
-        self.cnt_sended.fetch_add(1, Ordering::Relaxed);
-
         let deadline_time = if let Some(timeout) = maybe_custom_timeout {
             get_now_ms() + timeout as u128
         } else {
             get_now_ms() + self.timeout_emulation as u128
         };
+
+        let (tx, rx) = oneshot::channel();
+        let command = Command::Execute(task, tx, deadline_time);
+        let idx = self.increment_id_and_get_index()?;
+
+
+
+
+        // For MinQueue strategy, increment cnt_sended here (OneByOne already increments it in increment_id_and_get_index)
+
+        self.cnt_sended.fetch_add(1, Ordering::Relaxed);
+
+
 
         // Check if queue is full before sending
         let queue_size = self.items[idx].get_queue_size();
@@ -183,7 +189,7 @@ where
             unreachable!();
         }
 
-        let command = Command::Execute(task, tx, deadline_time);
+
         self.items[idx].cnt_in_queue_jobs.fetch_add(1, Ordering::Relaxed);
         self.items[idx].sender.send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
         let res = rx.await.map_err(|e| TonError::Custom(format!("receive task error: {e}")))??;

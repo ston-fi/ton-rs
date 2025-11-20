@@ -84,12 +84,10 @@ fn print_available_modes() {
     println!("AVAILABLE_MODES_START");
     println!("1:SleepTest");
     println!("2:CpuLoadTest");
-    println!("3:EmulatorPoolOneByOne");
-    println!("4:EmulatorPoolMinQueue");
-    println!("5:RecreateEmulTest");
-    println!("6:AutoPoolAsyncGet");
+    println!("3:EmulatorPoolMinQueue");
+    println!("4:RecreateEmulTest");
     println!("AVAILABLE_MODES_END");
-    println!("TOTAL_MODES:6");
+    println!("TOTAL_MODES:4");
 }
 
 fn configure_criterion() -> (Criterion, String) {
