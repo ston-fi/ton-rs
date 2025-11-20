@@ -99,6 +99,16 @@ impl FromStr for TonAddress {
     }
 }
 
+impl TryFrom<String> for TonAddress {
+    type Error = TonCoreError;
+    fn try_from(value: String) -> Result<Self, Self::Error> { TonAddress::from_str(&value) }
+}
+
+impl TryFrom<&str> for TonAddress {
+    type Error = TonCoreError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> { TonAddress::from_str(value) }
+}
+
 impl Display for TonAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.to_base64(true, true, true))
@@ -254,6 +264,16 @@ mod tests {
         assert_eq!(TonAddress::from_str("0:e4d954ef9f4e1250a26b5bbad76a1cdd17cfd08babad6f4c23e372270aef6f76")?, addr);
         assert_eq!(TonAddress::from_str("EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj43InCu9vdjrR")?, addr);
         assert_eq!(TonAddress::from_str("EQDk2VTvn04SUKJrW7rXahzdF8/Qi6utb0wj43InCu9vdjrR")?, addr);
+        Ok(())
+    }
+
+    #[test]
+    fn test_ton_address_try_from_str() -> anyhow::Result<()> {
+        let bytes = TonHash::from_str("e4d954ef9f4e1250a26b5bbad76a1cdd17cfd08babad6f4c23e372270aef6f76")?;
+        let addr = TonAddress::new(0, bytes);
+        assert_eq!(TonAddress::try_from("0:e4d954ef9f4e1250a26b5bbad76a1cdd17cfd08babad6f4c23e372270aef6f76")?, addr);
+        assert_eq!(TonAddress::try_from("EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj43InCu9vdjrR")?, addr);
+        assert_eq!(TonAddress::try_from("EQDk2VTvn04SUKJrW7rXahzdF8/Qi6utb0wj43InCu9vdjrR".to_string())?, addr);
         Ok(())
     }
 

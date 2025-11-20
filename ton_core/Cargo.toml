@@ -45,4 +45,3 @@ bitvec.workspace = true
 [dev-dependencies]
 anyhow.workspace = true
 tokio-test.workspace = true
-log4rs.workspace = true
