@@ -91,10 +91,6 @@ impl TonHash {
     }
 }
 
-impl Default for TonHash {
-    fn default() -> Self { TonHash::ZERO }
-}
-
 impl TonHashData {
     fn as_slice(&self) -> &[u8] {
         match self {
@@ -130,7 +126,7 @@ mod traits_impl {
     use crate::cell::ton_hash::{from_base64, from_hex, TonHash, TonHashData};
     use crate::errors::TonCoreError;
 
-
+    impl Default for TonHash { fn default() -> Self { TonHash::ZERO } }
     impl From<[u8; 32]> for TonHash { fn from(data: [u8; 32]) -> Self { Self(TonHashData::Slice(data)) } }
     impl From<&[u8; 32]> for TonHash { fn from(data: &[u8; 32]) -> Self { Self(TonHashData::Slice(*data)) } }
     impl FromStr for TonHash {
@@ -141,6 +137,14 @@ mod traits_impl {
             }
             from_base64(s)
         }
+    }
+    impl TryFrom<String> for TonHash {
+        type Error = TonCoreError;
+        fn try_from(value: String) -> Result<Self, Self::Error> { TonHash::from_str(&value) }
+    }
+    impl TryFrom<&str> for TonHash {
+        type Error = TonCoreError;
+        fn try_from(value: &str) -> Result<Self, Self::Error> { TonHash::from_str(value) }
     }
 
     impl AsRef<[u8]> for TonHash { fn as_ref(&self) -> &[u8] { self.as_slice() } }
