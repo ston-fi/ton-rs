@@ -13,7 +13,6 @@ use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::emul_bc_config::EmulBCConfig;
-use ton::emulators::thread_pool::PoolPickStrategy;
 use ton::emulators::thread_pool::PooledObject;
 use ton::emulators::thread_pool::ThreadPool;
 use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
@@ -27,13 +26,12 @@ const DEFAULT_SLEEP_TIME_MICROS: u64 = 1000;
 
 const BENCH_TASK_PER_CORE_COUNT: usize = 10;
 const CRITERION_SAMPLES_COUNT: u32 = 10;
-const DEFAULT_DEADLINE_MS: u64 = 5000; //5 sec   for bench
+const DEFAULT_DEADLINE_MS: u64 = 30000; //30 sec for bench (increased to handle larger queues)
 
 #[derive(Debug)]
 enum RunMode {
     SleepTest,
     CpuLoadTest,
-    EmulatorPoolOneByOne,
     EmulatorPoolMinQueue,
     RecreateEmulTest,
 }
@@ -59,7 +57,6 @@ struct Args {
 
 type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
 
-static THREAD_POOL_ONE_BY_ONE: OnceLock<PoolUnderTest> = OnceLock::new();
 static THREAD_POOL_MIN_QUEUE: OnceLock<PoolUnderTest> = OnceLock::new();
 
 fn parse_custom_args() -> Args {
@@ -104,14 +101,22 @@ fn configure_criterion() -> (Criterion, String) {
         .set(match args.mode {
             1 => RunMode::SleepTest,
             2 => RunMode::CpuLoadTest,
-            3 => RunMode::EmulatorPoolOneByOne,
-            4 => RunMode::EmulatorPoolMinQueue,
-            5 => RunMode::RecreateEmulTest,
+            3 => RunMode::EmulatorPoolMinQueue,
+            4 => RunMode::RecreateEmulTest,
             _ => {
                 panic!("Invalid mode: {}", args.mode);
             }
         })
         .unwrap();
+
+    // Set globals before calculating total_requests() so it uses the correct values
+    let threads = if args.threads == 0 {
+        aval_cores as u32
+    } else {
+        args.threads
+    };
+    let _ = PIN_TO_CORE.set(args.pin_to_core);
+    let _ = WORKER_THREADS_COUNT.set(threads);
 
     let run_str = format!(
         "Benchmark config: PIN_TO_CORE = {}, THREADS_COUNT = {}, ITERATIONS_COUNT = {}, Mode={}, StrMode={:?}",
@@ -123,18 +128,9 @@ fn configure_criterion() -> (Criterion, String) {
     )
     .to_string();
     println!("Running config:\n{}", run_str);
-    let threads = if args.threads == 0 {
-        aval_cores as u32
-    } else {
-        args.threads
-    };
     if threads > total_requests() as u32 {
         panic!("Invalid threads count: {}", threads);
     }
-
-    // You can stash these globals for later if needed
-    let _ = PIN_TO_CORE.set(args.pin_to_core);
-    let _ = WORKER_THREADS_COUNT.set(threads);
 
     (
         Criterion::default()
@@ -299,12 +295,12 @@ async fn run_pool_test(pool: &PoolUnderTest, task: &Task) -> TonResult<()> {
     apply_main_thread_params();
     let mut answer_keeper = Vec::with_capacity(total_requests());
     for _ in 0..total_requests() {
-        answer_keeper.push(pool.execute_task(task.clone()));
+        answer_keeper.push(pool.execute_task(task.clone(), None));
     }
 
     let answer = join_all(answer_keeper).await;
     for res in answer {
-        let val = res.unwrap();
+        let val = res?;
         black_box(val);
     }
     Ok(())
@@ -315,18 +311,15 @@ async fn sleep_task_bench(_iter_count: u32) -> TonResult<()> {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
 
-    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
+    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
 }
 async fn cpu_task_bench() -> TonResult<()> {
     let task = Task::CpuFullLoad {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
-    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
+    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
 }
-async fn emulator_one_by_one_task_bench() -> TonResult<()> {
-    let task = Task::TxEmulOrd(get_test_args().unwrap());
-    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
-}
+
 async fn emulator_min_queue_task_bench() -> TonResult<()> {
     let task = Task::TxEmulOrd(get_test_args().unwrap());
     run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
@@ -334,7 +327,7 @@ async fn emulator_min_queue_task_bench() -> TonResult<()> {
 
 async fn emulator_task_bench_recreate() -> TonResult<()> {
     let task = Task::TxEmulOrd(get_test_args().unwrap());
-    run_pool_test(THREAD_POOL_ONE_BY_ONE.get().unwrap(), &task).await
+    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
 }
 
 fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
@@ -347,11 +340,7 @@ fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
         RunMode::CpuLoadTest => {
             c.bench_function("cpu_task_bench", |b| b.iter(|| rt.block_on(cpu_task_bench()).unwrap()));
         }
-        RunMode::EmulatorPoolOneByOne => {
-            c.bench_function("emulator_one_by_one_task_bench", |b| {
-                b.iter(|| rt.block_on(emulator_one_by_one_task_bench()).unwrap())
-            });
-        }
+
         RunMode::EmulatorPoolMinQueue => {
             c.bench_function("emulator_min_queue_task_bench", |b| {
                 b.iter(|| rt.block_on(emulator_min_queue_task_bench()).unwrap())
@@ -370,8 +359,6 @@ fn main() {
     let aval_cores = std::thread::available_parallelism();
     sys_tonlib_set_verbosity_level(0);
 
-    let max_queue_size = total_requests() as u32 / threads_count() + 1;
-
     // Check for --help-modes first (configure_criterion will exit if found)
     let args = parse_custom_args();
     if args.help_modes {
@@ -382,52 +369,32 @@ fn main() {
     let (mut criterion, run_params) = configure_criterion();
     let mode = RUN_MODE.get().unwrap();
 
-    let mut objects_one = Vec::with_capacity(threads_count() as usize);
+    // Calculate max_queue_size after configure_criterion() sets WORKER_THREADS_COUNT
+    // so that total_requests() uses the correct thread count
+    let max_queue_size = total_requests() as u32 / threads_count() + 1;
+
     let mut objects_mq = Vec::with_capacity(threads_count() as usize);
     for _ in 0..threads_count() {
         match mode {
-            RunMode::EmulatorPoolOneByOne => {
-                let tx_emul1 = TXEmulator::new(0, false).unwrap();
-                let tx_emul2 = TXEmulator::new(0, false).unwrap();
-                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul1)).unwrap());
-                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul2)).unwrap());
-            }
             RunMode::EmulatorPoolMinQueue => {
-                let tx_emul1 = TXEmulator::new(0, false).unwrap();
-                let tx_emul2 = TXEmulator::new(0, false).unwrap();
-                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul1)).unwrap());
-                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul2)).unwrap());
+                let tx_emul = TXEmulator::new(0, false).unwrap();
+
+                objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul)).unwrap());
             }
             RunMode::RecreateEmulTest => {
                 // For recreate mode, we don't need to pre-create the emulator
                 // It will be created on each task
-                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
+
                 objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
             }
             _ => {
-                objects_one.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
                 objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, None).unwrap());
             }
         }
     }
 
-    let pool_one_by_one = PoolUnderTest::new(
-        objects_one,
-        PoolPickStrategy::OneByOne,
-        Some(apply_thread_params),
-        DEFAULT_DEADLINE_MS,
-        max_queue_size,
-    )
-    .unwrap();
-    let pool_min_queue = PoolUnderTest::new(
-        objects_mq,
-        PoolPickStrategy::MinQueue,
-        Some(apply_thread_params),
-        DEFAULT_DEADLINE_MS,
-        max_queue_size,
-    )
-    .unwrap();
-    let _ = THREAD_POOL_ONE_BY_ONE.set(pool_one_by_one);
+    let pool_min_queue =
+        PoolUnderTest::new(objects_mq, Some(apply_thread_params), DEFAULT_DEADLINE_MS, max_queue_size).unwrap();
     let _ = THREAD_POOL_MIN_QUEUE.set(pool_min_queue);
 
     benchmark_functions(&mut criterion, total_requests() as u32);
@@ -437,5 +404,5 @@ fn main() {
     println!("Available parallelism: {:?}", aval_cores);
 
     println!("{}", run_params);
-    println!("{}", THREAD_POOL_MIN_QUEUE.get().unwrap().print_stat());
+    println!("{}", THREAD_POOL_MIN_QUEUE.get().unwrap().print_stats());
 }

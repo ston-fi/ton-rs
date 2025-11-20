@@ -24,7 +24,6 @@ pub struct TXEmulator {
     cur_prev_blocks_info_hash: u64,
 }
 
-/// Async wrapper for TXEmulator with dedicated thread pool
 impl TXEmulator {
     pub fn new(log_level: u32, debug_enabled: bool) -> Result<Self, TonError> {
         let zero_config = Arc::new(CString::new(TON_ZERO_CONFIG_BOC_B64)?);
