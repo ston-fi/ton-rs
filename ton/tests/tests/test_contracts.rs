@@ -11,7 +11,7 @@ use ton::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton::tep::nft::NFTItemMetadata;
 use ton::tep::snake_data::SnakeData;
 use ton_core::cell::TonHash;
-use ton_core::types::TonAddress;
+use ton_core::types::{TonAddress, TxLTHash};
 
 #[tokio::test]
 async fn test_contracts() -> anyhow::Result<()> {
@@ -57,13 +57,17 @@ async fn assert_jetton_master(ctr_cli: &ContractClient) -> anyhow::Result<()> {
 
 async fn assert_jetton_scaled_ui_master_contract(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let scaled_ui_master = TonAddress::from_str("EQBlPUnynlpSjj65sPc-3Ckdeugoodeu3fOxJdYK3V4AMp87")?;
-    let contract = JettonScaledUIMasterContract::new(ctr_cli, &scaled_ui_master, None).await?;
+    let tx_id = TxLTHash::new(
+        63062498000003,
+        TonHash::from_str("ff30bc444747f76844726faeabd009cd41093b291bd817a85e7c96df0eb0c268")?,
+    );
+    let contract = JettonScaledUIMasterContract::new(ctr_cli, &scaled_ui_master, Some(tx_id)).await?;
     assert_ok!(contract.get_jetton_data().await);
     let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
     assert_ok!(contract.get_wallet_address(&owner).await);
     let multiplier = contract.get_display_multiplier().await?;
-    assert_eq!(multiplier.numerator, 0xc8.into());
-    assert_eq!(multiplier.denominator, 0x64.into());
+    assert_eq!(multiplier.numerator, 0x1.into());
+    assert_eq!(multiplier.denominator, 0x1b6f3b.into());
     Ok(())
 }
 
