@@ -256,8 +256,6 @@ impl<'a> DecrementOnDestructor<'a> {
 
 impl<'a> Drop for DecrementOnDestructor<'a> {
     fn drop(&mut self) {
-        // Only decrement if task failed (set_success was not called)
-
         self.cnt.fetch_sub(1, Ordering::Relaxed);
     }
 }
