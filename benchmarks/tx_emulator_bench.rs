@@ -23,7 +23,7 @@ use ton_core::traits::tlb::TLB;
 const DEFAULT_SLEEP_TIME_MICROS: u64 = 1000;
 const BENCH_TASK_PER_CORE_COUNT: usize = 10;
 const CRITERION_SAMPLES_COUNT: u32 = 10;
-const DEFAULT_DEADLINE_MS: u64 = 30000; //30 sec for bench (increased to handle larger queues)
+const DEFAULT_DEADLINE_MS: Duration = Duration::from_millis(3000); //30 sec for bench (increased to handle larger queues)
 
 #[derive(Debug)]
 enum RunMode {
@@ -222,7 +222,7 @@ struct CpuLoadObject {
 impl CpuLoadObject {
     fn new(d: u64, maybe_tx_emul: Option<TXEmulator>) -> TonResult<Self> {
         Ok(Self {
-            duration: Duration::from_micros(d),
+            duration: Duration::from_millis(d),
             tx_emulator: maybe_tx_emul,
         })
     }

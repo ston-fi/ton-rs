@@ -15,12 +15,12 @@ pub trait PooledObject<T: Send, R: Send> {
 }
 #[derive(Clone, Debug)]
 pub struct ThreadPoolConfig {
-    default_emulation_timeout: u64,
+    default_emulation_timeout: Duration,
     thread_queue_capacity: u32,
 }
 
 impl ThreadPoolConfig {
-    pub fn new(default_timeout_emulation: u64, thread_queue_capacity: u32) -> Self {
+    pub fn new(default_timeout_emulation: Duration, thread_queue_capacity: u32) -> Self {
         Self {
             default_emulation_timeout: default_timeout_emulation,
             thread_queue_capacity,
@@ -42,7 +42,7 @@ where
     cnt_errored_tasks: Vec<AtomicUsize>,
 
     cnt_current_jobs: AtomicUsize,
-    default_timeout_emulation: u64,
+    default_timeout_emulation: Duration,
     thread_queue_capacity: u32,
     _phantom: std::marker::PhantomData<Obj>,
 }
@@ -122,18 +122,18 @@ where
         }
     }
 
-    pub async fn execute_task(&self, task: Task, maybe_custom_timeout_ms: Option<u64>) -> TonResult<Retval> {
+    pub async fn execute_task(&self, task: Task, maybe_custom_timeout: Option<Duration>) -> TonResult<Retval> {
         let current_time = get_now_ms();
-        let timeout = if let Some(timeout) = maybe_custom_timeout_ms {
-            timeout
+        let timeout = if let Some(timeout) = maybe_custom_timeout {
+            timeout.as_millis() as u64
         } else {
-            self.default_timeout_emulation
+            self.default_timeout_emulation.as_millis() as u64
         };
         let deadline_time = current_time + timeout as u128;
 
         let (tx, rx) = oneshot::channel();
         let command = (task, tx, deadline_time, timeout);
-        let idx = self.find_thread_id(deadline_time, timeout).await?;
+        let idx = self.find_thread_id(deadline_time, timeout as u64).await?;
         let _guard = DecrementOnDestructor::new(&self.cnt_jobs_in_queue[idx]);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
         self.senders[idx].send(command).map_err(|e| {
