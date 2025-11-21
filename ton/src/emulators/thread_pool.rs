@@ -174,14 +174,11 @@ where
             let command = receiver.recv();
             match command {
                 Ok((task, resp_sender, deadline_time, timeout)) => {
-                    // Check if deadline has passed
-                    let current_time = get_now_ms();
-                    if current_time > deadline_time {
+                    if get_now_ms() > deadline_time {
                         let _ = resp_sender.send(Err(TonError::EmulatorPoolTimeout { timeout }));
                         continue;
                     }
-                    let result = obj.handle(task)?;
-                    let _ = resp_sender.send(Ok(result));
+                    let _ = resp_sender.send(obj.handle(task));
                 }
                 Err(_) => break,
             }
