@@ -15,7 +15,9 @@ use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::emul_bc_config::EmulBCConfig;
 use ton::emulators::thread_pool::PooledObject;
 use ton::emulators::thread_pool::ThreadPool;
-use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
+use ton::emulators::tx_emulator::{
+    TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator, TxEmulatorPool, TxEmulatorTask,
+};
 use ton::errors::TonResult;
 use ton::sys_utils::sys_tonlib_set_verbosity_level;
 use ton_core::cell::TonHash;
@@ -32,7 +34,7 @@ const DEFAULT_DEADLINE_MS: u64 = 30000; //30 sec for bench (increased to handle 
 enum RunMode {
     SleepTest,
     CpuLoadTest,
-    EmulatorPoolMinQueue,
+    EmulatorPool,
     RecreateEmulTest,
 }
 //MinQueue
@@ -57,7 +59,8 @@ struct Args {
 
 type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
 
-static THREAD_POOL_MIN_QUEUE: OnceLock<PoolUnderTest> = OnceLock::new();
+static THREAD_POOL: OnceLock<PoolUnderTest> = OnceLock::new();
+static TX_EMULATOR_POOL: OnceLock<TxEmulatorPool> = OnceLock::new();
 
 fn parse_custom_args() -> Args {
     let mut filtered: Vec<String> = vec![std::env::args().next().unwrap_or_else(|| "bench".into())];
@@ -84,7 +87,7 @@ fn print_available_modes() {
     println!("AVAILABLE_MODES_START");
     println!("1:SleepTest");
     println!("2:CpuLoadTest");
-    println!("3:EmulatorPoolMinQueue");
+    println!("3:EmulatorPool");
     println!("4:RecreateEmulTest");
     println!("AVAILABLE_MODES_END");
     println!("TOTAL_MODES:4");
@@ -99,7 +102,7 @@ fn configure_criterion() -> (Criterion, String) {
         .set(match args.mode {
             1 => RunMode::SleepTest,
             2 => RunMode::CpuLoadTest,
-            3 => RunMode::EmulatorPoolMinQueue,
+            3 => RunMode::EmulatorPool,
             4 => RunMode::RecreateEmulTest,
             _ => {
                 panic!("Invalid mode: {}", args.mode);
@@ -289,43 +292,47 @@ impl PooledObject<Task, TXEmulationSuccess> for CpuLoadObject {
     fn handle(&mut self, task: Task) -> TonResult<TXEmulationSuccess> { self.do_task(&task) }
 }
 
-async fn run_pool_test(pool: &PoolUnderTest, task: &Task) -> TonResult<()> {
-    apply_main_thread_params();
-    let mut answer_keeper = Vec::with_capacity(total_requests());
-    for _ in 0..total_requests() {
-        answer_keeper.push(pool.execute_task(task.clone(), None));
-    }
+macro_rules! run_pool_test {
+    ($pool:expr, $task:expr) => {{
+        async {
+            apply_main_thread_params();
+            let mut answer_keeper = Vec::with_capacity(total_requests());
+            for _ in 0..total_requests() {
+                answer_keeper.push($pool.execute_task($task.clone(), None));
+            }
 
-    let answer = join_all(answer_keeper).await;
-    for res in answer {
-        let val = res?;
-        black_box(val);
-    }
-    Ok(())
+            let answer = join_all(answer_keeper).await;
+            for res in answer {
+                let val = res?;
+                black_box(val);
+            }
+            Ok(())
+        }
+    }};
 }
 
 async fn sleep_task_bench(_iter_count: u32) -> TonResult<()> {
     let task = Task::StdSleep {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
-
-    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
+    run_pool_test!(THREAD_POOL.get().unwrap(), &task).await
 }
+
 async fn cpu_task_bench() -> TonResult<()> {
     let task = Task::CpuFullLoad {
         run_time: DEFAULT_SLEEP_TIME_MICROS,
     };
-    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
+    run_pool_test!(THREAD_POOL.get().unwrap(), &task).await
 }
 
-async fn emulator_min_queue_task_bench() -> TonResult<()> {
-    let task = Task::TxEmulOrd(get_test_args().unwrap());
-    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
+async fn emulator_pool_bench() -> TonResult<()> {
+    let task = TxEmulatorTask::TXOrd(get_test_args().unwrap());
+    run_pool_test!(TX_EMULATOR_POOL.get().unwrap(), &task).await
 }
 
 async fn emulator_task_bench_recreate() -> TonResult<()> {
     let task = Task::TxEmulOrd(get_test_args().unwrap());
-    run_pool_test(THREAD_POOL_MIN_QUEUE.get().unwrap(), &task).await
+    run_pool_test!(THREAD_POOL.get().unwrap(), &task).await
 }
 
 fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
@@ -339,9 +346,9 @@ fn benchmark_functions(c: &mut Criterion, iter_count: u32) {
             c.bench_function("cpu_task_bench", |b| b.iter(|| rt.block_on(cpu_task_bench()).unwrap()));
         }
 
-        RunMode::EmulatorPoolMinQueue => {
+        RunMode::EmulatorPool => {
             c.bench_function("emulator_min_queue_task_bench", |b| {
-                b.iter(|| rt.block_on(emulator_min_queue_task_bench()).unwrap())
+                b.iter(|| rt.block_on(emulator_pool_bench()).unwrap())
             });
         }
         RunMode::RecreateEmulTest => {
@@ -374,7 +381,7 @@ fn main() {
     let mut objects_mq = Vec::with_capacity(threads_count() as usize);
     for _ in 0..threads_count() {
         match mode {
-            RunMode::EmulatorPoolMinQueue => {
+            RunMode::EmulatorPool => {
                 let tx_emul = TXEmulator::new(0, false).unwrap();
 
                 objects_mq.push(CpuLoadObject::new(DEFAULT_SLEEP_TIME_MICROS, Some(tx_emul)).unwrap());
@@ -393,7 +400,18 @@ fn main() {
 
     let pool_min_queue =
         PoolUnderTest::new(objects_mq, Some(apply_thread_params), DEFAULT_DEADLINE_MS, max_queue_size).unwrap();
-    let _ = THREAD_POOL_MIN_QUEUE.set(pool_min_queue);
+    let _ = THREAD_POOL.set(pool_min_queue);
+
+    // Create TxEmulatorPool for EmulatorPool mode
+    if matches!(mode, RunMode::EmulatorPool) {
+        let mut emulators = Vec::with_capacity(threads_count() as usize);
+        for _ in 0..threads_count() {
+            emulators.push(TXEmulator::new(0, false).unwrap());
+        }
+        let tx_emulator_pool =
+            TxEmulatorPool::new(emulators, Some(apply_thread_params), DEFAULT_DEADLINE_MS, max_queue_size).unwrap();
+        let _ = TX_EMULATOR_POOL.set(tx_emulator_pool);
+    }
 
     benchmark_functions(&mut criterion, total_requests() as u32);
 
@@ -402,5 +420,5 @@ fn main() {
     println!("Available parallelism: {:?}", aval_cores);
 
     println!("{}", run_params);
-    println!("{}", THREAD_POOL_MIN_QUEUE.get().unwrap().print_stats());
+    println!("{}", THREAD_POOL.get().unwrap().print_stats());
 }

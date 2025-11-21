@@ -6,9 +6,9 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::OnceLock;
 use std::thread;
 use std::thread::JoinHandle;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
-
+use tokio::time::sleep;
 
 /// A command sent to worker threads.
 pub trait PooledObject<T: Send, R: Send> {
@@ -52,7 +52,7 @@ where
         }
     }
 }
-fn get_now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros() }
+fn get_now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() }
 
 impl<Task, Retval> ThreadItem<Task, Retval>
 where
@@ -76,8 +76,7 @@ where
     Retval: Send + 'static,
 {
     items: Vec<ThreadItem<Task, Retval>>,
-    cnt_sended: AtomicUsize,
-    cnt_done: AtomicUsize,
+    cnt_current_jobs: AtomicUsize,
     timeout_emulation: u64,
     max_tasks_in_queue: u32,
     _phantom: std::marker::PhantomData<Obj>,
@@ -117,50 +116,42 @@ where
         }
         Ok(Self {
             items,
-
-            cnt_sended: AtomicUsize::new(0),
-            cnt_done: AtomicUsize::new(0),
+            cnt_current_jobs: AtomicUsize::new(0),
             timeout_emulation,
             max_tasks_in_queue,
             _phantom: std::marker::PhantomData,
         })
     }
-    fn increment_id_and_get_index(&self) -> TonResult<usize> {
-        let target_queue_index = {
-            // For MinQueue, find thread with minimum queue size
-            let mut min_queue_value = self.max_tasks_in_queue as usize;
-            let mut target_queue_index = self.items.len(); // set bad index
-            for i in 0..self.items.len() {
-                let current_queue_size = self.items[i].get_queue_size();
-                if current_queue_size == 0 {
-                    target_queue_index = i;
-                    break;
+    async fn increment_id_and_get_index(&self, deadline: u128) -> TonResult<usize> {
+        loop {
+            let target_queue_index = {
+                //  find thread with minimum queue size
+                let mut min_queue_value = self.max_tasks_in_queue as usize + 1;
+                let mut target_queue_index = self.items.len(); // set bad index
+                for i in 0..self.items.len() {
+                    let current_queue_size = self.items[i].get_queue_size();
+                    if current_queue_size < 2 {
+                        target_queue_index = i;
+                        break;
+                    }
+                    // as late as possible
+                    if current_queue_size <= min_queue_value {
+                        min_queue_value = current_queue_size;
+                        target_queue_index = i;
+                    }
                 }
-                if current_queue_size < min_queue_value {
-                    min_queue_value = current_queue_size;
-                    target_queue_index = i;
+
+                if target_queue_index == self.items.len() {
+                    sleep(Duration::from_millis(1));
+                    if (get_now_ms() > deadline) {}
+                    continue;
                 }
-            }
-            if target_queue_index == self.items.len() {
-                let q_st: Vec<usize> = (0..self.items.len()).map(|i| self.items[i].get_queue_size()).collect();
-                let max_queue = q_st.iter().max().copied().unwrap_or(0);
-                panic!("implement me")
-                // return Err(TonError::EmulatorQueueIsFull {
-                //     msg: format!("All queues are full, queue_sizes={:?}", q_st),
-                //     queue_size: max_queue,
-                // });
-            }
+                // do  increment asap
+                self.items[target_queue_index].cnt_in_queue_jobs.fetch_add(1, Ordering::Relaxed);
 
-            target_queue_index
-        };
-
-        // This check is redundant for MinQueue (already checked above) but kept for OneByOne safety
-        #[allow(clippy::manual_range_contains)]
-        if target_queue_index >= self.items.len() {
-            return Err(TonError::Custom("Unexpected error".to_string()));
+                return Ok(target_queue_index);
+            };
         }
-
-        Ok(target_queue_index)
     }
 
     pub async fn execute_task(&self, task: Task, maybe_custom_timeout: Option<u64>) -> TonResult<Retval> {
@@ -172,28 +163,13 @@ where
 
         let (tx, rx) = oneshot::channel();
         let command = Command::Execute(task, tx, deadline_time);
-        let idx = self.increment_id_and_get_index()?;
+        let idx = self.increment_id_and_get_index(deadline_time).await?;
 
+        self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
 
-
-
-        // For MinQueue strategy, increment cnt_sended here (OneByOne already increments it in increment_id_and_get_index)
-
-        self.cnt_sended.fetch_add(1, Ordering::Relaxed);
-
-
-
-        // Check if queue is full before sending
-        let queue_size = self.items[idx].get_queue_size();
-        if queue_size >= self.max_tasks_in_queue as usize {
-            unreachable!();
-        }
-
-
-        self.items[idx].cnt_in_queue_jobs.fetch_add(1, Ordering::Relaxed);
         self.items[idx].sender.send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
         let res = rx.await.map_err(|e| TonError::Custom(format!("receive task error: {e}")))??;
-        self.cnt_done.fetch_add(1, Ordering::SeqCst);
+        self.cnt_current_jobs.fetch_sub(1, Ordering::SeqCst);
         self.items[idx].cnt_done_jobs.fetch_add(1, Ordering::Relaxed);
         Ok(res)
     }
@@ -249,14 +225,24 @@ where
         // Total row
         result.push_str(&"-".repeat(80));
         result.push('\n');
-        let total_sended = self.cnt_sended.load(Ordering::Relaxed);
-        let total_done_global = self.cnt_done.load(Ordering::Relaxed);
+        let current_jobs = self.cnt_current_jobs.load(Ordering::Relaxed);
+        let total_queue_size: usize = self.items.iter().map(|item| item.get_queue_size()).sum();
+        // total_done is already calculated above by summing all per-core cnt_done_jobs counters
+        let total_tasks_done = self.get_total_tasks_done();
 
-        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", "TOTAL", total_sended, total_done_global, ""));
-        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", "(sum)", total_in_queue, total_done, ""));
+        result.push_str(&format!(
+            "{:<10} {:<15} {:<15} {:<15}\n",
+            "TOTAL", total_in_queue, total_tasks_done, total_queue_size
+        ));
+        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15}\n", "(current)", current_jobs, "", ""));
         result.push_str(&"=".repeat(80));
         result.push('\n');
 
         result
+    }
+
+    /// Get total number of tasks completed by summing all per-core done counters
+    pub fn get_total_tasks_done(&self) -> usize {
+        self.items.iter().map(|item| item.cnt_done_jobs.load(Ordering::Relaxed)).sum()
     }
 }
