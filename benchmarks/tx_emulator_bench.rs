@@ -205,7 +205,7 @@ fn pin_to_core() -> bool { *PIN_TO_CORE.get_or_init(|| true) }
 fn threads_count() -> u32 { *WORKER_THREADS_COUNT.get_or_init(|| 1) } // *THREADS_COUNT.get_or_init(|| 5)
 
 static TOTAL_REQUESTS: LazyLock<usize> = LazyLock::new(|| {
-    let mut paralel_req = std::thread::available_parallelism().unwrap().get();
+    let paralel_req = std::thread::available_parallelism().unwrap().get();
     if paralel_req < 2 {
         panic!("WTF parralel requests:{}", paralel_req);
     }

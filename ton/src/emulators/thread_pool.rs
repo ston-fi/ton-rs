@@ -85,6 +85,11 @@ where
     }
     async fn increment_id_and_get_index(&self, deadline: u128) -> TonResult<usize> {
         loop {
+            if get_now_ms() > deadline {
+                return Err(TonError::EmulatorPoolTimeout {
+                    deadline_time: deadline,
+                });
+            }
             //  find thread with minimum queue size
             let mut min_queue_value = self.thread_queue_capacity as usize + 1;
             let mut target_queue_index = self.senders.len(); // set bad index
@@ -103,11 +108,7 @@ where
 
             if target_queue_index == self.senders.len() {
                 sleep(Duration::from_millis(1)).await;
-                if get_now_ms() > deadline {
-                    return Err(TonError::EmulatorPoolTimeout {
-                        deadline_time: deadline,
-                    });
-                }
+
                 continue;
             }
             // do  increment asap
