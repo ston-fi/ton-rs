@@ -221,7 +221,6 @@ mod tests {
     use crate::block_tlb::{Msg, ShardAccount, Tx};
     use crate::emulators::tx_emulator::tx_emul_args::TXEmulArgs;
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
-    use futures_util::future;
     use std::str::FromStr;
     use std::sync::LazyLock;
     use tokio_test::{assert_err, assert_ok};

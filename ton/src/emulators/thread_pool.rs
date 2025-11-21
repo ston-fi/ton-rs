@@ -316,11 +316,8 @@ mod tests {
     async fn test_thread_pool_basic() {
         // Create pool with TTL 1 second and 2 threads
         let mut objects = vec![TestObject { id: 1 }, TestObject { id: 2 }];
-        let pool = ThreadPool::new(
-            objects, None, 1000, // 1 second timeout in milliseconds
-            100,  // max_tasks_in_queue
-        )
-        .unwrap();
+        let config = ThreadPoolConfig::new(1000, 100, None); // 1 second timeout, max 100 tasks in queue
+        let pool = ThreadPool::new(objects, config).unwrap();
 
         // Run 1 task
         let result = pool.execute_task(42, None).await.unwrap();
