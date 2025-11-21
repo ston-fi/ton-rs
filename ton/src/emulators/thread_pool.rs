@@ -5,7 +5,6 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
-use std::thread::JoinHandle;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 use tokio::time::sleep;
@@ -35,8 +34,6 @@ where
     Retval: Send + 'static,
 {
     senders: Vec<Sender<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>>,
-    #[allow(dead_code)]
-    thread_handles: Vec<JoinHandle<TonResult<()>>>,
     cnt_jobs_in_queue: Vec<AtomicUsize>,
     cnt_done_tasks: Vec<AtomicUsize>,
     cnt_errored_tasks: Vec<AtomicUsize>,
@@ -60,7 +57,7 @@ where
 
         let num_threads = objects.len();
         let mut senders = Vec::with_capacity(num_threads);
-        let mut thread_handles = Vec::with_capacity(num_threads);
+
         let mut cnt_jobs_in_queue = Vec::with_capacity(num_threads);
         let mut cnt_tasks_done = Vec::with_capacity(num_threads);
         let mut cnt_tasks_failed = Vec::with_capacity(num_threads);
@@ -69,16 +66,14 @@ where
             let (tx, rx) = mpsc::channel::<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>();
             let obj = objects.pop().unwrap();
 
-            let handle = thread::spawn(move || Self::worker_loop(obj, id as u32, rx));
+            let _ = thread::spawn(move || Self::worker_loop(obj, id as u32, rx));
             senders.push(tx);
-            thread_handles.push(handle);
             cnt_jobs_in_queue.push(AtomicUsize::new(0));
             cnt_tasks_done.push(AtomicUsize::new(0));
             cnt_tasks_failed.push(AtomicUsize::new(0));
         }
         Ok(Self {
             senders,
-            thread_handles,
             cnt_jobs_in_queue,
             cnt_done_tasks: cnt_tasks_done,
             cnt_errored_tasks: cnt_tasks_failed,
