@@ -8,6 +8,7 @@ pub struct TXEmulOrdArgs {
     pub emul_args: TXEmulArgs,
 }
 
+#[derive(Debug, Clone)]
 pub struct TXEmulTickTockArgs {
     pub is_tock: bool,
     pub emul_args: TXEmulArgs,

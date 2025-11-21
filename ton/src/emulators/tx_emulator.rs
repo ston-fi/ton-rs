@@ -1,9 +1,6 @@
 mod tx_emul_args;
 mod tx_emul_response;
 
-pub use tx_emul_args::*;
-pub use tx_emul_response::*;
-
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
 use crate::errors::TonError;
@@ -12,6 +9,8 @@ use std::sync::Arc;
 use ton_core::cell::TonHash;
 use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
 use tonlib_sys::*;
+pub use tx_emul_args::*;
+pub use tx_emul_response::*;
 
 pub struct TXEmulator {
     emulator: *mut std::ffi::c_void,

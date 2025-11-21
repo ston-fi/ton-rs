@@ -4,7 +4,12 @@ rust-version.workspace = true
 edition.workspace = true
 publish = false
 
-[dependencies]
+[features]
+tonlibjson = ["ton/tonlibjson"]
+tonunstable=["ton/unstable"]
+
+
+[dev-dependencies]
 ton = { path = "../ton", version = "0" }
 ton_core = { path = "../ton_core", version = "0" }
 
@@ -17,9 +22,13 @@ num-bigint.workspace = true
 criterion = "0.7"
 bitstream-io.workspace = true
 hex = "0.4"
-
+tokio-test = "0.4"
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+futures-util.workspace = true
+core_affinity = { version = "0.5" }
 tonlib-core = "0.26"
-
+libc = "0.2.176"
+clap = { version = "4.5.51", features = ["derive"] }
 
 [[bench]]
 name = "build_empty_cell"
@@ -50,3 +59,9 @@ harness = false
 name = "cell_deep_copy"
 path = "cell_deep_copy.rs"
 harness = false
+
+[[bench]]
+name = "tx_emulator_bench"
+path = "tx_emulator_bench.rs"
+harness = false
+required-features = ["tonlibjson","tonunstable"]
