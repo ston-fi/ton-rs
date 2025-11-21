@@ -1,5 +1,6 @@
 use crate::bail_ton;
 use crate::errors::{TonError, TonResult};
+use log;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -8,7 +9,6 @@ use std::thread::JoinHandle;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 use tokio::time::sleep;
-
 const FULL_QUEUE_SLEEP_TIME: u64 = 2;
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
@@ -65,11 +65,11 @@ where
         let mut cnt_tasks_done = Vec::with_capacity(num_threads);
         let mut cnt_tasks_failed = Vec::with_capacity(num_threads);
 
-        for _ in 0..num_threads {
+        for id in 0..num_threads {
             let (tx, rx) = mpsc::channel::<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>();
             let obj = objects.pop().unwrap();
 
-            let handle = thread::spawn(move || Self::worker_loop(obj, rx));
+            let handle = thread::spawn(move || Self::worker_loop(obj, id as u32, rx));
             senders.push(tx);
             thread_handles.push(handle);
             cnt_jobs_in_queue.push(AtomicUsize::new(0));
@@ -166,8 +166,10 @@ where
 
     fn worker_loop(
         mut obj: Obj,
+        id: u32,
         receiver: Receiver<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>,
     ) -> TonResult<()> {
+        log::debug!("Thread worker with id:{} is started", id);
         loop {
             let command = receiver.recv();
             match command {
@@ -184,6 +186,7 @@ where
                 Err(_) => break,
             }
         }
+        log::debug!("Thread worker with id:{} is done", id);
         Ok(())
     }
 
