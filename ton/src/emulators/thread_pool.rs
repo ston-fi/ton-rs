@@ -10,7 +10,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 use tokio::time::sleep;
 
-
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
 }
@@ -200,23 +199,14 @@ where
 
 struct DecrementOnDestructor<'a> {
     cnt: &'a AtomicU16,
-
 }
 
 impl<'a> DecrementOnDestructor<'a> {
-    fn new(cnt: &'a AtomicU16) -> Self {
-        DecrementOnDestructor {
-            cnt,
-
-        }
-    }
-
+    fn new(cnt: &'a AtomicU16) -> Self { DecrementOnDestructor { cnt } }
 }
 
 impl<'a> Drop for DecrementOnDestructor<'a> {
-    fn drop(&mut self) {
-          self.cnt.fetch_sub(1, Ordering::Relaxed);
-    }
+    fn drop(&mut self) { self.cnt.fetch_sub(1, Ordering::Relaxed); }
 }
 
 type CommandChannel<T, R> = (Sender<Command<T, R>>, Receiver<Command<T, R>>);
