@@ -86,7 +86,7 @@ mod example {
                 bounced: false,
                 src: MsgAddress::NONE,
                 dst: wallet.address.to_msg_address(),
-                value: CurrencyCollection::new(50010u128),
+                value: CurrencyCollection::from_num(&50010u128)?,
                 ihr_fee: Coins::ZERO,
                 fwd_fee: Coins::ZERO,
                 created_lt: 0,

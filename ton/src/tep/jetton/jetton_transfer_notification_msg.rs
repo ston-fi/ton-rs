@@ -1,5 +1,6 @@
 use crate::block_tlb::Coins;
 use ton_core::cell::TonCell;
+use ton_core::traits::tlb::TLB;
 use ton_core::types::tlb_core::TLBEitherRef;
 use ton_core::types::TonAddress;
 use ton_core::TLB;
@@ -11,15 +12,15 @@ use ton_core::TLB;
 /// ```
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0x7362d09c, bits_len = 32, ensure_empty = true)]
-pub struct JettonTransferNotificationMsg {
-    pub query_id: u64,                          // should be equal with request's query_id
-    pub amount: Coins,                          // amount of transferred jettons
-    pub sender: TonAddress,                     // is address of the previous owner of transferred jettons
-    pub forward_payload: TLBEitherRef<TonCell>, //  optional custom data that should be sent to the destination address.
+pub struct JettonTransferNotificationMsg<T: TLB = TonCell> {
+    pub query_id: u64,                    // should be equal with request's query_id
+    pub amount: Coins,                    // amount of transferred jettons
+    pub sender: TonAddress,               // is address of the previous owner of transferred jettons
+    pub forward_payload: TLBEitherRef<T>, //  optional custom data that should be sent to the destination address.
 }
 
-impl JettonTransferNotificationMsg {
-    pub fn new<C: Into<Coins>>(amount: C, sender: TonAddress, forward_payload: TonCell) -> Self {
+impl<T: TLB> JettonTransferNotificationMsg<T> {
+    pub fn new<C: Into<Coins>>(amount: C, sender: TonAddress, forward_payload: T) -> Self {
         JettonTransferNotificationMsg {
             query_id: 0,
             amount: amount.into(),
