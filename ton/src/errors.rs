@@ -72,8 +72,8 @@ pub enum TonError {
         vm_exit_code: Option<i32>,
         response_raw: String,
     },
-    #[error("EmulatorPoolTimeout: current_time={deadline_time}")]
-    EmulatorPoolTimeout { deadline_time: u128 },
+    #[error("EmulatorPoolTimeout: timeout={timeout} ms is done")]
+    EmulatorPoolTimeout { timeout: u64 },
 
     // TVMStack
     #[error("TVMStackError: fail to pop specified type. expected: {0}, got: {1}")]

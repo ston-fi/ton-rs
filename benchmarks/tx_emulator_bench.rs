@@ -24,9 +24,7 @@ use ton::sys_utils::sys_tonlib_set_verbosity_level;
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
-const AFFINITY_CORE_ID: usize = 1;
 const DEFAULT_SLEEP_TIME_MICROS: u64 = 1000;
-
 const BENCH_TASK_PER_CORE_COUNT: usize = 10;
 const CRITERION_SAMPLES_COUNT: u32 = 10;
 const DEFAULT_DEADLINE_MS: u64 = 30000; //30 sec for bench (increased to handle larger queues)
@@ -38,16 +36,13 @@ enum RunMode {
     EmulatorPool,
     RecreateEmulTest,
 }
-static PIN_TO_CORE: OnceLock<bool> = OnceLock::new();
+
 static WORKER_THREADS_COUNT: OnceLock<u32> = OnceLock::new();
 static RUN_MODE: OnceLock<RunMode> = OnceLock::new();
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Pin threads to specific cores
-    #[arg(long = "pin-to-core", alias = "pin_to_core", default_value_t = false, action = clap::ArgAction::Set)]
-    pin_to_core: bool,
     #[arg(long = "threads", alias = "threads", default_value_t = 0, action = clap::ArgAction::Set)]
     threads: u32,
     #[arg(long = "mode", alias = "mode", default_value_t = 1, action = clap::ArgAction::Set)]
@@ -67,8 +62,7 @@ fn parse_custom_args() -> Args {
     let mut iter = std::env::args().skip(1);
     while let Some(arg) = iter.next() {
         let normalized = arg.replace('_', "-");
-        if normalized.starts_with("--pin-to-core")
-            || normalized.starts_with("--threads")
+        if normalized.starts_with("--threads")
             || normalized.starts_with("--mode")
             || normalized.starts_with("--help-modes")
         {
@@ -116,12 +110,11 @@ fn configure_criterion() -> (Criterion, String) {
     } else {
         args.threads
     };
-    let _ = PIN_TO_CORE.set(args.pin_to_core);
+
     let _ = WORKER_THREADS_COUNT.set(threads);
 
     let run_str = format!(
-        "Benchmark config: PIN_TO_CORE = {}, THREADS_COUNT = {}, ITERATIONS_COUNT = {}, Mode={}, StrMode={:?}",
-        args.pin_to_core,
+        "Benchmark config:  THREADS_COUNT = {}, ITERATIONS_COUNT = {}, Mode={}, StrMode={:?}",
         threads,
         total_requests(),
         args.mode,
@@ -201,8 +194,6 @@ enum Task {
     TxEmulOrd(TXEmulOrdArgs),
 }
 
-fn pin_to_core() -> bool { *PIN_TO_CORE.get_or_init(|| true) }
-
 fn threads_count() -> u32 { *WORKER_THREADS_COUNT.get_or_init(|| 1) } // *THREADS_COUNT.get_or_init(|| 5)
 
 static TOTAL_REQUESTS: LazyLock<usize> = LazyLock::new(|| {
@@ -215,24 +206,6 @@ static TOTAL_REQUESTS: LazyLock<usize> = LazyLock::new(|| {
 });
 
 fn total_requests() -> usize { *TOTAL_REQUESTS }
-
-fn check_thread_params(msg: &str) {
-    if pin_to_core() {
-        check_cpu_id(AFFINITY_CORE_ID as i32).expect(msg);
-    }
-}
-
-fn apply_thread_params() {
-    if pin_to_core() {
-        set_for_current(core_affinity::CoreId { id: AFFINITY_CORE_ID });
-        check_thread_params("apply_thread_params");
-    }
-}
-fn apply_main_thread_params() {
-    if pin_to_core() {
-        set_for_current(core_affinity::CoreId { id: 0 });
-    }
-}
 
 fn get_empty_tx_emul_success() -> TXEmulationSuccess {
     TXEmulationSuccess {
@@ -259,7 +232,6 @@ impl CpuLoadObject {
     }
 
     fn do_task(&mut self, task: &Task) -> TonResult<TXEmulationSuccess> {
-        check_thread_params("CpuLoadObject::do_task");
         let ret_val = match task {
             Task::CpuFullLoad { run_time, .. } => {
                 cpu_load_function(*run_time);
@@ -292,7 +264,6 @@ impl PooledObject<Task, TXEmulationSuccess> for CpuLoadObject {
 macro_rules! run_pool_test {
     ($pool:expr, $task:expr) => {{
         async {
-            apply_main_thread_params();
             let mut answer_keeper = Vec::with_capacity(total_requests());
             for _ in 0..total_requests() {
                 answer_keeper.push($pool.execute_task($task.clone(), None));
@@ -395,7 +366,7 @@ fn main() {
         }
     }
 
-    let pool_config = ThreadPoolConfig::new(DEFAULT_DEADLINE_MS, max_queue_size, Some(apply_thread_params));
+    let pool_config = ThreadPoolConfig::new(DEFAULT_DEADLINE_MS, max_queue_size);
     let pool_min_queue = PoolUnderTest::new(objects_mq, pool_config.clone()).unwrap();
     let _ = THREAD_POOL.set(pool_min_queue);
 

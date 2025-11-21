@@ -16,15 +16,13 @@ pub trait PooledObject<T: Send, R: Send> {
 pub struct ThreadPoolConfig {
     default_timeout_emulation: u64,
     thread_queue_capacity: u32,
-    pin_to_core_function: Option<fn()>,
 }
 
 impl ThreadPoolConfig {
-    pub fn new(default_timeout_emulation: u64, thread_queue_capacity: u32, pin_to_core_function: Option<fn()>) -> Self {
+    pub fn new(default_timeout_emulation: u64, thread_queue_capacity: u32) -> Self {
         Self {
             default_timeout_emulation,
             thread_queue_capacity,
-            pin_to_core_function,
         }
     }
 }
@@ -35,7 +33,7 @@ where
     Task: Send + 'static,
     Retval: Send + 'static,
 {
-    senders: Vec<Sender<Command<Task, TonResult<Retval>>>>,
+    senders: Vec<Sender<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>>,
     #[allow(dead_code)]
     thread_handles: Vec<JoinHandle<TonResult<u64>>>,
     cnt_jobs_in_queue: Vec<AtomicUsize>,
@@ -67,15 +65,10 @@ where
         let mut cnt_errored_tasks = Vec::with_capacity(num_threads);
 
         for _ in 0..num_threads {
-            let (tx, rx): CommandChannel<Task, TonResult<Retval>> = mpsc::channel();
+            let (tx, rx) = mpsc::channel::<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>();
             let obj = obj_arr.pop().unwrap();
 
-            let handle = thread::spawn(move || {
-                if let Some(init_fn) = cfg.pin_to_core_function {
-                    init_fn();
-                }
-                Self::worker_loop(obj, rx)
-            });
+            let handle = thread::spawn(move || Self::worker_loop(obj, rx));
             senders.push(tx);
             thread_handles.push(handle);
             cnt_jobs_in_queue.push(AtomicUsize::new(0));
@@ -95,12 +88,10 @@ where
         })
     }
     // This function increment a queue state
-    async fn find_thread_id(&self, deadline: u128) -> TonResult<usize> {
+    async fn find_thread_id(&self, deadline: u128, timeout: u64) -> TonResult<usize> {
         loop {
             if get_now_ms() > deadline {
-                return Err(TonError::EmulatorPoolTimeout {
-                    deadline_time: deadline,
-                });
+                return Err(TonError::EmulatorPoolTimeout { timeout });
             }
             //  find thread with minimum queue size
             let mut min_queue_value = self.thread_queue_capacity as usize + 1;
@@ -131,15 +122,17 @@ where
     }
 
     pub async fn execute_task(&self, task: Task, maybe_custom_timeout_ms: Option<u64>) -> TonResult<Retval> {
-        let deadline_time = if let Some(timeout) = maybe_custom_timeout_ms {
-            get_now_ms() + timeout as u128
+        let current_time = get_now_ms();
+        let timeout = if let Some(timeout) = maybe_custom_timeout_ms {
+            timeout
         } else {
-            get_now_ms() + self.default_timeout_emulation as u128
+            self.default_timeout_emulation
         };
+        let deadline_time = current_time + timeout as u128;
 
         let (tx, rx) = oneshot::channel();
-        let command = Command::Execute(task, tx, deadline_time);
-        let idx = self.find_thread_id(deadline_time).await?;
+        let command = (task, tx, deadline_time, timeout);
+        let idx = self.find_thread_id(deadline_time, timeout).await?;
         let _guard = DecrementOnDestructor::new(&self.cnt_jobs_in_queue[idx]);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
         self.senders[idx].send(command).map_err(|e| {
@@ -168,18 +161,22 @@ where
             }
         }
     }
+    pub fn get_avaliable_cores_count() -> usize { std::thread::available_parallelism().unwrap().get() }
 
-    fn worker_loop(mut obj: Obj, receiver: Receiver<Command<Task, TonResult<Retval>>>) -> TonResult<u64> {
+    fn worker_loop(
+        mut obj: Obj,
+        receiver: Receiver<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>,
+    ) -> TonResult<u64> {
         let mut counter = 0;
         loop {
             let command = receiver.recv();
             counter += 1;
             match command {
-                Ok(Command::Execute(task, resp_sender, deadline_time)) => {
+                Ok((task, resp_sender, deadline_time, timeout)) => {
                     // Check if deadline has passed
                     let current_time = get_now_ms();
                     if current_time > deadline_time {
-                        let _ = resp_sender.send(Err(TonError::EmulatorPoolTimeout { deadline_time }));
+                        let _ = resp_sender.send(Err(TonError::EmulatorPoolTimeout { timeout }));
                         continue;
                     }
                     let result = obj.handle(task)?;
@@ -263,16 +260,6 @@ impl<'a> DecrementOnDestructor<'a> {
 
 impl<'a> Drop for DecrementOnDestructor<'a> {
     fn drop(&mut self) { self.cnt.fetch_sub(1, Ordering::Relaxed); }
-}
-
-type CommandChannel<T, R> = (Sender<Command<T, R>>, Receiver<Command<T, R>>);
-
-enum Command<T, R>
-where
-    T: Send,
-    R: Send,
-{
-    Execute(T, oneshot::Sender<R>, u128), // task, sender, timeout
 }
 
 fn get_now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() }
