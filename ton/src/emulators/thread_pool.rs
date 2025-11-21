@@ -12,6 +12,20 @@ use tokio::time::sleep;
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
 }
+pub struct ThreadPoolConfig {
+    default_timeout_emulation: u64,
+    thread_queue_capacity: u32,
+    pin_to_core_function: Option<fn()>,
+}
+impl ThreadPoolConfig {
+    pub fn new(default_timeout_emulation: u64, thread_queue_capacity: u32, pin_to_core_function: Option<fn()>) -> Self {
+        Self {
+            default_timeout_emulation,
+            thread_queue_capacity,
+            pin_to_core_function,
+        }
+    }
+}
 
 pub struct ThreadPool<Obj, Task, Retval>
 where
@@ -38,12 +52,7 @@ where
     Task: Send + 'static,
     Retval: Send + 'static,
 {
-    pub fn new(
-        mut obj_arr: Vec<Obj>,
-        default_timeout_emulation: u64,
-        thread_queue_capacity: u32,
-        th_init: Option<fn()>,
-    ) -> TonResult<Self> {
+    pub fn new(mut obj_arr: Vec<Obj>, cfg: ThreadPoolConfig) -> TonResult<Self> {
         if obj_arr.is_empty() {
             bail_ton!("Object array for ThreadPool is empty");
         }
@@ -60,7 +69,7 @@ where
             let obj = obj_arr.pop().unwrap();
 
             let handle = thread::spawn(move || {
-                if let Some(init_fn) = th_init {
+                if let Some(init_fn) = cfg.pin_to_core_function {
                     init_fn();
                 }
                 Self::worker_loop(obj, rx)
@@ -78,8 +87,8 @@ where
             cnt_done_tasks,
             cnt_errored_tasks,
             cnt_current_jobs: AtomicUsize::new(0),
-            default_timeout_emulation,
-            thread_queue_capacity,
+            default_timeout_emulation: cfg.default_timeout_emulation,
+            thread_queue_capacity: cfg.thread_queue_capacity,
             _phantom: std::marker::PhantomData,
         })
     }
@@ -255,9 +264,7 @@ impl<'a> DecrementOnDestructor<'a> {
 }
 
 impl<'a> Drop for DecrementOnDestructor<'a> {
-    fn drop(&mut self) {
-        self.cnt.fetch_sub(1, Ordering::Relaxed);
-    }
+    fn drop(&mut self) { self.cnt.fetch_sub(1, Ordering::Relaxed); }
 }
 
 type CommandChannel<T, R> = (Sender<Command<T, R>>, Receiver<Command<T, R>>);

@@ -15,6 +15,7 @@ use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::emul_bc_config::EmulBCConfig;
 use ton::emulators::thread_pool::PooledObject;
 use ton::emulators::thread_pool::ThreadPool;
+use ton::emulators::thread_pool::ThreadPoolConfig;
 use ton::emulators::tx_emulator::{
     TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator, TxEmulatorPool, TxEmulatorTask,
 };
@@ -394,8 +395,8 @@ fn main() {
         }
     }
 
-    let pool_min_queue =
-        PoolUnderTest::new(objects_mq, DEFAULT_DEADLINE_MS, max_queue_size, Some(apply_thread_params)).unwrap();
+    let pool_config = ThreadPoolConfig::new(DEFAULT_DEADLINE_MS, max_queue_size, Some(apply_thread_params));
+    let pool_min_queue = PoolUnderTest::new(objects_mq, pool_config.clone()).unwrap();
     let _ = THREAD_POOL.set(pool_min_queue);
 
     // Create TxEmulatorPool for EmulatorPool mode
@@ -404,8 +405,7 @@ fn main() {
         for _ in 0..threads_count() {
             emulators.push(TXEmulator::new(0, false).unwrap());
         }
-        let tx_emulator_pool =
-            TxEmulatorPool::new(emulators, DEFAULT_DEADLINE_MS, max_queue_size, Some(apply_thread_params)).unwrap();
+        let tx_emulator_pool = TxEmulatorPool::new(emulators, pool_config).unwrap();
         let _ = TX_EMULATOR_POOL.set(tx_emulator_pool);
     }
 
