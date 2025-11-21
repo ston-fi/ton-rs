@@ -89,7 +89,7 @@ where
         })
     }
     // This function increment a queue state
-    async fn find_thread_id(&self, deadline: u128, timeout: u64) -> TonResult<usize> {
+    async fn pick_thread_index_and_inc_counter(&self, deadline: u128, timeout: u64) -> TonResult<usize> {
         loop {
             if get_now_ms() > deadline {
                 return Err(TonError::EmulatorPoolTimeout { timeout });
@@ -133,7 +133,7 @@ where
 
         let (tx, rx) = oneshot::channel();
         let command = (task, tx, deadline_time, timeout);
-        let idx = self.find_thread_id(deadline_time, timeout as u64).await?;
+        let idx = self.pick_thread_index_and_inc_counter(deadline_time, timeout as u64).await?;
         let _guard = DecrementOnDestructor::new(&self.cnt_jobs_in_queue[idx]);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
         self.senders[idx].send(command).map_err(|e| {
