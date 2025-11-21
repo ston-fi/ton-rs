@@ -1,8 +1,7 @@
 mod benchmark_utils;
-use crate::benchmark_utils::check_cpu_id;
+
 use crate::benchmark_utils::cpu_load_function;
 use clap::Parser;
-use core_affinity::set_for_current;
 use criterion::Criterion;
 use futures_util::future::join_all;
 use std::hint::black_box;
@@ -13,12 +12,9 @@ use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::emul_bc_config::EmulBCConfig;
-use ton::emulators::thread_pool::PooledObject;
-use ton::emulators::thread_pool::ThreadPool;
-use ton::emulators::thread_pool::ThreadPoolConfig;
-use ton::emulators::tx_emulator::{
-    TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator, TxEmulatorPool, TxEmulatorTask,
-};
+use ton::emulators::thread_pool::{PooledObject, ThreadPool, ThreadPoolConfig};
+use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
+use ton::emulators::tx_emulator_pool::{TxEmulatorPool, TxEmulatorTask};
 use ton::errors::TonResult;
 use ton::sys_utils::sys_tonlib_set_verbosity_level;
 use ton_core::cell::TonHash;

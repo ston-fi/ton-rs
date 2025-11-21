@@ -1,20 +1,16 @@
 mod tx_emul_args;
 mod tx_emul_response;
 
-pub use tx_emul_args::*;
-pub use tx_emul_response::*;
-
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
-use crate::errors::{TonError, TonResult};
+use crate::errors::TonError;
 use std::ffi::CString;
 use std::sync::Arc;
 use ton_core::cell::TonHash;
 use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
 use tonlib_sys::*;
-
-#[cfg(feature = "unstable")]
-use crate::emulators::thread_pool::{PooledObject, ThreadPool};
+pub use tx_emul_args::*;
+pub use tx_emul_response::*;
 
 pub struct TXEmulator {
     emulator: *mut std::ffi::c_void,
@@ -193,26 +189,6 @@ fn calc_hash<T: AsRef<[u8]> + std::hash::Hash>(data: T) -> u64 {
     let mut s = DefaultHasher::new();
     data.hash(&mut s);
     s.finish()
-}
-
-#[cfg(feature = "unstable")]
-pub type TxEmulatorPool = ThreadPool<TXEmulator, TxEmulatorTask, TXEmulationSuccess>;
-
-#[cfg(feature = "unstable")]
-#[derive(Clone, Debug)]
-pub enum TxEmulatorTask {
-    TXOrd(TXEmulOrdArgs),
-    TXTicktock(TXEmulTickTockArgs),
-}
-
-#[cfg(feature = "unstable")]
-impl PooledObject<TxEmulatorTask, TXEmulationSuccess> for TXEmulator {
-    fn handle(&mut self, task: TxEmulatorTask) -> TonResult<TXEmulationSuccess> {
-        match task {
-            TxEmulatorTask::TXOrd(args) => self.emulate_ord(&args),
-            TxEmulatorTask::TXTicktock(args) => self.emulate_ticktock(&args),
-        }
-    }
 }
 
 #[cfg(test)]

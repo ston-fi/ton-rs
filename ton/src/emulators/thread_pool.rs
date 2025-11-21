@@ -9,19 +9,20 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 use tokio::time::sleep;
 
+const FULL_QUEUE_SLEEP_TIME: u64 = 2;
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
 }
 #[derive(Clone, Debug)]
 pub struct ThreadPoolConfig {
-    default_timeout_emulation: u64,
+    default_emulation_timeout: u64,
     thread_queue_capacity: u32,
 }
 
 impl ThreadPoolConfig {
     pub fn new(default_timeout_emulation: u64, thread_queue_capacity: u32) -> Self {
         Self {
-            default_timeout_emulation,
+            default_emulation_timeout: default_timeout_emulation,
             thread_queue_capacity,
         }
     }
@@ -35,7 +36,7 @@ where
 {
     senders: Vec<Sender<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>>,
     #[allow(dead_code)]
-    thread_handles: Vec<JoinHandle<TonResult<u64>>>,
+    thread_handles: Vec<JoinHandle<TonResult<()>>>,
     cnt_jobs_in_queue: Vec<AtomicUsize>,
     cnt_done_tasks: Vec<AtomicUsize>,
     cnt_errored_tasks: Vec<AtomicUsize>,
@@ -52,37 +53,37 @@ where
     Task: Send + 'static,
     Retval: Send + 'static,
 {
-    pub fn new(mut obj_arr: Vec<Obj>, cfg: ThreadPoolConfig) -> TonResult<Self> {
-        if obj_arr.is_empty() {
+    pub fn new(mut objects: Vec<Obj>, cfg: ThreadPoolConfig) -> TonResult<Self> {
+        if objects.is_empty() {
             bail_ton!("Object array for ThreadPool is empty");
         }
 
-        let num_threads = obj_arr.len();
+        let num_threads = objects.len();
         let mut senders = Vec::with_capacity(num_threads);
         let mut thread_handles = Vec::with_capacity(num_threads);
         let mut cnt_jobs_in_queue = Vec::with_capacity(num_threads);
-        let mut cnt_done_tasks = Vec::with_capacity(num_threads);
-        let mut cnt_errored_tasks = Vec::with_capacity(num_threads);
+        let mut cnt_tasks_done = Vec::with_capacity(num_threads);
+        let mut cnt_tasks_failed = Vec::with_capacity(num_threads);
 
         for _ in 0..num_threads {
             let (tx, rx) = mpsc::channel::<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>();
-            let obj = obj_arr.pop().unwrap();
+            let obj = objects.pop().unwrap();
 
             let handle = thread::spawn(move || Self::worker_loop(obj, rx));
             senders.push(tx);
             thread_handles.push(handle);
             cnt_jobs_in_queue.push(AtomicUsize::new(0));
-            cnt_done_tasks.push(AtomicUsize::new(0));
-            cnt_errored_tasks.push(AtomicUsize::new(0));
+            cnt_tasks_done.push(AtomicUsize::new(0));
+            cnt_tasks_failed.push(AtomicUsize::new(0));
         }
         Ok(Self {
             senders,
             thread_handles,
             cnt_jobs_in_queue,
-            cnt_done_tasks,
-            cnt_errored_tasks,
+            cnt_done_tasks: cnt_tasks_done,
+            cnt_errored_tasks: cnt_tasks_failed,
             cnt_current_jobs: AtomicUsize::new(0),
-            default_timeout_emulation: cfg.default_timeout_emulation,
+            default_timeout_emulation: cfg.default_emulation_timeout,
             thread_queue_capacity: cfg.thread_queue_capacity,
             _phantom: std::marker::PhantomData,
         })
@@ -110,7 +111,7 @@ where
             }
 
             if target_queue_index == self.senders.len() {
-                sleep(Duration::from_millis(1)).await;
+                sleep(Duration::from_millis(FULL_QUEUE_SLEEP_TIME)).await;
 
                 continue;
             }
@@ -166,11 +167,9 @@ where
     fn worker_loop(
         mut obj: Obj,
         receiver: Receiver<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>,
-    ) -> TonResult<u64> {
-        let mut counter = 0;
+    ) -> TonResult<()> {
         loop {
             let command = receiver.recv();
-            counter += 1;
             match command {
                 Ok((task, resp_sender, deadline_time, timeout)) => {
                     // Check if deadline has passed
@@ -185,7 +184,7 @@ where
                 Err(_) => break,
             }
         }
-        Ok(counter)
+        Ok(())
     }
 
     pub fn print_stats(&self) -> String {

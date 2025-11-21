@@ -16,11 +16,11 @@ pub(super) static SHARD_BLOCK_BOC: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
     Arc::new(hex::decode(hex).unwrap())
 });
 
-#[inline]
+#[allow(unused)]
 pub fn get_now_ns() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() }
-
+#[allow(unused)]
 pub fn current_cpu_id() -> i32 { unsafe { libc::sched_getcpu() } }
-
+#[allow(unused)]
 pub fn check_cpu_id(id: i32) -> Result<(), TonCoreError> {
     if current_cpu_id() != id {
         let s = format!("Current CPU id {} does not match the expected CPU id {}", current_cpu_id(), id);
