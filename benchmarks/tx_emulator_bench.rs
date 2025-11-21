@@ -122,7 +122,7 @@ fn configure_criterion() -> (Criterion, String) {
     let run_str = format!(
         "Benchmark config: PIN_TO_CORE = {}, THREADS_COUNT = {}, ITERATIONS_COUNT = {}, Mode={}, StrMode={:?}",
         args.pin_to_core,
-        args.threads,
+        threads,
         total_requests(),
         args.mode,
         RUN_MODE.get().unwrap()
@@ -210,9 +210,9 @@ static TOTAL_REQUESTS: LazyLock<usize> = LazyLock::new(|| {
     if paralel_req < 2 {
         panic!("WTF parralel requests:{}", paralel_req);
     }
-    if threads_count() < paralel_req as u32 {
-        paralel_req = threads_count() as usize;
-    }
+    // if threads_count() < paralel_req as u32 {
+    //     paralel_req = threads_count() as usize;
+    // }
 
     BENCH_TASK_PER_CORE_COUNT * paralel_req
 });
