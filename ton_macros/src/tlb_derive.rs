@@ -89,7 +89,7 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     };
 
     let prefix_expr: TokenStream = match &header_attrs.prefix {
-        Some(e) => quote!(#e),
+        Some(e) => quote!(#e as usize),
         None => quote!(0),
     };
     let bits_len_expr: TokenStream = match &header_attrs.bits_len {

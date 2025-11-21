@@ -45,7 +45,7 @@ mod tests {
 
         let expected_msg = JettonBurnMsg {
             query_id: 667217747695,
-            amount: Coins::new(528161u64),
+            amount: Coins::new(528_161),
             response_dst: TonAddress::from_str("EQBYE3OMjPlkHPsc-Dxs9zXk66yXXvKr9vgbMIoOPi-XUa-f")?
                 .to_msg_address_int()
                 .into(),
@@ -61,7 +61,7 @@ mod tests {
 
         let expected_burn_notcoin = JettonBurnMsg {
             query_id: 1,
-            amount: Coins::new(300000000000u64),
+            amount: Coins::new(300_000_000_000),
             response_dst: TonAddress::from_str("EQBmmSYIpYH8IxubmmOlnhlD8NRhY5la9SsdC-MTt3pXmOSI")?
                 .to_msg_address_int()
                 .into(),

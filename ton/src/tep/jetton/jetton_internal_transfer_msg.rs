@@ -40,11 +40,11 @@ mod tests {
 
         let expected = JettonInternalTransferMsg {
             query_id: 352352856990,
-            amount: Coins::new(1089377168u64),
+            amount: Coins::new(1_089_377_168),
             from_address: TonAddress::from_str("UQDzd5FDImOt9dBGRccVb7F487B0JDDa4ZgT-CGfDIQriSB-")?.to_msg_address(),
             response_address: TonAddress::from_str("UQDzd5FDImOt9dBGRccVb7F487B0JDDa4ZgT-CGfDIQriSB-")?
                 .to_msg_address(),
-            forward_amount: Coins::new(125000000u64),
+            forward_amount: Coins::new(125_000_000),
             forward_payload: TLBEitherRef::new(payload),
         };
 

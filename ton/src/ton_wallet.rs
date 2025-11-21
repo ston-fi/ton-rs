@@ -91,7 +91,7 @@ impl TonWallet {
             import_fee: Coins::ZERO,
         });
 
-        let mut message = Msg::new(msg_info, signed_body);
+        let mut message = Msg::new(msg_info, signed_body)?;
         if add_state_init {
             let code = WalletVersion::get_code(self.version)?.clone();
             let data = WalletVersion::get_default_data(self.version, &self.key_pair, self.wallet_id)?;

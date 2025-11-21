@@ -80,6 +80,8 @@ impl TonCoreError {
     }
 }
 
+pub type TonCoreResult<T> = Result<T, TonCoreError>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
