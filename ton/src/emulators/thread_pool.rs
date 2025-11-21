@@ -27,8 +27,8 @@ where
     cnt_errored_tasks: Vec<AtomicUsize>,
 
     cnt_current_jobs: AtomicUsize,
-    timeout_emulation: u64,
-    max_tasks_in_queue: u32,
+    default_timeout_emulation: u64,
+    thread_queue_capacity: u32,
     _phantom: std::marker::PhantomData<Obj>,
 }
 
@@ -40,9 +40,9 @@ where
 {
     pub fn new(
         mut obj_arr: Vec<Obj>,
+        default_timeout_emulation: u64,
+        thread_queue_capacity: u32,
         th_init: Option<fn()>,
-        timeout_emulation: u64,
-        max_tasks_in_queue: u32,
     ) -> TonResult<Self> {
         if obj_arr.is_empty() {
             bail_ton!("Object array for ThreadPool is empty");
@@ -57,7 +57,7 @@ where
 
         for _ in 0..num_threads {
             let (tx, rx): CommandChannel<Task, TonResult<Retval>> = mpsc::channel();
-            let obj = obj_arr.pop().ok_or(TonError::Custom("Not enough pooled objects for threads".to_string()))?;
+            let obj = obj_arr.pop().unwrap();
 
             let handle = thread::spawn(move || {
                 if let Some(init_fn) = th_init {
@@ -78,15 +78,15 @@ where
             cnt_done_tasks,
             cnt_errored_tasks,
             cnt_current_jobs: AtomicUsize::new(0),
-            timeout_emulation,
-            max_tasks_in_queue,
+            default_timeout_emulation,
+            thread_queue_capacity,
             _phantom: std::marker::PhantomData,
         })
     }
     async fn increment_id_and_get_index(&self, deadline: u128) -> TonResult<usize> {
         loop {
             //  find thread with minimum queue size
-            let mut min_queue_value = self.max_tasks_in_queue as usize + 1;
+            let mut min_queue_value = self.thread_queue_capacity as usize + 1;
             let mut target_queue_index = self.senders.len(); // set bad index
             for i in 0..self.senders.len() {
                 let current_queue_size = self.cnt_jobs_in_queue[i].load(Ordering::Relaxed);
@@ -121,7 +121,7 @@ where
         let deadline_time = if let Some(timeout) = maybe_custom_timeout {
             get_now_ms() + timeout as u128
         } else {
-            get_now_ms() + self.timeout_emulation as u128
+            get_now_ms() + self.default_timeout_emulation as u128
         };
 
         let (tx, rx) = oneshot::channel();

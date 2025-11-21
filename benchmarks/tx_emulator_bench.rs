@@ -37,7 +37,6 @@ enum RunMode {
     EmulatorPool,
     RecreateEmulTest,
 }
-//MinQueue
 static PIN_TO_CORE: OnceLock<bool> = OnceLock::new();
 static WORKER_THREADS_COUNT: OnceLock<u32> = OnceLock::new();
 static RUN_MODE: OnceLock<RunMode> = OnceLock::new();
@@ -210,9 +209,6 @@ static TOTAL_REQUESTS: LazyLock<usize> = LazyLock::new(|| {
     if paralel_req < 2 {
         panic!("WTF parralel requests:{}", paralel_req);
     }
-    // if threads_count() < paralel_req as u32 {
-    //     paralel_req = threads_count() as usize;
-    // }
 
     BENCH_TASK_PER_CORE_COUNT * paralel_req
 });
@@ -399,7 +395,7 @@ fn main() {
     }
 
     let pool_min_queue =
-        PoolUnderTest::new(objects_mq, Some(apply_thread_params), DEFAULT_DEADLINE_MS, max_queue_size).unwrap();
+        PoolUnderTest::new(objects_mq, DEFAULT_DEADLINE_MS, max_queue_size, Some(apply_thread_params)).unwrap();
     let _ = THREAD_POOL.set(pool_min_queue);
 
     // Create TxEmulatorPool for EmulatorPool mode
@@ -409,7 +405,7 @@ fn main() {
             emulators.push(TXEmulator::new(0, false).unwrap());
         }
         let tx_emulator_pool =
-            TxEmulatorPool::new(emulators, Some(apply_thread_params), DEFAULT_DEADLINE_MS, max_queue_size).unwrap();
+            TxEmulatorPool::new(emulators, DEFAULT_DEADLINE_MS, max_queue_size, Some(apply_thread_params)).unwrap();
         let _ = TX_EMULATOR_POOL.set(tx_emulator_pool);
     }
 
