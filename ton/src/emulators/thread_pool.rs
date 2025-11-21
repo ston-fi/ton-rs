@@ -12,11 +12,13 @@ use tokio::time::sleep;
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
 }
+#[derive(Clone, Debug)]
 pub struct ThreadPoolConfig {
     default_timeout_emulation: u64,
     thread_queue_capacity: u32,
     pin_to_core_function: Option<fn()>,
 }
+
 impl ThreadPoolConfig {
     pub fn new(default_timeout_emulation: u64, thread_queue_capacity: u32, pin_to_core_function: Option<fn()>) -> Self {
         Self {
