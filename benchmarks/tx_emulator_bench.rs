@@ -420,5 +420,13 @@ fn main() {
     println!("Available parallelism: {:?}", aval_cores);
 
     println!("{}", run_params);
-    println!("{}", THREAD_POOL.get().unwrap().print_stats());
+    // Print stats for the pool that was actually used
+    match mode {
+        RunMode::EmulatorPool => {
+            println!("{}", TX_EMULATOR_POOL.get().unwrap().print_stats());
+        }
+        _ => {
+            println!("{}", THREAD_POOL.get().unwrap().print_stats());
+        }
+    }
 }

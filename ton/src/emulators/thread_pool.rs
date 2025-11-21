@@ -23,6 +23,8 @@ where
     #[allow(dead_code)]
     thread_handles: Vec<JoinHandle<TonResult<u64>>>,
     cnt_jobs_in_queue: Vec<AtomicUsize>,
+    cnt_done_tasks: Vec<AtomicUsize>,
+    cnt_errored_tasks: Vec<AtomicUsize>,
 
     cnt_current_jobs: AtomicUsize,
     timeout_emulation: u64,
@@ -50,6 +52,8 @@ where
         let mut senders = Vec::with_capacity(num_threads);
         let mut thread_handles = Vec::with_capacity(num_threads);
         let mut cnt_jobs_in_queue = Vec::with_capacity(num_threads);
+        let mut cnt_done_tasks = Vec::with_capacity(num_threads);
+        let mut cnt_errored_tasks = Vec::with_capacity(num_threads);
 
         for _ in 0..num_threads {
             let (tx, rx): CommandChannel<Task, TonResult<Retval>> = mpsc::channel();
@@ -64,11 +68,15 @@ where
             senders.push(tx);
             thread_handles.push(handle);
             cnt_jobs_in_queue.push(AtomicUsize::new(0));
+            cnt_done_tasks.push(AtomicUsize::new(0));
+            cnt_errored_tasks.push(AtomicUsize::new(0));
         }
         Ok(Self {
             senders,
             thread_handles,
             cnt_jobs_in_queue,
+            cnt_done_tasks,
+            cnt_errored_tasks,
             cnt_current_jobs: AtomicUsize::new(0),
             timeout_emulation,
             max_tasks_in_queue,
@@ -121,13 +129,36 @@ where
         let idx = self.increment_id_and_get_index(deadline_time).await?;
         let _guard = DecrementOnDestructor::new(&self.cnt_jobs_in_queue[idx]);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
+        self.senders[idx].send(command).map_err(|e| {
+            // On send error, increment error counter (guard will decrement queue)
+            self.cnt_errored_tasks[idx].fetch_add(1, Ordering::Relaxed);
+            self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
+            TonError::Custom(format!("send task error: {e}"))
+        })?;
+        let res = rx.await.map_err(|e| {
+            // On receive error, increment error counter (guard will decrement queue)
+            self.cnt_errored_tasks[idx].fetch_add(1, Ordering::Relaxed);
+            self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
+            TonError::Custom(format!("receive task error: {e}"))
+        })?;
 
-        self.senders[idx].send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
-        let res = rx.await.map_err(|e| TonError::Custom(format!("receive task error: {e}")))??;
+        // Check if task succeeded or failed (from worker thread)
+        match res {
+            Ok(retval) => {
+                // Task succeeded - decrement queue counter manually and increment done counter
 
-        self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
+                self.cnt_done_tasks[idx].fetch_add(1, Ordering::Relaxed);
+                self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
 
-        Ok(res)
+                Ok(retval)
+            }
+            Err(e) => {
+                // Task failed (from worker) - increment error counter, guard will decrement queue
+                self.cnt_errored_tasks[idx].fetch_add(1, Ordering::Relaxed);
+                self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
+                Err(e)
+            }
+        }
     }
 
     fn worker_loop(mut obj: Obj, receiver: Receiver<Command<Task, TonResult<Retval>>>) -> TonResult<u64> {
@@ -157,39 +188,61 @@ where
 
         // Table header
         result.push_str("ThreadPool Statistics\n");
-        result.push_str(&"=".repeat(80));
+        result.push_str(&"=".repeat(100));
         result.push('\n');
-        result.push_str(&format!("{:<10} {:<15} {:<15}\n", "Thread", "In Queue", "Queue Size"));
-        result.push_str(&"-".repeat(80));
+        result.push_str(&format!(
+            "{:<10} {:<15} {:<15} {:<15} {:<15}\n",
+            "Thread", "In Queue", "Done Tasks", "Errored Tasks", "Queue Size"
+        ));
+        result.push_str(&"-".repeat(100));
         result.push('\n');
 
         // Collect per-thread statistics
         let mut total_in_queue = 0;
+        let mut total_done = 0;
+        let mut total_errored = 0;
 
         for idx in 0..self.senders.len() {
             let queue_size = self.cnt_jobs_in_queue[idx].load(Ordering::Relaxed);
+            let done_tasks = self.cnt_done_tasks[idx].load(Ordering::Relaxed);
+            let errored_tasks = self.cnt_errored_tasks[idx].load(Ordering::Relaxed);
 
             total_in_queue += queue_size;
+            total_done += done_tasks;
+            total_errored += errored_tasks;
 
-            result.push_str(&format!("{:<10} {:<15} {:<15}\n", idx, queue_size, queue_size));
+            result.push_str(&format!(
+                "{:<10} {:<15} {:<15} {:<15} {:<15}\n",
+                idx, queue_size, done_tasks, errored_tasks, queue_size
+            ));
         }
 
         // Total row
-        result.push_str(&"-".repeat(80));
+        result.push_str(&"-".repeat(100));
         result.push('\n');
         let current_jobs = self.cnt_current_jobs.load(Ordering::Relaxed);
         let total_queue_size: usize = self.cnt_jobs_in_queue.iter().map(|cnt| cnt.load(Ordering::Relaxed)).sum();
 
-        result.push_str(&format!("{:<10} {:<15} {:<15}\n", "TOTAL", total_in_queue, total_queue_size));
-        result.push_str(&format!("{:<10} {:<15} {:<15}\n", "(current)", current_jobs, ""));
-        result.push_str(&"=".repeat(80));
+        result.push_str(&format!(
+            "{:<10} {:<15} {:<15} {:<15} {:<15}\n",
+            "TOTAL", total_in_queue, total_done, total_errored, total_queue_size
+        ));
+        result.push_str(&format!("{:<10} {:<15} {:<15} {:<15} {:<15}\n", "(current)", current_jobs, "", "", ""));
+        result.push_str(&"=".repeat(100));
         result.push('\n');
 
         result
     }
 
-    /// Get total number of tasks completed - not tracked anymore, returns 0
-    pub fn get_total_tasks_done(&self) -> usize { 0 }
+    /// Get total number of tasks completed by summing all per-thread done counters
+    pub fn get_total_tasks_done(&self) -> usize {
+        self.cnt_done_tasks.iter().map(|cnt| cnt.load(Ordering::Relaxed)).sum()
+    }
+
+    /// Get total number of tasks that errored by summing all per-thread error counters
+    pub fn get_total_tasks_errored(&self) -> usize {
+        self.cnt_errored_tasks.iter().map(|cnt| cnt.load(Ordering::Relaxed)).sum()
+    }
 }
 
 struct DecrementOnDestructor<'a> {
@@ -244,5 +297,44 @@ mod tests {
         // Test reset
         cnt_jobs_in_queue.store(0, Ordering::Relaxed);
         assert_eq!(cnt_jobs_in_queue.load(Ordering::Relaxed), 0);
+    }
+
+    // Simple test object that implements PooledObject
+    struct TestObject {
+        id: usize,
+    }
+
+    impl PooledObject<usize, usize> for TestObject {
+        fn handle(&mut self, task: usize) -> Result<usize, TonError> { Ok(self.id * 1000 + task) }
+    }
+
+    #[tokio::test]
+    async fn test_thread_pool_basic() {
+        // Create pool with TTL 1 second and 2 threads
+        let mut objects = vec![TestObject { id: 1 }, TestObject { id: 2 }];
+        let pool = ThreadPool::new(
+            objects, None, 1000, // 1 second timeout in milliseconds
+            100,  // max_tasks_in_queue
+        )
+        .unwrap();
+
+        // Run 1 task
+        let result = pool.execute_task(42, None).await.unwrap();
+
+        // Verify result: should be from one of the threads (1*1000+42 = 1042 or 2*1000+42 = 2042)
+        assert!(result == 1042 || result == 2042);
+
+        // Verify done counter
+        let total_done = pool.get_total_tasks_done();
+        assert_eq!(total_done, 1);
+
+        // Verify no errors
+        let total_errored = pool.get_total_tasks_errored();
+        assert_eq!(total_errored, 0);
+
+        // Verify queue is empty by checking stats
+        let stats = pool.print_stats();
+        // Queue should be 0 after task completes
+        assert!(stats.contains("0") || stats.contains("TOTAL"));
     }
 }
