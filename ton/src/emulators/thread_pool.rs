@@ -10,7 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::oneshot;
 use tokio::time::sleep;
 
-/// A command sent to worker threads.
+
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
 }
@@ -114,14 +114,14 @@ where
         let (tx, rx) = oneshot::channel();
         let command = Command::Execute(task, tx, deadline_time);
         let idx = self.increment_id_and_get_index(deadline_time).await?;
-        let _garanted_decrement = DecrementOnDestructor::new(&self.items[idx].cnt_done_jobs);
-        // It needs to be  decreased cnd_done in case of Errror
+        // Guard to decrement cnt_in_queue_jobs if error occurs before successful completion
+        let mut guard = DecrementOnDestructor::new(&self.items[idx].cnt_in_queue_jobs);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
 
         self.items[idx].sender.send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
         let res = rx.await.map_err(|e| TonError::Custom(format!("receive task error: {e}")))??;
-        self.cnt_current_jobs.fetch_sub(1, Ordering::SeqCst);
-        self.items[idx].cnt_done_jobs.fetch_add(1, Ordering::Relaxed);
+        self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
+
         Ok(res)
     }
 
@@ -200,19 +200,22 @@ where
 
 struct DecrementOnDestructor<'a> {
     cnt: &'a AtomicU16,
+
 }
 
 impl<'a> DecrementOnDestructor<'a> {
     fn new(cnt: &'a AtomicU16) -> Self {
-        // no need to increment when guard is created
-        DecrementOnDestructor { cnt }
+        DecrementOnDestructor {
+            cnt,
+
+        }
     }
+
 }
 
 impl<'a> Drop for DecrementOnDestructor<'a> {
     fn drop(&mut self) {
-        // always decrement when guard is dropped
-        self.cnt.fetch_sub(1, Ordering::Relaxed);
+          self.cnt.fetch_sub(1, Ordering::Relaxed);
     }
 }
 
