@@ -1,7 +1,7 @@
 use crate::bail_ton;
 use crate::errors::{TonError, TonResult};
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU16, AtomicUsize};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::OnceLock;
 use std::thread;
@@ -13,60 +13,6 @@ use tokio::time::sleep;
 /// A command sent to worker threads.
 pub trait PooledObject<T: Send, R: Send> {
     fn handle(&mut self, task: T) -> Result<R, TonError>;
-}
-
-type CommandChannel<T, R> = (Sender<Command<T, R>>, Receiver<Command<T, R>>);
-
-enum Command<T, R>
-where
-    T: Send,
-    R: Send,
-{
-    Execute(T, oneshot::Sender<R>, u128), // task, sender, timeout
-}
-
-struct ThreadItem<Task, Retval>
-where
-    Task: Send + 'static,
-    Retval: Send + 'static,
-{
-    sender: Sender<Command<Task, TonResult<Retval>>>,
-    #[allow(dead_code)]
-    thread: JoinHandle<TonResult<u64>>,
-
-    cnt_in_queue_jobs: AtomicUsize,
-    cnt_done_jobs: AtomicUsize,
-}
-impl<Task, Retval> ThreadItem<Task, Retval>
-where
-    Task: Send + 'static,
-    Retval: Send + 'static,
-{
-    fn get_queue_size(&self) -> usize {
-        let in_queue = self.cnt_in_queue_jobs.load(Ordering::Relaxed);
-        let done_jbs = self.cnt_done_jobs.load(Ordering::Relaxed);
-        if in_queue < done_jbs {
-            0
-        } else {
-            in_queue - done_jbs
-        }
-    }
-}
-fn get_now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() }
-
-impl<Task, Retval> ThreadItem<Task, Retval>
-where
-    Task: Send + 'static,
-    Retval: Send + 'static,
-{
-    fn new(sender: Sender<Command<Task, TonResult<Retval>>>, thread: JoinHandle<TonResult<u64>>) -> Self {
-        Self {
-            sender,
-            thread,
-            cnt_in_queue_jobs: AtomicUsize::new(0),
-            cnt_done_jobs: AtomicUsize::new(0),
-        }
-    }
 }
 
 pub struct ThreadPool<Obj, Task, Retval>
@@ -129,7 +75,7 @@ where
                 let mut min_queue_value = self.max_tasks_in_queue as usize + 1;
                 let mut target_queue_index = self.items.len(); // set bad index
                 for i in 0..self.items.len() {
-                    let current_queue_size = self.items[i].get_queue_size();
+                    let current_queue_size = self.items[i].get_queue_size() as usize;
                     if current_queue_size < 2 {
                         target_queue_index = i;
                         break;
@@ -142,8 +88,12 @@ where
                 }
 
                 if target_queue_index == self.items.len() {
-                    sleep(Duration::from_millis(1));
-                    if (get_now_ms() > deadline) {}
+                    sleep(Duration::from_millis(1)).await;
+                    if get_now_ms() > deadline {
+                        return Err(TonError::EmulatorPoolTimeout {
+                            deadline_time: deadline,
+                        });
+                    }
                     continue;
                 }
                 // do  increment asap
@@ -164,7 +114,8 @@ where
         let (tx, rx) = oneshot::channel();
         let command = Command::Execute(task, tx, deadline_time);
         let idx = self.increment_id_and_get_index(deadline_time).await?;
-
+        let _garanted_decrement = DecrementOnDestructor::new(&self.items[idx].cnt_done_jobs);
+        // It needs to be  decreased cnd_done in case of Errror
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
 
         self.items[idx].sender.send(command).map_err(|e| TonError::Custom(format!("send task error: {e}")))?;
@@ -227,7 +178,7 @@ where
         result.push('\n');
         let current_jobs = self.cnt_current_jobs.load(Ordering::Relaxed);
         let total_queue_size: usize = self.items.iter().map(|item| item.get_queue_size()).sum();
-        // total_done is already calculated above by summing all per-core cnt_done_jobs counters
+
         let total_tasks_done = self.get_total_tasks_done();
 
         result.push_str(&format!(
@@ -243,6 +194,154 @@ where
 
     /// Get total number of tasks completed by summing all per-core done counters
     pub fn get_total_tasks_done(&self) -> usize {
-        self.items.iter().map(|item| item.cnt_done_jobs.load(Ordering::Relaxed)).sum()
+        self.items.iter().map(|item| item.cnt_done_jobs.load(Ordering::Relaxed) as usize).sum()
+    }
+}
+
+struct DecrementOnDestructor<'a> {
+    cnt: &'a AtomicU16,
+}
+
+impl<'a> DecrementOnDestructor<'a> {
+    fn new(cnt: &'a AtomicU16) -> Self {
+        // no need to increment when guard is created
+        DecrementOnDestructor { cnt }
+    }
+}
+
+impl<'a> Drop for DecrementOnDestructor<'a> {
+    fn drop(&mut self) {
+        // always decrement when guard is dropped
+        self.cnt.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+type CommandChannel<T, R> = (Sender<Command<T, R>>, Receiver<Command<T, R>>);
+
+enum Command<T, R>
+where
+    T: Send,
+    R: Send,
+{
+    Execute(T, oneshot::Sender<R>, u128), // task, sender, timeout
+}
+
+struct ThreadItem<Task, Retval>
+where
+    Task: Send + 'static,
+    Retval: Send + 'static,
+{
+    sender: Sender<Command<Task, TonResult<Retval>>>,
+    #[allow(dead_code)]
+    thread: JoinHandle<TonResult<u64>>,
+    cnt_in_queue_jobs: AtomicU16,
+    cnt_done_jobs: AtomicU16,
+}
+
+fn get_now_ms() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() }
+
+impl<Task, Retval> ThreadItem<Task, Retval>
+where
+    Task: Send + 'static,
+    Retval: Send + 'static,
+{
+    fn get_queue_size(&self) -> usize {
+        let in_queue = self.cnt_in_queue_jobs.load(Ordering::Relaxed);
+        let done_jbs = self.cnt_done_jobs.load(Ordering::Relaxed);
+
+        // Handle normal case and overflow case
+        if in_queue >= done_jbs {
+            // Normal case: no wraparound
+            (in_queue - done_jbs) as usize
+        } else {
+            // Overflow case: in_queue wrapped around (e.g., 65535 -> 0)
+            // Calculate: (u16::MAX + 1) - done_jbs + in_queue
+            // This represents: tasks queued after the wraparound
+            ((u16::MAX as usize + 1) - done_jbs as usize) + in_queue as usize
+        }
+    }
+    fn new(sender: Sender<Command<Task, TonResult<Retval>>>, thread: JoinHandle<TonResult<u64>>) -> Self {
+        Self {
+            sender,
+            thread,
+            cnt_in_queue_jobs: AtomicU16::new(0),
+            cnt_done_jobs: AtomicU16::new(0),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc::channel;
+    use std::thread;
+
+    #[test]
+    fn test_get_queue_size_overflow() {
+        // Create a mock ThreadItem for testing
+        let (tx, _rx) = channel::<Command<(), TonResult<()>>>();
+        let handle = thread::spawn(|| Ok::<u64, TonError>(0));
+
+        let item = ThreadItem {
+            sender: tx,
+            thread: handle,
+            cnt_in_queue_jobs: AtomicU16::new(0),
+            cnt_done_jobs: AtomicU16::new(0),
+        };
+
+        // Test normal case: in_queue > done_jobs
+        item.cnt_in_queue_jobs.store(100, Ordering::Relaxed);
+        item.cnt_done_jobs.store(50, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), 50);
+
+        // Test edge case: in_queue == done_jobs
+        item.cnt_in_queue_jobs.store(100, Ordering::Relaxed);
+        item.cnt_done_jobs.store(100, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), 0);
+
+        // Test overflow case: in_queue wraps around to 0, done_jobs is high
+        // This simulates counter overflow where in_queue wrapped from 65535 to 0
+        // in_queue = 10 (after wraparound), done_jobs = 65500 (before wraparound)
+        // Expected: (65536 - 65500) + 10 = 36 + 10 = 46
+        item.cnt_in_queue_jobs.store(10, Ordering::Relaxed);
+        item.cnt_done_jobs.store(65500, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), 46);
+
+        // Test another overflow case: done_jobs wraps around
+        item.cnt_in_queue_jobs.store(65500, Ordering::Relaxed);
+        item.cnt_done_jobs.store(10, Ordering::Relaxed);
+        // Normal case: in_queue > done_jobs, so 65500 - 10 = 65490
+        assert_eq!(item.get_queue_size(), 65490);
+
+        // Test max values
+        item.cnt_in_queue_jobs.store(u16::MAX, Ordering::Relaxed);
+        item.cnt_done_jobs.store(0, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), u16::MAX as usize);
+
+        // Test both at max
+        item.cnt_in_queue_jobs.store(u16::MAX, Ordering::Relaxed);
+        item.cnt_done_jobs.store(u16::MAX, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), 0);
+
+        // Test where done exceeds in_queue after wraparound
+        // in_queue = 100, done_jobs = 200
+        // Expected: (65536 - 200) + 100 = 65436 + 100 = 65536
+        // But this represents wraparound, so actual queue might be less
+        item.cnt_in_queue_jobs.store(100, Ordering::Relaxed);
+        item.cnt_done_jobs.store(200, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), 65436);
+
+        // Test wraparound with specific values
+        // in_queue wrapped: value is 5, done_jobs is 65530
+        // Expected: (65536 - 65530) + 5 = 6 + 5 = 11
+        item.cnt_in_queue_jobs.store(5, Ordering::Relaxed);
+        item.cnt_done_jobs.store(65530, Ordering::Relaxed);
+        assert_eq!(item.get_queue_size(), 11);
+
+        // Test edge case: in_queue wrapped to 0, done_jobs is 65535
+        item.cnt_in_queue_jobs.store(0, Ordering::Relaxed);
+        item.cnt_done_jobs.store(65535, Ordering::Relaxed);
+        // Expected: (65536 - 65535) + 0 = 1 + 0 = 1
+        assert_eq!(item.get_queue_size(), 1);
     }
 }
