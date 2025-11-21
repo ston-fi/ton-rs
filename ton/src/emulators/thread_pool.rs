@@ -94,7 +94,8 @@ where
             _phantom: std::marker::PhantomData,
         })
     }
-    async fn increment_id_and_get_index(&self, deadline: u128) -> TonResult<usize> {
+    // This function increment a queue state
+    async fn find_thread_id(&self, deadline: u128) -> TonResult<usize> {
         loop {
             if get_now_ms() > deadline {
                 return Err(TonError::EmulatorPoolTimeout {
@@ -129,8 +130,8 @@ where
         }
     }
 
-    pub async fn execute_task(&self, task: Task, maybe_custom_timeout: Option<u64>) -> TonResult<Retval> {
-        let deadline_time = if let Some(timeout) = maybe_custom_timeout {
+    pub async fn execute_task(&self, task: Task, maybe_custom_timeout_ms: Option<u64>) -> TonResult<Retval> {
+        let deadline_time = if let Some(timeout) = maybe_custom_timeout_ms {
             get_now_ms() + timeout as u128
         } else {
             get_now_ms() + self.default_timeout_emulation as u128
@@ -138,7 +139,7 @@ where
 
         let (tx, rx) = oneshot::channel();
         let command = Command::Execute(task, tx, deadline_time);
-        let idx = self.increment_id_and_get_index(deadline_time).await?;
+        let idx = self.find_thread_id(deadline_time).await?;
         let _guard = DecrementOnDestructor::new(&self.cnt_jobs_in_queue[idx]);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
         self.senders[idx].send(command).map_err(|e| {
@@ -153,19 +154,14 @@ where
             self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
             TonError::Custom(format!("receive task error: {e}"))
         })?;
-
-        // Check if task succeeded or failed (from worker thread)
         match res {
             Ok(retval) => {
-                // Task succeeded - decrement queue counter manually and increment done counter
-
                 self.cnt_done_tasks[idx].fetch_add(1, Ordering::Relaxed);
                 self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
 
                 Ok(retval)
             }
             Err(e) => {
-                // Task failed (from worker) - increment error counter, guard will decrement queue
                 self.cnt_errored_tasks[idx].fetch_add(1, Ordering::Relaxed);
                 self.cnt_current_jobs.fetch_sub(1, Ordering::Relaxed);
                 Err(e)
