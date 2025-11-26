@@ -130,9 +130,7 @@ impl<'a> CellParser<'a> {
         bail_ton_core_data!("Cell is not empty: {bits_left} bits left, {refs_left} refs left");
     }
 
-    pub fn cell_type(&self) -> CellType {
-        self.cell.cell_type
-    }
+    pub fn cell_type(&self) -> CellType { self.cell.cell_type }
 
     // returns remaining bits
     fn ensure_enough_bits(&mut self, bit_len: usize) -> Result<usize, TonCoreError> {

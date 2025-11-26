@@ -147,9 +147,7 @@ impl CellBuilder {
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
 
-    pub fn set_type(&mut self, cell_type: CellType) {
-        self.cell_type = cell_type;
-    }
+    pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
 
     fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_len_bits + bits_len;
