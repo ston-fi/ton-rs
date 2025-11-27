@@ -3,9 +3,11 @@ use crate::cell::CellMeta;
 use crate::cell::cell_meta::CellType;
 use crate::cell::ton_cell::{CellBorders, CellData, RefStorage, TonCell};
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use crate::errors::{TonCoreError, TonCoreResult};
+use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
+use std::any::type_name;
 use std::cmp::min;
+use std::fmt::Display;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -66,6 +68,10 @@ impl CellBuilder {
         mut bits_offset: usize,
         mut bits_len: usize,
     ) -> Result<(), TonCoreError> {
+        if bits_len == 0 {
+            return Ok(());
+        }
+
         self.ensure_capacity(bits_len)?;
         let mut data_ref = data.as_ref();
 
@@ -75,10 +81,6 @@ impl CellBuilder {
                 bits_len + bits_offset,
                 data_ref.len()
             );
-        }
-
-        if bits_len == 0 {
-            return Ok(());
         }
 
         // skip bytes_offset, adjust borders
@@ -127,29 +129,33 @@ impl CellBuilder {
         Ok(())
     }
 
-    pub fn write_num<N, D>(&mut self, data: D, bits_len: usize) -> Result<(), TonCoreError>
-    where
-        N: TonCellNum,
-        D: Deref<Target = N>,
-    {
-        let data_ref = data.deref();
-        // handling it like ton-core
-        // https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
+    pub fn write_num<N: TonCellNum>(
+        &mut self,
+        data: impl Deref<Target = N>,
+        bits_len: usize,
+    ) -> Result<(), TonCoreError> {
         if bits_len == 0 {
-            if data_ref.tcn_is_zero() {
+            // handling it like ton-core: https://github.com/ton-core/ton-core/blob/main/src/boc/BitBuilder.ts#L122
+            if data.is_zero() {
                 return Ok(());
             }
-            bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
+            bail_ton_core_data!("Can't write number {} in 0 bits", data.deref());
         }
-
-        self.ensure_capacity(bits_len)?;
-        data_ref.tcn_write_bits(&mut self.data_writer, bits_len as u32)
+        if data.tcn_min_bits_len() > bits_len {
+            bail_ton_core_data!(
+                "Can't write num {} in {bits_len} bits, min_bits_len {}",
+                data.deref(),
+                data.tcn_min_bits_len()
+            );
+        }
+        data.tcn_write_bits(self, bits_len)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
 
     pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
 
+    #[inline(always)]
     fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_len_bits + bits_len;
         if new_bits_len <= TonCell::MAX_DATA_LEN_BITS {
@@ -158,9 +164,23 @@ impl CellBuilder {
         }
         bail_ton_core_data!("Can't write {bits_len} bits: only {} free bits available", self.data_bits_left())
     }
+
+    // bitstream can't read/write signed properly: https://github.com/tuffy/bitstream-io/issues/26
+    #[inline(always)]
+    pub(crate) fn write_unsigned_primitive<T: Integer + Display + Copy>(
+        &mut self,
+        data: T,
+        bits_len: usize,
+    ) -> TonCoreResult<()> {
+        self.ensure_capacity(bits_len)?;
+        if let Err(err) = self.data_writer.write_var(bits_len as u32, data) {
+            bail_ton_core_data!("Failed to write {data} ({}) in {bits_len} bits: {err}", type_name::<T>());
+        }
+        Ok(())
+    }
 }
 
-fn build_cell_data(mut bit_writer: BitWriter<Vec<u8>, BigEndian>) -> Result<(CellData, usize), TonCoreError> {
+fn build_cell_data(mut bit_writer: BitWriter<Vec<u8>, BigEndian>) -> TonCoreResult<(CellData, usize)> {
     let mut trailing_zeros = 0;
     while !bit_writer.byte_aligned() {
         bit_writer.write_bit(false)?;
@@ -252,7 +272,7 @@ mod tests {
     #[test]
     fn test_builder_write_num_in_many_bits() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert_err!(cell_builder.write_num(&0b1010_1010u8, 16));
+        assert_ok!(cell_builder.write_num(&0b1010_1010u8, 16));
         Ok(())
     }
 
