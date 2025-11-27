@@ -1,8 +1,9 @@
 use crate::bail_ton_core_data;
+use crate::cell::TonCell;
 use crate::cell::TonCellNum;
 use crate::errors::TonCoreError;
-use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use bitstream_io::{BigEndian, BitWriter};
 use std::hash::Hash;
 #[derive(Clone, PartialEq, Hash, Eq, Ord, PartialOrd)]
@@ -32,9 +33,11 @@ impl TonHash {
     }
 
     pub fn from_num<T: TonCellNum>(num: &T) -> Result<Self, TonCoreError> {
-        let mut writer = BitWriter::endian(vec![], BigEndian);
-        num.tcn_write_bits(&mut writer, 32 * 8)?;
-        let bytes = writer.into_writer();
+        let mut builder = TonCell::builder();
+        builder.write_num(num, 32 * 8)?;
+        let cell = builder.build()?;
+        let mut parser = cell.parser();
+        let bytes = parser.read_bits(32 * 8)?;
         Self::from_slice(&bytes)
     }
 

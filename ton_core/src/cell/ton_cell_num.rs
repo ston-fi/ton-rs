@@ -1,10 +1,9 @@
-use crate::cell::{CellBitWriter, CellBitsReader};
-use bitstream_io::{BitRead, BitWrite};
-use fastnum::{I128, I256, I512, I1024, TryCast};
-use fastnum::{U128, U256, U512, U1024};
-use num_bigint::{BigInt, BigUint, Sign};
-use num_traits::Zero;
+use crate::cell::{CellBuilder, CellParser};
+
 use std::fmt::Display;
+mod ton_cell_bignum;
+mod ton_cell_fastnum;
+mod ton_cell_primitives;
 
 use crate::bail_ton_core_data;
 use crate::errors::TonCoreError;
@@ -12,29 +11,17 @@ use crate::errors::TonCoreError;
 /// Allows generic read/write operation for any numeric type
 pub trait TonCellNum: Display + Sized + Clone {
     /// CellBuilder guarantees 0 < bits_len < 1024
-    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError>;
+    fn tcn_write_bits(&self, writer: &mut CellBuilder, bits_len: u32) -> Result<(), TonCoreError>;
     /// CellWriter guarantees 0 <= bits_len < 1024
-    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError>;
+    fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError>;
     fn tcn_is_zero(&self) -> bool;
     fn tcn_min_bits_len(&self) -> u32;
 }
 
-macro_rules! primitive_convert_to_unsigned {
-    ($val:expr,$T:ty,$bit_count:expr) => {{
-        // Two's complement: cast to unsigned and mask to bit_count
-        let uval = $val as $T;
-        let bit_count = $bit_count as usize;
-        let type_bits = std::mem::size_of::<$T>() * 8;
-
-        if bit_count >= type_bits {
-            // Full width or larger - no masking needed
-            uval
-        } else {
-            // Mask to bit_count bits
-            let mask = ((1 as $T) << bit_count) - 1;
-            uval & mask
-        }
-    }};
+    /// Returns the maximum bit size for padding purposes in write_num
+    /// For fixed-size types, this is sizeof(T) * 8
+    /// For BigInt/BigUint, this is 1024 (same as I1024/U1024)
+    fn tcn_max_bits_len() -> u32;
 }
 macro_rules! primitive_convert_to_signed {
     ($uval:expr,$I:ty,$U:ty,$bit_count:expr) => {{
@@ -43,49 +30,27 @@ macro_rules! primitive_convert_to_signed {
         let bit_count = $bit_count as usize;
         let type_bits = std::mem::size_of::<$I>() * 8;
 
-        if bit_count >= type_bits {
-            // Full width or larger - just cast
-            uval as $I
-        } else {
-            // Need to sign-extend from bit_count to full width
-            let sign_bit = 1 << (bit_count - 1);
-            if (uval & sign_bit) != 0 {
-                // Negative number - extend with 1s
-                let extension_mask = (<$U>::MAX << bit_count);
-                (uval | extension_mask) as $I
-            } else {
-                // Positive number - just cast
-                uval as $I
-            }
-        }
-    }};
-}
-
-macro_rules! primitive_highest_bit_pos {
-    ($val:expr,$T:ty,true) => {{
-        let max_bit_id = (std::mem::size_of::<$T>() * 8 - 1) as u32;
-        (max_bit_id - $val.abs().leading_zeros())
-    }};
-    ($val:expr,$T:ty,false) => {{
+#[macro_export]
+macro_rules! unsinged_highest_bit_pos {
+    ($val:expr,$T:ty) => {{
         let max_bit_id = (std::mem::size_of::<$T>() * 8 - 1) as u32;
         (max_bit_id - $val.leading_zeros())
     }};
 }
 
-macro_rules! ton_cell_num_primitive_unsigned_impl {
-    ($src:ty) => {
-        impl TonCellNum for $src {
-            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-                if self.tcn_min_bits_len() > bits_len {
-                    bail_ton_core_data!(
-                        "Not enough bits for write num {} in {} bits unsigned, min len {}",
-                        *self,
-                        bits_len,
-                        self.tcn_min_bits_len()
-                    );
-                }
-                writer.write_var(bits_len, *self)?;
-                Ok(())
+#[macro_export]
+macro_rules! toncellnum_use_type_as {
+    (
+        $Src:ty,
+        $Dst:ty,
+        $src_to_dst:expr,   // fn(Src) -> TonCoreResult<Dst>
+        $dst_to_src:expr   // fn(Dst) -> TonCoreResult<Src>
+    ) => {
+        impl TonCellNum for $Src {
+            fn tcn_write_bits(&self, writer: &mut CellBuilder, bits_len: u32) -> Result<(), TonCoreError> {
+                // fallible Src -> Dst
+                let val_as: $Dst = $src_to_dst(self)?;
+                val_as.tcn_write_bits(writer, bits_len)
             }
             fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
                 if bits_len != 0 {
@@ -97,32 +62,20 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
             }
             fn tcn_is_zero(&self) -> bool { *self == 0 }
 
-            fn tcn_min_bits_len(&self) -> u32 {
-                if *self == 0 {
-                    0u32
-                } else {
-                    (primitive_highest_bit_pos!(*self, Self, false) + 1u32)
-                }
+            fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
+                let val_as = <$Dst>::tcn_read_bits(reader, bits_len)?;
+                // fallible Dst -> Src, already returns TonCoreError
+                $dst_to_src(val_as)
             }
         }
     };
 }
 
-macro_rules! ton_cell_num_primitive_signed_impl {
-    ($src:ty,$u_src:ty) => {
-        impl TonCellNum for $src {
-            fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-                if self.tcn_min_bits_len() > bits_len {
-                    bail_ton_core_data!(
-                        "Not enough bits for write num {} in {} bits, min len {}",
-                        *self,
-                        bits_len,
-                        self.tcn_min_bits_len()
-                    );
-                }
-                let val: $u_src = primitive_convert_to_unsigned!(*self, $u_src, bits_len);
-                writer.write_var(bits_len, val)?;
-                Ok(())
+            fn tcn_is_zero(&self) -> bool {
+                // If conversion here can *theoretically* fail, treat it as a logic bug.
+                let val_as: $Dst =
+                    $src_to_dst(self).expect("toncellnum_use_type_as: Src -> Dst conversion failed in tcn_is_zero");
+                val_as.tcn_is_zero()
             }
 
             fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
@@ -138,148 +91,15 @@ macro_rules! ton_cell_num_primitive_signed_impl {
             fn tcn_is_zero(&self) -> bool { *self == 0 }
 
             fn tcn_min_bits_len(&self) -> u32 {
-                if *self == 0 {
-                    0u32
-                } else {
-                    primitive_highest_bit_pos!(*self, Self, true) + 2u32
-                }
+                let val_as: $Dst = $src_to_dst(self)
+                    .expect("toncellnum_use_type_as: Src -> Dst conversion failed in tcn_min_bits_len");
+                val_as.tcn_min_bits_len()
             }
         }
     };
 }
 
-ton_cell_num_primitive_unsigned_impl!(u8);
-ton_cell_num_primitive_unsigned_impl!(u16);
-ton_cell_num_primitive_unsigned_impl!(u32);
-ton_cell_num_primitive_unsigned_impl!(u64);
-ton_cell_num_primitive_unsigned_impl!(u128);
-
-ton_cell_num_primitive_signed_impl!(i8, u8);
-ton_cell_num_primitive_signed_impl!(i16, u16);
-ton_cell_num_primitive_signed_impl!(i32, u32);
-ton_cell_num_primitive_signed_impl!(i64, u64);
-ton_cell_num_primitive_signed_impl!(i128, u128);
-
-// Implementation for BigUint
-// Note: BigUint is used for BigInt sign encoding
-// Must left-align values for non-byte-aligned sizes to match write_bits expectations
-impl TonCellNum for usize {
-    fn tcn_write_bits(&self, writer: &mut CellBitWriter, bits_len: u32) -> Result<(), TonCoreError> {
-        (*self as u64).tcn_write_bits(writer, bits_len)
-    }
-
-    fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError> {
-        let val: u64 = u64::tcn_read_bits(reader, bits_len)?;
-        Ok(val as usize)
-    }
-    fn tcn_is_zero(&self) -> bool { *self == 0 }
-
-    fn tcn_min_bits_len(&self) -> u32 {
-        if *self == 0 {
-            0u32
-        } else {
-            (primitive_highest_bit_pos!(*self, Self, false) + 1u32)
-        }
-    }
-}
-
-fn u1024_to_biguint(val: U1024) -> Result<BigUint, TonCoreError> {
-    if val.is_zero() {
-        return Ok(BigUint::zero());
-    }
-
-    let mut tmp = val;
-    let mut bytes = Vec::with_capacity(128);
-
-    // Extract bytes from least significant to most significant
-    for _ in 0..128 {
-        let byte_val = (tmp & 0xFFu8.into())
-            .to_u8()
-            .map_err(|_| TonCoreError::data("u1024_to_biguint", "Failed to extract byte from U1024"))?;
-        bytes.push(byte_val);
-        tmp >>= 8;
-        if tmp.is_zero() {
-            break; // Stop early if remaining value is zero
-        }
-    }
-
-    bytes.reverse();
-    Ok(BigUint::from_bytes_be(&bytes))
-}
-
-fn biguint_to_u1024(value: &BigUint) -> Result<U1024, TonCoreError> {
-    if value.is_zero() {
-        return Ok(U1024::ZERO);
-    }
-
-    let bytes = value.to_bytes_be();
-
-    // U1024 can hold at most 128 bytes (1024 bits)
-    if bytes.len() > 128 {
-        bail_ton_core_data!("BigUint value exceeds U1024 capacity: {} bytes > 128 bytes", bytes.len());
-    }
-
-    let mut uval = U1024::ZERO;
-    for &b in &bytes {
-        uval = (uval << 8) | U1024::from(b);
-    }
-
-    Ok(uval)
-}
-
-fn i1024_to_bigint(val: I1024) -> Result<BigInt, TonCoreError> {
-    if val.is_zero() {
-        return Ok(BigInt::zero());
-    }
-
-    let is_negative = val < I1024::ZERO;
-    let abs_val = if is_negative { -val } else { val };
-
-    let mut tmp: U1024 = TryCast::<U1024>::try_cast(abs_val)
-        .map_err(|_| TonCoreError::data("i1024_to_bigint", "Failed to cast to BigInt"))?;
-    let mut bytes = Vec::with_capacity(128);
-
-    // Extract bytes from least significant to most significant
-    for _ in 0..128 {
-        let byte_val = (tmp & 0xFFu8.into())
-            .to_u8()
-            .map_err(|_| TonCoreError::data("i1024_to_bigint", "Failed to extract byte from U1024"))?;
-        bytes.push(byte_val);
-        tmp >>= 8;
-        if tmp.is_zero() {
-            break; // Stop early if remaining value is zero
-        }
-    }
-
-    bytes.reverse();
-    Ok(BigInt::from_bytes_be(if is_negative { Sign::Minus } else { Sign::Plus }, &bytes))
-}
-
-fn bigint_to_i1024(value: &BigInt) -> Result<I1024, TonCoreError> {
-    if value.is_zero() {
-        return Ok(I1024::ZERO);
-    }
-
-    let (sign, bytes) = value.to_bytes_be();
-
-    // I1024 can hold at most 128 bytes (1024 bits)
-    if bytes.len() > 128 {
-        bail_ton_core_data!("BigInt value exceeds I1024 capacity: {} bytes > 128 bytes", bytes.len());
-    }
-
-    let mut uval = U1024::ZERO;
-    for &b in &bytes {
-        uval = (uval << 8) | U1024::from(b);
-    }
-
-    let result = match sign {
-        Sign::Plus => TryCast::<I1024>::try_cast(uval)
-            .map_err(|_| TonCoreError::data("bigint_to_i1024", "Failed to cast to I1024"))?,
-        Sign::NoSign => I1024::ZERO,
-        Sign::Minus => {
-            let abs_val = TryCast::<I1024>::try_cast(uval)
-                .map_err(|_| TonCoreError::data("bigint_to_i1024", "Failed to cast to I1024"))?;
-            -abs_val
+            fn tcn_max_bits_len() -> u32 { <$Dst>::tcn_max_bits_len() }
         }
     };
     Ok(result)
@@ -308,7 +128,13 @@ impl TonCellNum for BigUint {
 
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
-    fn tcn_min_bits_len(&self) -> u32 { if self.tcn_is_zero() { 0u32 } else { self.bits() as u32 } }
+    fn tcn_min_bits_len(&self) -> u32 {
+        if self.tcn_is_zero() {
+            0u32
+        } else {
+            self.bits() as u32
+        }
+    }
 }
 
 impl TonCellNum for BigInt {
@@ -582,47 +408,24 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use super::{bigint_to_i1024, biguint_to_u1024, i1024_to_bigint, u1024_to_biguint};
+
+    use crate::cell::TonCellNum;
     use crate::cell::{CellParser, TonCell};
     use fastnum::*;
     use num_bigint::{BigInt, BigUint};
-
-    #[test]
-    fn test_toncellnum_store_and_parse_uint16() -> anyhow::Result<()> {
-        // Create a builder and store an int16 value
-        let mut builder = TonCell::builder();
-        let test_value: u16 = 12;
-
-        let test_bit = 5;
-        builder.write_num(&test_value, test_bit)?;
-
-        // Build the cell
-        let cell = builder.build()?;
-
-        // Create a parser and read back the int16 value
-        let mut parser = CellParser::new(&cell);
-        let parsed_value = parser.read_num::<u16>(test_bit)?;
-
-        // Verify the value matches
-        assert_eq!(parsed_value, test_value);
-        Ok(())
-    }
-
-    #[test]
-    fn test_toncellnum_convert_sign_unsign_int16() -> anyhow::Result<()> {
-        // Test with 15 bits
-        let bits_len = 15;
-        let val = -3i16;
-        let u_val: u16 = primitive_convert_to_unsigned!(val, u16, bits_len);
-        let res_val = primitive_convert_to_signed!(u_val, i16, u16, bits_len);
-        assert_eq!(val, res_val);
-
-        // Test with various bit lengths
-        for bits_len in [8, 10, 15, 16] {
-            let val = -3i16;
-            let u_val: u16 = primitive_convert_to_unsigned!(val, u16, bits_len);
-            let res_val = primitive_convert_to_signed!(u_val, i16, u16, bits_len);
-            assert_eq!(val, res_val, "Failed round-trip for bits_len={}", bits_len);
+    use std::fmt::Debug;
+    //
+    pub(crate) fn test_num_read_write<T: TonCellNum + PartialEq + Debug>(
+        test_cases: Vec<(T, u32)>,
+        type_name: &str,
+    ) -> anyhow::Result<()> {
+        for (value, bits_len) in test_cases {
+            let mut builder = TonCell::builder();
+            builder.write_num(&value, bits_len as usize).unwrap();
+            let cell = builder.build().unwrap();
+            let mut parser = CellParser::new(&cell);
+            let parsed = parser.read_num::<T>(bits_len as usize).unwrap();
+            assert_eq!(parsed, value, "Failed for {} value {:?} with {} bits", type_name, value, bits_len);
         }
 
         // Test edge cases
@@ -916,64 +719,48 @@ mod tests {
         Ok(())
     }
 
+    // Test reading and writing zero bits for all supported numeric types
     #[test]
-    fn test_toncellnum_write_i512() -> anyhow::Result<()> {
-        // Test writing and reading I512 values
-        let test_cases = vec![
-            (I512::from(0i32), 10),
-            (I512::from(1i32), 10),
-            (I512::from(123i32), 10),
-            (-I512::from(1i32), 10), // -1
-            (-I512::from(4i32), 10), // -4
-        ];
-
-        for (tv, bits) in test_cases {
-            let mut builder = TonCell::builder();
-            builder.write_num(&tv, bits)?;
-
-            // Verify round-trip
-            let cell = builder.build()?;
-            let mut parser = cell.parser();
-            let parsed = parser.read_num::<I512>(bits)?;
-            assert_eq!(parsed, tv, "Failed for value {} with {} bits", tv, bits);
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_toncellnum_biguint_150_bits() -> anyhow::Result<()> {
-        // Test BigUint with 150 bits (the size used in test_dict_key_bits_len_bigger_than_key)
-        use num_bigint::BigUint;
-
-        let mut builder = TonCell::builder();
-        let test_value = BigUint::from(4u32);
-
-        let bits_len = 150;
-
-        builder.write_num(&test_value, bits_len)?;
+    fn test_toncellnum_zero_bits_all_types() -> anyhow::Result<()> {
+        // Test that all types return 0 when reading/writing 0 bits
+        let builder = TonCell::builder();
         let cell = builder.build()?;
 
         let mut parser = CellParser::new(&cell);
         let parsed_value = parser.read_num::<BigUint>(bits_len)?;
 
-        assert_eq!(parsed_value, test_value, "BigUint round-trip failed for 150 bits");
+        // Test unsigned primitives
+        assert_eq!(parser.read_num::<u8>(0)?, 0u8);
+        assert_eq!(parser.read_num::<u16>(0)?, 0u16);
+        assert_eq!(parser.read_num::<u32>(0)?, 0u32);
+        assert_eq!(parser.read_num::<u64>(0)?, 0u64);
+        assert_eq!(parser.read_num::<u128>(0)?, 0u128);
 
-        Ok(())
-    }
+        // Test signed primitives
+        assert_eq!(parser.read_num::<i8>(0)?, 0i8);
+        assert_eq!(parser.read_num::<i16>(0)?, 0i16);
+        assert_eq!(parser.read_num::<i32>(0)?, 0i32);
+        assert_eq!(parser.read_num::<i64>(0)?, 0i64);
+        assert_eq!(parser.read_num::<i128>(0)?, 0i128);
 
-    #[test]
-    fn test_toncellnum_u256_simple_non_byte_aligned() -> anyhow::Result<()> {
-        // Test U256 (fastnum) with non-byte-aligned bits
-        use fastnum::U256;
+        // Test usize
+        assert_eq!(parser.read_num::<usize>(0)?, 0usize);
 
-        let mut builder = TonCell::builder();
-        let test_value = U256::from(42u32);
+        // Test BigUint and BigInt
+        assert_eq!(parser.read_num::<BigUint>(0)?, BigUint::from(0u32));
+        assert_eq!(parser.read_num::<BigInt>(0)?, BigInt::from(0i32));
 
-        let bits_len = 9; // Not byte-aligned
+        // Test fastnum unsigned
+        assert_eq!(parser.read_num::<U128>(0)?, U128::from(0u32));
+        assert_eq!(parser.read_num::<U256>(0)?, U256::from(0u32));
+        assert_eq!(parser.read_num::<U512>(0)?, U512::from(0u32));
+        assert_eq!(parser.read_num::<U1024>(0)?, U1024::from(0u32));
 
-        builder.write_num(&test_value, bits_len)?;
-        let cell = builder.build()?;
+        // Test fastnum signed
+        assert_eq!(parser.read_num::<I128>(0)?, I128::from(0u32));
+        assert_eq!(parser.read_num::<I256>(0)?, I256::from(0u32));
+        assert_eq!(parser.read_num::<I512>(0)?, I512::from(0u32));
+        assert_eq!(parser.read_num::<I1024>(0)?, I1024::from(0u32));
 
         let mut parser = CellParser::new(&cell);
         parser.read_bits(bits_len)?;
