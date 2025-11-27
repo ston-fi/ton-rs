@@ -1,7 +1,7 @@
 use crate::bail_ton_core_data;
 use crate::cell::ton_cell::{CellBitsReader, CellBorders};
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::cell::TonCell;
+use crate::cell::{CellType, TonCell};
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use std::io::{Cursor, SeekFrom};
@@ -129,6 +129,8 @@ impl<'a> CellParser<'a> {
         }
         bail_ton_core_data!("Cell is not empty: {bits_left} bits left, {refs_left} refs left");
     }
+
+    pub fn cell_type(&self) -> CellType { self.cell.cell_type }
 
     // returns remaining bits
     fn ensure_enough_bits(&mut self, bit_len: usize) -> Result<usize, TonCoreError> {
