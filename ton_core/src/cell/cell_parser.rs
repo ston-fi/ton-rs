@@ -3,6 +3,8 @@ use crate::cell::TonCell;
 use crate::cell::ton_cell::{CellBitsReader, CellBorders};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
+use crate::errors::TonCoreResult;
+use bitstream_io::Integer;
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use std::io::{Cursor, SeekFrom};
 
@@ -66,7 +68,26 @@ impl<'a> CellParser<'a> {
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
         self.ensure_enough_bits(bits_len)?;
-        N::tcn_read_bits(&mut self.data_reader, bits_len as u32)
+        let n_size = N::tcn_max_bits_len() as usize;
+        let bits_to_read = if bits_len > n_size {
+            let to_read = bits_len - n_size;
+            let _ = self.read_bits(to_read)?;
+
+            n_size
+        } else {
+            bits_len
+        };
+
+        N::tcn_read_bits(self, bits_to_read as u32)
+    }
+
+    pub(crate) fn read_primitive<I: Integer + Sized>(&mut self, bits_len: u32) -> TonCoreResult<I> {
+        self.data_reader.read_var(bits_len).map_err(|e| {
+            TonCoreError::data(
+                "CellParser::read_primitive_num",
+                format!("Failed to read {}-bit integer: {}", bits_len, e).as_str(),
+            )
+        })
     }
 
     pub fn read_cell(&mut self, bits_len: usize, refs_len: u8) -> Result<TonCell, TonCoreError> {

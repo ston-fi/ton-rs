@@ -1,10 +1,10 @@
 use crate::bail_ton_core_data;
-use crate::cell::CellMeta;
 use crate::cell::cell_meta::CellType;
 use crate::cell::ton_cell::{CellBorders, CellData, RefStorage, TonCell};
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use crate::cell::CellMeta;
+use crate::errors::{TonCoreError, TonCoreResult};
+use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
 use std::cmp::min;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -142,8 +142,26 @@ impl CellBuilder {
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
 
-        self.ensure_capacity(bits_len)?;
-        data_ref.tcn_write_bits(&mut self.data_writer, bits_len as u32)
+        let n_size = N::tcn_max_bits_len() as usize;
+        let bits_to_write = if bits_len > n_size {
+            let to_write = bits_len - n_size;
+            // Write padding bits and update data_len_bits for them
+            for _ in 0..to_write {
+                self.write_bit(false)?;
+            }
+            n_size
+        } else {
+            bits_len
+        };
+
+        // tcn_write_bits will call write_bits, which will handle ensure_capacity
+        data_ref.tcn_write_bits(self, bits_to_write as u32)
+    }
+    #[inline(always)]
+    pub(crate) fn write_primitive<I: Integer>(&mut self, bits: u32, data: I) -> TonCoreResult<()> {
+        self.data_writer.write_var(bits, data).map_err(|e| {
+            TonCoreError::data("CellBuilder::write_primitive", format!("Failed to write primitive data: {}", e))
+        })
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
@@ -178,8 +196,8 @@ fn build_cell_data(mut bit_writer: BitWriter<Vec<u8>, BigEndian>) -> Result<(Cel
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cell::TonHash;
     use crate::cell::cell_meta::LevelMask;
+    use crate::cell::TonHash;
     use num_bigint::BigUint;
     use num_traits::FromPrimitive;
     use std::str::FromStr;
