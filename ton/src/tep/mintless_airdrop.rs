@@ -4,8 +4,8 @@ use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
 use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
-use ton_core::types::TonAddress;
 use ton_core::TLB;
+use ton_core::types::TonAddress;
 // TODO not tested
 #[derive(Clone, Debug, TLB)]
 pub struct MintlessAirdropDict {

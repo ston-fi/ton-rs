@@ -1,7 +1,7 @@
 use crate::block_tlb::Coins;
+use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef};
-use ton_core::TLB;
 
 ///```raw
 /// transfer#f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
@@ -42,8 +42,8 @@ mod tests {
 
     use std::str::FromStr;
     use ton_core::traits::tlb::TLB;
-    use ton_core::types::tlb_core::EitherRefLayout;
     use ton_core::types::TonAddress;
+    use ton_core::types::tlb_core::EitherRefLayout;
 
     #[test]
     fn test_jetton_transfer_msg() -> anyhow::Result<()> {

@@ -1,6 +1,6 @@
-use crate::cell::cell_meta::CellType;
 use crate::cell::TonCell;
 use crate::cell::TonHash;
+use crate::cell::cell_meta::CellType;
 use crate::errors::TonCoreError;
 use std::collections::{HashSet, VecDeque};
 
@@ -70,7 +70,9 @@ mod tests {
         let code = TonCell::from_boc_hex(
             "b5ee9c7201010101002300084202d29017573b8132be742e9c02dabe2311fb3df9f077e661d3ee24d431058b8830",
         )?;
-        let data = TonCell::from_boc_hex("b5ee9c7201010301005d000208000000000102084202cd88e6f3c2a9cf01bb003a2837ec0d92c19685ed1dbfffd94a545dcfdf0a14d900600168747470733a2f2f7374617469632e73746f6e2e66692f6a6574746f6e2f746f6e2d70726f78792d76322e6a736f6e")?;
+        let data = TonCell::from_boc_hex(
+            "b5ee9c7201010301005d000208000000000102084202cd88e6f3c2a9cf01bb003a2837ec0d92c19685ed1dbfffd94a545dcfdf0a14d900600168747470733a2f2f7374617469632e73746f6e2e66692f6a6574746f6e2f746f6e2d70726f78792d76322e6a736f6e",
+        )?;
         let cells = vec![&code, &data];
         let lib_ids = TonCellUtils::extract_lib_ids(cells)?.into_iter().collect::<HashSet<_>>();
         assert_eq!(

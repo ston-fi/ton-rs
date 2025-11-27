@@ -1,10 +1,10 @@
 use crate::block_tlb::msg_types::common_msg_info::CommonMsgInfo;
 use crate::block_tlb::*;
+use ton_core::TLB;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::tlb_core::*;
-use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L157
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -84,12 +84,14 @@ mod tests {
     use super::*;
     use std::str::FromStr;
     use tokio_test::assert_ok;
-    use ton_core::types::tlb_core::{Anycast, MsgAddressExtern, MsgAddressIntStd, VarLenBits};
     use ton_core::types::TonAddress;
+    use ton_core::types::tlb_core::{Anycast, MsgAddressExtern, MsgAddressIntStd, VarLenBits};
 
     #[test]
     fn test_common_msg_info_int() -> anyhow::Result<()> {
-        let msg_cell = TonCell::from_boc_hex("b5ee9c720101010100580000ab69fe00000000000000000000000000000000000000000000000000000000000000013fccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd3050ec744000000617bc90dda80cf41ab8e40")?;
+        let msg_cell = TonCell::from_boc_hex(
+            "b5ee9c720101010100580000ab69fe00000000000000000000000000000000000000000000000000000000000000013fccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd3050ec744000000617bc90dda80cf41ab8e40",
+        )?;
         let parsed_msg = Msg::from_cell(&msg_cell)?;
         assert!(parsed_msg.init.is_none());
         assert_eq!(parsed_msg.body.value.data_len_bits(), 0); // quite useless assert, but let it be here

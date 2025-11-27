@@ -2,7 +2,7 @@ mod tlb_derive;
 mod tlb_derive_enum;
 mod tlb_derive_struct;
 
-use crate::tlb_derive::{tlb_derive_impl, TLBHeaderAttrs};
+use crate::tlb_derive::{TLBHeaderAttrs, tlb_derive_impl};
 use proc_macro::TokenStream;
 
 /// Automatic `TLB` implementation

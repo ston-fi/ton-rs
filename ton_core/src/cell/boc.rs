@@ -3,11 +3,11 @@ pub(crate) mod raw_cell;
 mod read_var_size;
 
 use crate::bail_ton_core_data;
-use crate::cell::boc::raw_boc::RawBoC;
 use crate::cell::TonCell;
+use crate::cell::boc::raw_boc::RawBoC;
 use crate::errors::TonCoreError;
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use std::sync::Arc;
 
 pub struct BoC {

@@ -8,9 +8,9 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
+use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::types::tlb_core::TLBRef;
-use ton_core::TLB;
 
 #[derive(Clone, TLB)]
 pub enum TVMStackValue {

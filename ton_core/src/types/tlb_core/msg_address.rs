@@ -2,7 +2,7 @@ use crate::cell::CellBuilder;
 use crate::cell::CellParser;
 use crate::cell::TonHash;
 use crate::errors::TonCoreError;
-use crate::traits::tlb::{TLBPrefix, TLB};
+use crate::traits::tlb::{TLB, TLBPrefix};
 use crate::types::tlb_core::VarLenBits;
 use std::convert::Into;
 use ton_macros::TLB;

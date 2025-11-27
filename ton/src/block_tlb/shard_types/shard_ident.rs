@@ -3,7 +3,7 @@ use ton_core::bits_utils::BitsUtils;
 use ton_core::cell::{CellBuilder, CellParser};
 use ton_core::constants::{TON_MASTERCHAIN, TON_MAX_SPLIT_DEPTH, TON_SHARD_FULL};
 use ton_core::errors::TonCoreError;
-use ton_core::traits::tlb::{TLBPrefix, TLB};
+use ton_core::traits::tlb::{TLB, TLBPrefix};
 use ton_core::types::tlb_core::MsgAddressInt;
 use ton_core::{bail_ton_core, bail_ton_core_data};
 

@@ -1,5 +1,5 @@
 mod benchmark_utils;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use ton_lib_core_008::cell::TonCell as TonCellTonLibCore008;
 use tonlib_core::cell::CellBuilder;
 

@@ -1,4 +1,4 @@
-use crc::{Crc, CRC_32_ISO_HDLC};
+use crc::{CRC_32_ISO_HDLC, Crc};
 use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter};
 

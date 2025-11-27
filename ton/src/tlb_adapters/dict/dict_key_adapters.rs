@@ -6,8 +6,8 @@ use std::marker::PhantomData;
 use ton_core::cell::TonCell;
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
-use ton_core::types::tlb_core::MsgAddressInt;
 use ton_core::types::TonAddress;
+use ton_core::types::tlb_core::MsgAddressInt;
 
 pub trait DictKeyAdapter {
     type KeyType;

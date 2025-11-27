@@ -1,6 +1,6 @@
-use crate::contracts::contract_methods::JettonWalletMethods;
 use crate::contracts::ContractClient;
 use crate::contracts::TonContract;
+use crate::contracts::contract_methods::JettonWalletMethods;
 use crate::ton_contract;
 use crate::ton_core::traits::contract_provider::TonContractState;
 

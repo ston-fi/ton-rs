@@ -2,7 +2,7 @@ mod benchmark_utils;
 use std::hint::black_box;
 use std::sync::LazyLock;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use ton_core::cell::{BoC, TonCell};
 
 const BOC_HEX_SHARD: &str = include_str!("../resources/tests/shard_block_6000000000000000_52111590.hex");

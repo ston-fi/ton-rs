@@ -1,8 +1,8 @@
 use crate::block_tlb::Coins;
-use ton_core::cell::TonCell;
-use ton_core::types::tlb_core::{TLBEitherRef, TLBRef};
-use ton_core::types::TonAddress;
 use ton_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::TonAddress;
+use ton_core::types::tlb_core::{TLBEitherRef, TLBRef};
 
 /// Creates a body for jetton transfer according to TL-B schema:
 ///
@@ -47,12 +47,14 @@ mod tests {
     use std::str::FromStr;
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
-    use ton_core::types::tlb_core::TLBEitherRef;
     use ton_core::types::TonAddress;
+    use ton_core::types::tlb_core::TLBEitherRef;
 
     #[test]
     fn test_nft_transfer_msg() -> anyhow::Result<()> {
-        let nft_transfer_msg = NFTTransferMsg::from_boc_hex("b5ee9c7201010101006f0000d95fcc3d140000000000000000800e20aaf07ad251d1800fe45e3af334769b7b2069d3ab2ea6c9ee0f73dfd072a21000a1b4b24b6a66313f3e0b49d095f3e8f4294af504b3a0f7b99290129f3aaafcc47312d0040544f4e506c616e65747320676966742077697468206c6f76658")?;
+        let nft_transfer_msg = NFTTransferMsg::from_boc_hex(
+            "b5ee9c7201010101006f0000d95fcc3d140000000000000000800e20aaf07ad251d1800fe45e3af334769b7b2069d3ab2ea6c9ee0f73dfd072a21000a1b4b24b6a66313f3e0b49d095f3e8f4294af504b3a0f7b99290129f3aaafcc47312d0040544f4e506c616e65747320676966742077697468206c6f76658",
+        )?;
         let payload =
             TonCell::from_boc_hex("b5ee9c7201010101001c00003440544f4e506c616e65747320676966742077697468206c6f7665")?;
 

@@ -1,6 +1,6 @@
 use crate::block_tlb::StateInit;
-use ton_core::cell::TonHash;
 use ton_core::TLB;
+use ton_core::cell::TonHash;
 
 #[derive(Debug, Clone, PartialEq, TLB)]
 pub enum AccountState {

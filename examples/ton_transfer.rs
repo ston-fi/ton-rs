@@ -3,15 +3,15 @@ use anyhow::Ok;
 #[cfg(feature = "tonlibjson")]
 mod example {
     use log::LevelFilter;
+    use log4rs::Config;
     use log4rs::append::console::{ConsoleAppender, Target};
     use log4rs::config::{Appender, Root};
-    use log4rs::Config;
     use std::sync::Once;
     use std::time::Duration;
     use ton::block_tlb::{Coins, CommonMsgInfoInt, Msg};
     use ton::block_tlb::{CommonMsgInfo, CurrencyCollection};
-    use ton::contracts::tl_provider::TLProvider;
     use ton::contracts::TonWalletMethods;
+    use ton::contracts::tl_provider::TLProvider;
     use ton::contracts::{ContractClient, TonContract, TonWalletContract};
     use ton::net_config::TonNetConfig;
     use ton::sys_utils::sys_tonlib_set_verbosity_level;

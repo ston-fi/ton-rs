@@ -1,6 +1,6 @@
-use crate::contracts::contract_client::contract_client_cache::ContractClientCache;
-use crate::contracts::contract_client::Inner;
 use crate::contracts::ContractClient;
+use crate::contracts::contract_client::Inner;
+use crate::contracts::contract_client::contract_client_cache::ContractClientCache;
 use crate::errors::TonResult;
 use derive_setters::Setters;
 use std::sync::Arc;
