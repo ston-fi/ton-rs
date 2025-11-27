@@ -19,6 +19,7 @@ pub struct CellBuilder {
 }
 
 impl CellBuilder {
+    /// use TonCell::builder() for creation
     pub(super) fn new(cell_type: CellType, initial_capacity: usize) -> Self {
         let data_store = Vec::with_capacity(initial_capacity);
         Self {

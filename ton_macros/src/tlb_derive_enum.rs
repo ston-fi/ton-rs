@@ -40,7 +40,7 @@ pub(crate) fn tlb_derive_enum(
             panic!("Each enum variant must have exactly one unnamed field");
         }
         quote! {
-            Self::#variant_name(ref value) => value.write(builder)?,
+            Self::#variant_name(value) => value.write(builder)?,
         }
     });
 
@@ -110,7 +110,7 @@ fn variants_access_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
                 quote! {
                     pub fn #as_fn(&self) -> Option<& #field_ty> {
                         match self {
-                            #ident::#variant_name(ref inner) => Some(inner),
+                            #ident::#variant_name(inner) => Some(inner),
                              _ => None,
                         }
                     }
