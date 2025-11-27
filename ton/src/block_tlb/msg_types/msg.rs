@@ -1,5 +1,6 @@
 use crate::block_tlb::msg_types::common_msg_info::CommonMsgInfo;
 use crate::block_tlb::*;
+use crate::errors::TonResult;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
@@ -15,12 +16,13 @@ pub struct Msg {
 }
 
 impl Msg {
-    pub fn new<T: Into<CommonMsgInfo>>(info: T, body: TonCell) -> Self {
-        Self {
+    pub fn new<T: Into<CommonMsgInfo>, B: TLB>(info: T, body: B) -> TonResult<Self> {
+        let msg = Self {
             info: info.into(),
             init: None,
-            body: TLBEitherRef::new_with_layout(body, EitherRefLayout::ToRef),
-        }
+            body: TLBEitherRef::new_with_layout(body.to_cell()?, EitherRefLayout::ToRef),
+        };
+        Ok(msg)
     }
 
     pub fn src(&self) -> MsgAddress {
@@ -106,9 +108,9 @@ mod tests {
         let expected_dest = TonAddress::from_str("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF")?;
         assert_eq!(TonAddress::from_msg_address(info.src)?, expected_src);
         assert_eq!(TonAddress::from_msg_address(info.dst)?, expected_dest);
-        assert_eq!(info.value, CurrencyCollection::new(3242439121u32));
-        assert_eq!(info.ihr_fee, Coins::new(0u32));
-        assert_eq!(info.fwd_fee, Coins::new(0u32));
+        assert_eq!(info.value, CurrencyCollection::from_num(&3242439121u32)?);
+        assert_eq!(info.ihr_fee, Coins::ZERO);
+        assert_eq!(info.fwd_fee, Coins::ZERO);
         assert_eq!(info.created_lt, 53592141000000);
         assert_eq!(info.created_at, 1738593735u32);
 
@@ -126,7 +128,7 @@ mod tests {
         let expected_dst = TonAddress::from_str("EQCBjPu_JrsPyrc8fOT-ovj0ilv_1c2uD1KKQsS84KsG90PM")?;
         let dst = TonAddress::from_msg_address(ext_in_msg_info.dst.clone())?;
         assert_eq!(dst, expected_dst);
-        assert_eq!(ext_in_msg_info.import_fee, Coins::new(0u32));
+        assert_eq!(ext_in_msg_info.import_fee, Coins::ZERO);
 
         let cell = ext_in_msg_info.to_cell()?;
         let parsed = CommonMsgInfoExtIn::from_cell(&cell)?;

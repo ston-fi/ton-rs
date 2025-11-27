@@ -13,8 +13,7 @@ pub struct TrStoragePhase {
 #[derive(Clone, Debug, PartialEq, TLB)]
 pub enum TrComputePhase {
     Skipped(TrComputePhaseSkipped),
-    #[rustfmt::skip]
-    VM(Box::<TrComputePhaseVM>),
+    VM(Box<TrComputePhaseVM>),
 }
 
 impl Default for TrComputePhase {

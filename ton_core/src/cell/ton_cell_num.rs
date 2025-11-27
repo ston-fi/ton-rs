@@ -17,6 +17,7 @@ pub trait TonCellNum: Display + Sized + Clone {
     fn tcn_read_bits(reader: &mut CellBitsReader, bits_len: u32) -> Result<Self, TonCoreError>;
     fn tcn_is_zero(&self) -> bool;
     fn tcn_min_bits_len(&self) -> u32;
+    fn tcn_is_positive(&self) -> bool; // is used in Coins transformation
 }
 
 macro_rules! primitive_convert_to_unsigned {
@@ -104,6 +105,8 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                     (primitive_highest_bit_pos!(*self, Self, false) + 1u32)
                 }
             }
+
+            fn tcn_is_positive(&self) -> bool { self > &0 }
         }
     };
 }
@@ -144,6 +147,8 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                     primitive_highest_bit_pos!(*self, Self, true) + 2u32
                 }
             }
+
+            fn tcn_is_positive(&self) -> bool { self > &0 }
         }
     };
 }
@@ -181,6 +186,8 @@ impl TonCellNum for usize {
             (primitive_highest_bit_pos!(*self, Self, false) + 1u32)
         }
     }
+
+    fn tcn_is_positive(&self) -> bool { self > &0 }
 }
 
 fn u1024_to_biguint(val: U1024) -> Result<BigUint, TonCoreError> {
@@ -315,6 +322,8 @@ impl TonCellNum for BigUint {
             self.bits() as u32
         }
     }
+
+    fn tcn_is_positive(&self) -> bool { self > &Self::ZERO }
 }
 
 impl TonCellNum for BigInt {
@@ -343,9 +352,12 @@ impl TonCellNum for BigInt {
             (self.bits() as u32) + 1u32
         }
     }
+
+    fn tcn_is_positive(&self) -> bool { self > &Self::ZERO }
 }
 
 use fastnum::bint::{Int, UInt};
+
 // fastnum
 fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Result<UInt<N>, TonCoreError> {
     // Sanity: Int/UInt<N> hold N*64 bits.
@@ -536,7 +548,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 Ok(result)
             }
 
-            fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+            fn tcn_is_zero(&self) -> bool { *self == Self::ZERO }
 
             fn tcn_min_bits_len(&self) -> u32 {
                 if self.tcn_is_zero() {
@@ -545,6 +557,8 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     primitive_highest_bit_pos!(*self, $src, false) as u32 + 1u32
                 }
             }
+
+            fn tcn_is_positive(&self) -> bool { *self > Self::ZERO }
         }
     };
 }
@@ -561,7 +575,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 u_sibling.tcn_write_bits(writer, bits_len)
             }
 
-            fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
+            fn tcn_is_zero(&self) -> bool { *self == Self::ZERO }
 
             fn tcn_min_bits_len(&self) -> u32 {
                 if self.tcn_is_zero() {
@@ -572,6 +586,8 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                     primitive_highest_bit_pos!(*self, $src, true) as u32 + 2u32
                 }
             }
+
+            fn tcn_is_positive(&self) -> bool { *self > Self::ZERO }
         }
     };
 }
