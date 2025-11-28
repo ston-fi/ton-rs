@@ -33,14 +33,11 @@ impl ContractClientCache {
             latest_tx_cache: init_cache(capacity, ttl),
             state_latest_cache: init_cache(capacity, ttl),
             state_by_tx_cache: init_cache(capacity, ttl),
-            libs_cache: moka::sync::Cache::builder()
-                .max_capacity(builder.libs_cache_capacity)
-                .time_to_live(builder.libs_not_found_cache_ttl)
-                .build(),
-            libs_cache_not_found: moka::sync::Cache::builder()
-                .max_capacity(builder.libs_not_found_cache_capacity)
-                .time_to_live(builder.libs_not_found_cache_ttl)
-                .build(),
+            libs_cache: init_sync_cache(builder.libs_cache_capacity, builder.libs_cache_ttl),
+            libs_cache_not_found: init_sync_cache(
+                builder.libs_not_found_cache_capacity,
+                builder.libs_not_found_cache_ttl,
+            ),
             code_extra_libs_cache: moka::sync::Cache::builder()
                 .max_capacity(builder.code_libs_cache_capacity)
                 .time_to_idle(builder.code_libs_cache_idle)
@@ -186,4 +183,12 @@ where
     V: Send + Sync + Clone + 'static,
 {
     Cache::builder().max_capacity(capacity).time_to_live(ttl).build()
+}
+
+fn init_sync_cache<K, V>(capacity: u64, ttl: Duration) -> moka::sync::Cache<K, V>
+where
+    K: Eq + Hash + Send + Sync + 'static,
+    V: Send + Sync + Clone + 'static,
+{
+    moka::sync::Cache::builder().max_capacity(capacity).time_to_live(ttl).build()
 }

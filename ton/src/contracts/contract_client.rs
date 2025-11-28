@@ -20,9 +20,6 @@ use ton_core::traits::contract_provider::{TonContractState, TonProvider};
 use ton_core::traits::tlb::TLB;
 use ton_core::types::{TonAddress, TxLTHash};
 
-/// Safe-guard to prevent infinite loops when loading libraries during emulation
-const MAX_LIBS_PER_CONTRACT: usize = 100;
-
 #[derive(Clone)]
 pub struct ContractClient {
     inner: Arc<Inner>,
@@ -77,8 +74,8 @@ impl ContractClient {
         let mut iteration = 0;
         while let Some(missing_lib_hash) = emul_response.missing_lib()? {
             iteration += 1;
-            if iteration > MAX_LIBS_PER_CONTRACT {
-                return Err(TonError::EmulatorTooManyLibraries(MAX_LIBS_PER_CONTRACT));
+            if iteration > self.inner.max_libs_per_contract {
+                return Err(TonError::EmulatorTooManyLibraries(self.inner.max_libs_per_contract));
             }
             let Some(lib) = self.inner.cache.get_or_load_lib(missing_lib_hash.clone()).await? else {
                 return Err(TonError::EmulatorMissingLibrary(missing_lib_hash));
@@ -109,4 +106,5 @@ struct Inner {
     provider: Arc<dyn TonProvider>,
     cache: Arc<ContractClientCache>,
     bc_config: OnceCell<EmulBCConfig>,
+    max_libs_per_contract: usize,
 }
