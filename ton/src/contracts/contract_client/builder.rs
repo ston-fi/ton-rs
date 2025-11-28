@@ -14,18 +14,32 @@ pub struct Builder {
     #[setters(skip)]
     pub(super) provider: Arc<dyn TonProvider>,
     pub(super) refresh_loop_idle_on_error: Duration,
-    pub(super) cache_capacity: u64,
-    pub(super) cache_ttl: Duration,
+    pub(super) contract_cache_capacity: u64,
+    pub(super) contract_cache_ttl: Duration,
+    pub(super) libs_cache_capacity: u64,
+    pub(super) libs_cache_ttl: Duration,
+    pub(super) libs_not_found_cache_capacity: u64,
+    pub(super) libs_not_found_cache_ttl: Duration,
+    pub(super) code_libs_cache_capacity: u64,
+    pub(super) code_libs_cache_idle: Duration,
 }
 
 impl Builder {
+    /// Use ContractClient::builder() for creation
     /// No cache by default
+    /// Use `with_default_caches()` for meaningful defaults
     pub(super) fn new(provider: impl TonProvider) -> Self {
         Self {
             provider: Arc::new(provider),
             refresh_loop_idle_on_error: Duration::from_millis(100),
-            cache_capacity: 0,
-            cache_ttl: Duration::from_millis(0),
+            contract_cache_capacity: 0,
+            contract_cache_ttl: Duration::from_millis(0),
+            libs_cache_capacity: 0,
+            libs_cache_ttl: Duration::from_secs(0),
+            libs_not_found_cache_capacity: 0,
+            libs_not_found_cache_ttl: Duration::from_secs(0),
+            code_libs_cache_capacity: 0,
+            code_libs_cache_idle: Duration::from_secs(0),
         }
     }
 
@@ -37,5 +51,18 @@ impl Builder {
             bc_config: OnceCell::new(),
         };
         Ok(ContractClient { inner: Arc::new(inner) })
+    }
+
+    /// Some meaningful defaults
+    pub fn with_default_caches(mut self) -> Self {
+        self.contract_cache_capacity = 5_000;
+        self.contract_cache_ttl = Duration::from_secs(300);
+        self.libs_cache_capacity = 1_000;
+        self.libs_cache_ttl = Duration::from_secs(300);
+        self.libs_not_found_cache_capacity = 5_000; // keeps only TonHash
+        self.libs_not_found_cache_ttl = Duration::from_secs(300);
+        self.code_libs_cache_capacity = 5_000;
+        self.code_libs_cache_idle = Duration::from_secs(600);
+        self
     }
 }

@@ -27,20 +27,23 @@ pub(super) struct ContractClientCache {
 
 impl ContractClientCache {
     pub(super) fn new(builder: &Builder) -> Result<Arc<Self>, TonError> {
-        let (capacity, ttl) = (builder.cache_capacity, builder.cache_ttl);
+        let (capacity, ttl) = (builder.contract_cache_capacity, builder.contract_cache_ttl);
         let client_cache = Arc::new(Self {
             provider: builder.provider.clone(),
             latest_tx_cache: init_cache(capacity, ttl),
             state_latest_cache: init_cache(capacity, ttl),
             state_by_tx_cache: init_cache(capacity, ttl),
-            libs_cache: moka::sync::Cache::builder().max_capacity(capacity).build(), // for now, libs won't expire
+            libs_cache: moka::sync::Cache::builder()
+                .max_capacity(builder.libs_cache_capacity)
+                .time_to_live(builder.libs_not_found_cache_ttl)
+                .build(),
             libs_cache_not_found: moka::sync::Cache::builder()
-                .max_capacity(capacity)
-                .time_to_live(Duration::from_secs(60))
+                .max_capacity(builder.libs_not_found_cache_capacity)
+                .time_to_live(builder.libs_not_found_cache_ttl)
                 .build(),
             code_extra_libs_cache: moka::sync::Cache::builder()
-                .max_capacity(capacity)
-                .time_to_idle(Duration::from_secs(60))
+                .max_capacity(builder.code_libs_cache_capacity)
+                .time_to_idle(builder.code_libs_cache_idle)
                 .build(),
             cache_stats: CacheStats::default(),
         });

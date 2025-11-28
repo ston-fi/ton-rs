@@ -18,7 +18,7 @@ async fn test_contracts() -> anyhow::Result<()> {
     let tl_client = make_tl_client(true, true).await?;
     let data_provider = TLProvider::new(tl_client);
     let ctr_cli = ContractClient::builder(data_provider)
-        .with_cache_capacity(0) // manually disable cache
+        .with_contract_cache_capacity(0) // manually disable cache
         .build()?;
 
     let res = try_join!(
