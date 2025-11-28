@@ -197,13 +197,24 @@ fn write_cell_display(f: &mut Formatter<'_>, cell: &TonCell, indent_level: usize
         cell.borders.start_bit,
         cell.data_len_bits(),
     );
+
+    let non_complete_bits = cell.data_len_bits() % 8;
+    if non_complete_bits != 0 {
+        // add one after last used bit, zero for the rest
+        let last_byte_index = cell_data.len() - 1;
+        let keep_mask = 0xFFu8 << (8 - non_complete_bits);
+        let completion_mask = 1u8 << (7 - non_complete_bits);
+        cell_data[last_byte_index] &= keep_mask;
+        cell_data[last_byte_index] |= completion_mask;
+    }
     // Generate the data display string
     let mut data_display = cell_data.iter().fold(String::new(), |mut res, byte| {
         let _ = write!(res, "{byte:02X}");
         res
     });
+
     // completion tag
-    if cell.data_len_bits() % 8 != 0 {
+    if non_complete_bits != 0 {
         data_display.push('_');
     }
 
@@ -312,7 +323,7 @@ mod tests {
         let cell = BoC::from_hex(&boc_hex)?.single_root()?;
         let weak_data_ptr = Arc::downgrade(&cell.cell_data.data_storage);
 
-        let copy = TonCell::deep_copy(&cell).unwrap();
+        let copy = TonCell::deep_copy(&cell)?;
         let copy_bytes = BoC::new(copy.clone()).to_bytes(false)?;
         let parsed_copy = BoC::from_bytes(copy_bytes)?.single_root()?;
         assert_eq!(cell.hash()?, parsed_copy.hash()?);
@@ -320,6 +331,25 @@ mod tests {
         drop(cell);
         assert!(weak_data_ptr.upgrade().is_none());
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_ton_cell_view() -> anyhow::Result<()> {
+        // https://ton.org/tvm.pdf
+        // For example, 8A corresponds to binary string 10001010, while 8A_ and
+        // 8A0_ both correspond to 100010
+        let mut builder = TonCell::builder();
+        builder.write_bit(true)?;
+        builder.write_bit(false)?;
+        builder.write_bit(false)?;
+        builder.write_bit(false)?;
+        builder.write_bit(true)?;
+        builder.write_bit(false)?;
+
+        let cell = builder.build()?;
+        let repr = format!("{cell}");
+        assert!(repr.contains("data: [8A_]"));
         Ok(())
     }
 }

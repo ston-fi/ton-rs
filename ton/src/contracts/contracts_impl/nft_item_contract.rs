@@ -1,5 +1,5 @@
-use crate::contracts::contract_methods::{NFTCollectionMethods, NFTItemMethods};
 use crate::contracts::ContractClient;
+use crate::contracts::contract_methods::{NFTCollectionMethods, NFTItemMethods};
 use crate::contracts::{NFTCollectionContract, TonContract};
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::GetNFTDataResult;

@@ -4,11 +4,11 @@ mod ipfs_loader;
 pub use ipfs_loader::*;
 
 use crate::errors::{MetaLoaderError, TonResult};
-use crate::tep::metadata::meta_loader::builder::Builder;
 use crate::tep::metadata::Metadata;
 use crate::tep::metadata::MetadataExternal;
 use crate::tep::metadata::MetadataInternal;
-use crate::tep::metadata::{MetadataContent, META_URI};
+use crate::tep::metadata::meta_loader::builder::Builder;
+use crate::tep::metadata::{META_URI, MetadataContent};
 
 pub struct MetaLoader {
     http_loader: reqwest::Client,

@@ -1,12 +1,12 @@
 use crate::block_tlb::BlockIdExt;
 use crate::errors::TonError;
+use crate::tl_client::RetryStrategy;
 use crate::tl_client::connection::TLConnection;
 use crate::tl_client::tl::*;
-use crate::tl_client::RetryStrategy;
 use crate::unwrap_tl_rsp;
 use async_trait::async_trait;
-use tokio_retry::strategy::FixedInterval;
 use tokio_retry::RetryIf;
+use tokio_retry::strategy::FixedInterval;
 use ton_core::cell::TonHash;
 use ton_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
 use ton_core::types::{TonAddress, TxLTHash};

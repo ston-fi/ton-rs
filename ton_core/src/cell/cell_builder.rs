@@ -1,8 +1,8 @@
 use crate::bail_ton_core_data;
+use crate::cell::CellMeta;
 use crate::cell::cell_meta::CellType;
 use crate::cell::ton_cell::{CellBorders, CellData, RefStorage, TonCell};
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::cell::CellMeta;
 use crate::errors::TonCoreError;
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
 use std::cmp::min;
@@ -19,6 +19,7 @@ pub struct CellBuilder {
 }
 
 impl CellBuilder {
+    /// use TonCell::builder() for creation
     pub(super) fn new(cell_type: CellType, initial_capacity: usize) -> Self {
         let data_store = Vec::with_capacity(initial_capacity);
         Self {
@@ -177,8 +178,8 @@ fn build_cell_data(mut bit_writer: BitWriter<Vec<u8>, BigEndian>) -> Result<(Cel
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cell::cell_meta::LevelMask;
     use crate::cell::TonHash;
+    use crate::cell::cell_meta::LevelMask;
     use num_bigint::BigUint;
     use num_traits::FromPrimitive;
     use std::str::FromStr;

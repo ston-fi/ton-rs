@@ -1,7 +1,7 @@
 use crate::block_tlb::Coins;
+use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
-use ton_core::TLB;
 
 /// ```raw
 /// internal_transfer#178d4519  query_id:uint64 amount:(VarUInteger 16)
@@ -29,13 +29,17 @@ mod tests {
     use std::str::FromStr;
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
-    use ton_core::types::tlb_core::TLBEitherRef;
     use ton_core::types::TonAddress;
+    use ton_core::types::tlb_core::TLBEitherRef;
 
     #[test]
     fn test_jetton_internal_transfer_msg() -> anyhow::Result<()> {
-        let msg = JettonInternalTransferMsg::from_boc_hex("b5ee9c720101020100aa0001af178d45190000005209ddeb9e440ee9390801e6ef228644c75beba08c8b8e2adf62f1e760e84861b5c33027f0433e19085713003cdde450c898eb7d74119171c55bec5e3cec1d090c36b86604fe0867c3210ae2501dcd65030100992593856180022a16a3164c4d5aa3133f3110ff10496e00ca8ac8abeffc5027e024d33480c3ea916f9f4a23003cdde450c898eb7d74119171c55bec5e3cec1d090c36b86604fe0867c3210ae250")?;
-        let payload = TonCell::from_boc_hex("b5ee9c7201010101004f0000992593856180022a16a3164c4d5aa3133f3110ff10496e00ca8ac8abeffc5027e024d33480c3ea916f9f4a23003cdde450c898eb7d74119171c55bec5e3cec1d090c36b86604fe0867c3210ae250")?;
+        let msg = JettonInternalTransferMsg::from_boc_hex(
+            "b5ee9c720101020100aa0001af178d45190000005209ddeb9e440ee9390801e6ef228644c75beba08c8b8e2adf62f1e760e84861b5c33027f0433e19085713003cdde450c898eb7d74119171c55bec5e3cec1d090c36b86604fe0867c3210ae2501dcd65030100992593856180022a16a3164c4d5aa3133f3110ff10496e00ca8ac8abeffc5027e024d33480c3ea916f9f4a23003cdde450c898eb7d74119171c55bec5e3cec1d090c36b86604fe0867c3210ae250",
+        )?;
+        let payload = TonCell::from_boc_hex(
+            "b5ee9c7201010101004f0000992593856180022a16a3164c4d5aa3133f3110ff10496e00ca8ac8abeffc5027e024d33480c3ea916f9f4a23003cdde450c898eb7d74119171c55bec5e3cec1d090c36b86604fe0867c3210ae250",
+        )?;
 
         let expected = JettonInternalTransferMsg {
             query_id: 352352856990,

@@ -1,8 +1,8 @@
 use crate::block_tlb::TVMStack;
 use crate::emulators::emul_utils::require_field;
 use crate::errors::TonError;
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
 use ton_core::traits::tlb::TLB;
 

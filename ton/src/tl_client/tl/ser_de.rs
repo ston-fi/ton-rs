@@ -1,5 +1,5 @@
 use serde::de::IntoDeserializer;
-use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 
 pub(crate) mod serde_block_id_ext {
     use super::*;

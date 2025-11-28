@@ -1,6 +1,6 @@
 use crate::cell::{CellBuilder, CellParser};
 use crate::errors::TonCoreError;
-use fastnum::{I1024, I128, I256, I512, U1024, U128, U256, U512};
+use fastnum::{I128, I256, I512, I1024, U128, U256, U512, U1024};
 use num_bigint::{BigInt, BigUint};
 use std::marker::PhantomData;
 

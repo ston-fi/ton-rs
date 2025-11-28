@@ -7,9 +7,9 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use ton_core::errors::TonCoreError;
-use ton_core::types::tlb_core::VarLenBytes;
 use ton_core::types::TonExtraCurrencyId;
-use ton_core::{bail_ton_core_data, TLB};
+use ton_core::types::tlb_core::VarLenBytes;
+use ton_core::{TLB, bail_ton_core_data};
 
 /// https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L116
 #[derive(Clone, Debug, PartialEq, Eq, TLB)]

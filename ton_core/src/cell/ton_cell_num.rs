@@ -1,7 +1,7 @@
 use crate::cell::{CellBitWriter, CellBitsReader};
 use bitstream_io::{BitRead, BitWrite};
-use fastnum::{TryCast, I1024, I128, I256, I512};
-use fastnum::{U1024, U128, U256, U512};
+use fastnum::{I128, I256, I512, I1024, TryCast};
+use fastnum::{U128, U256, U512, U1024};
 use num_bigint::{BigInt, BigUint, Sign};
 use num_traits::Zero;
 use std::fmt::Display;
@@ -308,13 +308,7 @@ impl TonCellNum for BigUint {
 
     fn tcn_is_zero(&self) -> bool { Zero::is_zero(self) }
 
-    fn tcn_min_bits_len(&self) -> u32 {
-        if self.tcn_is_zero() {
-            0u32
-        } else {
-            self.bits() as u32
-        }
-    }
+    fn tcn_min_bits_len(&self) -> u32 { if self.tcn_is_zero() { 0u32 } else { self.bits() as u32 } }
 }
 
 impl TonCellNum for BigInt {

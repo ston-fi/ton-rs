@@ -1,5 +1,5 @@
 use bitstream_io::{BigEndian, BitWrite, BitWriter};
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use fastnum::{I512, U512};
 use num_bigint::BigInt;
 use std::hint::black_box;

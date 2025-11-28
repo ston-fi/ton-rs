@@ -1,12 +1,12 @@
-use crate::block_tlb::block_types::block_id_ext::BlockIdExt;
-use crate::block_tlb::block_types::block_prev_info::{BlockPrevInfoAfterMerge, PrevBlockInfo};
 use crate::block_tlb::GlobalVersion;
 use crate::block_tlb::ShardIdent;
+use crate::block_tlb::block_types::block_id_ext::BlockIdExt;
+use crate::block_tlb::block_types::block_prev_info::{BlockPrevInfoAfterMerge, PrevBlockInfo};
 use std::ops::Deref;
+use ton_core::TLB;
 use ton_core::cell::{CellBuilder, CellParser, TonHash};
 use ton_core::errors::TonCoreError;
-use ton_core::traits::tlb::{TLBPrefix, TLB};
-use ton_core::TLB;
+use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 const GEN_SOFTWARE_EXISTS_FLAG: u8 = 1;
 
@@ -195,8 +195,8 @@ impl TLB for BlockInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block_tlb::Block;
     use crate::block_tlb::_test_block_data::{MASTER_BLOCK_BOC_HEX, SHARD_BLOCK_BOC_HEX};
+    use crate::block_tlb::Block;
     use std::ops::Deref;
     use std::str::FromStr;
 

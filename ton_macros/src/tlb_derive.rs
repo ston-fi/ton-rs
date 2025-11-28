@@ -1,7 +1,7 @@
 use crate::tlb_derive_enum::tlb_derive_enum;
 use crate::tlb_derive_struct::tlb_derive_struct;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 use syn::Data;
 

@@ -4,8 +4,8 @@ use num_bigint::BigInt;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use tokio_test::assert_ok;
-use ton::contracts::tl_provider::TLProvider;
 use ton::contracts::NFTItemContract;
+use ton::contracts::tl_provider::TLProvider;
 use ton::contracts::*;
 use ton::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton::tep::nft::NFTItemMetadata;
@@ -89,20 +89,18 @@ async fn assert_nft_item_load_full_nft_data(ctr_cli: &ContractClient) -> anyhow:
     let meta_loader = MetaLoader::builder().build()?;
     let content_res: NFTItemMetadata = meta_loader.load(&data.individual_content).await?;
     let expected = NFTItemMetadata {
-            name: Some(
-                String::from("Season 2 Airdrop Member"),
-            ),
-            description: Some(
-                String::from("This SBT confirms that you have completed the Season 2 checklist and claimed the official airdrop, verifying your daily logins, partner game plays, and event participation. Holders earn community recognition and gain early access to benefits from future drops."),
-            ),
-            image: Some(
-                String::from("https://static.sidusheroes.com/prod/tonstation/nft/Season%202%20Airdrop%20Participant.png"),
-            ),
-            content_url: Some(
-                String::from("https://static.sidusheroes.com/prod/tonstation/nft/Season%202%20Airdrop%20Participant.png"),
-            ),
-            attributes: None,
-        };
+        name: Some(String::from("Season 2 Airdrop Member")),
+        description: Some(String::from(
+            "This SBT confirms that you have completed the Season 2 checklist and claimed the official airdrop, verifying your daily logins, partner game plays, and event participation. Holders earn community recognition and gain early access to benefits from future drops.",
+        )),
+        image: Some(String::from(
+            "https://static.sidusheroes.com/prod/tonstation/nft/Season%202%20Airdrop%20Participant.png",
+        )),
+        content_url: Some(String::from(
+            "https://static.sidusheroes.com/prod/tonstation/nft/Season%202%20Airdrop%20Participant.png",
+        )),
+        attributes: None,
+    };
     assert_eq!(expected, content_res);
 
     Ok(())

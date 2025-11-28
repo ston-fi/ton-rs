@@ -11,7 +11,7 @@ use crate::tl_client::tl::*;
 use crate::tl_client::*;
 use crate::unwrap_tl_rsp;
 use async_trait::async_trait;
-use tokio::sync::{oneshot, Mutex, Semaphore};
+use tokio::sync::{Mutex, Semaphore, oneshot};
 use ton_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
 
 static CONNECTION_COUNTER: AtomicU64 = AtomicU64::new(0);

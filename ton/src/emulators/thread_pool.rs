@@ -27,13 +27,15 @@ impl ThreadPoolConfig {
     }
 }
 
+type TaskSender<Task, Retval> = Sender<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>;
+
 pub struct ThreadPool<Obj, Task, Retval>
 where
     Obj: PooledObject<Task, Retval> + Send + 'static,
     Task: Send + 'static,
     Retval: Send + 'static,
 {
-    senders: Vec<Sender<(Task, oneshot::Sender<TonResult<Retval>>, u128, u64)>>,
+    senders: Vec<TaskSender<Task, Retval>>,
     cnt_jobs_in_queue: Vec<AtomicUsize>,
     cnt_done_tasks: Vec<AtomicUsize>,
     cnt_errored_tasks: Vec<AtomicUsize>,
@@ -128,7 +130,7 @@ where
 
         let (tx, rx) = oneshot::channel();
         let command = (task, tx, deadline_time, timeout);
-        let idx = self.pick_thread_index_and_inc_counter(deadline_time, timeout as u64).await?;
+        let idx = self.pick_thread_index_and_inc_counter(deadline_time, timeout).await?;
         let _guard = DecrementOnDestructor::new(&self.cnt_jobs_in_queue[idx]);
         self.cnt_current_jobs.fetch_add(1, Ordering::Relaxed);
         self.senders[idx].send(command).map_err(|e| {

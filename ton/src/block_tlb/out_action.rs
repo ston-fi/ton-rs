@@ -1,10 +1,10 @@
 use crate::block_tlb::CurrencyCollection;
 use crate::ton_core::types::tlb_core::adapters::ConstLen;
+use ton_core::TLB;
 use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::tlb_core::{TLBEither, TLBRef};
-use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/2a68c8610bf28b43b2019a479a70d0606c2a0aa1/crypto/block/block.tlb#L399
 #[derive(Debug, PartialEq, Clone, Default)]
@@ -112,7 +112,9 @@ mod test {
 
     #[test]
     fn test_block_tlb_out_list_send_msg_action_bc_data() -> anyhow::Result<()> {
-        let cell = TonCell::from_boc_hex("b5ee9c72010104010084000181bc04889cb28b36a3a00810e363a413763ec34860bf0fce552c5d36e37289fafd442f1983d740f92378919d969dd530aec92d258a0779fb371d4659f10ca1b3826001020a0ec3c86d0302030000006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a120000000000000000000000000000")?;
+        let cell = TonCell::from_boc_hex(
+            "b5ee9c72010104010084000181bc04889cb28b36a3a00810e363a413763ec34860bf0fce552c5d36e37289fafd442f1983d740f92378919d969dd530aec92d258a0779fb371d4659f10ca1b3826001020a0ec3c86d0302030000006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a120000000000000000000000000000",
+        )?;
         let mut parser = cell.parser();
         assert!(parser.read_bit()?);
         let out_list = TLBRef::<OutList>::read(&mut parser)?;

@@ -1,8 +1,8 @@
 use crate::ton_wallet::wallet_tlb::wallet_ext_msg_utils::{read_up_to_4_msgs, write_up_to_4_msgs};
+use ton_core::TLB;
 use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
-use ton_core::TLB;
 
 /// WalletVersion::V3R1 | WalletVersion::V3R2
 #[derive(Debug, PartialEq, Clone, TLB)]
@@ -67,7 +67,7 @@ impl WalletV3ExtMsgBody {
 
 #[cfg(test)]
 mod tests {
-    use crate::ton_wallet::{WalletV3Data, WalletV3ExtMsgBody, WALLET_ID_DEFAULT};
+    use crate::ton_wallet::{WALLET_ID_DEFAULT, WalletV3Data, WalletV3ExtMsgBody};
     use std::str::FromStr;
     use ton_core::cell::{TonCell, TonHash};
     use ton_core::traits::tlb::TLB;
@@ -92,7 +92,9 @@ mod tests {
     #[test]
     fn test_wallet_v3_ext_msg_body() -> anyhow::Result<()> {
         // https://tonviewer.com/transaction/b4bd316c74b4c99586e07c167979ce4a6e18db31704abd7e85b1cacb065ce66c
-        let body_signed_cell = TonCell::from_boc_hex("b5ee9c7201010201008500019a86be376ea96e2f1252377976716a3d252906151feabc8e4b51506405035e45a7b4ff81f783cfe3f86483c822bcbb4f9481804990868bac69caf7af56e30fe70b29a9a317ffffffff000000000301006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a120000000000000000000000000000")?;
+        let body_signed_cell = TonCell::from_boc_hex(
+            "b5ee9c7201010201008500019a86be376ea96e2f1252377976716a3d252906151feabc8e4b51506405035e45a7b4ff81f783cfe3f86483c822bcbb4f9481804990868bac69caf7af56e30fe70b29a9a317ffffffff000000000301006642007847b4630eb08d9f486fe846d5496878556dfd5a084f82a9a3fb01224e67c84c187a120000000000000000000000000000",
+        )?;
         let mut parser = body_signed_cell.parser();
         parser.read_bits(512)?;
         let body_no_sign = parser.read_remaining()?;

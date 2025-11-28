@@ -2,7 +2,7 @@ use crate::errors::TonError;
 use hmac::{Hmac, Mac};
 use nacl::sign::generate_keypair;
 use pbkdf2::password_hash::Output;
-use pbkdf2::{pbkdf2_hmac, Params};
+use pbkdf2::{Params, pbkdf2_hmac};
 use sha2::Sha512;
 use std::collections::HashSet;
 use std::sync::LazyLock;

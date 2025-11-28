@@ -2,7 +2,7 @@ use crate::block_tlb::CurrencyCollection;
 use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
-use ton_core::{bail_ton_core_data, TLB};
+use ton_core::{TLB, bail_ton_core_data};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ShardDescrTag {

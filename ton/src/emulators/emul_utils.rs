@@ -1,6 +1,6 @@
 use crate::errors::TonError;
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use std::ffi::CString;
 
 pub(super) fn convert_emulator_response(c_str: *const std::os::raw::c_char) -> Result<String, TonError> {
