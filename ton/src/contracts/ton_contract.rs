@@ -33,9 +33,10 @@ pub trait TonContract: Send + Sync + Sized {
         let state = self.get_state();
         match state.data_boc.as_ref() {
             Some(data_boc) => Ok(D::from_boc(data_boc.to_owned())?),
-            None => Err(TonError::TonContractNoData {
+            None => Err(TonError::TonContractNotFull {
                 address: state.address.clone(),
                 tx_id: Some(state.last_tx_id.clone()),
+                missing_field: "data".to_string(),
             }),
         }
     }

@@ -1,9 +1,11 @@
 use crate::block_tlb::TVMStack;
 use crate::emulators::emul_utils::require_field;
-use crate::errors::TonError;
+use crate::errors::{TonError, TonResult};
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
 #[derive(Debug, Clone)]
@@ -30,13 +32,13 @@ pub struct TVMGetMethodResponse {
 }
 
 impl TVMGetMethodResponse {
-    pub fn from_json(json: String) -> Result<Self, TonError> {
+    pub fn from_json(json: String) -> TonResult<Self> {
         let mut value: Self = serde_json::from_str(&json)?;
         value.raw_response = json;
         Ok(value)
     }
 
-    pub fn into_success(self) -> Result<TVMGetMethodSuccess, TonError> {
+    pub fn into_success(self) -> TonResult<TVMGetMethodSuccess> {
         if !self.success {
             return Err(TonError::EmulatorEmulationError {
                 vm_exit_code: self.vm_exit_code,
@@ -63,14 +65,19 @@ impl TVMGetMethodResponse {
             raw_response: self.raw_response,
         })
     }
+
+    pub fn missing_lib(&self) -> TonResult<Option<TonHash>> {
+        let Some(missing_lib) = self.missing_library.as_ref() else {
+            return Ok(None);
+        };
+        Ok(Some(TonHash::from_str(missing_lib)?))
+    }
 }
 
 impl TVMGetMethodSuccess {
-    pub fn stack_parsed(&self) -> Result<TVMStack, TonError> { Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?) }
+    pub fn stack_parsed(&self) -> TonResult<TVMStack> { Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?) }
 
-    pub fn stack_boc(&self) -> Result<Vec<u8>, TonError> {
-        Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?)
-    }
+    pub fn stack_boc(&self) -> TonResult<Vec<u8>> { Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?) }
 
     pub fn exit_success(&self) -> bool { self.vm_exit_code == 0 || self.vm_exit_code == 1 }
 }

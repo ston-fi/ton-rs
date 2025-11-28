@@ -298,7 +298,7 @@ mod tests {
     #[tokio::test]
     async fn test_thread_pool_basic() {
         // Create pool with TTL 1 second and 2 threads
-        let mut objects = vec![TestObject { id: 1 }, TestObject { id: 2 }];
+        let objects = vec![TestObject { id: 1 }, TestObject { id: 2 }];
         let config = ThreadPoolConfig::new(Duration::from_secs(1), 100); // 1 second timeout, max 100 tasks in queue
         let pool = ThreadPool::new(objects, config).unwrap();
 

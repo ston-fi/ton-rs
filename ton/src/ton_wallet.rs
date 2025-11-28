@@ -135,6 +135,11 @@ mod tests {
         let wallet_v5 = TonWallet::new(WalletVersion::V5R1, key_pair_v5.clone())?;
         let expected_v5 = TonAddress::from_str("UQDv2YSmlrlLH3hLNOVxC8FcQf4F9eGNs4vb2zKma4txo6i3")?;
         assert_eq!(wallet_v5.address, expected_v5);
+
+        let wallet_v5_testnet =
+            TonWallet::new_with_params(WalletVersion::V5R1, key_pair_v5.clone(), 0, WALLET_V5R1_ID_DEFAULT_TESTNET)?;
+        let expected_v5 = TonAddress::from_str("0QA_6fh0aRAkD7n1MNfAUx8TvyCUw2iTQfzVM-0isMze2anN")?;
+        assert_eq!(wallet_v5_testnet.address, expected_v5);
         Ok(())
     }
 

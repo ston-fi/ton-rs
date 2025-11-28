@@ -139,7 +139,7 @@ impl TLProvider {
     }
 
     async fn get_or_load_master(&self, conn: &TLConnection, mc_seqno: u32) -> Result<BlockIdExt, TonError> {
-        Ok(self.mc_block_cache.try_get_with(mc_seqno, async move { Ok(conn.lookup_mc_block(mc_seqno).await?) }).await?)
+        Ok(self.mc_block_cache.try_get_with(mc_seqno, async move { conn.lookup_mc_block(mc_seqno).await }).await?)
     }
 
     async fn get_or_load_shards(

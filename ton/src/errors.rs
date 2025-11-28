@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::time::error::Elapsed;
+use ton_core::cell::TonHash;
 use ton_core::errors::TonCoreError;
 use ton_core::types::{TonAddress, TxLTHash};
 use ton_liteapi::tl::request::Request;
@@ -23,8 +24,8 @@ pub type TonResult<T> = Result<T, TonError>;
 pub enum TonError {
     #[error("TLCoreError: {0}")]
     TLCoreError(#[from] TonCoreError),
-    #[error("TLCoreError: {0}")]
-    TLCoreArcError(#[from] Arc<TonCoreError>),
+    #[error("{0}")]
+    ArcSelf(Arc<TonError>),
     #[error("Failed to parse metadata")]
     MetadataParseError,
     #[error("NetRequestTimeout: {msg}, timeout={timeout:?}")]
@@ -74,6 +75,10 @@ pub enum TonError {
     },
     #[error("EmulatorPoolTimeout: timeout={timeout} ms is done")]
     EmulatorPoolTimeout { timeout: u64 },
+    #[error("EmulatorMissingLibrary: missing library with hash {0}")]
+    EmulatorMissingLibrary(TonHash),
+    #[error("EmulatorTooManyLibraries: reach libraries limit ({0})")]
+    EmulatorTooManyLibraries(usize),
 
     // TVMStack
     #[error("TVMStackError: fail to pop specified type. expected: {0}, got: {1}")]
@@ -95,11 +100,11 @@ pub enum TonError {
     #[error("UnexpectedValue: expected: {expected}, actual: {actual}")]
     UnexpectedValue { expected: String, actual: String },
 
-    // TonActiveContract
-    #[error("TonContractNoData: contract {address} has no data at tx_id {tx_id:?}")]
-    TonContractNoData {
+    #[error("TonContractNotFull: contract {address} has no {missing_field} at tx_id {tx_id:?}")]
+    TonContractNotFull {
         address: TonAddress,
         tx_id: Option<TxLTHash>,
+        missing_field: String,
     },
     #[error("CustomError: {0}")]
     Custom(String),
@@ -166,4 +171,8 @@ impl From<TonError> for TonCoreError {
 
 impl From<&TonError> for TonCoreError {
     fn from(err: &TonError) -> Self { TonCoreError::Custom(err.to_string()) }
+}
+
+impl From<Arc<TonError>> for TonError {
+    fn from(err: Arc<TonError>) -> Self { Self::ArcSelf(err) }
 }
