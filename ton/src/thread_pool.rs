@@ -1,5 +1,4 @@
 mod builder;
-mod jobs_counter;
 mod task_counter;
 
 use crate::errors::{TonError, TonResult};
@@ -10,7 +9,6 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::Sender;
-use std::thread;
 use std::time::{Duration, SystemTime};
 use tokio::sync::oneshot;
 
@@ -39,10 +37,6 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
             Ok(res) => res,
             Err(_) => Err(TonError::EmulatorPoolTimeout(exec_timeout)),
         }
-    }
-
-    pub fn available_cores_count() -> TonResult<usize> {
-        Ok(thread::available_parallelism().map_err(TonError::system)?.get())
     }
 
     pub fn get_counters(&self) -> &Vec<TaskCounter> { &self.0.counters }
@@ -147,11 +141,9 @@ impl<T: PoolObject> Inner<T> {
                 if cur_queue_len <= MIN_QUEUE_LEN_TO_ACCEPT_TASKS {
                     return pos;
                 }
-                if cur_queue_len <= self.max_thread_queue_len {
-                    if cur_queue_len < chosen_queue_len {
-                        chosen_queue_len = cur_queue_len;
-                        chosen_thread_pos = pos;
-                    }
+                if cur_queue_len <= self.max_thread_queue_len && cur_queue_len < chosen_queue_len {
+                    chosen_queue_len = cur_queue_len;
+                    chosen_thread_pos = pos;
                 }
             }
             if chosen_thread_pos < self.senders.len() {
@@ -166,7 +158,6 @@ impl<T: PoolObject> Inner<T> {
 mod tests {
     use super::*;
 
-    // Simple test object that implements PooledObject
     struct TestObject(usize);
 
     impl PoolObject for TestObject {
@@ -180,7 +171,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_thread_pool_basic() -> anyhow::Result<()> {
-        // Create pool with TTL 1 second and 2 threads
         let objects = vec![TestObject(1), TestObject(2)];
 
         let pool = ThreadPool::builder(objects)?.build()?;
@@ -191,6 +181,7 @@ mod tests {
         assert!(result == 1042 || result == 2042);
 
         let counter = pool.get_counters_aggregated();
+        println!("{:?}", counter);
         assert_eq!(counter.in_progress.load(Ordering::Relaxed), 0);
         assert_eq!(counter.done.load(Ordering::Relaxed), 1);
         assert_eq!(counter.failed.load(Ordering::Relaxed), 0);

@@ -2,7 +2,6 @@ mod tvm_c7;
 mod tvm_method_id;
 mod tvm_response;
 
-mod tvm_emul_args;
 #[cfg(feature = "unstable")]
 mod tvm_emulator_pool;
 
@@ -14,12 +13,22 @@ pub use tvm_method_id::*;
 pub use tvm_response::*;
 
 use crate::emulators::emul_utils::*;
-use crate::emulators::tvm_emulator::tvm_emul_args::TVMState;
 use crate::errors::{TonError, TonResult};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use std::ffi::CString;
+use std::sync::Arc;
 use tonlib_sys::*;
+
+#[derive(Clone, Debug)]
+pub struct TVMState {
+    pub code_boc: Arc<Vec<u8>>,
+    pub data_boc: Arc<Vec<u8>>,
+    pub c7: TVMEmulatorC7,
+    pub libs_boc: Option<Arc<Vec<u8>>>,
+    pub debug_enabled: Option<bool>,
+    pub gas_limit: Option<u64>,
+}
 
 #[derive(Debug)]
 pub struct TVMEmulator {

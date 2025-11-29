@@ -240,7 +240,7 @@ mod tests {
                 libs_boc: None,
             },
         };
-        assert_err!(emulator.emulate_ord(&ord_args));
+        assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
         let response = assert_ok!(emulator.emulate_ord(&ord_args)).into_success()?;
         assert!(response.success);

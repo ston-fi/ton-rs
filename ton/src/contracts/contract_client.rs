@@ -12,7 +12,7 @@ use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::OnceCell;
 use tokio::try_join;
 use ton_core::cell::{TonCell, TonCellUtils, TonHash};
@@ -27,7 +27,7 @@ pub struct ContractClient {
 }
 
 impl ContractClient {
-    pub fn builder(provider: impl TonProvider) -> Builder { Builder::new(provider) }
+    pub fn builder(provider: impl TonProvider) -> TonResult<Builder> { Builder::new(provider) }
 
     pub async fn get_contract(
         &self,
@@ -40,11 +40,11 @@ impl ContractClient {
     /// mc_seqno can be specified to run emulation in a specific blockchain state
     /// If mc_seqno is None, head state will be used
     /// Is not used yet
-    pub async fn emulate_get_method(
+    pub async fn emulate_get_method<S: Into<Arc<Vec<u8>>>>(
         &self,
         state: &TonContractState,
         method_id: i32,
-        stack_boc: &[u8],
+        stack_boc: S,
         _mc_seqno: Option<i32>,
     ) -> TonResult<TVMGetMethodSuccess> {
         let code_boc = match &state.code_boc {
@@ -74,8 +74,18 @@ impl ContractClient {
             config: self.get_bc_config().await?.clone(),
         };
 
-        let emul_data_boc = state.data_boc.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
-        let mut emulator = TVMEmulator::new(code_boc, emul_data_boc, &c7)?;
+        let mut emul_task = TVMRunGetMethodTask {
+            state: TVMState {
+                code_boc: code_boc.to_owned(),
+                data_boc: state.data_boc.as_ref().map(|x| x.to_owned()).unwrap_or(Arc::new(vec![])),
+                c7,
+                libs_boc: None,
+                debug_enabled: None,
+                gas_limit: None,
+            },
+            method: method_id.into(),
+            stack_boc: stack_boc.into(),
+        };
 
         let (mut emulation_libs, dyn_libs) = try_join!(
             self.inner.cache.get_or_load_libs(static_lib_ids),
@@ -85,10 +95,17 @@ impl ContractClient {
 
         let mut libs_dict = LibsDict::from(emulation_libs);
         if !libs_dict.is_empty() {
-            emulator.set_libs(&libs_dict.to_boc()?)?;
+            emul_task.state.libs_boc = Some(Arc::new(libs_dict.to_boc()?));
         }
 
-        let mut emul_response = emulator.run_get_method(method_id, stack_boc)?;
+        let emul_pool = &self.inner.emulator_pool;
+        let emul_timeout = Some(self.inner.emulation_timeout);
+
+        let mut emul_response = match emul_pool.exec(emul_task.clone(), emul_timeout).await? {
+            TVMEmulResponse::RunGetMethod(resp) => resp,
+            _ => return Err(TonError::Custom("Unexpected TVMEmulResponse".to_string())),
+        };
+
         let mut iteration = 0;
         while let Some(missing_lib_hash) = emul_response.missing_lib()? {
             iteration += 1;
@@ -101,8 +118,11 @@ impl ContractClient {
             self.inner.cache.add_code_dyn_lib(code_hash.to_owned(), missing_lib_hash.clone());
 
             libs_dict.insert(missing_lib_hash, lib.into());
-            emulator.set_libs(&libs_dict.to_boc()?)?;
-            emul_response = emulator.run_get_method(method_id, stack_boc)?;
+            emul_task.state.libs_boc = Some(Arc::new(libs_dict.to_boc()?));
+            emul_response = match emul_pool.exec(emul_task.clone(), emul_timeout).await? {
+                TVMEmulResponse::RunGetMethod(resp) => resp,
+                _ => return Err(TonError::Custom("Unexpected TVMEmulResponse".to_string())),
+            };
         }
         emul_response.into_success()
     }
@@ -122,6 +142,8 @@ impl ContractClient {
 
 struct Inner {
     provider: Arc<dyn TonProvider>,
+    emulator_pool: TVMEmulatorPool,
+    emulation_timeout: Duration,
     cache: Arc<ContractClientCache>,
     bc_config: OnceCell<EmulBCConfig>,
     max_dyn_libs_per_contract: usize,

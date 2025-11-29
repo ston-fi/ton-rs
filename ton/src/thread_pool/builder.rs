@@ -12,7 +12,7 @@ use std::time::{Duration, SystemTime};
 pub struct Builder<Obj: PoolObject> {
     #[setters(skip)]
     emulators: Vec<Obj>,
-    default_emul_timeout: Duration,
+    default_exec_timeout: Duration,
     max_thread_queue_len: usize,
 }
 
@@ -20,7 +20,7 @@ impl<Obj: PoolObject> Builder<Obj> {
     pub(crate) fn new(emulators: Vec<Obj>) -> TonResult<Self> {
         Ok(Self {
             emulators,
-            default_emul_timeout: Duration::from_secs(5),
+            default_exec_timeout: Duration::from_millis(10),
             max_thread_queue_len: 10,
         })
     }
@@ -38,7 +38,7 @@ impl<Obj: PoolObject> Builder<Obj> {
             counters.push(TaskCounter::new());
         }
         let inner = Inner {
-            default_exec_timeout: self.default_emul_timeout,
+            default_exec_timeout: self.default_exec_timeout,
             max_thread_queue_len: self.max_thread_queue_len,
             senders,
             counters,

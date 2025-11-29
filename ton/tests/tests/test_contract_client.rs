@@ -83,7 +83,7 @@ async fn assert_tl_provider_works(tl_client: TLClient) -> anyhow::Result<()> {
 }
 
 async fn assert_contract_client_tl_provider(tl_client: TLClient) -> anyhow::Result<()> {
-    let ctr_cli = ContractClient::builder(TLProvider::new(tl_client)).with_default_caches().build()?;
+    let ctr_cli = ContractClient::builder(TLProvider::new(tl_client))?.with_default_caches().build()?;
 
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
 
@@ -115,7 +115,7 @@ async fn assert_contract_client_tl_provider(tl_client: TLClient) -> anyhow::Resu
 async fn test_contract_client_tl_provider_dynamic_libs_testnet() -> anyhow::Result<()> {
     let tl_client = make_tl_client(false, true).await?;
 
-    let ctr_cli = ContractClient::builder(TLProvider::new(tl_client)).with_default_caches().build()?;
+    let ctr_cli = ContractClient::builder(TLProvider::new(tl_client))?.with_default_caches().build()?;
     let dyn_lib_master_addr = TonAddress::from_str("kQAjmiNekXMED_a-Ps7whmYgfdT32Z9_kIEzk5F_Bnh-jTFb")?;
     let dyn_lib_wallet_addr = TonAddress::from_str("kQAsm4uCgpdK5B7msqcd4Pe27C6IakdFsxGwygkgkX-kC56Q")?;
 

@@ -76,7 +76,7 @@ mod example {
         // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
         let provider = TLProvider::new(tl_client.clone());
-        let ctr_cli = ContractClient::builder(provider).build()?;
+        let ctr_cli = ContractClient::builder(provider)?.build()?;
 
         // ---------- Building transfer_msg ----------
         let transfer_msg = Msg {

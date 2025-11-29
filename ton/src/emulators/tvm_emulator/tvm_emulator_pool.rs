@@ -1,5 +1,6 @@
-use crate::emulators::tvm_emulator::tvm_emul_args::TVMState;
-use crate::emulators::tvm_emulator::{TVMEmulator, TVMGetMethodID, TVMRunGetMethodResponse, TVMSendMsgResponse};
+use crate::emulators::tvm_emulator::{
+    TVMEmulator, TVMGetMethodID, TVMRunGetMethodResponse, TVMSendMsgResponse, TVMState,
+};
 use crate::errors::TonResult;
 use crate::thread_pool::{PoolObject, ThreadPool};
 use std::sync::Arc;
@@ -40,18 +41,21 @@ impl PoolObject for TVMEmulatorWrapper {
     fn descriptor(&self) -> &str { "TVMEmulator" }
 }
 
+#[derive(Clone, Debug)]
 pub struct TVMRunGetMethodTask {
     pub state: TVMState,
     pub method: TVMGetMethodID,
     pub stack_boc: Arc<Vec<u8>>,
 }
 
+#[derive(Clone, Debug)]
 pub struct TVMSendIntMsgTask {
     pub state: TVMState,
     pub msg_boc: Arc<Vec<u8>>,
     pub amount: u64,
 }
 
+#[derive(Clone, Debug)]
 pub struct TVMSendExtMsgTask {
     pub state: TVMState,
     pub msg_boc: Arc<Vec<u8>>,
