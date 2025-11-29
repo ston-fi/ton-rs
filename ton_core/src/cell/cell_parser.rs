@@ -81,15 +81,6 @@ impl<'a> CellParser<'a> {
         N::tcn_read_bits(self, bits_to_read as u32)
     }
 
-    pub(crate) fn read_primitive<I: Integer + Sized>(&mut self, bits_len: u32) -> TonCoreResult<I> {
-        self.data_reader.read_var(bits_len).map_err(|e| {
-            TonCoreError::data(
-                "CellParser::read_primitive_num",
-                format!("Failed to read {}-bit integer: {}", bits_len, e).as_str(),
-            )
-        })
-    }
-
     pub fn read_cell(&mut self, bits_len: usize, refs_len: u8) -> Result<TonCell, TonCoreError> {
         let start_bit = self.data_reader.position_in_bits()? as usize - self.cell.borders.start_bit;
         let end_bit = start_bit + bits_len;
@@ -152,6 +143,15 @@ impl<'a> CellParser<'a> {
             return Ok(());
         }
         bail_ton_core_data!("Cell is not empty: {bits_left} bits left, {refs_left} refs left");
+    }
+    #[inline(always)]
+    pub(crate) fn read_primitive<I: Integer + Sized>(&mut self, bits_len: u32) -> TonCoreResult<I> {
+        self.data_reader.read_var(bits_len).map_err(|e| {
+            TonCoreError::data(
+                "CellParser::read_primitive_num",
+                format!("Failed to read {}-bit integer: {}", bits_len, e).as_str(),
+            )
+        })
     }
 
     // returns remaining bits
