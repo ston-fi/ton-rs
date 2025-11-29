@@ -163,6 +163,7 @@ impl CellBuilder {
     pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
     #[inline(always)]
     pub(crate) fn write_primitive<I: Integer>(&mut self, bits: u32, data: I) -> TonCoreResult<()> {
+        self.ensure_capacity(bits as usize)?;
         self.data_writer.write_var(bits, data).map_err(|e| {
             TonCoreError::data("CellBuilder::write_primitive", format!("Failed to write primitive data: {}", e))
         })
@@ -270,7 +271,7 @@ mod tests {
     #[test]
     fn test_builder_write_num_in_many_bits() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert_err!(cell_builder.write_num(&0b1010_1010u8, 16));
+        assert_ok!(cell_builder.write_num(&0b1010_1010u8, 16));
         Ok(())
     }
 
