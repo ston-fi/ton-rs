@@ -1,14 +1,10 @@
 mod tvm_c7;
+mod tvm_emulator_pool;
 mod tvm_method_id;
 mod tvm_response;
 
-#[cfg(feature = "unstable")]
-mod tvm_emulator_pool;
-
-#[cfg(feature = "unstable")]
-pub use tvm_emulator_pool::*;
-
 pub use tvm_c7::*;
+pub use tvm_emulator_pool::*;
 pub use tvm_method_id::*;
 pub use tvm_response::*;
 

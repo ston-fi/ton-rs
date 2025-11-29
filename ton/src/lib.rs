@@ -5,6 +5,7 @@ pub mod libs_dict;
 pub mod lite_client;
 pub mod net_config;
 pub mod tep;
+pub mod thread_pool;
 pub mod tlb_adapters;
 pub mod ton_wallet;
 
@@ -14,7 +15,5 @@ pub mod contracts;
 pub mod emulators;
 #[cfg(feature = "tonlibjson")]
 pub mod sys_utils;
-#[cfg(feature = "unstable")]
-pub mod thread_pool;
 #[cfg(feature = "tonlibjson")]
 pub mod tl_client;

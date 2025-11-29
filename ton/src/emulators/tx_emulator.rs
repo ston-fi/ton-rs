@@ -1,8 +1,6 @@
 mod tx_emul_args;
 mod tx_emul_response;
-#[cfg(feature = "unstable")]
 mod tx_emulator_pool;
-#[cfg(feature = "unstable")]
 pub use tx_emulator_pool::*;
 
 use crate::emulators::emul_bc_config::EmulBCConfig;

@@ -33,7 +33,7 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
     pub async fn exec<T: Into<Obj::Task>>(&self, task: T, timeout: Option<Duration>) -> TonResult<Obj::Retval> {
         let exec_timeout = timeout.unwrap_or(self.0.default_exec_timeout);
 
-        match tokio::time::timeout(exec_timeout, self.exec_impl(task.into(), exec_timeout)).await {
+        match tokio::time::timeout(exec_timeout, self.0.exec_impl(task.into(), exec_timeout)).await {
             Ok(res) => res,
             Err(_) => Err(TonError::EmulatorPoolTimeout(exec_timeout)),
         }
@@ -96,41 +96,23 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
 
         result
     }
-
-    async fn exec_impl(&self, task: Obj::Task, timeout: Duration) -> TonResult<Obj::Retval> {
-        let (tx, rx) = oneshot::channel();
-        let pool_task = PoolTask {
-            task,
-            rsp_sender: tx,
-            timeout,
-            deadline: SystemTime::now().add(timeout),
-        };
-
-        let thread_idx = self.0.find_free_thread().await;
-        let counter_updater = self.0.counters[thread_idx].task_added();
-
-        self.0.senders[thread_idx].send(pool_task).map_err(TonError::system)?;
-        let emul_result = rx.await.map_err(TonError::system)?;
-        counter_updater.task_done();
-        emul_result
-    }
 }
 
-struct PoolTask<T: PoolObject> {
-    task: T::Task,
-    rsp_sender: oneshot::Sender<TonResult<T::Retval>>,
+struct PoolTask<Obj: PoolObject> {
+    task: Obj::Task,
+    rsp_sender: oneshot::Sender<TonResult<Obj::Retval>>,
     timeout: Duration,
     deadline: SystemTime,
 }
 
-struct Inner<T: PoolObject> {
-    senders: Vec<Sender<PoolTask<T>>>,
+struct Inner<Obj: PoolObject> {
+    senders: Vec<Sender<PoolTask<Obj>>>,
     counters: Vec<TaskCounter>,
     default_exec_timeout: Duration,
     max_thread_queue_len: usize,
 }
 
-impl<T: PoolObject> Inner<T> {
+impl<Obj: PoolObject> Inner<Obj> {
     async fn find_free_thread(&self) -> usize {
         let mut chosen_thread_pos = self.senders.len(); // invalid index
         let mut chosen_queue_len = self.max_thread_queue_len + 1; // invalid length
@@ -151,6 +133,24 @@ impl<T: PoolObject> Inner<T> {
             }
             tokio::time::sleep(SLEEP_ON_FULL_QUEUE).await;
         }
+    }
+
+    async fn exec_impl(&self, task: Obj::Task, timeout: Duration) -> TonResult<Obj::Retval> {
+        let (tx, rx) = oneshot::channel();
+        let pool_task = PoolTask {
+            task,
+            rsp_sender: tx,
+            timeout,
+            deadline: SystemTime::now().add(timeout),
+        };
+
+        let thread_idx = self.find_free_thread().await;
+        let counter_updater = self.counters[thread_idx].task_added();
+
+        self.senders[thread_idx].send(pool_task).map_err(TonError::system)?;
+        let emul_result = rx.await.map_err(TonError::system)?;
+        counter_updater.task_done();
+        emul_result
     }
 }
 
