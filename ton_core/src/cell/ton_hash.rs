@@ -2,9 +2,8 @@ use crate::bail_ton_core_data;
 use crate::cell::TonCell;
 use crate::cell::TonCellNum;
 use crate::errors::TonCoreError;
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
-use bitstream_io::{BigEndian, BitWriter};
+use base64::prelude::BASE64_STANDARD;
 use std::hash::Hash;
 #[derive(Clone, PartialEq, Hash, Eq, Ord, PartialOrd)]
 pub struct TonHash(TonHashData);

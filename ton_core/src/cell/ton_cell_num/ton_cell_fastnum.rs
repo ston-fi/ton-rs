@@ -4,8 +4,8 @@ use crate::cell::{CellBuilder, CellParser};
 use crate::errors::{TonCoreError, TonCoreResult};
 use crate::unsinged_highest_bit_pos;
 use fastnum::bint::{Int, UInt};
-use fastnum::{TryCast, I1024, I128, I256, I512};
-use fastnum::{U1024, U128, U256, U512};
+use fastnum::{I128, I256, I512, I1024, TryCast};
+use fastnum::{U128, U256, U512, U1024};
 
 macro_rules! fastnum_highest_bit_pos_signed {
     ($val:expr,$T:ty) => {{
@@ -370,8 +370,8 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::ton_cell_num::tests::test_num_read_write;
     use crate::cell::TonCell;
+    use crate::cell::ton_cell_num::tests::test_num_read_write;
     use fastnum::*;
 
     #[test]

@@ -2,7 +2,7 @@ use crate::cell::TonCellNum;
 use crate::cell::{CellBuilder, CellParser};
 use crate::toncellnum_use_type_as;
 use fastnum::U1024;
-use fastnum::{TryCast, I1024};
+use fastnum::{I1024, TryCast};
 use num_bigint::{BigInt, BigUint, Sign};
 use num_traits::Zero;
 
