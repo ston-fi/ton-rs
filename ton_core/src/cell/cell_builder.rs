@@ -157,16 +157,16 @@ impl CellBuilder {
         // tcn_write_bits will call write_bits, which will handle ensure_capacity
         data_ref.tcn_write_bits(self, bits_to_write as u32)
     }
+
+    pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
+
+    pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
     #[inline(always)]
     pub(crate) fn write_primitive<I: Integer>(&mut self, bits: u32, data: I) -> TonCoreResult<()> {
         self.data_writer.write_var(bits, data).map_err(|e| {
             TonCoreError::data("CellBuilder::write_primitive", format!("Failed to write primitive data: {}", e))
         })
     }
-
-    pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
-
-    pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
 
     fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_len_bits + bits_len;
