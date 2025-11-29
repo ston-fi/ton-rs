@@ -71,18 +71,22 @@ impl ContractClientCache {
         Ok(state)
     }
 
-    pub(super) fn update_code_libs(&self, code_hash: TonHash, lib_id: TonHash) {
+    pub(super) fn add_code_dyn_lib(&self, code_hash: TonHash, lib_id: TonHash) {
         self.code_extra_libs_cache.entry(code_hash).or_default().value().write().insert(lib_id);
     }
 
     /// This method just skip unavailable libraries
-    pub(super) async fn get_or_load_code_libs(&self, code_hash: TonHash) -> TonResult<HashMap<TonHash, TonCell>> {
+    pub(super) async fn get_or_load_code_dyn_libs(&self, code_hash: TonHash) -> TonResult<HashMap<TonHash, TonCell>> {
         let Some(lib_hashes) = self.code_extra_libs_cache.get(&code_hash).map(|x| x.read().clone()) else {
             return Ok(HashMap::new());
         };
-        let futs = lib_hashes.into_iter().map(|lib_hash| async move {
-            let lib = self.get_or_load_lib(lib_hash.clone()).await?;
-            Ok::<_, TonError>(lib.map(|x| (lib_hash, x)))
+        self.get_or_load_libs(lib_hashes).await
+    }
+
+    pub(super) async fn get_or_load_libs(&self, lib_ids: HashSet<TonHash>) -> TonResult<HashMap<TonHash, TonCell>> {
+        let futs = lib_ids.into_iter().map(|lib_id| async move {
+            let lib = self.get_or_load_lib(lib_id.clone()).await?;
+            Ok::<_, TonError>(lib.map(|x| (lib_id, x)))
         });
         let libs = try_join_all(futs).await?.into_iter().flatten().collect();
         Ok(libs)

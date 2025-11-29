@@ -14,7 +14,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::OnceCell;
-use ton_core::cell::{TonCell, TonHash};
+use tokio::try_join;
+use ton_core::cell::{TonCell, TonCellUtils, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::contract_provider::{TonContractState, TonProvider};
 use ton_core::traits::tlb::TLB;
@@ -52,7 +53,14 @@ impl ContractClient {
                 });
             }
         };
+
+        let code_cell = TonCell::from_boc(code_boc.to_owned())?;
+        let data_cell = match &state.data_boc {
+            Some(boc) => TonCell::from_boc(boc.to_owned())?,
+            None => TonCell::empty().to_owned(),
+        };
         let code_hash = TonCell::from_boc(code_boc.to_owned())?.hash()?.clone();
+        let static_lib_ids = TonCellUtils::extract_lib_ids([&code_cell, &data_cell])?;
 
         let c7 = TVMEmulatorC7 {
             address: state.address.clone(),
@@ -65,22 +73,28 @@ impl ContractClient {
         let emul_data_boc = state.data_boc.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
         let mut emulator = TVMEmulator::new(code_boc, emul_data_boc, &c7)?;
 
-        let libs = self.inner.cache.get_or_load_code_libs(code_hash.clone()).await?;
-        let mut libs_dict = LibsDict::from(libs);
+        let (mut emulation_libs, dyn_libs) = try_join!(
+            self.inner.cache.get_or_load_libs(static_lib_ids),
+            self.inner.cache.get_or_load_code_dyn_libs(code_hash.clone()),
+        )?;
+        emulation_libs.extend(dyn_libs);
+
+        let mut libs_dict = LibsDict::from(emulation_libs);
         if !libs_dict.is_empty() {
             emulator.set_libs(&libs_dict.to_boc()?)?;
         }
+
         let mut emul_response = emulator.run_get_method(method_id, stack_boc)?;
         let mut iteration = 0;
         while let Some(missing_lib_hash) = emul_response.missing_lib()? {
             iteration += 1;
-            if iteration > self.inner.max_libs_per_contract {
-                return Err(TonError::EmulatorTooManyLibraries(self.inner.max_libs_per_contract));
+            if iteration > self.inner.max_dyn_libs_per_contract {
+                return Err(TonError::EmulatorTooManyLibraries(self.inner.max_dyn_libs_per_contract));
             }
             let Some(lib) = self.inner.cache.get_or_load_lib(missing_lib_hash.clone()).await? else {
                 return Err(TonError::EmulatorMissingLibrary(missing_lib_hash));
             };
-            self.inner.cache.update_code_libs(code_hash.to_owned(), missing_lib_hash.clone());
+            self.inner.cache.add_code_dyn_lib(code_hash.to_owned(), missing_lib_hash.clone());
 
             libs_dict.insert(missing_lib_hash, lib.into());
             emulator.set_libs(&libs_dict.to_boc()?)?;
@@ -106,5 +120,5 @@ struct Inner {
     provider: Arc<dyn TonProvider>,
     cache: Arc<ContractClientCache>,
     bc_config: OnceCell<EmulBCConfig>,
-    max_libs_per_contract: usize,
+    max_dyn_libs_per_contract: usize,
 }

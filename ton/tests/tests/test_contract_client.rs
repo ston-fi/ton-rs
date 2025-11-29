@@ -8,7 +8,7 @@ use ton::contracts::{
 };
 use ton::tl_client::TLClient;
 use ton_core::cell::TonHash;
-use ton_core::traits::contract_provider::{TonContractState, TonProvider};
+use ton_core::traits::contract_provider::TonProvider;
 use ton_core::types::{TonAddress, TxLTHash};
 
 #[tokio::test]

@@ -22,7 +22,8 @@ pub struct Builder {
     pub(super) libs_not_found_cache_ttl: Duration,
     pub(super) code_libs_cache_capacity: u64,
     pub(super) code_libs_cache_idle: Duration,
-    pub(super) max_libs_per_contract: usize,
+    // how many times emulate_get_method will try load new missing_libraries
+    pub(super) max_dyn_libs_per_contract: usize,
 }
 
 impl Builder {
@@ -41,7 +42,7 @@ impl Builder {
             libs_not_found_cache_ttl: Duration::from_secs(0),
             code_libs_cache_capacity: 0,
             code_libs_cache_idle: Duration::from_secs(0),
-            max_libs_per_contract: 100,
+            max_dyn_libs_per_contract: 100,
         }
     }
 
@@ -51,7 +52,7 @@ impl Builder {
             provider: self.provider,
             cache,
             bc_config: OnceCell::new(),
-            max_libs_per_contract: self.max_libs_per_contract,
+            max_dyn_libs_per_contract: self.max_dyn_libs_per_contract,
         };
         Ok(ContractClient { inner: Arc::new(inner) })
     }
