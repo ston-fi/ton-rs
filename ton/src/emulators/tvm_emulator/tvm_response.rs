@@ -19,7 +19,7 @@ pub struct TVMGetMethodSuccess {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub struct TVMGetMethodResponse {
+pub struct TVMRunGetMethodResponse {
     pub success: bool,
     pub vm_exit_code: Option<i32>,
     pub vm_log: Option<String>,
@@ -31,7 +31,7 @@ pub struct TVMGetMethodResponse {
     pub raw_response: String,
 }
 
-impl TVMGetMethodResponse {
+impl TVMRunGetMethodResponse {
     pub fn from_json(json: String) -> TonResult<Self> {
         let mut value: Self = serde_json::from_str(&json)?;
         value.raw_response = json;

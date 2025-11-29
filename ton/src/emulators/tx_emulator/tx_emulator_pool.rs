@@ -73,7 +73,7 @@ mod tests {
             in_msg_boc: Arc::new(ext_in_msg.to_boc()?),
             emul_args: emul_args.clone(),
         };
-        let response = assert_ok!(pool.execute(ord_args.clone(), None).await);
+        let response = assert_ok!(pool.exec(ord_args.clone(), None).await);
         let success = assert_ok!(response.into_success());
         assert!(success.success);
         Ok(())

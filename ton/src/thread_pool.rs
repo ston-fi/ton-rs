@@ -35,7 +35,7 @@ pub struct ThreadPool<T: PoolObject> {
 impl<Obj: PoolObject> ThreadPool<Obj> {
     pub fn builder(objects: Vec<Obj>) -> TonResult<Builder<Obj>> { Builder::new(objects) }
 
-    pub async fn execute<T: Into<Obj::Task>>(&self, task: T, timeout: Option<Duration>) -> TonResult<Obj::Retval> {
+    pub async fn exec<T: Into<Obj::Task>>(&self, task: T, timeout: Option<Duration>) -> TonResult<Obj::Retval> {
         let exec_timeout = timeout.unwrap_or(self.default_exec_timeout);
 
         match tokio::time::timeout(exec_timeout, self.exec_with_timeout(task.into(), exec_timeout)).await {
@@ -179,7 +179,7 @@ mod tests {
 
         let pool = ThreadPool::builder(objects)?.build()?;
 
-        let result = pool.execute(42usize, None).await?;
+        let result = pool.exec(42usize, None).await?;
 
         // Emulator ordering is not guaranteed, so check both possibilities
         assert!(result == 1042 || result == 2042);

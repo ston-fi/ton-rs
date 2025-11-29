@@ -24,8 +24,8 @@ pub struct TXEmulArgs {
     pub utime: u32,
     pub lt: u64,
     pub ignore_chksig: bool,
-    pub prev_blocks_boc: Option<Vec<u8>>,
-    pub libs_boc: Option<Vec<u8>>,
+    pub prev_blocks_boc: Option<Arc<Vec<u8>>>,
+    pub libs_boc: Option<Arc<Vec<u8>>>,
 }
 
 impl Display for TXEmulArgs {
@@ -34,12 +34,12 @@ impl Display for TXEmulArgs {
 
         let prev_blocks_str = match &self.prev_blocks_boc {
             None => "None",
-            Some(boc) => &hex::encode(boc),
+            Some(boc) => &hex::encode(boc.deref()),
         };
 
         let libs_str = match &self.libs_boc {
             None => "None",
-            Some(boc) => &hex::encode(boc),
+            Some(boc) => &hex::encode(boc.deref()),
         };
 
         f.write_fmt(format_args!(

@@ -2,12 +2,20 @@ mod tvm_c7;
 mod tvm_method_id;
 mod tvm_response;
 
+mod tvm_emul_args;
+#[cfg(feature = "unstable")]
+mod tvm_emulator_pool;
+
+#[cfg(feature = "unstable")]
+pub use tvm_emulator_pool::*;
+
 pub use tvm_c7::*;
 pub use tvm_method_id::*;
 pub use tvm_response::*;
 
 use crate::emulators::emul_utils::*;
-use crate::errors::TonError;
+use crate::emulators::tvm_emulator::tvm_emul_args::TVMState;
+use crate::errors::{TonError, TonResult};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use std::ffi::CString;
@@ -21,6 +29,20 @@ pub struct TVMEmulator {
 const DEFAULT_TVM_LOG_VERBOSITY: u32 = 1;
 
 impl TVMEmulator {
+    pub fn from_state(state: &TVMState) -> TonResult<Self> {
+        let mut emulator = TVMEmulator::new(&state.code_boc, &state.data_boc, &state.c7)?;
+        if let Some(gas_limit) = state.gas_limit {
+            emulator.set_gas_limit(gas_limit)?;
+        }
+        if let Some(debug_enabled) = state.debug_enabled {
+            emulator.set_debug_enabled(debug_enabled)?;
+        }
+        if let Some(libs_boc) = state.libs_boc.as_deref() {
+            emulator.set_libs(libs_boc)?;
+        }
+        Ok(emulator)
+    }
+
     pub fn new(code_boc: &[u8], data_boc: &[u8], c7: &TVMEmulatorC7) -> Result<Self, TonError> {
         let code = CString::new(STANDARD.encode(code_boc.as_ref()))?;
         let data = CString::new(STANDARD.encode(data_boc.as_ref()))?;
@@ -70,7 +92,7 @@ impl TVMEmulator {
         }
     }
 
-    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> Result<TVMGetMethodResponse, TonError>
+    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> Result<TVMRunGetMethodResponse, TonError>
     where
         T: Into<TVMGetMethodID>,
     {
@@ -80,26 +102,26 @@ impl TVMEmulator {
         let response_ptr = unsafe { tvm_emulator_run_get_method(self.ptr, tvm_method.to_id(), stack.as_ptr()) };
         let json_str = convert_emulator_response(response_ptr)?;
         log::trace!("[TVMEmulator][run_get_method]: method: {tvm_method}, stack_boc: {stack_boc:?}, rsp: {json_str}");
-        TVMGetMethodResponse::from_json(json_str)
+        TVMRunGetMethodResponse::from_json(json_str)
     }
 
-    pub fn send_int_msg(&mut self, msg_boc: &[u8], amount: u64) -> Result<TVMSendMsgSuccess, TonError> {
+    pub fn send_int_msg(&mut self, msg_boc: &[u8], amount: u64) -> Result<TVMSendMsgResponse, TonError> {
         log::trace!("[TVMEmulator][send_int_msg]: msg_boc: {msg_boc:?}, amount: {amount}");
         let msg = CString::new(STANDARD.encode(msg_boc))?;
 
         let c_str = unsafe { tvm_emulator_send_internal_message(self.ptr, msg.as_ptr(), amount) };
         let json_str = convert_emulator_response(c_str)?;
         log::trace!("[TVMEmulator][send_int_msg]: msg_boc: {msg_boc:?}, amount: {amount}, rsp: {json_str}");
-        TVMSendMsgResponse::from_json(json_str)?.into_success()
+        TVMSendMsgResponse::from_json(json_str)
     }
 
-    pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> Result<TVMSendMsgSuccess, TonError> {
+    pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> Result<TVMSendMsgResponse, TonError> {
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}");
         let msg = make_base64_c_str(msg_boc)?;
         let response_ptr = unsafe { tvm_emulator_send_external_message(self.ptr, msg.as_ptr()) };
         let json_str = convert_emulator_response(response_ptr)?;
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}, rsp: {json_str}");
-        TVMSendMsgResponse::from_json(json_str)?.into_success()
+        TVMSendMsgResponse::from_json(json_str)
     }
 }
 
@@ -299,12 +321,12 @@ mod tests {
         // send_int_msg
         let c7 = TVMEmulatorC7::new(dst_address, BC_CONFIG.clone())?;
         let mut emulator = TVMEmulator::new(&code, &data, &c7)?;
-        let tvm_result = emulator.send_int_msg(&msg.to_boc()?, 300)?;
+        let tvm_result = emulator.send_int_msg(&msg.to_boc()?, 300)?.into_success()?;
         assert_eq!(tvm_result.gas_used, 2779);
         assert_eq!(tvm_result.vm_exit_code, 65535);
 
         // send_ext_msg
-        let tvm_result = emulator.send_ext_msg(&msg.to_boc()?)?;
+        let tvm_result = emulator.send_ext_msg(&msg.to_boc()?)?.into_success()?;
         assert_eq!(tvm_result.gas_used, 270);
         assert_eq!(tvm_result.vm_exit_code, 11);
         Ok(())
