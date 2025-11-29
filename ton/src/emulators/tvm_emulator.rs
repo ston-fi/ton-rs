@@ -1,17 +1,30 @@
 mod tvm_c7;
+mod tvm_emulator_pool;
 mod tvm_method_id;
 mod tvm_response;
 
 pub use tvm_c7::*;
+pub use tvm_emulator_pool::*;
 pub use tvm_method_id::*;
 pub use tvm_response::*;
 
 use crate::emulators::emul_utils::*;
-use crate::errors::TonError;
+use crate::errors::{TonError, TonResult};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use std::ffi::CString;
+use std::sync::Arc;
 use tonlib_sys::*;
+
+#[derive(Clone, Debug)]
+pub struct TVMState {
+    pub code_boc: Arc<Vec<u8>>,
+    pub data_boc: Arc<Vec<u8>>,
+    pub c7: TVMEmulatorC7,
+    pub libs_boc: Option<Arc<Vec<u8>>>,
+    pub debug_enabled: Option<bool>,
+    pub gas_limit: Option<u64>,
+}
 
 #[derive(Debug)]
 pub struct TVMEmulator {
@@ -21,6 +34,20 @@ pub struct TVMEmulator {
 const DEFAULT_TVM_LOG_VERBOSITY: u32 = 1;
 
 impl TVMEmulator {
+    pub fn from_state(state: &TVMState) -> TonResult<Self> {
+        let mut emulator = TVMEmulator::new(&state.code_boc, &state.data_boc, &state.c7)?;
+        if let Some(gas_limit) = state.gas_limit {
+            emulator.set_gas_limit(gas_limit)?;
+        }
+        if let Some(debug_enabled) = state.debug_enabled {
+            emulator.set_debug_enabled(debug_enabled)?;
+        }
+        if let Some(libs_boc) = state.libs_boc.as_deref() {
+            emulator.set_libs(libs_boc)?;
+        }
+        Ok(emulator)
+    }
+
     pub fn new(code_boc: &[u8], data_boc: &[u8], c7: &TVMEmulatorC7) -> Result<Self, TonError> {
         let code = CString::new(STANDARD.encode(code_boc.as_ref()))?;
         let data = CString::new(STANDARD.encode(data_boc.as_ref()))?;
@@ -70,7 +97,7 @@ impl TVMEmulator {
         }
     }
 
-    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> Result<TVMGetMethodSuccess, TonError>
+    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> Result<TVMRunGetMethodResponse, TonError>
     where
         T: Into<TVMGetMethodID>,
     {
@@ -80,26 +107,26 @@ impl TVMEmulator {
         let response_ptr = unsafe { tvm_emulator_run_get_method(self.ptr, tvm_method.to_id(), stack.as_ptr()) };
         let json_str = convert_emulator_response(response_ptr)?;
         log::trace!("[TVMEmulator][run_get_method]: method: {tvm_method}, stack_boc: {stack_boc:?}, rsp: {json_str}");
-        TVMGetMethodResponse::from_json(json_str)?.into_success()
+        TVMRunGetMethodResponse::from_json(json_str)
     }
 
-    pub fn send_int_msg(&mut self, msg_boc: &[u8], amount: u64) -> Result<TVMSendMsgSuccess, TonError> {
+    pub fn send_int_msg(&mut self, msg_boc: &[u8], amount: u64) -> Result<TVMSendMsgResponse, TonError> {
         log::trace!("[TVMEmulator][send_int_msg]: msg_boc: {msg_boc:?}, amount: {amount}");
         let msg = CString::new(STANDARD.encode(msg_boc))?;
 
         let c_str = unsafe { tvm_emulator_send_internal_message(self.ptr, msg.as_ptr(), amount) };
         let json_str = convert_emulator_response(c_str)?;
         log::trace!("[TVMEmulator][send_int_msg]: msg_boc: {msg_boc:?}, amount: {amount}, rsp: {json_str}");
-        TVMSendMsgResponse::from_json(json_str)?.into_success()
+        TVMSendMsgResponse::from_json(json_str)
     }
 
-    pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> Result<TVMSendMsgSuccess, TonError> {
+    pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> Result<TVMSendMsgResponse, TonError> {
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}");
         let msg = make_base64_c_str(msg_boc)?;
         let response_ptr = unsafe { tvm_emulator_send_external_message(self.ptr, msg.as_ptr()) };
         let json_str = convert_emulator_response(response_ptr)?;
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}, rsp: {json_str}");
-        TVMSendMsgResponse::from_json(json_str)?.into_success()
+        TVMSendMsgResponse::from_json(json_str)
     }
 }
 
@@ -152,7 +179,7 @@ mod tests {
         let mut stack = TVMStack::default();
         stack.push_cell_slice(owner_address.to_cell()?);
 
-        let emulated = emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?;
+        let emulated = emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?.into_success()?;
         // check stack_boc() works well
         let stack_boc = emulated.stack_boc()?;
         let stack = TVMStack::from_boc(stack_boc)?;
@@ -176,7 +203,7 @@ mod tests {
         let mut stack = TVMStack::default();
         stack.push_cell_slice(owner_address.to_cell()?);
 
-        let emulated = emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?;
+        let emulated = emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?.into_success()?;
 
         let emulated_addr = TonAddress::from_cell(&emulated.stack_parsed()?.pop_cell()?)?;
         assert_eq!(
@@ -200,7 +227,7 @@ mod tests {
         let c7 = TVMEmulatorC7::new(address, BC_CONFIG.clone())?;
         let mut emulator = TVMEmulator::new(&master_code, &master_data, &c7)?;
 
-        let emulated = assert_ok!(emulator.run_get_method("get_pool_full_data", TVMStack::EMPTY_BOC));
+        let emulated = assert_ok!(emulator.run_get_method("get_pool_full_data", TVMStack::EMPTY_BOC)).into_success()?;
         assert_eq!(emulated.vm_exit_code, 0);
         Ok(())
     }
@@ -229,7 +256,8 @@ mod tests {
         stack.push_cell_slice(owner_address.to_cell()?);
 
         // no libs - should fail
-        let emulator_error = assert_err!(emulator.run_get_method("get_wallet_address", &stack.to_boc()?));
+        let emulator_error =
+            assert_err!(emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?.into_success());
         if let TonError::EmulatorEmulationError {
             vm_exit_code,
             response_raw,
@@ -248,7 +276,7 @@ mod tests {
         let emulator_libs_boc = LibsDict::new([lib_cell.clone()])?.to_boc()?;
         emulator.set_libs(&emulator_libs_boc)?;
 
-        let emulated_result = emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?;
+        let emulated_result = emulator.run_get_method("get_wallet_address", &stack.to_boc()?)?.into_success()?;
         let emulated_addr = TonAddress::from_cell(&emulated_result.stack_parsed()?.pop_cell()?)?;
 
         assert_eq!(emulated_addr, expected_address);
@@ -276,7 +304,7 @@ mod tests {
         )?;
         let emulator_libs_boc = LibsDict::new([lib_cell.clone()])?.to_boc()?;
         emulator.set_libs(&emulator_libs_boc)?;
-        let emulated = assert_ok!(emulator.run_get_method("get_wallet_data", TVMStack::EMPTY_BOC));
+        let emulated = assert_ok!(emulator.run_get_method("get_wallet_data", TVMStack::EMPTY_BOC)).into_success()?;
         assert_eq!(emulated.stack_parsed()?.len(), 4);
         assert_eq!(emulated.vm_exit_code, 0);
         Ok(())
@@ -298,12 +326,12 @@ mod tests {
         // send_int_msg
         let c7 = TVMEmulatorC7::new(dst_address, BC_CONFIG.clone())?;
         let mut emulator = TVMEmulator::new(&code, &data, &c7)?;
-        let tvm_result = emulator.send_int_msg(&msg.to_boc()?, 300)?;
+        let tvm_result = emulator.send_int_msg(&msg.to_boc()?, 300)?.into_success()?;
         assert_eq!(tvm_result.gas_used, 2779);
         assert_eq!(tvm_result.vm_exit_code, 65535);
 
         // send_ext_msg
-        let tvm_result = emulator.send_ext_msg(&msg.to_boc()?)?;
+        let tvm_result = emulator.send_ext_msg(&msg.to_boc()?)?.into_success()?;
         assert_eq!(tvm_result.gas_used, 270);
         assert_eq!(tvm_result.vm_exit_code, 11);
         Ok(())
@@ -323,7 +351,7 @@ mod tests {
             let mut stack = TVMStack::default();
             stack.push_int(arg1.clone());
             stack.push_int(arg2.clone());
-            let emulator_result = assert_ok!(emulator.run_get_method("get_val", &stack.to_boc()?));
+            let emulator_result = assert_ok!(emulator.run_get_method("get_val", &stack.to_boc()?)).into_success()?;
             let mut res_stack = emulator_result.stack_parsed()?;
             assert_eq!(emulator_result.vm_exit_code, 0);
             if expected > BigInt::from(i64::MAX) {

@@ -9,7 +9,7 @@ use ton::net_config::TonNetConfig;
 
 static LOG: Once = Once::new();
 
-pub(crate) fn init_logging() {
+pub fn init_logging() {
     LOG.call_once(|| {
         let stderr = ConsoleAppender::builder()
             .target(Target::Stderr)

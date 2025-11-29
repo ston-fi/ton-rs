@@ -33,10 +33,6 @@ pub enum TonCoreError {
     #[error("TLBEnumOutOfOptions: data doesn't match any variant of {0}")]
     TLBEnumOutOfOptions(String),
 
-    // contracts
-    #[error("ContractError: {0}")]
-    ContractError(String),
-
     // General errors
     #[error("Custom: {0}")]
     Custom(String),

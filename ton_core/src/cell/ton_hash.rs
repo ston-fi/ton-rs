@@ -135,6 +135,9 @@ mod traits_impl {
             if s.len() == 64 {
                 return from_hex(s);
             }
+            if s.len() == 66 && (s.starts_with("0x") || s.starts_with("0X")) {
+                return from_hex(&s[2..]);
+            }
             from_base64(s)
         }
     }
@@ -214,8 +217,15 @@ mod tests {
     #[test]
     fn test_ton_hash_from_hex() -> anyhow::Result<()> {
         let data = [255u8; 32];
-        let hash = TonHash::from_str("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")?;
-        assert_eq!(hash.as_slice(), &data);
+        for hex_str in &[
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0Xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        ] {
+            let hash = TonHash::from_str(hex_str)?;
+            assert_eq!(hash.as_slice(), &data);
+        }
         Ok(())
     }
 

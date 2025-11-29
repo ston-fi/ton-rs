@@ -9,7 +9,7 @@ use ton_core::cell::TonCell;
 #[async_trait]
 pub trait NFTCollectionMethods: TonContract {
     async fn get_collection_data(&self) -> TonResult<GetCollectionDataResult> {
-        let stack_boc = self.emulate_get_method("get_collection_data", &TVMStack::EMPTY).await?;
+        let stack_boc = self.emulate_get_method("get_collection_data", &TVMStack::EMPTY, None).await?;
         Ok(GetCollectionDataResult::from_boc(stack_boc)?)
     }
 
@@ -18,7 +18,7 @@ pub trait NFTCollectionMethods: TonContract {
         stack.push_int(index);
         stack.push_cell(individual_content);
 
-        let stack_boc = self.emulate_get_method("get_nft_content", &stack).await?;
+        let stack_boc = self.emulate_get_method("get_nft_content", &stack, None).await?;
 
         Ok(GetNFTContentResult::from_boc(stack_boc)?)
     }
@@ -30,7 +30,7 @@ pub trait NFTCollectionMethods: TonContract {
         let mut stack = TVMStack::default();
         stack.push_int(index.into());
 
-        let stack_boc = self.emulate_get_method("get_nft_address_by_index", &stack).await?;
+        let stack_boc = self.emulate_get_method("get_nft_address_by_index", &stack, None).await?;
         Ok(GetNFTAddressByIndexResult::from_boc(stack_boc)?)
     }
 }
