@@ -16,14 +16,14 @@ use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess,
 use ton::emulators::tx_emulator::{TXEmulTask, TXEmulatorPool};
 use ton::errors::TonResult;
 use ton::sys_utils::sys_tonlib_set_verbosity_level;
-use ton::thread_pool::{PoolObject, ThreadPool, ThreadPoolConfig};
+use ton::thread_pool::{PoolObject, ThreadPool};
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
 const DEFAULT_SLEEP_TIME_MICROS: u64 = 1000;
 const BENCH_TASK_PER_CORE_COUNT: usize = 10;
 const CRITERION_SAMPLES_COUNT: u32 = 10;
-const DEFAULT_DEADLINE_MS: Duration = Duration::from_millis(3000); //30 sec for bench (increased to handle larger queues)
+const DEFAULT_DEADLINE: Duration = Duration::from_millis(3000); //30 sec for bench (increased to handle larger queues)
 
 #[derive(Debug)]
 enum RunMode {
@@ -48,10 +48,10 @@ struct Args {
     help_modes: bool,
 }
 
-type PoolUnderTest = ThreadPool<CpuLoadObject, Task, TXEmulationSuccess>;
+type PoolUnderTest = ThreadPool<CpuLoadObject>;
 
 static THREAD_POOL: OnceLock<PoolUnderTest> = OnceLock::new();
-static TX_EMULATOR_POOL: OnceLock<TxEmulatorPool> = OnceLock::new();
+static TX_EMULATOR_POOL: OnceLock<TXEmulatorPool> = OnceLock::new();
 
 fn parse_custom_args() -> Args {
     let mut filtered: Vec<String> = vec![std::env::args().next().unwrap_or_else(|| "bench".into())];
@@ -159,7 +159,7 @@ fn test_emulator_iteration(emulator: &mut TXEmulator) -> TonResult<()> {
     };
     assert_err!(emulator.emulate_ord(&ord_args));
     ord_args.emul_args.ignore_chksig = true;
-    let response = assert_ok!(emulator.emulate_ord(&ord_args));
+    let response = assert_ok!(emulator.emulate_ord(&ord_args)).into_success()?;
     assert!(response.success);
 
     let expected_tx = Tx::from_boc_hex(
@@ -254,19 +254,20 @@ impl CpuLoadObject {
             Task::TxEmulOrd(emul_args) => {
                 if let Some(tx_emul) = &mut self.tx_emulator {
                     // For modes that reuse the existing TXEmulator
-                    return tx_emul.emulate_ord(emul_args);
-                } else {
-                    let mut tx_emul = TXEmulator::new(0, false)?;
-                    tx_emul.emulate_ord(emul_args)?
+                    return tx_emul.emulate_ord(emul_args)?.into_success();
                 }
+                let mut tx_emul = TXEmulator::new(0, false)?;
+                tx_emul.emulate_ord(emul_args)?.into_success()?
             }
         };
 
         Ok(ret_val)
     }
 }
-impl PoolObject<Task, TXEmulationSuccess> for CpuLoadObject {
-    fn process(&mut self, task: Task) -> TonResult<TXEmulationSuccess> { self.do_task(&task) }
+impl PoolObject for CpuLoadObject {
+    type Task = Task;
+    type Retval = TXEmulationSuccess;
+    fn process<T: Into<Self::Task>>(&mut self, task: T) -> TonResult<Self::Retval> { self.do_task(&task.into()) }
 }
 
 macro_rules! run_pool_test {
@@ -274,7 +275,7 @@ macro_rules! run_pool_test {
         async {
             let mut answer_keeper = Vec::with_capacity(total_requests());
             for _ in 0..total_requests() {
-                answer_keeper.push($pool.execute_task($task.clone(), None));
+                answer_keeper.push($pool.exec($task.clone(), None));
             }
 
             let answer = join_all(answer_keeper).await;
@@ -352,7 +353,6 @@ fn main() {
 
     // Calculate max_queue_size after configure_criterion() sets WORKER_THREADS_COUNT
     // so that total_requests() uses the correct thread count
-    let max_queue_size = total_requests() as u32 / threads_count() + 1;
 
     let mut objects_mq = Vec::with_capacity(threads_count() as usize);
     for _ in 0..threads_count() {
@@ -374,8 +374,8 @@ fn main() {
         }
     }
 
-    let pool_config = ThreadPoolConfig::new(DEFAULT_DEADLINE_MS, max_queue_size);
-    let pool_min_queue = PoolUnderTest::new(objects_mq, pool_config.clone()).unwrap();
+    let pool_min_queue =
+        PoolUnderTest::builder(objects_mq).unwrap().with_default_exec_timeout(DEFAULT_DEADLINE).build().unwrap();
     let _ = THREAD_POOL.set(pool_min_queue);
 
     // Create TxEmulatorPool for EmulatorPool mode
@@ -384,7 +384,8 @@ fn main() {
         for _ in 0..threads_count() {
             emulators.push(TXEmulator::new(0, false).unwrap());
         }
-        let tx_emulator_pool = TXEmulatorPool::new(emulators, pool_config).unwrap();
+        let tx_emulator_pool =
+            TXEmulatorPool::builder(emulators).unwrap().with_default_exec_timeout(DEFAULT_DEADLINE).build().unwrap();
         let _ = TX_EMULATOR_POOL.set(tx_emulator_pool);
     }
 

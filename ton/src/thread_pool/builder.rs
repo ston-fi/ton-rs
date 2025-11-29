@@ -33,7 +33,7 @@ impl<Obj: PoolObject> Builder<Obj> {
         for id in 0..threads_count {
             let (tx, rx) = mpsc::channel::<PoolTask<Obj>>();
             let obj = self.emulators.pop().unwrap();
-            let _ = thread::spawn(move || worker_loop(obj, rx, id));
+            let _ = thread::spawn(move || thread_loop(obj, rx, id));
             senders.push(tx);
             counters.push(TaskCounter::new());
         }
@@ -47,7 +47,7 @@ impl<Obj: PoolObject> Builder<Obj> {
     }
 }
 
-fn worker_loop<Obj: PoolObject>(mut obj: Obj, receiver: Receiver<PoolTask<Obj>>, id: usize) {
+fn thread_loop<Obj: PoolObject>(mut obj: Obj, receiver: Receiver<PoolTask<Obj>>, id: usize) {
     let log_prefix = format!("EmulatorPool][{}][{}", obj.descriptor(), id);
     log::debug!("[{log_prefix}] thread started");
 
@@ -57,7 +57,7 @@ fn worker_loop<Obj: PoolObject>(mut obj: Obj, receiver: Receiver<PoolTask<Obj>>,
             continue;
         }
         let emul_result = obj.process(task.task);
-        if let Err(_) = task.rsp_sender.send(emul_result) {
+        if task.rsp_sender.send(emul_result).is_err() {
             log::debug!("[{log_prefix}] failed to send emul_result, seems user reached the deadline");
         }
     }

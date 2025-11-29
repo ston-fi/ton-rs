@@ -20,7 +20,7 @@ pub trait PoolObject: Send + Sync + 'static {
     type Retval: Send + Sync;
     fn process<T: Into<Self::Task>>(&mut self, task: T) -> TonResult<Self::Retval>;
     /// any human-readable value for logging purposes
-    fn descriptor(&self) -> &str;
+    fn descriptor(&self) -> &str { "undefined" }
 }
 
 /// Depends on number of objects provided, run one thread per object
@@ -33,7 +33,7 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
     pub async fn exec<T: Into<Obj::Task>>(&self, task: T, timeout: Option<Duration>) -> TonResult<Obj::Retval> {
         let exec_timeout = timeout.unwrap_or(self.0.default_exec_timeout);
 
-        match tokio::time::timeout(exec_timeout, self.exec_with_timeout(task.into(), exec_timeout)).await {
+        match tokio::time::timeout(exec_timeout, self.exec_impl(task.into(), exec_timeout)).await {
             Ok(res) => res,
             Err(_) => Err(TonError::EmulatorPoolTimeout(exec_timeout)),
         }
@@ -97,7 +97,7 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
         result
     }
 
-    async fn exec_with_timeout(&self, task: Obj::Task, timeout: Duration) -> TonResult<Obj::Retval> {
+    async fn exec_impl(&self, task: Obj::Task, timeout: Duration) -> TonResult<Obj::Retval> {
         let (tx, rx) = oneshot::channel();
         let pool_task = PoolTask {
             task,
