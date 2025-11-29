@@ -68,7 +68,7 @@ impl TLConnection {
 
 impl Inner {
     pub async fn exec_impl(&self, req: &TLRequest) -> Result<TLResponse, TonError> {
-        let _permit = self.semaphore.acquire().await?;
+        let _permit = self.semaphore.acquire().await.map_err(TonError::system);
         let req_id = self.next_request_id.fetch_add(1, Ordering::Relaxed);
         let tag = self.tonlibjson_wrapper.tag();
 
@@ -89,7 +89,7 @@ impl Inner {
             self.callbacks.on_send_error(tag, &req_ctx, &err);
             return Err(err);
         }
-        receiver.await?
+        receiver.await.map_err(TonError::system)?
     }
 }
 
@@ -177,7 +177,10 @@ async fn new_connection(builder: &Builder, semaphore: Arc<Semaphore>) -> Result<
 
     let inner_weak = Arc::downgrade(&inner);
     let callbacks = builder.callbacks.clone();
-    let _join_handle = thread::Builder::new().name(tag.clone()).spawn(|| run_loop(tag, inner_weak, callbacks))?;
+    let _join_handle = thread::Builder::new()
+        .name(tag.clone())
+        .spawn(|| run_loop(tag, inner_weak, callbacks))
+        .map_err(TonError::system);
 
     let conn = TLConnection { inner };
     let _info = conn.init(builder.init_opts.clone()).await?;

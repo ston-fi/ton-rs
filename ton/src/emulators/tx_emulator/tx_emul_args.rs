@@ -1,10 +1,12 @@
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
+use std::sync::Arc;
 use ton_core::cell::TonHash;
 
 #[derive(Debug, Clone)]
 pub struct TXEmulOrdArgs {
-    pub in_msg_boc: Vec<u8>,
+    pub in_msg_boc: Arc<Vec<u8>>,
     pub emul_args: TXEmulArgs,
 }
 
@@ -16,7 +18,7 @@ pub struct TXEmulTickTockArgs {
 
 #[derive(Debug, Clone)]
 pub struct TXEmulArgs {
-    pub shard_account_boc: Vec<u8>,
+    pub shard_account_boc: Arc<Vec<u8>>,
     pub bc_config: EmulBCConfig,
     pub rand_seed: TonHash,
     pub utime: u32,
@@ -28,7 +30,7 @@ pub struct TXEmulArgs {
 
 impl Display for TXEmulArgs {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let shard_acc_str = hex::encode(&self.shard_account_boc);
+        let shard_acc_str = hex::encode(self.shard_account_boc.deref());
 
         let prev_blocks_str = match &self.prev_blocks_boc {
             None => "None",
@@ -49,7 +51,11 @@ impl Display for TXEmulArgs {
 
 impl Display for TXEmulOrdArgs {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("in_msg_boc : {}, emul_args: {}", hex::encode(&self.in_msg_boc), &self.emul_args))
+        f.write_fmt(format_args!(
+            "in_msg_boc : {}, emul_args: {}",
+            hex::encode(self.in_msg_boc.deref()),
+            &self.emul_args
+        ))
     }
 }
 

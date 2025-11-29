@@ -14,5 +14,7 @@ pub mod contracts;
 pub mod emulators;
 #[cfg(feature = "tonlibjson")]
 pub mod sys_utils;
+#[cfg(feature = "unstable")]
+pub mod thread_pool;
 #[cfg(feature = "tonlibjson")]
 pub mod tl_client;

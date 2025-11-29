@@ -79,7 +79,7 @@ impl Builder {
             }
         }
         if let TLKeyStoreType::Directory { directory } = &self.init_opts.keystore_type {
-            std::fs::create_dir_all(directory)?
+            std::fs::create_dir_all(directory).map_err(TonError::system)?
         }
 
         let semaphore = Arc::new(Semaphore::new(self.max_parallel_requests));

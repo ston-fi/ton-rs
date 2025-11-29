@@ -12,11 +12,11 @@ use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::emul_bc_config::EmulBCConfig;
-use ton::emulators::thread_pool::{PooledObject, ThreadPool, ThreadPoolConfig};
 use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
-use ton::emulators::tx_emulator_pool::{TxEmulatorPool, TxEmulatorTask};
+use ton::emulators::tx_emulator::{TXEmulTask, TXEmulatorPool};
 use ton::errors::TonResult;
 use ton::sys_utils::sys_tonlib_set_verbosity_level;
+use ton::thread_pool::{PoolObject, ThreadPool, ThreadPoolConfig};
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
@@ -145,9 +145,9 @@ fn test_emulator_iteration(emulator: &mut TXEmulator) -> TonResult<()> {
     )?;
 
     let mut ord_args = TXEmulOrdArgs {
-        in_msg_boc: ext_in_msg.to_boc()?,
+        in_msg_boc: ext_in_msg.to_boc()?.into(),
         emul_args: TXEmulArgs {
-            shard_account_boc: shard_account.to_boc()?,
+            shard_account_boc: shard_account.to_boc()?.into(),
             bc_config: BC_CONFIG.clone(),
             rand_seed: TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?,
             utime: 1738323935,
@@ -182,9 +182,9 @@ fn get_test_args() -> TonResult<TXEmulOrdArgs> {
     )?;
 
     Ok(TXEmulOrdArgs {
-        in_msg_boc: ext_in_msg.to_boc()?,
+        in_msg_boc: ext_in_msg.to_boc()?.into(),
         emul_args: TXEmulArgs {
-            shard_account_boc: shard_account.to_boc()?,
+            shard_account_boc: shard_account.to_boc()?.into(),
             bc_config: BC_CONFIG.clone(),
             rand_seed: TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?,
             utime: 1738323935,
@@ -265,8 +265,8 @@ impl CpuLoadObject {
         Ok(ret_val)
     }
 }
-impl PooledObject<Task, TXEmulationSuccess> for CpuLoadObject {
-    fn handle(&mut self, task: Task) -> TonResult<TXEmulationSuccess> { self.do_task(&task) }
+impl PoolObject<Task, TXEmulationSuccess> for CpuLoadObject {
+    fn process(&mut self, task: Task) -> TonResult<TXEmulationSuccess> { self.do_task(&task) }
 }
 
 macro_rules! run_pool_test {
@@ -302,12 +302,12 @@ async fn cpu_task_bench() -> TonResult<()> {
 }
 
 async fn emulator_pool_bench() -> TonResult<()> {
-    let task = TxEmulatorTask::TXOrd(get_test_args().unwrap());
+    let task = TXEmulTask::TXOrd(get_test_args()?);
     run_pool_test!(TX_EMULATOR_POOL.get().unwrap(), &task).await
 }
 
 async fn emulator_task_bench_recreate() -> TonResult<()> {
-    let task = Task::TxEmulOrd(get_test_args().unwrap());
+    let task = Task::TxEmulOrd(get_test_args()?);
     run_pool_test!(THREAD_POOL.get().unwrap(), &task).await
 }
 
@@ -384,7 +384,7 @@ fn main() {
         for _ in 0..threads_count() {
             emulators.push(TXEmulator::new(0, false).unwrap());
         }
-        let tx_emulator_pool = TxEmulatorPool::new(emulators, pool_config).unwrap();
+        let tx_emulator_pool = TXEmulatorPool::new(emulators, pool_config).unwrap();
         let _ = TX_EMULATOR_POOL.set(tx_emulator_pool);
     }
 

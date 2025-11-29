@@ -1,5 +1,9 @@
 mod tx_emul_args;
 mod tx_emul_response;
+#[cfg(feature = "unstable")]
+mod tx_emulator_pool;
+#[cfg(feature = "unstable")]
+pub use tx_emulator_pool::*;
 
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
@@ -46,7 +50,7 @@ impl TXEmulator {
 
     /// shard_account: https://github.com/ton-blockchain/ton/blob/cee4c674ea999fecc072968677a34a7545ac9c4d/crypto/block/block.tlb#L275 (NOT Account!!)
     /// You can't emulate tick-tock tx using this method
-    pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> Result<TXEmulationSuccess, TonError> {
+    pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> Result<TXEmulationResponse, TonError> {
         self.prepare_emulator(&args.emul_args)?;
         let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
         let in_msg_c_str = make_base64_c_str(&args.in_msg_boc)?;
@@ -54,17 +58,17 @@ impl TXEmulator {
             transaction_emulator_emulate_transaction(self.emulator, state_c_str.as_ptr(), in_msg_c_str.as_ptr())
         };
         let response_str = convert_emulator_response(response_ptr)?;
-        TXEmulationResponse::from_json(response_str)?.into_success()
+        TXEmulationResponse::from_json(response_str)
     }
 
-    pub fn emulate_ticktock(&mut self, args: &TXEmulTickTockArgs) -> Result<TXEmulationSuccess, TonError> {
+    pub fn emulate_ticktock(&mut self, args: &TXEmulTickTockArgs) -> Result<TXEmulationResponse, TonError> {
         self.prepare_emulator(&args.emul_args)?;
         let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
         let response_ptr = unsafe {
             transaction_emulator_emulate_tick_tock_transaction(self.emulator, state_c_str.as_ptr(), args.is_tock)
         };
         let response_str = convert_emulator_response(response_ptr)?;
-        TXEmulationResponse::from_json(response_str)?.into_success()
+        TXEmulationResponse::from_json(response_str)
     }
 
     fn prepare_emulator(&mut self, args: &TXEmulArgs) -> Result<(), TonError> {
@@ -224,9 +228,9 @@ mod tests {
         )?;
 
         let mut ord_args = TXEmulOrdArgs {
-            in_msg_boc: ext_in_msg.to_boc()?,
+            in_msg_boc: ext_in_msg.to_boc()?.into(),
             emul_args: TXEmulArgs {
-                shard_account_boc: shard_account.to_boc()?,
+                shard_account_boc: shard_account.to_boc()?.into(),
                 bc_config: BC_CONFIG.clone(),
                 rand_seed: TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?,
                 utime: 1738323935,
@@ -238,7 +242,7 @@ mod tests {
         };
         assert_err!(emulator.emulate_ord(&ord_args));
         ord_args.emul_args.ignore_chksig = true;
-        let response = assert_ok!(emulator.emulate_ord(&ord_args));
+        let response = assert_ok!(emulator.emulate_ord(&ord_args)).into_success()?;
         assert!(response.success);
 
         let expected_tx = Tx::from_boc_hex(

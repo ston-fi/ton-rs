@@ -22,6 +22,9 @@ pub type TonResult<T> = Result<T, TonError>;
 
 #[derive(Error, Debug)]
 pub enum TonError {
+    // handling system errors such as mutex.lock(), system_time, etc.
+    #[error("SystemError: {0}")]
+    SystemError(String),
     #[error("TLCoreError: {0}")]
     TLCoreError(#[from] TonCoreError),
     #[error("{0}")]
@@ -73,8 +76,8 @@ pub enum TonError {
         vm_exit_code: Option<i32>,
         response_raw: String,
     },
-    #[error("EmulatorPoolTimeout: timeout={timeout} ms is done")]
-    EmulatorPoolTimeout { timeout: u64 },
+    #[error("EmulatorPoolTimeout: timeout {0:.2?} reached")]
+    EmulatorPoolTimeout(Duration),
     #[error("EmulatorMissingLibrary: missing library with hash {0}")]
     EmulatorMissingLibrary(TonHash),
     #[error("EmulatorTooManyLibraries: reach libraries limit ({0})")]
@@ -127,19 +130,12 @@ pub enum TonError {
     #[error("{0}")]
     AdnlError(#[from] adnl::AdnlError),
 
-    // handling external errors
-    #[error("{0}")]
-    IO(#[from] std::io::Error),
     #[error("{0}")]
     ParseInt(#[from] std::num::ParseIntError),
     #[error("{0}")]
     FromUtf8(#[from] std::string::FromUtf8Error),
     #[error("{0}")]
     SerdeJson(#[from] serde_json::Error),
-    #[error("{0}")]
-    RecvError(#[from] tokio::sync::oneshot::error::RecvError),
-    #[error("{0}")]
-    AcquireError(#[from] tokio::sync::AcquireError),
     #[error("Transport error ({0})")]
     TransportError(#[from] reqwest::Error),
 }
@@ -158,6 +154,10 @@ pub enum MetaLoaderError {
         status: StatusCode,
         msg: String,
     },
+}
+
+impl TonError {
+    pub fn system<T: ToString>(msg: T) -> Self { TonError::SystemError(msg.to_string()) }
 }
 
 impl From<TonError> for TonCoreError {

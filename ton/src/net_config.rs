@@ -44,7 +44,9 @@ pub struct Validator {
 impl TonNetConfig {
     pub fn new(json: &str) -> TonResult<Self> { Ok(serde_json::from_str(json)?) }
 
-    pub fn from_path(path: &str) -> TonResult<Self> { TonNetConfig::new(&std::fs::read_to_string(path)?) }
+    pub fn from_path(path: &str) -> TonResult<Self> {
+        TonNetConfig::new(&std::fs::read_to_string(path).map_err(TonError::system)?)
+    }
 
     pub fn from_env_path(env_var: &str) -> TonResult<Self> {
         if let Ok(path) = std::env::var(env_var) {
@@ -81,8 +83,8 @@ fn get_default_net_conf(mainnet: bool) -> TonResult<String> {
     };
 
     if let Ok(path) = std::env::var(env_var_name) {
-        if exists(&path)? {
-            net_conf = std::fs::read_to_string(&path)?;
+        if exists(&path).map_err(TonError::system)? {
+            net_conf = std::fs::read_to_string(&path).map_err(TonError::system)?;
             log::info!("Using TON_NET_CONF from {path}")
         } else {
             log::warn!("env_var {env_var_name} is set, but path {path} is not available");
