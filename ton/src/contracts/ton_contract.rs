@@ -19,13 +19,18 @@ pub trait TonContract: Send + Sync + Sized {
         Ok(Self::from_state(client.clone(), state))
     }
 
-    async fn emulate_get_method<M>(&self, method: M, stack: &TVMStack) -> Result<Vec<u8>, TonError>
+    async fn emulate_get_method<M>(
+        &self,
+        method: M,
+        stack: &TVMStack,
+        mc_seqno: Option<i32>,
+    ) -> Result<Vec<u8>, TonError>
     where
         M: Into<TVMGetMethodID> + Send,
     {
         let method_id = method.into().to_id();
         let stack_boc = stack.to_boc()?;
-        let response = self.get_client().emulate_get_method(self.get_state(), method_id, &stack_boc).await?;
+        let response = self.get_client().emulate_get_method(self.get_state(), method_id, &stack_boc, mc_seqno).await?;
         response.stack_boc()
     }
 

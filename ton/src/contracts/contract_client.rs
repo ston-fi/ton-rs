@@ -37,11 +37,15 @@ impl ContractClient {
         self.inner.cache.get_or_load_contract(address, tx_id).await
     }
 
+    /// mc_seqno can be specified to run emulation in a specific blockchain state
+    /// If mc_seqno is None, head state will be used
+    /// Is not used yet
     pub async fn emulate_get_method(
         &self,
         state: &TonContractState,
         method_id: i32,
         stack_boc: &[u8],
+        _mc_seqno: Option<i32>,
     ) -> TonResult<TVMGetMethodSuccess> {
         let code_boc = match &state.code_boc {
             Some(boc) => boc,

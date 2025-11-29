@@ -18,12 +18,12 @@ mod example {
 
     impl StonfiPool {
         async fn get_jetton_data(&self) -> Result<TVMStack, TonError> {
-            let boc = self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY).await?;
+            let boc = self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await?;
             Ok(TVMStack::from_boc(boc)?)
         }
 
         async fn get_pool_data(&self) -> Result<TVMStack, TonError> {
-            let boc = self.emulate_get_method("get_pool_data", &TVMStack::EMPTY).await?;
+            let boc = self.emulate_get_method("get_pool_data", &TVMStack::EMPTY, None).await?;
             Ok(TVMStack::from_boc(boc)?)
         }
     }
@@ -46,7 +46,7 @@ mod example {
         // Emulation using contract contract_client directly
         let state = ctr_cli.get_contract(&address, None).await?;
         let method_id = TVMGetMethodID::from("get_jetton_data").to_id();
-        let emul_result = ctr_cli.emulate_get_method(&state, method_id, TVMStack::EMPTY_BOC).await?;
+        let emul_result = ctr_cli.emulate_get_method(&state, method_id, TVMStack::EMPTY_BOC, None).await?;
         let jetton_data = emul_result.stack_parsed()?;
         println!("[arbitrary] jetton_data_result stack len: {:?}", jetton_data.len());
         Ok(())
