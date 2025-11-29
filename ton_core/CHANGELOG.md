@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.10](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.9...ton_core-v0.0.10) - 2025-11-29
+
+### Other
+
+- Dynamic libs loading + emulator pool
+- Update rust version ([#141](https://github.com/ston-fi/ton-rs/pull/141))
+- expose cell type in builder and parser ([#133](https://github.com/ston-fi/ton-rs/pull/133))
+
 ## [0.0.9](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.8...ton_core-v0.0.9) - 2025-11-21
 
 ### Other
