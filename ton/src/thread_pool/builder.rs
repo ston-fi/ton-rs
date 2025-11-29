@@ -1,9 +1,9 @@
 use crate::errors::{TonError, TonResult};
 use crate::thread_pool::task_counter::TaskCounter;
-use crate::thread_pool::{PoolObject, PoolTask, ThreadPool};
+use crate::thread_pool::{Inner, PoolObject, PoolTask, ThreadPool};
 use derive_setters::Setters;
-use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
@@ -37,12 +37,13 @@ impl<Obj: PoolObject> Builder<Obj> {
             senders.push(tx);
             counters.push(TaskCounter::new());
         }
-        Ok(ThreadPool {
+        let inner = Inner {
             default_exec_timeout: self.default_emul_timeout,
             max_thread_queue_len: self.max_thread_queue_len,
             senders,
             counters,
-        })
+        };
+        Ok(ThreadPool(Arc::new(inner)))
     }
 }
 

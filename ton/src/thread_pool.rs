@@ -6,6 +6,7 @@ use crate::errors::{TonError, TonResult};
 use crate::thread_pool::builder::Builder;
 use crate::thread_pool::task_counter::TaskCounter;
 use std::ops::Add;
+use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::Sender;
@@ -25,18 +26,14 @@ pub trait PoolObject: Send + Sync + 'static {
 }
 
 /// Depends on number of objects provided, run one thread per object
-pub struct ThreadPool<T: PoolObject> {
-    senders: Vec<Sender<PoolTask<T>>>,
-    counters: Vec<TaskCounter>,
-    default_exec_timeout: Duration,
-    max_thread_queue_len: usize,
-}
+#[derive(Clone)]
+pub struct ThreadPool<T: PoolObject>(Arc<Inner<T>>);
 
 impl<Obj: PoolObject> ThreadPool<Obj> {
     pub fn builder(objects: Vec<Obj>) -> TonResult<Builder<Obj>> { Builder::new(objects) }
 
     pub async fn exec<T: Into<Obj::Task>>(&self, task: T, timeout: Option<Duration>) -> TonResult<Obj::Retval> {
-        let exec_timeout = timeout.unwrap_or(self.default_exec_timeout);
+        let exec_timeout = timeout.unwrap_or(self.0.default_exec_timeout);
 
         match tokio::time::timeout(exec_timeout, self.exec_with_timeout(task.into(), exec_timeout)).await {
             Ok(res) => res,
@@ -44,58 +41,16 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
         }
     }
 
-    async fn exec_with_timeout(&self, task: Obj::Task, timeout: Duration) -> TonResult<Obj::Retval> {
-        let (tx, rx) = oneshot::channel();
-        let pool_task = PoolTask {
-            task,
-            rsp_sender: tx,
-            timeout,
-            deadline: SystemTime::now().add(timeout),
-        };
-
-        let thread_idx = self.find_free_thread().await;
-        let counter_updater = self.counters[thread_idx].task_added();
-
-        self.senders[thread_idx].send(pool_task).map_err(TonError::system)?;
-        let emul_result = rx.await.map_err(TonError::system)?;
-        counter_updater.task_done();
-        emul_result
-    }
-
-    async fn find_free_thread(&self) -> usize {
-        let mut chosen_thread_pos = self.senders.len(); // invalid index
-        let mut chosen_queue_len = self.max_thread_queue_len + 1; // invalid length
-
-        loop {
-            for pos in 0..self.senders.len() {
-                let cur_queue_len = self.counters[pos].in_progress.load(Ordering::Relaxed);
-                if cur_queue_len <= MIN_QUEUE_LEN_TO_ACCEPT_TASKS {
-                    return pos;
-                }
-                if cur_queue_len <= self.max_thread_queue_len {
-                    if cur_queue_len < chosen_queue_len {
-                        chosen_queue_len = cur_queue_len;
-                        chosen_thread_pos = pos;
-                    }
-                }
-            }
-            if chosen_thread_pos < self.senders.len() {
-                return chosen_thread_pos;
-            }
-            tokio::time::sleep(SLEEP_ON_FULL_QUEUE).await;
-        }
-    }
-
     pub fn available_cores_count() -> TonResult<usize> {
         Ok(thread::available_parallelism().map_err(TonError::system)?.get())
     }
 
-    pub fn get_counters(&self) -> &Vec<TaskCounter> { &self.counters }
+    pub fn get_counters(&self) -> &Vec<TaskCounter> { &self.0.counters }
 
     pub fn get_counters_aggregated(&self) -> TaskCounter {
-        let in_progress = self.counters.iter().map(|c| c.in_progress.load(Ordering::Relaxed)).sum();
-        let done = self.counters.iter().map(|c| c.done.load(Ordering::Relaxed)).sum();
-        let failed = self.counters.iter().map(|c| c.failed.load(Ordering::Relaxed)).sum();
+        let in_progress = self.0.counters.iter().map(|c| c.in_progress.load(Ordering::Relaxed)).sum();
+        let done = self.0.counters.iter().map(|c| c.done.load(Ordering::Relaxed)).sum();
+        let failed = self.0.counters.iter().map(|c| c.failed.load(Ordering::Relaxed)).sum();
 
         TaskCounter {
             in_progress: AtomicUsize::new(in_progress),
@@ -121,10 +76,10 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
         let mut total_done = 0;
         let mut total_failed = 0;
 
-        for idx in 0..self.senders.len() {
-            let in_progress = self.counters[idx].in_progress.load(Ordering::Relaxed);
-            let done_tasks = self.counters[idx].done.load(Ordering::Relaxed);
-            let failed = self.counters[idx].failed.load(Ordering::Relaxed);
+        for idx in 0..self.0.senders.len() {
+            let in_progress = self.0.counters[idx].in_progress.load(Ordering::Relaxed);
+            let done_tasks = self.0.counters[idx].done.load(Ordering::Relaxed);
+            let failed = self.0.counters[idx].failed.load(Ordering::Relaxed);
 
             total_in_progress += in_progress;
             total_done += done_tasks;
@@ -147,6 +102,24 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
 
         result
     }
+
+    async fn exec_with_timeout(&self, task: Obj::Task, timeout: Duration) -> TonResult<Obj::Retval> {
+        let (tx, rx) = oneshot::channel();
+        let pool_task = PoolTask {
+            task,
+            rsp_sender: tx,
+            timeout,
+            deadline: SystemTime::now().add(timeout),
+        };
+
+        let thread_idx = self.0.find_free_thread().await;
+        let counter_updater = self.0.counters[thread_idx].task_added();
+
+        self.0.senders[thread_idx].send(pool_task).map_err(TonError::system)?;
+        let emul_result = rx.await.map_err(TonError::system)?;
+        counter_updater.task_done();
+        emul_result
+    }
 }
 
 struct PoolTask<T: PoolObject> {
@@ -154,6 +127,39 @@ struct PoolTask<T: PoolObject> {
     rsp_sender: oneshot::Sender<TonResult<T::Retval>>,
     timeout: Duration,
     deadline: SystemTime,
+}
+
+struct Inner<T: PoolObject> {
+    senders: Vec<Sender<PoolTask<T>>>,
+    counters: Vec<TaskCounter>,
+    default_exec_timeout: Duration,
+    max_thread_queue_len: usize,
+}
+
+impl<T: PoolObject> Inner<T> {
+    async fn find_free_thread(&self) -> usize {
+        let mut chosen_thread_pos = self.senders.len(); // invalid index
+        let mut chosen_queue_len = self.max_thread_queue_len + 1; // invalid length
+
+        loop {
+            for pos in 0..self.senders.len() {
+                let cur_queue_len = self.counters[pos].in_progress.load(Ordering::Relaxed);
+                if cur_queue_len <= MIN_QUEUE_LEN_TO_ACCEPT_TASKS {
+                    return pos;
+                }
+                if cur_queue_len <= self.max_thread_queue_len {
+                    if cur_queue_len < chosen_queue_len {
+                        chosen_queue_len = cur_queue_len;
+                        chosen_thread_pos = pos;
+                    }
+                }
+            }
+            if chosen_thread_pos < self.senders.len() {
+                return chosen_thread_pos;
+            }
+            tokio::time::sleep(SLEEP_ON_FULL_QUEUE).await;
+        }
+    }
 }
 
 #[cfg(test)]
