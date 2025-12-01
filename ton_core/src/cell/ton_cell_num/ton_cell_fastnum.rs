@@ -209,9 +209,11 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
 
                 let bytes = fastnum_to_big_endian_bytes_signed(*self)?;
-                // may remove?
-                let bytes = toncellnum_bigendian_bit_cutter(bytes, bits_len);
-                writer.write_bits(&bytes, bits_len as usize)?;
+                // For reverse-mapped bits, the LSB bits are at the end of the array
+                // We need to write bits from out_bit_index (total_bits - bits_len) to (total_bits - 1)
+                let total_bits = Self::tcn_max_bits_len();
+                let bits_offset = (total_bits - bits_len) as usize;
+                writer.write_bits_with_offset(&bytes, bits_offset, bits_len as usize)?;
 
                 Ok(())
             }
