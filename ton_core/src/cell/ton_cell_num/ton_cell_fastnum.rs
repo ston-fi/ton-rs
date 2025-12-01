@@ -1,12 +1,15 @@
 use crate::bail_ton_core_data;
 use crate::cell::TonCellNum;
 use crate::cell::{CellBuilder, CellParser};
+use crate::cell::{
+    toncellnum_bigendian_bit_cutter, toncellnum_bigendian_bit_restorator, toncellnum_restore_bits_as_signed,
+};
 use crate::errors::{TonCoreError, TonCoreResult};
 use crate::unsinged_highest_bit_pos;
 use fastnum::bint::{Int, UInt};
 use fastnum::{I128, I256, I512, I1024, TryCast};
 use fastnum::{U128, U256, U512, U1024};
-use crate::cell::{toncellnum_bigendian_bit_restorator,toncellnum_restore_bits_as_signed};
+
 macro_rules! fastnum_highest_bit_pos_signed {
     ($val:expr,$T:ty) => {{
         let max_bit_id = (std::mem::size_of::<$T>() * 8 - 1) as u32;
@@ -28,7 +31,7 @@ macro_rules! fastnum_highest_bit_pos_signed {
 fn fastnum_from_big_endian_bytes_unsigned<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<UInt<N>> {
     let total_bits = (N * 64) as u32;
 
-    assert_eq!(bytes_array.len(), total_bits as usize /8 );
+    assert_eq!(bytes_array.len(), total_bits as usize / 8);
     let available_bits = (bytes_array.len() * 8) as u32;
 
     let mut answer = UInt::<N>::ZERO;
@@ -47,12 +50,9 @@ fn fastnum_from_big_endian_bytes_unsigned<const N: usize>(bytes_array: &[u8]) ->
     Ok(answer)
 }
 
-
-
-
 pub(crate) fn fastnum_to_big_endian_bytes_unsigned<const N: usize>(src: UInt<N>) -> TonCoreResult<Vec<u8>> {
     let total_bits = (N * 64) as u32;
-    let num_bytes = N*8;
+    let num_bytes = N * 8;
     let mut out = vec![0u8; num_bytes];
 
     for bit_pos in 0..total_bits {
@@ -73,7 +73,7 @@ pub(crate) fn fastnum_to_big_endian_bytes_unsigned<const N: usize>(src: UInt<N>)
 
 fn fastnum_from_big_endian_bytes_signed<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<Int<N>> {
     let total_bits = (N * 64) as u32;
-    assert_eq!(bytes_array.len(),N *8 );
+    assert_eq!(bytes_array.len(), N * 8);
     if total_bits == 0 {
         return Ok(Int::<N>::ZERO);
     }
@@ -120,14 +120,12 @@ fn fastnum_from_big_endian_bytes_signed<const N: usize>(bytes_array: &[u8]) -> T
     }
 
     Ok(answer)
-
-
 }
 
 #[inline]
 fn fastnum_to_big_endian_bytes_signed<const N: usize>(src: Int<N>) -> TonCoreResult<Vec<u8>> {
     let total_bits = (N * 64) as u32;
-    let num_bytes = N*8;
+    let num_bytes = N * 8;
     let mut out = vec![0u8; num_bytes];
     for bit_pos in 0..total_bits {
         let mask = Int::<N>::ONE << bit_pos;
@@ -163,7 +161,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 
                 let bytes = fastnum_to_big_endian_bytes_unsigned(*self)?;
                 // may remove?
-                // let bytes=toncellnum_bigendian_bit_cutter(bytes ,bits_len);
+                let bytes = toncellnum_bigendian_bit_cutter(bytes, bits_len);
                 writer.write_bits(&bytes, bits_len as usize)?;
 
                 Ok(())
@@ -174,7 +172,8 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     return Ok(Self::from(0u32));
                 }
                 let bits_array = reader.read_bits(bits_len as usize)?;
-                let bits_array =toncellnum_bigendian_bit_restorator(bits_array, bits_len,Self::tcn_max_bits_len()/8,false);
+                let bits_array =
+                    toncellnum_bigendian_bit_restorator(bits_array, bits_len, Self::tcn_max_bits_len() / 8, false);
                 fastnum_from_big_endian_bytes_unsigned(&bits_array)
             }
 
@@ -195,9 +194,8 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 macro_rules! ton_cell_num_fastnum_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
-
             fn tcn_write_bits(&self, writer: &mut CellBuilder, bits_len: u32) -> Result<(), TonCoreError> {
-                 if bits_len == 0 {
+                if bits_len == 0 {
                     return Ok(());
                 }
                 assert!(bits_len <= Self::tcn_max_bits_len());
@@ -212,18 +210,18 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
 
                 let bytes = fastnum_to_big_endian_bytes_signed(*self)?;
                 // may remove?
-                // let bytes=toncellnum_bigendian_bit_cutter(bytes ,bits_len);
+                let bytes = toncellnum_bigendian_bit_cutter(bytes, bits_len);
                 writer.write_bits(&bytes, bits_len as usize)?;
 
                 Ok(())
             }
-             fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
-               if bits_len == 0 {
+            fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
+                if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
                 let bits_array = reader.read_bits(bits_len as usize)?;
 
-                let bits_array =toncellnum_restore_bits_as_signed(bits_array, bits_len,Self::tcn_max_bits_len());
+                let bits_array = toncellnum_restore_bits_as_signed(bits_array, bits_len, Self::tcn_max_bits_len() / 8);
                 fastnum_from_big_endian_bytes_signed(&bits_array)
             }
 
@@ -250,8 +248,6 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
     };
 }
 
-
-
 ton_cell_num_fastnum_unsigned_impl!(U128);
 ton_cell_num_fastnum_unsigned_impl!(U256);
 ton_cell_num_fastnum_unsigned_impl!(U512);
@@ -264,45 +260,47 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::ton_cell_num::ton_cell_fastnum::{fastnum_to_big_endian_bytes_signed,fastnum_to_big_endian_bytes_unsigned,fastnum_from_big_endian_bytes_signed,fastnum_from_big_endian_bytes_unsigned};
+    use crate::cell::ton_cell_num::ton_cell_fastnum::{
+        fastnum_from_big_endian_bytes_signed, fastnum_from_big_endian_bytes_unsigned,
+        fastnum_to_big_endian_bytes_signed, fastnum_to_big_endian_bytes_unsigned,
+    };
 
-use crate::cell::TonCell;
+    use crate::cell::TonCell;
     use crate::cell::ton_cell_num::tests::test_num_read_write;
     use fastnum::*;
 
-
     #[test]
-    fn test_toncellnum_conversation_bytes_array()
-    {
-        let base=U128::from(U128::MAX);
-        let bytes=fastnum_to_big_endian_bytes_unsigned(base).unwrap();
-        let restored:U128=fastnum_from_big_endian_bytes_unsigned(&bytes).unwrap();
-        assert_eq!(base,restored);
-        let base=U128::from(U128::MIN);
-        let bytes=fastnum_to_big_endian_bytes_unsigned(base).unwrap();
-        let restored:U128=fastnum_from_big_endian_bytes_unsigned(&bytes).unwrap();
-        assert_eq!(base,restored);
+    fn test_toncellnum_conversation_bytes_array() {
+        let val = -1i128;
+        let fn_val = I128::from(val as i64);
+        assert_eq!(fastnum_to_big_endian_bytes_signed(fn_val).unwrap(), val.to_be_bytes());
 
+        let base = U128::from(U128::MAX);
+        let bytes = fastnum_to_big_endian_bytes_unsigned(base).unwrap();
+        let restored: U128 = fastnum_from_big_endian_bytes_unsigned(&bytes).unwrap();
+        assert_eq!(base, restored);
+        let base = U128::from(U128::MIN);
+        let bytes = fastnum_to_big_endian_bytes_unsigned(base).unwrap();
+        let restored: U128 = fastnum_from_big_endian_bytes_unsigned(&bytes).unwrap();
+        assert_eq!(base, restored);
 
-        let base=I128::from(I128::from(-1));
-        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
-        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
-        assert_eq!(base,restored);
-        let base=I128::from(I128::MIN);
-        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
-        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
-        assert_eq!(base,restored);
-        let base=I128::from(I128::MAX);
-        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
-        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
-        assert_eq!(base,restored);
-        let base=I128::from(I128::from(1));
-        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
-        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
-        assert_eq!(base,restored);
-
+        let base = I128::from(I128::from(-1));
+        let bytes = fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored: I128 = fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base, restored);
+        let base = I128::from(I128::MIN);
+        let bytes = fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored: I128 = fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base, restored);
+        let base = I128::from(I128::MAX);
+        let bytes = fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored: I128 = fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base, restored);
+        let base = I128::from(I128::from(1));
+        let bytes = fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored: I128 = fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base, restored);
     }
-
 
     #[test]
     fn test_toncellnum_fastnum_higest_bit_pos() -> anyhow::Result<()> {
