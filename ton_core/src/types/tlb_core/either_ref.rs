@@ -27,6 +27,12 @@ impl<T> TLBEitherRef<T> {
         }
     }
 
+    pub fn new_ref(value: T) -> Self {
+        Self {
+            value,
+            layout: EitherRefLayout::ToRef,
+        }
+    }
     pub fn new_with_layout(value: T, layout: EitherRefLayout) -> Self { Self { value, layout } }
     pub fn into_inner(self) -> T { self.value }
 }
