@@ -1,11 +1,11 @@
 use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTuple};
-use crate::errors::TonError;
+use crate::errors::{TonError, TonResult};
 use num_bigint::BigInt;
 use num_traits::FromPrimitive;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_core::errors::TonCoreError;
+use ton_core::errors::TonCoreResult;
 use ton_core::traits::tlb::TLB;
 
 macro_rules! extract_stack_val {
@@ -46,17 +46,17 @@ impl TVMStack {
     }
     pub fn push_tuple(&mut self, tuple: TVMTuple) { self.push(TVMStackValue::Tuple(tuple)); }
 
-    pub fn pop_checked(&mut self) -> Result<TVMStackValue, TonError> {
+    pub fn pop_checked(&mut self) -> TonResult<TVMStackValue> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
             Some(value) => Ok(value),
         }
     }
 
-    pub fn pop_tiny_int(&mut self) -> Result<i64, TonError> { extract_stack_val!(self.pop(), TinyInt) }
-    pub fn pop_int(&mut self) -> Result<BigInt, TonError> { extract_stack_val!(self.pop(), Int) }
+    pub fn pop_tiny_int(&mut self) -> TonResult<i64> { extract_stack_val!(self.pop(), TinyInt) }
+    pub fn pop_int(&mut self) -> TonResult<BigInt> { extract_stack_val!(self.pop(), Int) }
 
-    pub fn pop_int_or_tiny_int(&mut self) -> Result<BigInt, TonError> {
+    pub fn pop_int_or_tiny_int(&mut self) -> TonResult<BigInt> {
         match self.pop_checked()? {
             TVMStackValue::Int(inner) => Ok(inner.value),
             TVMStackValue::TinyInt(inner) => {
@@ -67,7 +67,7 @@ impl TVMStack {
     }
 
     // extract cell & cell_slice
-    pub fn pop_cell(&mut self) -> Result<TonCell, TonError> {
+    pub fn pop_cell(&mut self) -> TonResult<TonCell> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
             Some(TVMStackValue::Cell(cell)) => Ok(cell.value.into_inner()),
@@ -75,7 +75,7 @@ impl TVMStack {
             Some(other) => Err(TonError::TVMStackWrongType("Cell".to_string(), format!("{other:?}"))),
         }
     }
-    pub fn pop_tuple(&mut self) -> Result<TVMTuple, TonError> {
+    pub fn pop_tuple(&mut self) -> TonResult<TVMTuple> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
             Some(TVMStackValue::Tuple(tuple)) => Ok(tuple),
@@ -85,7 +85,7 @@ impl TVMStack {
 }
 
 impl TLB for TVMStack {
-    fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
+    fn read_definition(parser: &mut CellParser) -> TonCoreResult<Self> {
         let depth: u32 = parser.read_num(24)?;
         if depth == 0 {
             return Ok(Self::default());
@@ -104,7 +104,7 @@ impl TLB for TVMStack {
         Ok(vm_stack)
     }
 
-    fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
+    fn write_definition(&self, builder: &mut CellBuilder) -> TonCoreResult<()> {
         builder.write_num(&self.0.len(), 24)?;
         if self.0.is_empty() {
             return Ok(());

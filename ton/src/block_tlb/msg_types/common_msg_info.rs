@@ -1,7 +1,6 @@
 use crate::block_tlb::*;
 use ton_core::TLB;
-use ton_core::cell::TonHash;
-use ton_core::types::tlb_core::{MsgAddress, MsgAddressExt, MsgAddressInt, MsgAddressIntStd};
+use ton_core::types::tlb_core::{MsgAddress, MsgAddressExt, MsgAddressInt};
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L155
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -43,25 +42,25 @@ pub struct CommonMsgInfoExtOut {
     pub created_at: u32,
 }
 
+impl CommonMsgInfoInt {
+    pub fn new(dst: MsgAddress, value: Coins) -> Self {
+        Self {
+            dst,
+            value: CurrencyCollection::new(value),
+            ..Default::default()
+        }
+    }
+}
+
 impl Default for CommonMsgInfoInt {
     fn default() -> Self {
         CommonMsgInfoInt {
-            ihr_disabled: false,
-            bounce: false,
+            ihr_disabled: true,
+            bounce: true,
             bounced: false,
-            src: MsgAddressIntStd {
-                anycast: None,
-                workchain: -1,
-                address: TonHash::ZERO,
-            }
-            .into(),
-            dst: MsgAddressIntStd {
-                anycast: None,
-                workchain: -1,
-                address: TonHash::ZERO,
-            }
-            .into(),
-            value: CurrencyCollection::new(0u32),
+            src: MsgAddress::NONE,
+            dst: MsgAddress::NONE,
+            value: CurrencyCollection::new(Coins::ZERO),
             ihr_fee: Coins::ZERO,
             fwd_fee: Coins::ZERO,
             created_lt: 0,
@@ -77,6 +76,8 @@ impl Default for CommonMsgInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ton_core::cell::TonHash;
+    use ton_core::types::tlb_core::MsgAddressIntStd;
 
     #[test]
     fn test_block_tlb_common_msg_info_enum_derive() -> anyhow::Result<()> {
@@ -90,7 +91,7 @@ mod tests {
                 address: TonHash::ZERO,
             })),
             dst: MsgAddress::NONE,
-            value: CurrencyCollection::new(0u32),
+            value: CurrencyCollection::from_num(&0u32)?,
             ihr_fee: Coins::ZERO,
             fwd_fee: Coins::ZERO,
             created_lt: 0,

@@ -321,7 +321,7 @@ mod tests {
         )?;
 
         let dst_address = TonAddress::from_str("Ef8CmPZLxWB-9ypeGdGhEqA6ZNLBFUwnqXPH2eUQd_MzbGh_")?;
-        let msg = JettonTransferMsg::new(dst_address.to_msg_address_int(), 1u32);
+        let msg = JettonTransferMsg::new(dst_address.to_msg_address_int(), 1u32, TonCell::empty().to_owned());
 
         // send_int_msg
         let c7 = TVMEmulatorC7::new(dst_address, BC_CONFIG.clone())?;

@@ -63,7 +63,7 @@ mod tests {
             new_owner: TonAddress::from_str("0:71055783d6928e8c007f22f1d799a3b4dbd9034e9d5975364f707b9efe839510")?,
             response_dst: TonAddress::from_str("0:286d2c92da998c4fcf82d274257cfa3d0a52bd412ce83dee64a404a7ceaabf31")?,
             custom_payload: None,
-            forward_ton_amount: Coins::new(10000000u64),
+            forward_ton_amount: Coins::new(10000000),
             forward_payload: TLBEitherRef::new(payload),
         };
 

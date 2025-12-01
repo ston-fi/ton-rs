@@ -15,8 +15,7 @@ pub struct ShardAccount {
 #[derive(Debug, Clone, PartialEq, TLB)]
 pub enum MaybeAccount {
     None(AccountNone),
-    #[rustfmt::skip]
-    Account(Box::<Account>),
+    Account(Box<Account>),
 }
 
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -49,13 +48,13 @@ impl MaybeAccount {
     pub fn as_frozen(&self) -> Option<&AccountStateFrozen> { self.as_account()?.storage.state.as_frozen() }
     pub fn get_code(&self) -> Option<&TonCell> { self.as_active()?.state_init.code.as_deref() }
     pub fn get_data(&self) -> Option<&TonCell> { self.as_active()?.state_init.data.as_deref() }
-    pub fn get_balance(&self) -> Option<&Coins> { Some(&self.as_account()?.storage.balance.grams) }
+    pub fn get_balance(&self) -> Option<&Coins> { Some(&self.as_account()?.storage.balance.coins) }
 
     pub fn as_active_mut(&mut self) -> Option<&mut AccountStateActive> { self.as_account_mut()?.storage.state.as_active_mut() }
     pub fn as_frozen_mut(&mut self) -> Option<&mut AccountStateFrozen> { self.as_account_mut()?.storage.state.as_frozen_mut() }
     pub fn get_code_mut(&mut self) -> Option<&mut TonCell> { self.as_active_mut()?.state_init.code.as_deref_mut() }
     pub fn get_data_mut(&mut self) -> Option<&mut TonCell> { self.as_active_mut()?.state_init.data.as_deref_mut() }
-    pub fn get_balance_mut(&mut self) -> Option<&mut Coins> { Some(&mut self.as_account_mut()?.storage.balance.grams) }
+    pub fn get_balance_mut(&mut self) -> Option<&mut Coins> { Some(&mut self.as_account_mut()?.storage.balance.coins) }
 }
 
 #[cfg(test)]
@@ -91,7 +90,7 @@ mod tests {
             assert_eq!(account.storage_stat.used.bits, VarLenBytes::new(12090u32, 16));
 
             assert_eq!(account.storage.last_tx_lt, 56199469000003u64);
-            assert_eq!(account.storage.balance, CurrencyCollection::new(915473564698u64));
+            assert_eq!(account.storage.balance, CurrencyCollection::from_num(&915473564698u64)?);
             if let AccountState::Active(state) = &account.storage.state {
                 let code = state.state_init.code.as_ref().unwrap();
                 assert_eq!(
@@ -130,7 +129,7 @@ mod tests {
                 },
                 storage: AccountStorage {
                     last_tx_lt: 25163350000002,
-                    balance: CurrencyCollection::new(206000000u32),
+                    balance: CurrencyCollection::from_num(&206000000u32)?,
                     state: AccountState::Active(AccountStateActive {
                         state_init: StateInit {
                             split_depth: None,
@@ -195,7 +194,7 @@ mod tests {
                 },
                 storage: AccountStorage {
                     last_tx_lt: 53479893000008,
-                    balance: CurrencyCollection::new(711272360u32),
+                    balance: CurrencyCollection::from_num(&711272360u32)?,
                     state: AccountState::Active(AccountStateActive {
                         state_init: StateInit {
                             split_depth: None,

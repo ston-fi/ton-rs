@@ -8,69 +8,117 @@ pub(crate) fn tlb_derive_enum(
     crate_path: &TokenStream,
     ident: &Ident,
     data: &mut DataEnum,
+    generics: &syn::Generics,
 ) -> (TokenStream, TokenStream, TokenStream) {
-    let variant_readers = data.variants.iter().map(|variant| {
-        let variant_name = &variant.ident;
-        // Expect single unnamed field (like `Std(...)`)
-        let Fields::Unnamed(fields) = &variant.fields else {
-            panic!("tlb_derive_enum only supports tuple-like enums");
-        };
-        if fields.unnamed.len() != 1 {
-            panic!("Each enum variant must have exactly one unnamed field");
-        }
-        let field_type = &fields.unnamed.first().unwrap().ty;
+    // Prepare variant info (tuple-like enums with exactly one unnamed field)
+    let variant_infos: Vec<_> = data
+        .variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let Fields::Unnamed(fields) = &variant.fields else {
+                panic!("tlb_derive_enum only supports tuple-like enums");
+            };
+            if fields.unnamed.len() != 1 {
+                panic!("Each enum variant must have exactly one unnamed field");
+            }
+            let field_type = &fields.unnamed.first().unwrap().ty;
+            (variant_name, field_type)
+        })
+        .collect();
+
+    // Fallback reader: try each variant sequentially (use full trait qualification)
+    let fallback_readers = variant_infos.iter().map(|(variant_name, field_type)| {
         quote! {
-                match #field_type::read(parser) {
-                    Ok(res) => return Ok(#ident::#variant_name(res)),
-                    Err(#crate_path::errors::TonCoreError::TLBWrongPrefix { .. }) => {},
-                    Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions { .. }) => {},
-                    Err(err) => return Err(err),
-                };
+            match <#field_type as #crate_path::traits::tlb::TLB>::read(parser) {
+                Ok(res) => return Ok(#ident::#variant_name(res)),
+                Err(#crate_path::errors::TonCoreError::TLBWrongPrefix { .. }) => {},
+                Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions { .. }) => {},
+                Err(err) => return Err(err),
+            };
         }
     });
 
-    let variant_writers = data.variants.iter().map(|variant| {
-        let variant_name = &variant.ident;
-        // Expect single unnamed field (like `Std(...)`)
-        let Fields::Unnamed(fields) = &variant.fields else {
-            panic!("TLB derive only supports tuple-like enums");
-        };
-
-        if fields.unnamed.len() != 1 {
-            panic!("Each enum variant must have exactly one unnamed field");
-        }
-        quote! {
-            Self::#variant_name(value) => value.write(builder)?,
-        }
+    // Generate const bits_len values for each variant
+    let const_bits_decls = variant_infos.iter().enumerate().map(|(i, (_, ty))| {
+        let name = Ident::new(&format!("PREFIX_BITS_LEN_{i}"), ident.span());
+        quote! { const #name: usize = <#ty as TLB>::PREFIX.bits_len; }
     });
+
+    let first_bits_ident = Ident::new("PREFIX_BITS_LEN_0", ident.span());
+
+    // Build all-same expression at runtime (bool), using the consts above
+    let all_same_checks = {
+        let mut exprs: Vec<TokenStream> = Vec::new();
+        for i in 1..variant_infos.len() {
+            let cname = Ident::new(&format!("PREFIX_BITS_LEN_{}", i), ident.span());
+            exprs.push(quote! { #first_bits_ident == #cname });
+        }
+        if exprs.is_empty() {
+            quote! { #first_bits_ident > 0 }
+        } else {
+            quote! { #first_bits_ident > 0 && #( #exprs )&&* }
+        }
+    };
 
     let ident_str = ident.to_string();
 
-    let read_impl = quote! {
-        #(#variant_readers)*
-        Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions((#ident_str).to_string()))
-    };
-
-    let write_impl = quote! {
-        match self {
-            #(#variant_writers)*
+    // Optimized match arms: use guard with equality against Type::PREFIX.value
+    let match_arms = variant_infos.iter().map(|(_, ty)| {
+        quote! {
+            actual_prefix if actual_prefix == <#ty as TLB>::PREFIX.value => <#ty as TLB>::read(parser).map(Into::into),
         }
-        Ok(())
+    });
+
+    // Inline if/else inside read(): optimized vs fallback
+    let read_impl = quote! {
+        #(#const_bits_decls)*
+        const ALL_BITS_LEN_SAME: bool = #all_same_checks ;
+        if ALL_BITS_LEN_SAME {
+            let prefix_bits_len = #first_bits_ident;
+            let actual_prefix = match parser.read_num::<usize>(prefix_bits_len) {
+                Ok(prefix) => prefix,
+                Err(err) => return Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions(format!("{}: {err}", #ident_str))),
+            };
+            parser.seek_bits(-(prefix_bits_len as i32))?;
+            match actual_prefix {
+                #(#match_arms)*
+                _ => Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions(format!("{}: got prefix: 0x{actual_prefix:x}", #ident_str))),
+            }
+        } else {
+            #(#fallback_readers)*
+            Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions((#ident_str).to_string()))
+        }
     };
 
-    let variants_access = variants_access_impl(ident, data);
-    let variants_into = variants_into_impl(ident, data);
+    // write_definition stays the same
+    let variant_writers = data.variants.iter().map(|variant| {
+        let variant_name = &variant.ident;
+        let Fields::Unnamed(fields) = &variant.fields else {
+            panic!("TLB derive only supports tuple-like enums");
+        };
+        if fields.unnamed.len() != 1 {
+            panic!("Each enum variant must have exactly one unnamed field");
+        }
+        quote! { Self::#variant_name(value) => value.write(builder)?, }
+    });
+
+    let write_impl = quote! { match self { #(#variant_writers)* } Ok(()) };
+
+    // Keep accessor/From impls
+    let variants_access = variants_access_impl(ident, data, generics);
+    let variants_into = variants_into_impl(ident, data, generics);
     let extra_impl = quote! {
         #variants_access
         #variants_into
     };
 
-    // impl
     (read_impl, write_impl, extra_impl)
 }
 
 // generate From<X> for each enum variant
-fn variants_into_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
+fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generics) -> TokenStream {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let from_impls = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
 
@@ -79,7 +127,7 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
                 let ty = &fields.unnamed.first().unwrap().ty;
 
                 Some(quote! {
-                    impl From<#ty> for #ident {
+                    impl #impl_generics From<#ty> for #ident #ty_generics #where_clause {
                         fn from(v: #ty) -> Self {
                             #ident::#variant_name(v)
                         }
@@ -95,7 +143,8 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
 }
 
 // generate as_X and is_X methods for each enum variant
-fn variants_access_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
+fn variants_access_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generics) -> TokenStream {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let methods = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
         let method_suffix = variant_name.to_string().to_case(Case::Snake);
@@ -135,7 +184,7 @@ fn variants_access_impl(ident: &Ident, data: &mut DataEnum) -> TokenStream {
     });
 
     quote! {
-        impl #ident {
+        impl #impl_generics #ident #ty_generics #where_clause {
             #(#methods)*
         }
     }
