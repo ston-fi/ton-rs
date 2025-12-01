@@ -6,7 +6,7 @@ use crate::unsinged_highest_bit_pos;
 use fastnum::bint::{Int, UInt};
 use fastnum::{I128, I256, I512, I1024, TryCast};
 use fastnum::{U128, U256, U512, U1024};
-
+use crate::cell::{toncellnum_bigendian_bit_restorator,toncellnum_restore_bits_as_signed};
 macro_rules! fastnum_highest_bit_pos_signed {
     ($val:expr,$T:ty) => {{
         let max_bit_id = (std::mem::size_of::<$T>() * 8 - 1) as u32;
@@ -25,33 +25,15 @@ macro_rules! fastnum_highest_bit_pos_signed {
     }};
 }
 
-fn fastnum_from_big_endian_bytes<const N: usize>(bytes_array: &[u8], bits_len: u32) -> TonCoreResult<UInt<N>> {
+fn fastnum_from_big_endian_bytes_unsigned<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<UInt<N>> {
     let total_bits = (N * 64) as u32;
 
-    if bits_len > total_bits {
-        return Err(TonCoreError::DataError {
-            producer: "fastnum_from_big_endian_bytes".to_string(),
-            msg: format!("bits_len {} exceeds maximum {} for UInt<{}>", bits_len, total_bits, N),
-        });
-    }
+    assert_eq!(bytes_array.len(), total_bits as usize /8 );
     let available_bits = (bytes_array.len() * 8) as u32;
-    if bits_len > available_bits {
-        return Err(TonCoreError::DataError {
-            producer: "fastnum_from_big_endian_bytes".to_string(),
-            msg: format!(
-                "bits_len {} exceeds available bits {} ({} bytes)",
-                bits_len,
-                available_bits,
-                bytes_array.len()
-            ),
-        });
-    }
-    if bits_len == 0 {
-        return Ok(UInt::<N>::ZERO);
-    }
+
     let mut answer = UInt::<N>::ZERO;
-    for bit_pos in 0..bits_len {
-        let out_bit_index = bits_len - 1 - bit_pos; // 0..bits_len-1
+    for bit_pos in 0..total_bits {
+        let out_bit_index = total_bits - 1 - bit_pos; // 0..bits_len-1
         let byte_index = (out_bit_index / 8) as usize;
         let bit_in_byte = 7 - (out_bit_index % 8); // MSB-first inside byte
 
@@ -62,37 +44,23 @@ fn fastnum_from_big_endian_bytes<const N: usize>(bytes_array: &[u8], bits_len: u
             answer = answer | (UInt::<N>::ONE << bit_pos);
         }
     }
-
     Ok(answer)
 }
 
-pub(crate) fn fastnum_to_big_endian_bytes<const N: usize>(src: UInt<N>, bits_len: u32) -> TonCoreResult<Vec<u8>> {
+
+
+
+pub(crate) fn fastnum_to_big_endian_bytes_unsigned<const N: usize>(src: UInt<N>) -> TonCoreResult<Vec<u8>> {
     let total_bits = (N * 64) as u32;
-    if bits_len > total_bits {
-        return Err(TonCoreError::DataError {
-            producer: "fastnum_to_big_endian_bytes".to_string(),
-            msg: format!("bits_len {} exceeds maximum {} for UInt<{}>", bits_len, total_bits, N),
-        });
-    }
-
-    if bits_len == 0 {
-        return Ok(Vec::new());
-    }
-
-    // how many bytes we need to store bits_len bits
-    let num_bytes = bits_len.div_ceil(8) as usize;
+    let num_bytes = N*8;
     let mut out = vec![0u8; num_bytes];
 
-    // We treat bit 0 as the least-significant bit of src.
-    // We want a big-endian bitstring:
-    // - bit (bits_len - 1) -> MSB of out[0]
-    // - bit 0              -> LSB of out[last]
-    for bit_pos in 0..bits_len {
+    for bit_pos in 0..total_bits {
         let mask = UInt::<N>::ONE << bit_pos;
         let bit_is_one = (src & mask) != UInt::<N>::ZERO;
 
         if bit_is_one {
-            let out_bit_index = bits_len - 1 - bit_pos; // 0..bits_len-1
+            let out_bit_index = total_bits - 1 - bit_pos; // 0..bits_len-1
             let byte_index = (out_bit_index / 8) as usize;
             let bit_in_byte = 7 - (out_bit_index % 8); // MSB-first in byte
 
@@ -102,6 +70,80 @@ pub(crate) fn fastnum_to_big_endian_bytes<const N: usize>(src: UInt<N>, bits_len
 
     Ok(out)
 }
+
+fn fastnum_from_big_endian_bytes_signed<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<Int<N>> {
+    let total_bits = (N * 64) as u32;
+    assert_eq!(bytes_array.len(),N *8 );
+    if total_bits == 0 {
+        return Ok(Int::<N>::ZERO);
+    }
+
+    // Interpret bytes_array as a full-width two's-complement big-endian integer.
+    // Bit 0 is LSB, bit total_bits-1 is the sign bit.
+    let bits_len = total_bits;
+    let sign_bit_pos = bits_len - 1;
+
+    // Check if sign bit is set
+    // The sign bit is at bit_pos = bits_len - 1, which maps to out_bit_index = 0 in the byte array
+    // (because write function uses: out_bit_index = total_bits - 1 - bit_pos)
+    let sign_out_bit_index = total_bits - 1 - sign_bit_pos; // This equals 0
+    let sign_byte_index = (sign_out_bit_index / 8) as usize;
+    let sign_bit_in_byte = 7 - (sign_out_bit_index % 8);
+    let sign_bit_is_set = ((bytes_array[sign_byte_index] >> sign_bit_in_byte) & 1) != 0;
+
+    // Build the value: if sign bit is set, start with -2^(n-1), otherwise start with 0
+    let mut answer = if sign_bit_is_set {
+        // Start with MIN value (-2^(n-1)) for two's complement
+        Int::<N>::MIN
+    } else {
+        Int::<N>::ZERO
+    };
+
+    // Add all other bits (excluding the sign bit)
+    // bit_pos: 0 = LSB, 1, 2, ..., bits_len-2 (exclude sign bit at bits_len-1)
+    // Use reverse mapping to match the write function: out_bit_index = total_bits - 1 - bit_pos
+    for bit_pos in 0..(bits_len - 1) {
+        // Map bit_pos to the actual bit index in the byte array (reverse mapping)
+        // bit_pos 0 → out_bit_index bits_len-1 (MSB position in array)
+        // bit_pos bits_len-2 → out_bit_index 1 (bit before sign bit)
+        let out_bit_index = total_bits - 1 - bit_pos;
+        let byte_index = (out_bit_index / 8) as usize;
+        let bit_in_byte = 7 - (out_bit_index % 8); // MSB-first inside the byte
+
+        let byte = bytes_array[byte_index];
+        let bit_is_one = ((byte >> bit_in_byte) & 1) != 0;
+
+        if bit_is_one {
+            let term = Int::<N>::ONE << bit_pos;
+            answer += term;
+        }
+    }
+
+    Ok(answer)
+
+
+}
+
+#[inline]
+fn fastnum_to_big_endian_bytes_signed<const N: usize>(src: Int<N>) -> TonCoreResult<Vec<u8>> {
+    let total_bits = (N * 64) as u32;
+    let num_bytes = N*8;
+    let mut out = vec![0u8; num_bytes];
+    for bit_pos in 0..total_bits {
+        let mask = Int::<N>::ONE << bit_pos;
+        let bit_is_one = (src & mask) != Int::<N>::ZERO;
+
+        if bit_is_one {
+            let out_bit_index = total_bits - 1 - bit_pos; // MSB-first
+            let byte_index = (out_bit_index / 8) as usize;
+            let bit_in_byte = 7 - (out_bit_index % 8); // MSB-first in byte
+
+            out[byte_index] |= 1u8 << bit_in_byte;
+        }
+    }
+    Ok(out)
+}
+
 macro_rules! ton_cell_num_fastnum_unsigned_impl {
     ($src:ty) => {
         impl TonCellNum for $src {
@@ -110,7 +152,6 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     return Ok(());
                 }
                 assert!(bits_len <= Self::tcn_max_bits_len());
-
                 if bits_len < self.tcn_min_bits_len() {
                     bail_ton_core_data!(
                         "Not enough bits for write num {} in {} bits unsigned, min len {}",
@@ -120,7 +161,9 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     );
                 }
 
-                let bytes = fastnum_to_big_endian_bytes(*self, bits_len)?;
+                let bytes = fastnum_to_big_endian_bytes_unsigned(*self)?;
+                // may remove?
+                // let bytes=toncellnum_bigendian_bit_cutter(bytes ,bits_len);
                 writer.write_bits(&bytes, bits_len as usize)?;
 
                 Ok(())
@@ -131,7 +174,8 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                     return Ok(Self::from(0u32));
                 }
                 let bits_array = reader.read_bits(bits_len as usize)?;
-                fastnum_from_big_endian_bytes(&bits_array, bits_len)
+                let bits_array =toncellnum_bigendian_bit_restorator(bits_array, bits_len,Self::tcn_max_bits_len()/8,false);
+                fastnum_from_big_endian_bytes_unsigned(&bits_array)
             }
 
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
@@ -151,14 +195,36 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
 macro_rules! ton_cell_num_fastnum_signed_impl {
     ($src:ty,$u_src:ty) => {
         impl TonCellNum for $src {
-            fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
-                let u_sibling = <$u_src>::tcn_read_bits(reader, bits_len)?;
-                let rz = fastnum_convert_to_signed(u_sibling, bits_len)?;
-                Ok(rz)
-            }
+
             fn tcn_write_bits(&self, writer: &mut CellBuilder, bits_len: u32) -> Result<(), TonCoreError> {
-                let u_sibling: $u_src = fastnum_convert_to_unsigned(*self, bits_len)?;
-                u_sibling.tcn_write_bits(writer, bits_len)
+                 if bits_len == 0 {
+                    return Ok(());
+                }
+                assert!(bits_len <= Self::tcn_max_bits_len());
+                if bits_len < self.tcn_min_bits_len() {
+                    bail_ton_core_data!(
+                        "Not enough bits for write num {} in {} bits unsigned, min len {}",
+                        *self,
+                        bits_len,
+                        self.tcn_min_bits_len()
+                    );
+                }
+
+                let bytes = fastnum_to_big_endian_bytes_signed(*self)?;
+                // may remove?
+                // let bytes=toncellnum_bigendian_bit_cutter(bytes ,bits_len);
+                writer.write_bits(&bytes, bits_len as usize)?;
+
+                Ok(())
+            }
+             fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
+               if bits_len == 0 {
+                    return Ok(Self::from(0u32));
+                }
+                let bits_array = reader.read_bits(bits_len as usize)?;
+
+                let bits_array =toncellnum_restore_bits_as_signed(bits_array, bits_len,Self::tcn_max_bits_len());
+                fastnum_from_big_endian_bytes_signed(&bits_array)
             }
 
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
@@ -184,179 +250,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
     };
 }
 
-// fastnum
-fn fastnum_convert_to_unsigned<const N: usize>(src: Int<N>, bits_len: u32) -> Result<UInt<N>, TonCoreError> {
-    if bits_len > (N * 64) as u32 {
-        bail_ton_core_data!("bits_len exceeds width");
-    }
-    if bits_len == (N * 64) as u32 {
-        if src < Int::<N>::ZERO {
-            // Handle MIN values specially to avoid overflow in negation
-            if src == Int::<N>::MIN {
-                // For MIN, the unsigned representation is the sign bit set: 1 << (N*64 - 1)
-                let sign_bit_pos = (N * 64 - 1) as u32;
-                return Ok(UInt::<N>::ONE << sign_bit_pos);
-            }
-            // For other negative values: compute unsigned_value = signed_value + 2^(N*64)
-            // Since 2^(N*64) can't be represented in UInt<N>, we work around it by
-            // using the fact that UInt<N>::MAX + 1 wraps to 0, so we can compute
-            // the complement. For a negative value n, the unsigned representation is
-            // -n as UInt, but in two's complement it's UInt::MAX - |n| + 1.
 
-            // Get the absolute value as an unsigned type
-            let abs_val: UInt<N> = (-src)
-                .try_cast()
-                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "abs conversion failed"))?;
-
-            // Compute two's complement: UInt::MAX - abs + 1 = -abs (in two's complement)
-            return Ok(UInt::<N>::MAX - abs_val + UInt::<N>::ONE);
-        } else {
-            // For non-negative values, direct cast works
-            let u_value: UInt<N> = src
-                .try_cast()
-                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "full-width conversion failed"))?;
-            return Ok(u_value);
-        }
-    }
-    // Special case: when bits_len == N*64 - 1, 2^bits_len might not fit in Int<N>
-    // For example, 2^1023 doesn't fit in Int<16> (I1024)
-    if bits_len == (N * 64 - 1) as u32 {
-        // For (N*64 - 1) bits, the modulus is 2^(N*64 - 1) = sign_bit << 1
-        // where sign_bit = 2^(N*64 - 2)
-        let sign_bit_pos = (N * 64 - 2) as u32;
-        let sign_bit = UInt::<N>::ONE << sign_bit_pos;
-        let modulus = sign_bit << 1; // This is 2^(N*64 - 1)
-
-        if src < Int::<N>::ZERO {
-            // For negative values: unsigned = signed + 2^(N*64 - 1) = modulus - |src|
-            if src == Int::<N>::MIN {
-                // MIN can't be negated, but for (N*64 - 1) bits, the most negative value
-                // is -2^(N*64 - 2), which is represented as sign_bit in unsigned
-                return Ok(sign_bit);
-            }
-            // For other negatives: unsigned = modulus - |src|
-            let abs_val: UInt<N> = (-src).try_cast().map_err(|_| {
-                TonCoreError::data("fastnum_convert_to_unsigned", "abs conversion failed for near-full-width")
-            })?;
-            return Ok(modulus - abs_val);
-        } else {
-            // For non-negative values, direct cast works (they're already < 2^(N*64 - 1))
-            let u_value: UInt<N> = src
-                .try_cast()
-                .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "near-full-width conversion failed"))?;
-            return Ok(u_value);
-        }
-    }
-
-    // 2^bits_len as UInt<N>
-    let modulus_u = UInt::<N>::ONE << bits_len;
-
-    // Cast modulus to Int<N> so we can use rem_euclid on the signed value.
-    let modulus_i: Int<N> = modulus_u
-        .try_cast()
-        .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "2^bits_len fits into Int<N>"))?;
-
-    // (a mod m) in the mathematical sense (always >= 0), even for negatives.
-    let reduced_i = src.rem_euclid(modulus_i);
-
-    // Cast the non-negative remainder back to UInt<N>.
-    reduced_i
-        .try_cast()
-        .map_err(|_| TonCoreError::data("fastnum_convert_to_unsigned", "non-negative remainder fits into UInt<N>"))
-}
-
-fn fastnum_convert_to_signed<const N: usize>(src: UInt<N>, bits_len: u32) -> Result<Int<N>, TonCoreError> {
-    if bits_len > (N * 64) as u32 {
-        bail_ton_core_data!("bits_len exceeds width");
-    }
-    // Special-case 0 bits: by convention return 0.
-    if bits_len == 0 {
-        return Ok(Int::<N>::from(0u8));
-    }
-
-    // Special case: when bits_len == N*64, we can't compute 2^bits_len without overflow.
-    if bits_len == (N * 64) as u32 {
-        // For full-width values, the unsigned value IS the bit pattern.
-        // To convert to signed two's complement: signed = unsigned - 2^(N*64)
-        // Since 2^(N*64) can't be represented in UInt<N>, we use: signed = unsigned - (MAX + 1)
-        // Where MAX + 1 wraps to 0, so signed = unsigned - MAX - 1
-        // Simplifying: signed = -(MAX - unsigned + 1)
-
-        // Check if this represents a negative value (sign bit set)
-        let sign_bit_pos = (N * 64 - 1) as u32;
-        let sign_bit = UInt::<N>::ONE << sign_bit_pos;
-
-        if src >= sign_bit {
-            // Handle MIN value specially (sign bit is the only bit set)
-            if src == sign_bit {
-                return Ok(Int::<N>::MIN);
-            }
-            // Other negative values: compute signed = unsigned - 2^(N*64)
-            // Since 2^(N*64) = UInt::MAX + 1, and MAX + 1 wraps to 0:
-            // signed = unsigned - (MAX + 1) = unsigned + (!MAX) = unsigned - MAX - 1
-            let diff = UInt::<N>::MAX - src;
-            let i_value = (diff + UInt::<N>::ONE).try_cast().map_err(|_| {
-                TonCoreError::data("fastnum_convert_to_signed", "Failed to convert negative full-width value")
-            })?;
-            return Ok(-i_value);
-        } else {
-            // Positive value: direct cast works
-            let i_value: Int<N> = src.try_cast().map_err(|_| {
-                TonCoreError::data("fastnum_convert_to_signed", "Failed to convert positive full-width value")
-            })?;
-            return Ok(i_value);
-        }
-    }
-
-    // Special case: when bits_len == N*64 - 1, 2^bits_len might not fit in Int<N>
-
-    if bits_len == (N * 64 - 1) as u32 {
-        let sign_bit_pos = (N * 64 - 2) as u32;
-        let sign_bit = UInt::<N>::ONE << sign_bit_pos;
-        let modulus = sign_bit << 1;
-
-        // Check if this represents a negative value (sign bit at position N*64 - 2 is set)
-        if src >= sign_bit {
-            // Negative value: signed = unsigned - 2^(N*64 - 1) = unsigned - modulus
-            let diff: UInt<N> = modulus - src;
-            let i_value: Int<N> = diff.try_cast().map_err(|_| {
-                TonCoreError::data("fastnum_convert_to_signed", "Failed to convert negative near-full-width value")
-            })?;
-            return Ok(-i_value);
-        } else {
-            // Positive value: direct cast works
-            let i_value: Int<N> = src.try_cast().map_err(|_| {
-                TonCoreError::data("fastnum_convert_to_signed", "Failed to convert positive near-full-width value")
-            })?;
-            return Ok(i_value);
-        }
-    }
-
-    // 2^bits_len
-    let two_pow_bits_u = UInt::<N>::ONE << bits_len;
-    let two_pow_bits_i: Int<N> = two_pow_bits_u
-        .try_cast()
-        .map_err(|_| TonCoreError::data("fastnum_convert_to_signed", "Failed to cast 2^bits_len to Int"))?;
-
-    // Mask to exactly `bits_len` low bits (in case higher bits are set)
-    let mask = two_pow_bits_u - UInt::<N>::ONE;
-    let v = src & mask;
-
-    // Sign bit (2^(bits_len-1)): if set -> negative branch
-    let sign_bit = UInt::<N>::ONE << (bits_len - 1);
-
-    // Cast the (masked) magnitude into Int
-    let mut as_i: Int<N> = v
-        .try_cast()
-        .map_err(|_| TonCoreError::data("fastnum_convert_to_signed", "Failed to cast masked value to Int"))?;
-
-    if v >= sign_bit {
-        // Negative value: subtract 2^bits_len to get the proper two's-complement Int
-        as_i -= two_pow_bits_i;
-    }
-
-    Ok(as_i)
-}
 
 ton_cell_num_fastnum_unsigned_impl!(U128);
 ton_cell_num_fastnum_unsigned_impl!(U256);
@@ -370,9 +264,45 @@ ton_cell_num_fastnum_signed_impl!(I1024, U1024);
 
 #[cfg(test)]
 mod tests {
-    use crate::cell::TonCell;
+    use crate::cell::ton_cell_num::ton_cell_fastnum::{fastnum_to_big_endian_bytes_signed,fastnum_to_big_endian_bytes_unsigned,fastnum_from_big_endian_bytes_signed,fastnum_from_big_endian_bytes_unsigned};
+
+use crate::cell::TonCell;
     use crate::cell::ton_cell_num::tests::test_num_read_write;
     use fastnum::*;
+
+
+    #[test]
+    fn test_toncellnum_conversation_bytes_array()
+    {
+        let base=U128::from(U128::MAX);
+        let bytes=fastnum_to_big_endian_bytes_unsigned(base).unwrap();
+        let restored:U128=fastnum_from_big_endian_bytes_unsigned(&bytes).unwrap();
+        assert_eq!(base,restored);
+        let base=U128::from(U128::MIN);
+        let bytes=fastnum_to_big_endian_bytes_unsigned(base).unwrap();
+        let restored:U128=fastnum_from_big_endian_bytes_unsigned(&bytes).unwrap();
+        assert_eq!(base,restored);
+
+
+        let base=I128::from(I128::from(-1));
+        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base,restored);
+        let base=I128::from(I128::MIN);
+        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base,restored);
+        let base=I128::from(I128::MAX);
+        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base,restored);
+        let base=I128::from(I128::from(1));
+        let bytes=fastnum_to_big_endian_bytes_signed(base).unwrap();
+        let restored:I128=fastnum_from_big_endian_bytes_signed(&bytes).unwrap();
+        assert_eq!(base,restored);
+
+    }
+
 
     #[test]
     fn test_toncellnum_fastnum_higest_bit_pos() -> anyhow::Result<()> {

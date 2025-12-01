@@ -5,7 +5,7 @@ mod ton_cell_bignum;
 mod ton_cell_fastnum;
 mod ton_cell_primitives;
 
-use crate::errors::TonCoreError;
+use crate::errors::{TonCoreError, TonCoreResult};
 
 /// Allows generic read/write operation for any numeric type
 pub trait TonCellNum: Display + Sized + Clone {
@@ -69,14 +69,115 @@ macro_rules! toncellnum_use_type_as {
     };
 }
 
+
+pub (crate) fn toncellnum_bigendian_bit_cutter(mut target: Vec<u8>, bits_count: u32) -> Vec<u8>
+
+    {
+        let total_bits = (target.len() * 8) as u32;
+        assert!(
+            bits_count <= total_bits,
+            "bits_count {} > total_bits {}",
+            bits_count,
+            total_bits
+        ); // remove after asking needed behavior
+
+        let bits_to_cut = total_bits - bits_count;
+        if bits_to_cut == 0 {
+            return target;
+        }
+
+        // Cut full bytes from the right.
+        let full_bytes_to_cut = (bits_to_cut / 8) as usize;
+        let bits_in_last_byte_to_cut = (bits_to_cut % 8) as u8;
+
+        if full_bytes_to_cut > 0 {
+            let new_len = target.len() - full_bytes_to_cut;
+            target.truncate(new_len);
+        }
+
+        // Zero the lowest `bits_in_last_byte_to_cut` bits in the last byte.
+        if bits_in_last_byte_to_cut > 0 {
+            let last_idx = target.len() - 1;
+            let mask: u8 = 0xFF << bits_in_last_byte_to_cut; // keep high bits, zero low
+            target[last_idx] &= mask;
+        }
+        target
+    }
+pub (crate) fn toncellnum_bigendian_bit_restorator(
+    in_array: Vec<u8>,
+    bits_count: u32,
+    out_array_bytes: u32,
+    fill_bit_value: bool,
+) -> Vec<u8> {
+    let out_total_bits = out_array_bytes * 8;
+    assert!(
+        bits_count <= out_total_bits,
+        "bits_count {} > out_total_bits {}",
+        bits_count,
+        out_total_bits
+    );
+
+    let in_bytes = in_array.len();
+    let out_bytes = out_array_bytes as usize;
+    assert!(
+        in_bytes <= out_bytes,
+        "input has more bytes ({}) than output ({})",
+        in_bytes,
+        out_bytes
+    );
+
+
+    // Start with zeroed output.
+    let mut out =if fill_bit_value {vec![0xFFu8; out_bytes]}else { vec![0u8; out_bytes] } ;
+
+
+    // Copy existing high-order bytes to the left side (big-endian).
+    // Example: in=2 bytes, out=4 bytes -> copy to indices [0,1], new bytes at [2,3].
+    out[..in_bytes].copy_from_slice(&in_array);
+
+    // Now fill restored bits (from bits_count to end) with fill_bit_value.
+    for bit_idx in bits_count..out_total_bits {
+        let byte_index = (bit_idx / 8) as usize;
+        let bit_in_byte = 7 - (bit_idx % 8); // MSB-first inside byte
+        let mask = 1u8 << bit_in_byte;
+
+        if fill_bit_value {
+            out[byte_index] |= mask;  // set bit to 1
+        } else {
+            out[byte_index] &= !mask; // set bit to 0
+        }
+    }
+
+    out
+}
+
+
+pub (crate) fn toncellnum_restore_bits_as_signed(
+    in_array: Vec<u8>,
+    bits_count: u32,
+    out_array_bytes: u32,
+) -> Vec<u8> {
+
+
+        let sign_bit_index = bits_count - 1;
+        let byte_index = (sign_bit_index / 8) as usize;
+        let bit_in_byte = 7 - (sign_bit_index % 8); // MSB-first inside byte
+        let sign_bit =  (in_array[byte_index] >> bit_in_byte) & 1 == 1;
+
+
+      toncellnum_bigendian_bit_restorator(in_array, bits_count, out_array_bytes, sign_bit)
+}
+
 #[cfg(test)]
 mod tests {
 
-    use crate::cell::TonCellNum;
+    use crate::cell::{toncellnum_restore_bits_as_signed, TonCellNum};
     use crate::cell::{CellParser, TonCell};
     use fastnum::*;
     use num_bigint::{BigInt, BigUint};
     use std::fmt::Debug;
+
+    use bitstream_io::{BigEndian, BitRead, BitReader,BitWriter};
     //
     pub(crate) fn test_num_read_write<T: TonCellNum + PartialEq + Debug>(
         test_cases: Vec<(T, u32)>,
@@ -92,6 +193,26 @@ mod tests {
         }
         Ok(())
     }
+
+    #[test]
+    fn test_toncellnum_bit_cutter_and_restorator() {
+        for i in 2..64
+        {
+        let data_store= vec![0xff;8];
+        let mut builder = TonCell::builder();
+        builder.write_bits(&data_store,i).unwrap();
+        let cell = builder.build().unwrap();
+        let mut parser = CellParser::new(&cell);
+
+        let data_vec= parser.read_bits(i).unwrap();
+        let data_vec=toncellnum_restore_bits_as_signed(data_vec,i as u32,8);
+        assert_eq!(data_store,data_vec);
+        }
+
+
+
+    }
+
 
     #[test]
     fn test_toncellnum_write_num() -> anyhow::Result<()> {
