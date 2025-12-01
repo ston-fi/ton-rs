@@ -141,3 +141,40 @@ impl TLBPrefix {
     pub const NULL: TLBPrefix = TLBPrefix::new(0, 0);
     pub const fn new(value: usize, bits_len: usize) -> Self { TLBPrefix { value, bits_len } }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ton_macros::TLB;
+
+    #[test]
+    fn test_tlb_derive() -> anyhow::Result<()> {
+        #[derive(TLB)]
+        #[tlb(prefix = 0x01, bits_len = 8)]
+        struct TestTLBObject(u32);
+        let cell = TestTLBObject(42).to_cell()?;
+        let parsed = TestTLBObject::from_cell(&cell)?;
+        assert_eq!(parsed.0, 42);
+
+        let parser = &mut cell.parser();
+        let prefix: u32 = parser.read_num(8)?;
+        assert_eq!(prefix, 0x01);
+
+        let data: u32 = parser.read_num(32)?;
+        assert_eq!(data, 42);
+        Ok(())
+    }
+
+    #[test]
+    fn test_tlb_derive_const_prefix() -> anyhow::Result<()> {
+        const PREFIX: usize = 0x02;
+
+        #[derive(TLB)]
+        #[tlb(prefix = PREFIX, bits_len = 8)]
+        struct TestTLBObject(u32);
+        let cell = TestTLBObject(42).to_cell()?;
+        let parsed = TestTLBObject::from_cell(&cell)?;
+        assert_eq!(parsed.0, 42);
+        Ok(())
+    }
+}

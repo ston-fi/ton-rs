@@ -153,10 +153,10 @@ mod test {
         let body = WalletV5ExtMsgBody::read_signed(&mut body_signed.parser())?.0;
         assert_eq!(body.msgs.len(), 4);
 
-        assert_eq!(Msg::from_cell(&body.msgs[0])?.info.as_int().unwrap().value.grams.to_u128(), 10000);
-        assert_eq!(Msg::from_cell(&body.msgs[1])?.info.as_int().unwrap().value.grams.to_u128(), 10001);
-        assert_eq!(Msg::from_cell(&body.msgs[2])?.info.as_int().unwrap().value.grams.to_u128(), 10002);
-        assert_eq!(Msg::from_cell(&body.msgs[3])?.info.as_int().unwrap().value.grams.to_u128(), 10003);
+        assert_eq!(Msg::<TonCell>::from_cell(&body.msgs[0])?.info.as_int().unwrap().value.coins.to_u128(), 10000);
+        assert_eq!(Msg::<TonCell>::from_cell(&body.msgs[1])?.info.as_int().unwrap().value.coins.to_u128(), 10001);
+        assert_eq!(Msg::<TonCell>::from_cell(&body.msgs[2])?.info.as_int().unwrap().value.coins.to_u128(), 10002);
+        assert_eq!(Msg::<TonCell>::from_cell(&body.msgs[3])?.info.as_int().unwrap().value.coins.to_u128(), 10003);
 
         let mut signed_builder = TonCell::builder();
         signed_builder.write_cell(&body.to_cell()?)?;

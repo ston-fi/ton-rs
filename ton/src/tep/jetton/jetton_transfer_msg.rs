@@ -1,6 +1,7 @@
 use crate::block_tlb::Coins;
 use ton_core::TLB;
 use ton_core::cell::TonCell;
+use ton_core::traits::tlb::TLB;
 use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef};
 
 ///```raw
@@ -12,18 +13,18 @@ use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef}
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0xf8a7ea5, bits_len = 32)]
-pub struct JettonTransferMsg {
+pub struct JettonTransferMsg<Payload: TLB = TonCell> {
     pub query_id: u64, // arbitrary number to identify the transfer
     pub amount: Coins, // amount of transferred jettons in elementary units
     pub dst: MsgAddress,
     pub response_dst: MsgAddress, // address where to send a response with confirmation of a successful transfer and the rest of the incoming message Toncoins.
     pub custom_payload: Option<TLBRef<TonCell>>, // optional custom data (which is used by either sender or receiver jetton ton_wallet for inner logic).
     pub forward_ton_amount: Coins,               // the amount of nano-tons to be sent to the destination address.
-    pub forward_payload: TLBEitherRef<TonCell>,  // optional custom data that should be sent to the destination address.
+    pub forward_payload: TLBEitherRef<Payload>,  // data will be sent to the destination address "as is".
 }
 
-impl JettonTransferMsg {
-    pub fn new<T: Into<Coins>>(dst: MsgAddressInt, amount: T) -> Self {
+impl<T: TLB> JettonTransferMsg<T> {
+    pub fn new<C: Into<Coins>>(dst: MsgAddressInt, amount: C, payload: T) -> Self {
         JettonTransferMsg {
             query_id: 0,
             amount: amount.into(),
@@ -31,7 +32,7 @@ impl JettonTransferMsg {
             response_dst: MsgAddress::NONE,
             custom_payload: None,
             forward_ton_amount: Coins::ZERO,
-            forward_payload: TLBEitherRef::new(TonCell::empty().to_owned()),
+            forward_payload: TLBEitherRef::new(payload),
         }
     }
 }

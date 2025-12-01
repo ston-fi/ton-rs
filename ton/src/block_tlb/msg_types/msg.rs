@@ -9,14 +9,14 @@ use ton_core::types::tlb_core::*;
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L157
 // Use TonAddress::from_msg_address / TonAddress::to_msg_address to operate with User-friendly addresses
 #[derive(Debug, Clone, PartialEq, TLB)]
-pub struct Msg {
+pub struct Msg<Body: TLB = TonCell> {
     pub info: CommonMsgInfo,
     pub init: Option<TLBEitherRef<StateInit>>,
-    pub body: TLBEitherRef<TonCell>,
+    pub body: TLBEitherRef<Body>,
 }
 
-impl Msg {
-    pub fn new<T: Into<CommonMsgInfo>>(info: T, body: TonCell) -> Self {
+impl<Body: TLB> Msg<Body> {
+    pub fn new<T: Into<CommonMsgInfo>>(info: T, body: Body) -> Self {
         Self {
             info: info.into(),
             init: None,
@@ -61,7 +61,11 @@ impl Msg {
     pub fn cell_hash_normalized(&self) -> Result<TonHash, TonCoreError> {
         match &self.info {
             CommonMsgInfo::ExtIn(_) => {
-                let mut msg_normalized = self.clone();
+                let mut msg_normalized = Msg {
+                    info: self.info.clone(),
+                    init: self.init.clone(),
+                    body: TLBEitherRef::new_with_layout(self.body.value.to_cell()?, self.body.layout),
+                };
                 let CommonMsgInfo::ExtIn(info) = &mut msg_normalized.info else {
                     unreachable!()
                 };
@@ -93,7 +97,7 @@ mod tests {
         let msg_cell = TonCell::from_boc_hex(
             "b5ee9c720101010100580000ab69fe00000000000000000000000000000000000000000000000000000000000000013fccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccd3050ec744000000617bc90dda80cf41ab8e40",
         )?;
-        let parsed_msg = Msg::from_cell(&msg_cell)?;
+        let parsed_msg = Msg::<TonCell>::from_cell(&msg_cell)?;
         assert!(parsed_msg.init.is_none());
         assert_eq!(parsed_msg.body.value.data_len_bits(), 0); // quite useless assert, but let it be here
 
@@ -109,9 +113,9 @@ mod tests {
         let expected_dest = TonAddress::from_str("Ef8zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM0vF")?;
         assert_eq!(TonAddress::from_msg_address(info.src)?, expected_src);
         assert_eq!(TonAddress::from_msg_address(info.dst)?, expected_dest);
-        assert_eq!(info.value, CurrencyCollection::new(3242439121u32));
-        assert_eq!(info.ihr_fee, Coins::new(0u32));
-        assert_eq!(info.fwd_fee, Coins::new(0u32));
+        assert_eq!(info.value, CurrencyCollection::from_num(&3242439121u32)?);
+        assert_eq!(info.ihr_fee, Coins::ZERO);
+        assert_eq!(info.fwd_fee, Coins::ZERO);
         assert_eq!(info.created_lt, 53592141000000);
         assert_eq!(info.created_at, 1738593735u32);
 
@@ -129,7 +133,7 @@ mod tests {
         let expected_dst = TonAddress::from_str("EQCBjPu_JrsPyrc8fOT-ovj0ilv_1c2uD1KKQsS84KsG90PM")?;
         let dst = TonAddress::from_msg_address(ext_in_msg_info.dst.clone())?;
         assert_eq!(dst, expected_dst);
-        assert_eq!(ext_in_msg_info.import_fee, Coins::new(0u32));
+        assert_eq!(ext_in_msg_info.import_fee, Coins::ZERO);
 
         let cell = ext_in_msg_info.to_cell()?;
         let parsed = CommonMsgInfoExtIn::from_cell(&cell)?;
