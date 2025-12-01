@@ -27,7 +27,9 @@ pub struct TonAddress {
 }
 
 impl TonAddress {
+    // Is used to identify TON address
     pub const ZERO: Self = TonAddress::new(0, TonHash::ZERO);
+    pub fn is_zero(&self) -> bool { self == &TonAddress::ZERO }
 
     pub const fn new(workchain: i32, hash: TonHash) -> Self { Self { workchain, hash } }
 
