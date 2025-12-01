@@ -3,6 +3,7 @@ use crate::contracts::contract_client::cache_stats::CacheStats;
 use crate::errors::{TonError, TonResult};
 use futures_util::future::{join_all, try_join_all};
 use moka::future::Cache;
+use num_traits::Zero;
 use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
@@ -27,12 +28,13 @@ pub(super) struct ContractClientCache {
 
 impl ContractClientCache {
     pub(super) fn new(builder: &Builder) -> Result<Arc<Self>, TonError> {
-        let (capacity, ttl) = (builder.contract_cache_capacity, builder.contract_cache_ttl);
+        let (contract_cache_capacity, contract_cache_ttl) =
+            (builder.contract_cache_capacity, builder.contract_cache_ttl);
         let client_cache = Arc::new(Self {
             provider: builder.provider.clone(),
-            latest_tx_cache: init_cache(capacity, ttl),
-            state_latest_cache: init_cache(capacity, ttl),
-            state_by_tx_cache: init_cache(capacity, ttl),
+            latest_tx_cache: init_cache(contract_cache_capacity, contract_cache_ttl),
+            state_latest_cache: init_cache(contract_cache_capacity, contract_cache_ttl),
+            state_by_tx_cache: init_cache(contract_cache_capacity, contract_cache_ttl),
             libs_cache: init_sync_cache(builder.libs_cache_capacity, builder.libs_cache_ttl),
             libs_cache_not_found: init_sync_cache(
                 builder.libs_not_found_cache_capacity,
@@ -45,7 +47,11 @@ impl ContractClientCache {
             cache_stats: CacheStats::default(),
         });
         let weak = Arc::downgrade(&client_cache);
-        tokio::spawn(recent_tx_loop(weak, builder.refresh_loop_idle_on_error));
+        if contract_cache_capacity.is_zero() {
+            log::warn!("[ContractClientCache] contract_cache_capacity == 0, recent_tx_loop won't be started");
+        } else {
+            tokio::spawn(recent_tx_loop(weak, builder.refresh_loop_idle_on_error));
+        }
         Ok(client_cache)
     }
 
