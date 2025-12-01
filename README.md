@@ -10,6 +10,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 ## ton_macros
 
 - `TLB` Derive macros: Automatically derive TLB trait for your types based on it's members
+- Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [enum.rs](examples/enum.rs) example)
 
 ## ton_core
 - `serde` feature: provides few mods to ser/de core types, check [ton_core/src/serde.rs](ton_core/src/serde.rs). Disabled by default.

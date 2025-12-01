@@ -53,3 +53,7 @@ path = "ton_transfer.rs"
 [[example]]
 name = "emulate_get_method"
 path = "emulate_get_method.rs"
+
+[[example]]
+name = "enum"
+path = "enum.rs"
