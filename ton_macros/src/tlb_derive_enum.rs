@@ -144,6 +144,17 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generi
         }
     }
 
+    // Return true if ty syntactically refers to the same enum we are deriving for
+    fn is_same_enum_type(ty: &Type, enum_ident: &Ident) -> bool {
+        let Type::Path(TypePath { path, .. }) = ty else {
+            return false;
+        };
+        let Some(seg) = path.segments.last() else {
+            return false;
+        };
+        seg.ident == *enum_ident
+    }
+
     let from_impls = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
 
@@ -160,6 +171,11 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generi
                 };
 
                 if let Some((wrapper, inner_ty)) = unwrap_box_or_arc(ty) {
+                    // Skip extra From<Inner> when Inner is the same enum type, e.g. Var5(Box<MyEnum>)
+                    if is_same_enum_type(inner_ty, ident) {
+                        return quote! { #base_from };
+                    }
+
                     let wrapper_ident = syn::Ident::new(wrapper, variant_name.span());
                     quote! {
                         #base_from

@@ -31,6 +31,7 @@ enum MyEnum {
     Var2(Struct2),
     Var3(Box<Struct3>),
     Var4(Arc<Struct4>),
+    Var5(Box<MyEnum>),
 }
 
 #[test]
@@ -55,12 +56,14 @@ fn test_tlb_enum_tlb() -> anyhow::Result<()> {
 fn test_tlb_enum_from() -> anyhow::Result<()> {
     // just check it works
     let s1 = Struct1 { value: 42 };
-    let _e1: MyEnum = s1.into();
+    let e1: MyEnum = s1.into();
 
     let _e3: MyEnum = Struct3.into();
     let _e3: MyEnum = Box::new(Struct3).into();
 
     let _e4: MyEnum = Struct4.into();
     let _e4: MyEnum = Arc::new(Struct4).into();
+
+    let _e5: MyEnum = Box::new(e1).into();
     Ok(())
 }
