@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use num_bigint::BigInt;
+use fastnum::I512;
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
@@ -9,7 +9,7 @@ use ton_core::types::TonAddress;
 #[derive(Debug, Clone, PartialEq)]
 pub struct GetNFTDataResult {
     pub init: bool,
-    pub index: BigInt,
+    pub index: I512,
     pub collection_address: TonAddress,
     pub owner_address: TonAddress,
     pub individual_content: MetadataContent,
@@ -21,7 +21,7 @@ impl TVMResult for GetNFTDataResult {
         let owner_address: TonAddress = TonAddress::from_cell(&stack.pop_cell()?)?;
         let collection_address = TonAddress::from_cell(&stack.pop_cell()?)?;
         let index = stack.pop_int_or_tiny_int()?;
-        let init = stack.pop_int_or_tiny_int()? != BigInt::ZERO;
+        let init = stack.pop_int_or_tiny_int()? != I512::ZERO;
 
         Ok(Self {
             init,
@@ -36,7 +36,6 @@ impl TVMResult for GetNFTDataResult {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::str::FromStr;
 
     #[test]
     fn test_get_nft_data_result() -> anyhow::Result<()> {
@@ -47,7 +46,7 @@ mod test {
         assert!(result.init);
         assert_eq!(
             result.index,
-            BigInt::from_str("17026683442852985036293000817890672620529067535828542797724775561309021470835")?
+            I512::from_str("17026683442852985036293000817890672620529067535828542797724775561309021470835")?
         );
 
         assert_eq!(

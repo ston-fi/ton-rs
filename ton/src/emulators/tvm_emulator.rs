@@ -146,6 +146,7 @@ mod tests {
     use crate::libs_dict::LibsDict;
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
     use crate::tep::jetton::JettonTransferMsg;
+    use fastnum::I512;
     use num_bigint::BigInt;
     use std::ops::Neg;
     use std::str::FromStr;
@@ -346,25 +347,25 @@ mod tests {
         )?;
         let mut emulator = TVMEmulator::new(&code, &TonCell::EMPTY_BOC, &c7)?;
 
-        let mut run_test_case = |arg1: &BigInt, arg2: &BigInt| {
-            let expected = arg1 * arg2;
+        let mut run_test_case = |arg1: &I512, arg2: &I512| {
+            let expected = *arg1 * arg2;
             let mut stack = TVMStack::default();
             stack.push_int(arg1.clone());
             stack.push_int(arg2.clone());
             let emulator_result = assert_ok!(emulator.run_get_method("get_val", &stack.to_boc()?)).into_success()?;
             let mut res_stack = emulator_result.stack_parsed()?;
             assert_eq!(emulator_result.vm_exit_code, 0);
-            if expected > BigInt::from(i64::MAX) {
+            if expected > I512::from(i64::MAX) {
                 assert_eq!(res_stack.pop_int()?, expected);
             } else {
-                assert_eq!(BigInt::from(res_stack.pop_tiny_int()?), expected);
+                assert_eq!(I512::from(res_stack.pop_tiny_int()?), expected);
             }
             Ok::<(), anyhow::Error>(())
         };
 
-        run_test_case(&BigInt::from(1), &BigInt::from(0x1234567890ABCDEFu64))?;
-        run_test_case(&BigInt::from(1), &BigInt::from(0x1234567890ABCDEFu64).neg())?;
-        run_test_case(&BigInt::from(10_000_000_000_i64), &BigInt::from(0x1234567890ABCDEFu64))?;
+        run_test_case(&I512::from(1), &I512::from_u64(0x1234567890ABCDEFu64)?)?;
+        run_test_case(&I512::from(1), &I512::from_u64(0x1234567890ABCDEFu64)?.neg())?;
+        run_test_case(&I512::from(10_000_000_000_i64), &I512::from_u64(0x1234567890ABCDEFu64)?)?;
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 use crate::block_tlb::{Coins, TVMStack};
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use num_bigint::BigInt;
+use fastnum::I512;
 use ton_core::cell::TonCell;
 use ton_core::errors::TonCoreResult;
 use ton_core::traits::tlb::TLB;
@@ -21,7 +21,7 @@ impl TVMResult for GetJettonDataResult {
         let wallet_code = stack.pop_cell()?;
         let content = MetadataContent::from_cell(&stack.pop_cell()?)?;
         let admin = TonAddress::from_cell(&stack.pop_cell()?)?;
-        let mintable = stack.pop_int_or_tiny_int()? != BigInt::ZERO;
+        let mintable = stack.pop_int_or_tiny_int()? != I512::ZERO;
 
         let total_supply = Coins::from_num(&stack.pop_int_or_tiny_int()?)?;
 
