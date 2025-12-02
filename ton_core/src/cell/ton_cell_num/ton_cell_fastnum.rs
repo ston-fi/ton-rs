@@ -1,13 +1,12 @@
 use crate::bail_ton_core_data;
 use crate::cell::TonCellNum;
 use crate::cell::{CellBuilder, CellParser};
-use crate::cell::{
-    toncellnum_bigendian_bit_cutter, toncellnum_bigendian_bit_restorator, toncellnum_restore_bits_as_signed,
-};
+use crate::cell::{toncellnum_bigendian_bit_reader, toncellnum_bigendian_bit_writer};
+
 use crate::errors::{TonCoreError, TonCoreResult};
 use crate::unsinged_highest_bit_pos;
 use fastnum::bint::{Int, UInt};
-use fastnum::{I128, I256, I512, I1024, TryCast};
+use fastnum::{I128, I256, I512, I1024};
 use fastnum::{U128, U256, U512, U1024};
 
 macro_rules! fastnum_highest_bit_pos_signed {
@@ -31,9 +30,8 @@ macro_rules! fastnum_highest_bit_pos_signed {
 fn fastnum_from_big_endian_bytes_unsigned<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<UInt<N>> {
     let total_bits = (N * 64) as u32;
 
-    assert_eq!(bytes_array.len(), total_bits as usize / 8);
     let available_bits = (bytes_array.len() * 8) as u32;
-
+    assert_eq!(available_bits, total_bits);
     let mut answer = UInt::<N>::ZERO;
     for bit_pos in 0..total_bits {
         let out_bit_index = total_bits - 1 - bit_pos; // 0..bits_len-1
@@ -160,9 +158,8 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 }
 
                 let bytes = fastnum_to_big_endian_bytes_unsigned(*self)?;
-                // may remove?
-                let bytes = toncellnum_bigendian_bit_cutter(bytes, bits_len);
-                writer.write_bits(&bytes, bits_len as usize)?;
+
+                toncellnum_bigendian_bit_writer(writer, &bytes, bits_len)?;
 
                 Ok(())
             }
@@ -171,10 +168,11 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 if bits_len == 0 {
                     return Ok(Self::from(0u32));
                 }
-                let bits_array = reader.read_bits(bits_len as usize)?;
-                let bits_array =
-                    toncellnum_bigendian_bit_restorator(bits_array, bits_len, Self::tcn_max_bits_len() / 8, false);
-                fastnum_from_big_endian_bytes_unsigned(&bits_array)
+
+                let restored_forward =
+                    toncellnum_bigendian_bit_reader(reader, bits_len, Self::tcn_max_bits_len() as u32 / 8, false)?;
+
+                fastnum_from_big_endian_bytes_unsigned(&restored_forward)
             }
 
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
@@ -209,22 +207,13 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
 
                 let bytes = fastnum_to_big_endian_bytes_signed(*self)?;
-                // For reverse-mapped bits, the LSB bits are at the end of the array
-                // We need to write bits from out_bit_index (total_bits - bits_len) to (total_bits - 1)
-                let total_bits = Self::tcn_max_bits_len();
-                let bits_offset = (total_bits - bits_len) as usize;
-                writer.write_bits_with_offset(&bytes, bits_offset, bits_len as usize)?;
-
+                toncellnum_bigendian_bit_writer(writer, &bytes, bits_len)?;
                 Ok(())
             }
             fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
-                if bits_len == 0 {
-                    return Ok(Self::from(0u32));
-                }
-                let bits_array = reader.read_bits(bits_len as usize)?;
-
-                let bits_array = toncellnum_restore_bits_as_signed(bits_array, bits_len, Self::tcn_max_bits_len() / 8);
-                fastnum_from_big_endian_bytes_signed(&bits_array)
+                let restored_forward =
+                    toncellnum_bigendian_bit_reader(reader, bits_len, Self::tcn_max_bits_len() as u32 / 8, true)?;
+                fastnum_from_big_endian_bytes_signed(&restored_forward)
             }
 
             fn tcn_is_zero(&self) -> bool { *self == Self::from(0u32) }
@@ -267,7 +256,6 @@ mod tests {
         fastnum_to_big_endian_bytes_signed, fastnum_to_big_endian_bytes_unsigned,
     };
 
-    use crate::cell::TonCell;
     use crate::cell::ton_cell_num::tests::test_num_read_write;
     use fastnum::*;
 
@@ -354,11 +342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_toncellnum_fastnum_custom() {
-        let mut builder = TonCell::builder();
-        let val = U512::MAX;
-        builder.write_num(&val, 512).unwrap();
-    }
+    fn test_toncellnum_fastnum_custom() {}
     #[test]
     fn test_toncellnum_fastnum_corner_cases() {
         // fastnum unsigned

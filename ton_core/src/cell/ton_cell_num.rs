@@ -69,92 +69,83 @@ macro_rules! toncellnum_use_type_as {
     };
 }
 
-pub(crate) fn toncellnum_bigendian_bit_cutter(mut target: Vec<u8>, bits_count: u32) -> Vec<u8> {
-    let total_bits = (target.len() * 8) as u32;
-    assert!(bits_count <= total_bits, "bits_count {} > total_bits {}", bits_count, total_bits); // remove after asking needed behavior
+fn set_bit_bigendian(bits_array: &mut Vec<u8>, bit_pos: u32, bit_val: bool) {
+    let total_bytes = bits_array.len();
+    // In big-endian, bit_pos 0 is the LSB (last byte, bit 0)
+    // bit_pos increases towards MSB (first byte, bit 7)
+    let byte_index = total_bytes - 1 - (bit_pos / 8) as usize;
+    let bit_in_byte = (bit_pos % 8) as usize; // LSB-first inside byte (bit 0 is LSB)
+    let mask = 1u8 << bit_in_byte;
 
-    let bits_to_cut = total_bits - bits_count;
-    if bits_to_cut == 0 {
-        return target;
+    if bit_val {
+        bits_array[byte_index] |= mask; // set bit to 1
+    } else {
+        bits_array[byte_index] &= !mask; // set bit to 0
     }
-
-    // Cut full bytes from the right.
-    let full_bytes_to_cut = (bits_to_cut / 8) as usize;
-    let bits_in_last_byte_to_cut = (bits_to_cut % 8) as u8;
-
-    if full_bytes_to_cut > 0 {
-        let new_len = target.len() - full_bytes_to_cut;
-        target.truncate(new_len);
-    }
-
-    // Zero the lowest `bits_in_last_byte_to_cut` bits in the last byte.
-    if bits_in_last_byte_to_cut > 0 {
-        let last_idx = target.len() - 1;
-        let mask: u8 = 0xFF << bits_in_last_byte_to_cut; // keep high bits, zero low
-        target[last_idx] &= mask;
-    }
-    target
 }
-pub(crate) fn toncellnum_bigendian_bit_restorator(
-    in_array: Vec<u8>,
+fn get_bit_bigendian(bits_array: &Vec<u8>, bit_pos: u32) -> bool {
+    let total_bytes = bits_array.len();
+    // In big-endian, bit_pos 0 is the LSB (last byte, bit 0)
+    // bit_pos increases towards MSB (first byte, bit 7)
+    let byte_index = total_bytes - 1 - (bit_pos / 8) as usize;
+    let bit_in_byte = (bit_pos % 8) as usize; // LSB-first inside byte (bit 0 is LSB)
+    let mask = 1u8 << bit_in_byte;
+
+    (bits_array[byte_index] & mask) != 0
+}
+pub(crate) fn toncellnum_bigendian_bit_reader(
+    reader: &mut CellParser,
     bits_count: u32,
     out_array_bytes: u32,
-    fill_bit_value: bool,
-) -> Vec<u8> {
-    let out_total_bits = out_array_bytes * 8;
-    assert!(bits_count <= out_total_bits, "bits_count {} > out_total_bits {}", bits_count, out_total_bits);
+    is_sigend: bool,
+) -> TonCoreResult<Vec<u8>> {
+    let total_out_bits = out_array_bytes * 8;
+    let mut out = vec![0u8; out_array_bytes as usize];
 
-    let in_bytes = in_array.len();
-    let out_bytes = out_array_bytes as usize;
-    assert!(in_bytes <= out_bytes, "input has more bytes ({}) than output ({})", in_bytes, out_bytes);
-
-    // Start with zeroed output.
-    let mut out = if fill_bit_value {
-        vec![0xFFu8; out_bytes]
-    } else {
-        vec![0u8; out_bytes]
-    };
-
-    // Copy existing high-order bytes to the left side (big-endian).
-    // Example: in=2 bytes, out=4 bytes -> copy to indices [0,1], new bytes at [2,3].
-    out[..in_bytes].copy_from_slice(&in_array);
-
-    // Now fill restored bits (from bits_count to end) with fill_bit_value.
-    for bit_idx in bits_count..out_total_bits {
-        let byte_index = (bit_idx / 8) as usize;
-        let bit_in_byte = 7 - (bit_idx % 8); // MSB-first inside byte
-        let mask = 1u8 << bit_in_byte;
-
-        if fill_bit_value {
-            out[byte_index] |= mask; // set bit to 1
-        } else {
-            out[byte_index] &= !mask; // set bit to 0
-        }
+    for bit_index in 0..bits_count {
+        let bit_index = bits_count - 1 - bit_index;
+        let bit_val = reader.read_bit()?;
+        set_bit_bigendian(&mut out, bit_index, bit_val);
     }
 
-    out
+    if is_sigend {
+        // sign extend
+        let sign_bit = get_bit_bigendian(&out, bits_count - 1);
+        if sign_bit {
+            // set all higher bits to 1
+
+            for bit_index in bits_count..total_out_bits {
+                set_bit_bigendian(&mut out, bit_index, true);
+            }
+        }
+    }
+    assert_eq!(out.len() as u32, out_array_bytes);
+    Ok(out)
+    // reader.read_bits(bits_count as usize)
+    // panic!("not implemented");
 }
-
-pub(crate) fn toncellnum_restore_bits_as_signed(in_array: Vec<u8>, bits_count: u32, out_array_bytes: u32) -> Vec<u8> {
-    let sign_bit_index = bits_count - 1;
-    let byte_index = (sign_bit_index / 8) as usize;
-    let bit_in_byte = 7 - (sign_bit_index % 8); // MSB-first inside byte
-    let sign_bit = (in_array[byte_index] >> bit_in_byte) & 1 == 1;
-
-    toncellnum_bigendian_bit_restorator(in_array, bits_count, out_array_bytes, sign_bit)
+pub(crate) fn toncellnum_bigendian_bit_writer(
+    writer: &mut CellBuilder,
+    bytes_array: &Vec<u8>,
+    bits_count: u32,
+) -> TonCoreResult<()> {
+    for bit_index in 0..bits_count {
+        let bit_index = bits_count - 1 - bit_index;
+        writer.write_bit(get_bit_bigendian(bytes_array, bit_index)).unwrap();
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
 
+    use crate::cell::TonCellNum;
     use crate::cell::{CellParser, TonCell};
-    use crate::cell::{TonCellNum, toncellnum_restore_bits_as_signed};
     use fastnum::*;
     use num_bigint::{BigInt, BigUint};
     use std::fmt::Debug;
 
-    use crate::cell::ton_cell_num::ton_cell_fastnum::fastnum_to_big_endian_bytes_unsigned;
-    use bitstream_io::{BigEndian, BitRead, BitReader, BitWriter};
+    use crate::cell::ton_cell_num::{get_bit_bigendian, set_bit_bigendian};
 
     //
     pub(crate) fn test_num_read_write<T: TonCellNum + PartialEq + Debug>(
@@ -173,19 +164,21 @@ mod tests {
     }
 
     #[test]
-    fn test_toncellnum_bit_cutter_and_restorator() {
-        for i in 2..64 {
-            let data_store = vec![0xff; 8];
+    fn test_toncellnum_bytes_read_write() {
+        let uval = 123u16;
+        let array = uval.to_be_bytes().to_vec();
+        let mut out_arr = vec![0u8; array.len()];
 
-            let mut builder = TonCell::builder();
-            builder.write_bits(&data_store, i).unwrap();
-            let cell = builder.build().unwrap();
-            let mut parser = CellParser::new(&cell);
-
-            let data_vec = parser.read_bits(i).unwrap();
-            let data_vec = toncellnum_restore_bits_as_signed(data_vec, i as u32, 8);
-            assert_eq!(data_store, data_vec);
+        for i in 0..array.len() * 8 {
+            let from_api = get_bit_bigendian(&array, i as u32);
+            set_bit_bigendian(&mut out_arr, i as u32, from_api);
         }
+        for i in 0..array.len() {
+            let from_val = uval & (1u16 << i) != 0;
+            let from_api = get_bit_bigendian(&array, i as u32);
+            assert_eq!(from_val, from_api);
+        }
+        assert_eq!(array, out_arr);
     }
 
     #[test]
