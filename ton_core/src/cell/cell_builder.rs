@@ -167,7 +167,7 @@ impl CellBuilder {
             TonCoreError::data("CellBuilder::write_primitive", format!("Failed to write primitive data: {}", e))
         })
     }
-
+    #[inline(always)]
     fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_len_bits + bits_len;
         if new_bits_len <= TonCell::MAX_DATA_LEN_BITS {
