@@ -202,7 +202,6 @@ mod tests {
     use std::str::FromStr;
     use std::sync::LazyLock;
     use tokio_test::{assert_err, assert_ok};
-    use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {

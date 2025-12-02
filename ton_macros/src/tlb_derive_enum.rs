@@ -118,7 +118,32 @@ pub(crate) fn tlb_derive_enum(
 
 // generate From<X> for each enum variant
 fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generics) -> TokenStream {
+    use syn::{PathArguments, Type, TypePath};
+
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    fn unwrap_box_or_arc(ty: &Type) -> Option<(&'static str, &Type)> {
+        let Type::Path(TypePath { path, .. }) = ty else {
+            return None;
+        };
+
+        let seg = path.segments.last()?;
+        let ident = seg.ident.to_string();
+
+        let PathArguments::AngleBracketed(args) = &seg.arguments else {
+            return None;
+        };
+        let syn::GenericArgument::Type(inner_ty) = args.args.first()? else {
+            return None;
+        };
+
+        match ident.as_str() {
+            "Box" => Some(("Box", inner_ty)),
+            "Arc" => Some(("Arc", inner_ty)),
+            _ => None,
+        }
+    }
+
     let from_impls = data.variants.iter().map(|variant| {
         let variant_name = &variant.ident;
 
@@ -126,13 +151,27 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generi
             Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                 let ty = &fields.unnamed.first().unwrap().ty;
 
-                Some(quote! {
+                let base_from = quote! {
                     impl #impl_generics From<#ty> for #ident #ty_generics #where_clause {
                         fn from(v: #ty) -> Self {
                             #ident::#variant_name(v)
                         }
                     }
-                })
+                };
+
+                if let Some((wrapper, inner_ty)) = unwrap_box_or_arc(ty) {
+                    let wrapper_ident = syn::Ident::new(wrapper, variant_name.span());
+                    quote! {
+                        #base_from
+                        impl #impl_generics From<#inner_ty> for #ident #ty_generics #where_clause {
+                            fn from(v: #inner_ty) -> Self {
+                                #ident::#variant_name(#wrapper_ident::new(v))
+                            }
+                        }
+                    }
+                } else {
+                    quote! { #base_from }
+                }
             }
             _ => panic!("variants_into_impl supports only tuple-like enums "),
         }

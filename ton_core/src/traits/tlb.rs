@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod test_tlb_enum;
 mod tlb_bool;
 mod tlb_cell;
 mod tlb_num;
