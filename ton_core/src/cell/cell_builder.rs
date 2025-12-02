@@ -141,7 +141,8 @@ impl CellBuilder {
             }
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
-
+        self.ensure_capacity(bits_len)?;
+        // hanlding overbit case
         let n_size = N::tcn_sizeof_bytes() as usize * 8;
         let bits_to_write = if bits_len > n_size {
             let to_write = bits_len - n_size;
@@ -154,7 +155,6 @@ impl CellBuilder {
             bits_len
         };
 
-        // tcn_write_bits will call write_bits, which will handle ensure_capacity
         data_ref.tcn_write_bits(self, bits_to_write as u32)
     }
 
@@ -163,7 +163,6 @@ impl CellBuilder {
     pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
     #[inline(always)]
     pub(crate) fn write_primitive<I: Integer>(&mut self, bits: u32, data: I) -> TonCoreResult<()> {
-        self.ensure_capacity(bits as usize)?;
         self.data_writer.write_var(bits, data).map_err(|e| {
             TonCoreError::data("CellBuilder::write_primitive", format!("Failed to write primitive data: {}", e))
         })
