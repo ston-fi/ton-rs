@@ -127,7 +127,7 @@ pub(crate) fn toncellnum_bigendian_bit_writer(
 ) -> TonCoreResult<()> {
     for bit_index in 0..bits_count {
         let bit_index = bits_count - 1 - bit_index;
-        writer.write_bit(get_bit_bigendian(bytes_array, bit_index)).unwrap();
+        writer.write_bit(get_bit_bigendian(bytes_array, bit_index))?;
     }
     Ok(())
 }
@@ -135,8 +135,8 @@ pub(crate) fn toncellnum_bigendian_bit_writer(
 #[cfg(test)]
 mod tests {
 
-    use crate::cell::TonCellNum;
     use crate::cell::{CellParser, TonCell};
+    use crate::cell::{TonCellNum, toncellnum_bigendian_bit_reader, toncellnum_bigendian_bit_writer};
     use fastnum::*;
     use num_bigint::{BigInt, BigUint};
     use std::fmt::Debug;
@@ -175,6 +175,15 @@ mod tests {
             assert_eq!(from_val, from_api);
         }
         assert_eq!(array, out_arr);
+
+        let mut builder = TonCell::builder();
+        assert_eq!(builder.data_bits_left(), 1023);
+        toncellnum_bigendian_bit_writer(&mut builder, &array, 9).unwrap();
+        assert_eq!(builder.data_bits_left(), 1023 - 9);
+        let cell = builder.build().unwrap();
+        let mut parser = CellParser::new(&cell);
+        let arr = toncellnum_bigendian_bit_reader(&mut parser, 9, 2, false).unwrap();
+        assert_eq!(arr, array);
     }
 
     #[test]
