@@ -102,6 +102,11 @@ pub(crate) fn toncellnum_bigendian_bit_reader(
     let total_out_bits = out_array_bytes * 8;
     let mut out = vec![0u8; out_array_bytes as usize];
 
+    // Handle zero bits case
+    if bits_count == 0 {
+        return Ok(out);
+    }
+
     for bit_index in 0..bits_count {
         let bit_index = bits_count - 1 - bit_index;
         let bit_val = reader.read_bit()?;
