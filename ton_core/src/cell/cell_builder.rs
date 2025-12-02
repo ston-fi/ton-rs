@@ -142,7 +142,7 @@ impl CellBuilder {
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
 
-        let n_size = N::tcn_max_bits_len() as usize;
+        let n_size = N::tcn_sizeof_bytes() as usize * 8;
         let bits_to_write = if bits_len > n_size {
             let to_write = bits_len - n_size;
             // Write padding bits and update data_len_bits for them

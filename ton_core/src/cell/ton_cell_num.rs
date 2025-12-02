@@ -9,17 +9,12 @@ use crate::errors::{TonCoreError, TonCoreResult};
 
 /// Allows generic read/write operation for any numeric type
 pub trait TonCellNum: Display + Sized + Clone {
-    /// CellBuilder guarantees 0 < bits_len < 1024
     fn tcn_write_bits(&self, writer: &mut CellBuilder, bits_len: u32) -> Result<(), TonCoreError>;
-    /// CellWriter guarantees 0 <= bits_len < 1024
     fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError>;
     fn tcn_is_zero(&self) -> bool;
     fn tcn_min_bits_len(&self) -> u32;
 
-    /// Returns the maximum bit size for padding purposes in write_num
-    /// For fixed-size types, this is sizeof(T) * 8
-    /// For BigInt/BigUint, this is 1024 (same as I1024/U1024)
-    fn tcn_max_bits_len() -> u32;
+    fn tcn_sizeof_bytes() -> u32;
 }
 
 #[macro_export]
@@ -29,7 +24,6 @@ macro_rules! unsinged_highest_bit_pos {
         (max_bit_id - $val.leading_zeros())
     }};
 }
-
 #[macro_export]
 macro_rules! toncellnum_use_type_as {
     (
@@ -47,28 +41,27 @@ macro_rules! toncellnum_use_type_as {
 
             fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
                 let val_as = <$Dst>::tcn_read_bits(reader, bits_len)?;
-                // fallible Dst -> Src, already returns TonCoreError
                 $dst_to_src(val_as)
             }
 
             fn tcn_is_zero(&self) -> bool {
-                // If conversion here can *theoretically* fail, treat it as a logic bug.
-                let val_as: $Dst =
-                    $src_to_dst(self).expect("toncellnum_use_type_as: Src -> Dst conversion failed in tcn_is_zero");
+                let Ok(val_as) = $src_to_dst(self) else {
+                    return false;
+                };
                 val_as.tcn_is_zero()
             }
 
             fn tcn_min_bits_len(&self) -> u32 {
-                let val_as: $Dst = $src_to_dst(self)
-                    .expect("toncellnum_use_type_as: Src -> Dst conversion failed in tcn_min_bits_len");
+                let Ok(val_as) = $src_to_dst(self) else {
+                    return 0;
+                };
                 val_as.tcn_min_bits_len()
             }
-
-            fn tcn_max_bits_len() -> u32 { <$Dst>::tcn_max_bits_len() }
+            fn tcn_sizeof_bytes() -> u32 { <$Dst>::tcn_sizeof_bytes() }
         }
     };
 }
-
+#[inline(always)]
 fn set_bit_bigendian(bits_array: &mut Vec<u8>, bit_pos: u32, bit_val: bool) {
     let total_bytes = bits_array.len();
     // In big-endian, bit_pos 0 is the LSB (last byte, bit 0)
@@ -83,6 +76,7 @@ fn set_bit_bigendian(bits_array: &mut Vec<u8>, bit_pos: u32, bit_val: bool) {
         bits_array[byte_index] &= !mask; // set bit to 0
     }
 }
+#[inline(always)]
 fn get_bit_bigendian(bits_array: &Vec<u8>, bit_pos: u32) -> bool {
     let total_bytes = bits_array.len();
     // In big-endian, bit_pos 0 is the LSB (last byte, bit 0)
@@ -93,6 +87,7 @@ fn get_bit_bigendian(bits_array: &Vec<u8>, bit_pos: u32) -> bool {
 
     (bits_array[byte_index] & mask) != 0
 }
+
 pub(crate) fn toncellnum_bigendian_bit_reader(
     reader: &mut CellParser,
     bits_count: u32,
@@ -101,7 +96,6 @@ pub(crate) fn toncellnum_bigendian_bit_reader(
 ) -> TonCoreResult<Vec<u8>> {
     let total_out_bits = out_array_bytes * 8;
     let mut out = vec![0u8; out_array_bytes as usize];
-
     // Handle zero bits case
     if bits_count == 0 {
         return Ok(out);
@@ -117,8 +111,6 @@ pub(crate) fn toncellnum_bigendian_bit_reader(
         // sign extend
         let sign_bit = get_bit_bigendian(&out, bits_count - 1);
         if sign_bit {
-            // set all higher bits to 1
-
             for bit_index in bits_count..total_out_bits {
                 set_bit_bigendian(&mut out, bit_index, true);
             }
@@ -126,9 +118,8 @@ pub(crate) fn toncellnum_bigendian_bit_reader(
     }
     assert_eq!(out.len() as u32, out_array_bytes);
     Ok(out)
-    // reader.read_bits(bits_count as usize)
-    // panic!("not implemented");
 }
+
 pub(crate) fn toncellnum_bigendian_bit_writer(
     writer: &mut CellBuilder,
     bytes_array: &Vec<u8>,

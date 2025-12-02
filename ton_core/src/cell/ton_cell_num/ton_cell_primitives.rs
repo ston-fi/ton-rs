@@ -101,7 +101,7 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 }
             }
 
-            fn tcn_max_bits_len() -> u32 { (std::mem::size_of::<$src>() * 8) as u32 }
+            fn tcn_sizeof_bytes() -> u32 { (std::mem::size_of::<$src>()) as u32 }
         }
     };
 }
@@ -147,7 +147,7 @@ macro_rules! ton_cell_num_primitive_signed_impl {
                     }
                 }
             }
-            fn tcn_max_bits_len() -> u32 { (std::mem::size_of::<$src>() * 8) as u32 }
+            fn tcn_sizeof_bytes() -> u32 { (std::mem::size_of::<$src>()) as u32 }
         }
     };
 }

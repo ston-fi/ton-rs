@@ -26,7 +26,7 @@ macro_rules! fastnum_highest_bit_pos_signed {
         }
     }};
 }
-
+#[inline]
 fn fastnum_from_big_endian_bytes_unsigned<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<UInt<N>> {
     let total_bits = (N * 64) as u32;
 
@@ -47,8 +47,8 @@ fn fastnum_from_big_endian_bytes_unsigned<const N: usize>(bytes_array: &[u8]) ->
     }
     Ok(answer)
 }
-
-pub(crate) fn fastnum_to_big_endian_bytes_unsigned<const N: usize>(src: UInt<N>) -> TonCoreResult<Vec<u8>> {
+#[inline]
+fn fastnum_to_big_endian_bytes_unsigned<const N: usize>(src: UInt<N>) -> TonCoreResult<Vec<u8>> {
     let total_bits = (N * 64) as u32;
     let num_bytes = N * 8;
     let mut out = vec![0u8; num_bytes];
@@ -68,7 +68,7 @@ pub(crate) fn fastnum_to_big_endian_bytes_unsigned<const N: usize>(src: UInt<N>)
 
     Ok(out)
 }
-
+#[inline]
 fn fastnum_from_big_endian_bytes_signed<const N: usize>(bytes_array: &[u8]) -> TonCoreResult<Int<N>> {
     let total_bits = (N * 64) as u32;
     assert_eq!(bytes_array.len(), N * 8);
@@ -133,7 +133,6 @@ fn fastnum_to_big_endian_bytes_signed<const N: usize>(src: Int<N>) -> TonCoreRes
             let out_bit_index = total_bits - 1 - bit_pos; // MSB-first
             let byte_index = (out_bit_index / 8) as usize;
             let bit_in_byte = 7 - (out_bit_index % 8); // MSB-first in byte
-
             out[byte_index] |= 1u8 << bit_in_byte;
         }
     }
@@ -147,7 +146,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 if bits_len == 0 {
                     return Ok(());
                 }
-                assert!(bits_len <= Self::tcn_max_bits_len());
+                assert!(bits_len <= Self::tcn_sizeof_bytes() * 8);
                 if bits_len < self.tcn_min_bits_len() {
                     bail_ton_core_data!(
                         "Not enough bits for write num {} in {} bits unsigned, min len {}",
@@ -170,7 +169,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 }
 
                 let restored_forward =
-                    toncellnum_bigendian_bit_reader(reader, bits_len, Self::tcn_max_bits_len() as u32 / 8, false)?;
+                    toncellnum_bigendian_bit_reader(reader, bits_len, Self::tcn_sizeof_bytes() as u32, false)?;
 
                 fastnum_from_big_endian_bytes_unsigned(&restored_forward)
             }
@@ -185,7 +184,7 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 }
             }
 
-            fn tcn_max_bits_len() -> u32 { (std::mem::size_of::<$src>() * 8) as u32 }
+            fn tcn_sizeof_bytes() -> u32 { (std::mem::size_of::<$src>()) as u32 }
         }
     };
 }
@@ -196,7 +195,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 if bits_len == 0 {
                     return Ok(());
                 }
-                assert!(bits_len <= Self::tcn_max_bits_len());
+                assert!(bits_len <= Self::tcn_sizeof_bytes() * 8);
                 if bits_len < self.tcn_min_bits_len() {
                     bail_ton_core_data!(
                         "Not enough bits for write num {} in {} bits unsigned, min len {}",
@@ -212,7 +211,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
             }
             fn tcn_read_bits(reader: &mut CellParser, bits_len: u32) -> Result<Self, TonCoreError> {
                 let restored_forward =
-                    toncellnum_bigendian_bit_reader(reader, bits_len, Self::tcn_max_bits_len() as u32 / 8, true)?;
+                    toncellnum_bigendian_bit_reader(reader, bits_len, Self::tcn_sizeof_bytes() as u32, true)?;
                 fastnum_from_big_endian_bytes_signed(&restored_forward)
             }
 
@@ -234,7 +233,7 @@ macro_rules! ton_cell_num_fastnum_signed_impl {
                 }
             }
 
-            fn tcn_max_bits_len() -> u32 { (std::mem::size_of::<$src>() * 8) as u32 }
+            fn tcn_sizeof_bytes() -> u32 { (std::mem::size_of::<$src>()) as u32 }
         }
     };
 }
@@ -341,8 +340,6 @@ mod tests {
             .unwrap();
     }
 
-    #[test]
-    fn test_toncellnum_fastnum_custom() {}
     #[test]
     fn test_toncellnum_fastnum_corner_cases() {
         // fastnum unsigned
