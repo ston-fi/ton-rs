@@ -6,6 +6,7 @@ use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_core::errors::TonCoreResult;
 use ton_core::traits::tlb::TLB;
+use ton_core::types::TonAddress;
 
 macro_rules! extract_stack_val {
     ($maybe_result:expr, $variant:ident) => {
@@ -54,8 +55,8 @@ impl TVMStack {
 
     pub fn pop_tiny_int(&mut self) -> TonResult<i64> { extract_stack_val!(self.pop(), TinyInt) }
     pub fn pop_int(&mut self) -> TonResult<I512> { extract_stack_val!(self.pop(), Int) }
-
-    pub fn pop_int_or_tiny_int(&mut self) -> TonResult<I512> {
+    /// Pops Int or TinyInt as I512
+    pub fn pop_number(&mut self) -> TonResult<I512> {
         match self.pop_checked()? {
             TVMStackValue::Int(inner) => Ok(inner.value),
             TVMStackValue::TinyInt(inner) => Ok(I512::from_i64(inner.value)),
@@ -63,7 +64,7 @@ impl TVMStack {
         }
     }
 
-    // extract cell & cell_slice
+    /// Pops Cell or CellSlice as TonCell
     pub fn pop_cell(&mut self) -> TonResult<TonCell> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),

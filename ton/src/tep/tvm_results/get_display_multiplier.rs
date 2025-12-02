@@ -12,8 +12,8 @@ pub struct GetDisplayMultiplierResult {
 // tested in assert_jetton_master_scaled_ui
 impl TVMResult for GetDisplayMultiplierResult {
     fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let denominator = stack.pop_int_or_tiny_int()?;
-        let numerator = stack.pop_int_or_tiny_int()?;
+        let denominator = stack.pop_number()?;
+        let numerator = stack.pop_number()?;
         let result = Self { numerator, denominator };
         Ok(result)
     }
