@@ -14,7 +14,7 @@ impl NFTItemContract {
         if let MetadataContent::Unsupported(meta) = data.individual_content {
             let collection_address = &data.collection_address;
             let collection = NFTCollectionContract::new(self.get_client(), collection_address, None).await?;
-            let full_content = collection.get_nft_content(data.index.clone(), meta.cell).await?;
+            let full_content = collection.get_nft_content(data.index, meta.cell).await?;
             data.individual_content = full_content.full_content;
             Ok(data)
         } else {

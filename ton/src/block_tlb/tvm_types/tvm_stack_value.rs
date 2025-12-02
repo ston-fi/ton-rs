@@ -3,7 +3,7 @@ use crate::tlb_adapters::DictKeyAdapterUint;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
 use crate::ton_core::types::tlb_core::adapters::ConstLen;
-use num_bigint::BigInt;
+use fastnum::I512;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Deref;
@@ -40,7 +40,7 @@ pub struct TVMTinyInt {
 #[tlb(prefix = 0x0100, bits_len = 15)]
 pub struct TVMInt {
     #[tlb(bits_len = 257)]
-    pub value: BigInt,
+    pub value: I512,
 }
 
 #[derive(Debug, Clone, TLB)]

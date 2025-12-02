@@ -3,7 +3,7 @@ use crate::contracts::TonContract;
 use crate::errors::TonResult;
 use crate::tep::tvm_results::{GetCollectionDataResult, GetNFTAddressByIndexResult, GetNFTContentResult, TVMResult};
 use async_trait::async_trait;
-use num_bigint::BigInt;
+use fastnum::I512;
 use ton_core::cell::TonCell;
 
 #[async_trait]
@@ -13,7 +13,7 @@ pub trait NFTCollectionMethods: TonContract {
         Ok(GetCollectionDataResult::from_boc(stack_boc)?)
     }
 
-    async fn get_nft_content(&self, index: BigInt, individual_content: TonCell) -> TonResult<GetNFTContentResult> {
+    async fn get_nft_content(&self, index: I512, individual_content: TonCell) -> TonResult<GetNFTContentResult> {
         let mut stack = TVMStack::default();
         stack.push_int(index);
         stack.push_cell(individual_content);
@@ -23,10 +23,7 @@ pub trait NFTCollectionMethods: TonContract {
         Ok(GetNFTContentResult::from_boc(stack_boc)?)
     }
 
-    async fn get_nft_address_by_index<T: Into<BigInt> + Send>(
-        &self,
-        index: T,
-    ) -> TonResult<GetNFTAddressByIndexResult> {
+    async fn get_nft_address_by_index<T: Into<I512> + Send>(&self, index: T) -> TonResult<GetNFTAddressByIndexResult> {
         let mut stack = TVMStack::default();
         stack.push_int(index.into());
 

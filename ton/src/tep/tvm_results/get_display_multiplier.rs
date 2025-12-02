@@ -1,12 +1,12 @@
 use crate::block_tlb::TVMStack;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use num_bigint::BigInt;
+use fastnum::I512;
 use ton_core::errors::TonCoreError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GetDisplayMultiplierResult {
-    pub numerator: BigInt,
-    pub denominator: BigInt,
+    pub numerator: I512,
+    pub denominator: I512,
 }
 
 // tested in assert_jetton_master_scaled_ui

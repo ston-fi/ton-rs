@@ -1,6 +1,6 @@
 use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt};
 use crate::errors::TonError;
-use num_bigint::BigInt;
+use fastnum::I512;
 use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_core::errors::TonCoreError;
@@ -36,12 +36,12 @@ impl TVMTuple {
     pub fn new(items: Vec<TVMStackValue>) -> Self { Self(items) }
 
     pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }
-    pub fn push_int(&mut self, value: BigInt) { self.push(TVMStackValue::Int(TVMInt { value })); }
+    pub fn push_int(&mut self, value: I512) { self.push(TVMStackValue::Int(TVMInt { value })); }
     pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
     pub fn push_cell_slice(&mut self, cell: TonCell) { self.push(TVMStackValue::CellSlice(TVMCellSlice::from_cell(cell))); }
 
     pub fn get_tiny_int(&mut self, index: usize) -> Result<&i64, TonError> { extract_tuple_val!(self.get(index), TinyInt) }
-    pub fn get_int(&mut self, index: usize) -> Result<&BigInt, TonError> { extract_tuple_val!(self.get(index), Int) }
+    pub fn get_int(&mut self, index: usize) -> Result<&I512, TonError> { extract_tuple_val!(self.get(index), Int) }
     pub fn get_cell(&mut self, index: usize) -> Result<&TonCell, TonError> { extract_tuple_val!(self.get(index), Cell) }
     pub fn get_cell_slice(&mut self, index: usize) -> Result<&TonCell, TonError> { extract_tuple_val!(self.get(index), CellSlice) }
 }

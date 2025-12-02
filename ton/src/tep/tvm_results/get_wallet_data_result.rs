@@ -1,6 +1,6 @@
 use crate::block_tlb::TVMStack;
 use crate::tep::tvm_results::TVMResult;
-use num_bigint::BigInt;
+use fastnum::I512;
 use ton_core::cell::TonCell;
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
@@ -8,7 +8,7 @@ use ton_core::types::TonAddress;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GetWalletDataResult {
-    pub balance: BigInt,
+    pub balance: I512,
     pub owner: TonAddress,
     pub master: TonAddress,
     pub wallet_code: TonCell,

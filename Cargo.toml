@@ -34,7 +34,7 @@ base64 = "0.22"
 bitstream-io = "4"
 bitvec = "1.0"
 crc = "3"
-fastnum =  "0.7"
+fastnum =  { version = "0.7", features = ["numtraits"] }
 hex = "0.4"
 log = "0.4"
 num-bigint = "0.4"

@@ -7,7 +7,7 @@ use std::sync::Arc;
 /// Behaviour of wrapper itself is identical to the inner type
 /// Only `read_definition` and `write_definition` methods are different
 /// Type itself will be serialized the same way as the inner type (not to the ref cell!)
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct TLBRef<T>(T);
 
 impl<T: TLB> TLBRef<T> {

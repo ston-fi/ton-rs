@@ -1,7 +1,6 @@
 use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTuple};
 use crate::errors::{TonError, TonResult};
-use num_bigint::BigInt;
-use num_traits::FromPrimitive;
+use fastnum::I512;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
@@ -39,7 +38,7 @@ impl TVMStack {
     pub fn new(items: Vec<TVMStackValue>) -> Self { Self(items) }
 
     pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }
-    pub fn push_int(&mut self, value: BigInt) { self.push(TVMStackValue::Int(TVMInt { value })); }
+    pub fn push_int(&mut self, value: I512) { self.push(TVMStackValue::Int(TVMInt { value })); }
     pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
     pub fn push_cell_slice(&mut self, cell: TonCell) {
         self.push(TVMStackValue::CellSlice(TVMCellSlice::from_cell(cell)));
@@ -54,14 +53,12 @@ impl TVMStack {
     }
 
     pub fn pop_tiny_int(&mut self) -> TonResult<i64> { extract_stack_val!(self.pop(), TinyInt) }
-    pub fn pop_int(&mut self) -> TonResult<BigInt> { extract_stack_val!(self.pop(), Int) }
+    pub fn pop_int(&mut self) -> TonResult<I512> { extract_stack_val!(self.pop(), Int) }
 
-    pub fn pop_int_or_tiny_int(&mut self) -> TonResult<BigInt> {
+    pub fn pop_int_or_tiny_int(&mut self) -> TonResult<I512> {
         match self.pop_checked()? {
             TVMStackValue::Int(inner) => Ok(inner.value),
-            TVMStackValue::TinyInt(inner) => {
-                BigInt::from_i64(inner.value).ok_or(TonError::Custom("Unabled to convert BigInt from i64".to_string()))
-            }
+            TVMStackValue::TinyInt(inner) => Ok(I512::from_i64(inner.value)),
             other => Err(TonError::TVMStackWrongType(String::from("TinyInt or Int type"), other.to_string()))?,
         }
     }

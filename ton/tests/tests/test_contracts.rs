@@ -1,6 +1,6 @@
 use crate::tests::utils::make_tl_client;
+use fastnum::I512;
 use futures_util::try_join;
-use num_bigint::BigInt;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use tokio_test::assert_ok;
@@ -114,7 +114,7 @@ async fn assert_nft_item_get_nft_data_external(ctr_cli: &ContractClient) -> anyh
     let expected_collection_address =
         assert_ok!(TonAddress::from_str("EQAOQdwdw8kGftJCSFgOErM1mBjYPe4DBPq8-AhF6vr9si5N"));
     let expected_index =
-        assert_ok!(BigInt::from_str("15995005474673311991943775795727481451058346239240361725119718297821926435889",));
+        assert_ok!(I512::from_str("15995005474673311991943775795727481451058346239240361725119718297821926435889",));
 
     assert!(res.init);
     assert_eq!(res.index, expected_index);
@@ -152,7 +152,7 @@ async fn assert_nft_collection_get_nft_address_by_index(ctr_cli: &ContractClient
     let contract = NFTCollectionContract::new(ctr_cli, &address, None).await?;
     assert_ok!(
         contract
-            .get_nft_address_by_index(BigInt::from_str(
+            .get_nft_address_by_index(I512::from_str(
                 "17026683442852985036293000817890672620529067535828542797724775561309021470835"
             )?)
             .await
