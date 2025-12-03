@@ -112,6 +112,7 @@ async fn assert_contract_client_tl_provider(tl_client: TLClient) -> anyhow::Resu
 }
 
 #[tokio::test]
+#[ignore = "testnet"]
 async fn test_contract_client_tl_provider_dynamic_libs_testnet() -> anyhow::Result<()> {
     let tl_client = make_tl_client(false, true).await?;
 
@@ -121,6 +122,7 @@ async fn test_contract_client_tl_provider_dynamic_libs_testnet() -> anyhow::Resu
 
     // test master
     let master_ctr = JettonMasterContract::new(&ctr_cli, &dyn_lib_master_addr, None).await?;
+    log::info!("master contract loaded"); // to make sure it's testnet issue, not emulation
     let jetton_data = master_ctr.get_jetton_data().await?;
     assert_eq!(
         jetton_data.admin,
