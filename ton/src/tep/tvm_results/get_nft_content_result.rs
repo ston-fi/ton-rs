@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
+use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -10,7 +10,7 @@ pub struct GetNFTContentResult {
 }
 
 impl TVMResult for GetNFTContentResult {
-    fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let full_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
         Ok(Self { full_content })
     }

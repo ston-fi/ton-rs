@@ -6,7 +6,6 @@ use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
 use ton_core::errors::TonCoreResult;
 use ton_core::traits::tlb::TLB;
-use ton_core::types::TonAddress;
 
 macro_rules! extract_stack_val {
     ($maybe_result:expr, $variant:ident) => {

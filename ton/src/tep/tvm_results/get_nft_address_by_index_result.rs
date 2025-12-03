@@ -1,6 +1,6 @@
 use crate::block_tlb::TVMStack;
+use crate::errors::TonResult;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 
@@ -10,7 +10,7 @@ pub struct GetNFTAddressByIndexResult {
 }
 
 impl TVMResult for GetNFTAddressByIndexResult {
-    fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let nft_address = TonAddress::from_cell(&stack.pop_cell()?)?;
 
         Ok(Self { nft_address })

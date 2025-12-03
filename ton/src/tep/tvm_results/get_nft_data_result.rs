@@ -1,8 +1,8 @@
 use crate::block_tlb::TVMStack;
+use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
-use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 
@@ -16,7 +16,7 @@ pub struct GetNFTDataResult {
 }
 
 impl TVMResult for GetNFTDataResult {
-    fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let individual_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
         let owner_address: TonAddress = TonAddress::from_cell(&stack.pop_cell()?)?;
         let collection_address = TonAddress::from_cell(&stack.pop_cell()?)?;
@@ -51,7 +51,7 @@ mod test {
 
         assert_eq!(
             result.collection_address,
-            TonAddress::from_stack_boc_hex(
+            TonAddress::from_boc_hex(
                 "b5ee9c720101010100240000438008df41d350c802832d4bcfacde3f07ffb621e50b377e5d5375d577e29b39c1aa10"
             )?
         );

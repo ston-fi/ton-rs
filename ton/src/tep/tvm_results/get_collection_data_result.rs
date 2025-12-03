@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
+use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 
@@ -13,7 +13,7 @@ pub struct GetCollectionDataResult {
 }
 
 impl TVMResult for GetCollectionDataResult {
-    fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let owner_address = TVMResult::from_stack(stack)?;
         let collection_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
         let next_item_index = TVMResult::from_stack(stack)?;
@@ -43,7 +43,7 @@ mod test {
                 "b5ee9c720101010100350000660168747470733a2f2f6e66742e667261676d656e742e636f6d2f636f6c6c656374696f6e2f706c757368706570652e6a736f6e"
             )?
         );
-        assert_eq!(result.owner_address, TonAddress::from_stack_boc_hex("b5ee9c7201010101000300000120")?);
+        assert_eq!(result.owner_address, TonAddress::from_boc_hex("b5ee9c7201010101000300000120")?);
         Ok(())
     }
 }

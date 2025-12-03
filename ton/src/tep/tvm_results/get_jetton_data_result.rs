@@ -1,9 +1,9 @@
 use crate::block_tlb::{Coins, TVMStack};
+use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
 use ton_core::cell::TonCell;
-use ton_core::errors::TonCoreResult;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 
@@ -17,7 +17,7 @@ pub struct GetJettonDataResult {
 }
 
 impl TVMResult for GetJettonDataResult {
-    fn from_stack(stack: &mut TVMStack) -> TonCoreResult<Self> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let wallet_code = stack.pop_cell()?;
         let content = MetadataContent::from_cell(&stack.pop_cell()?)?;
         let admin = TonAddress::from_cell(&stack.pop_cell()?)?;
