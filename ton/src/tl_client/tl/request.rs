@@ -69,7 +69,7 @@ pub enum TLRequest {
         #[serde(with = "serde_tx_lt_hash_json")]
         from_tx_id: TxLTHash,
         count: u32,
-        try_decode_messages: bool,
+        try_decode_msg: bool,
     },
 
     // tonlib_api.tl, line 270

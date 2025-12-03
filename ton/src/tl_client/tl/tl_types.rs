@@ -55,7 +55,7 @@ pub struct TLOptionsInfo {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TLAccountAddress {
     #[serde(rename = "account_address", with = "serde_ton_address_hex")]
-    address: TonAddress,
+    pub address: TonAddress,
 }
 
 impl From<TonAddress> for TLAccountAddress {
@@ -97,7 +97,7 @@ pub struct TLRawFullAccountState {
 
 // tonlib_api.tl_api, line 54
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TLRawMessage {
+pub struct TLRawMsg {
     pub source: TLAccountAddress,
     pub destination: TLAccountAddress,
     #[serde(deserialize_with = "deserialize_number_from_string")]
@@ -131,8 +131,8 @@ pub struct TLRawTx {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub other_fee: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub in_msg: Option<TLRawMessage>,
-    pub out_msgs: Vec<TLRawMessage>,
+    pub in_msg: Option<TLRawMsg>,
+    pub out_msgs: Vec<TLRawMsg>,
 }
 
 // tonlib_api.tl_api, line 56

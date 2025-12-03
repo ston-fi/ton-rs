@@ -123,7 +123,7 @@ pub trait TLClientTrait: Send + Sync {
             account_address: address.into(),
             from_tx_id: from_tx,
             count: count as u32,
-            try_decode_messages: try_decode_msg,
+            try_decode_msg,
         };
         unwrap_tl_rsp!(self.exec(&req).await?, TLRawTxs)
     }
@@ -165,7 +165,7 @@ pub trait TLClientTrait: Send + Sync {
 
     async fn send_msg(&self, body: Vec<u8>) -> Result<TonHash, TonError> {
         let req = TLRequest::RawSendMsgReturnHash { body };
-        let rsp = unwrap_tl_rsp!(self.exec(&req).await?, TLRawExtMessageInfo)?;
+        let rsp = unwrap_tl_rsp!(self.exec(&req).await?, TLRawExtMsgInfo)?;
         Ok(TonHash::from_vec(rsp.hash)?)
     }
 

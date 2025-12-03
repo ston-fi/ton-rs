@@ -51,14 +51,14 @@ pub enum TonError {
     TLClientCreationFailed,
     #[error("TLClientWrongResponse: expected type: {0}, got: {1}")]
     TLClientWrongResponse(String, String),
-    #[error("TLClientResponseError: code: {code}, message: {message}")]
-    TLClientResponseError { code: i32, message: String },
+    #[error("TLClientResponseError: code: {code}, msg: {msg}")]
+    TLClientResponseError { code: i32, msg: String },
     #[error("TLWrongArgs: {0}")]
     TLWrongArgs(String),
     #[error("TLSendError: fail to send request: {0}")]
     TLSendError(String),
-    #[error("TLExecError: method: {method}, code: {code}, message: {message}")]
-    TLExecError { method: String, code: i32, message: String },
+    #[error("TLExecError: method: {method}, code: {code}, msg: {msg}")]
+    TLExecError { method: String, code: i32, msg: String },
     #[error("TLWrongUsage: {0}")]
     TLWrongUsage(String),
 
