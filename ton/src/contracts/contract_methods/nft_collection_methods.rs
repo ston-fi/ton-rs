@@ -10,7 +10,7 @@ use ton_core::cell::TonCell;
 pub trait NFTCollectionMethods: TonContract {
     async fn get_collection_data(&self) -> TonResult<GetCollectionDataResult> {
         let stack_boc = self.emulate_get_method("get_collection_data", &TVMStack::EMPTY, None).await?;
-        Ok(GetCollectionDataResult::from_boc(stack_boc)?)
+        Ok(GetCollectionDataResult::from_stack_boc(stack_boc)?)
     }
 
     async fn get_nft_content(&self, index: I512, individual_content: TonCell) -> TonResult<GetNFTContentResult> {
@@ -20,7 +20,7 @@ pub trait NFTCollectionMethods: TonContract {
 
         let stack_boc = self.emulate_get_method("get_nft_content", &stack, None).await?;
 
-        Ok(GetNFTContentResult::from_boc(stack_boc)?)
+        Ok(GetNFTContentResult::from_stack_boc(stack_boc)?)
     }
 
     async fn get_nft_address_by_index<T: Into<I512> + Send>(&self, index: T) -> TonResult<GetNFTAddressByIndexResult> {
@@ -28,6 +28,6 @@ pub trait NFTCollectionMethods: TonContract {
         stack.push_int(index.into());
 
         let stack_boc = self.emulate_get_method("get_nft_address_by_index", &stack, None).await?;
-        Ok(GetNFTAddressByIndexResult::from_boc(stack_boc)?)
+        Ok(GetNFTAddressByIndexResult::from_stack_boc(stack_boc)?)
     }
 }

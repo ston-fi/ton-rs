@@ -1,11 +1,12 @@
 pub mod tlb_core;
 
+mod coins;
+mod extra_currency;
 mod tlb_object;
 mod ton_address;
-
-mod extra_currency;
 mod tx_lt_hash;
 
+pub use coins::*;
 pub use extra_currency::*;
 pub use tlb_object::*;
 pub use ton_address::*;

@@ -1,7 +1,7 @@
-use crate::block_tlb::Coins;
 use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::types::TonAddress;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{TLBEitherRef, TLBRef};
 
 /// Creates a body for jetton transfer according to TL-B schema:
@@ -23,7 +23,7 @@ pub struct NFTTransferMsg {
     pub new_owner: TonAddress,    // address of the new owner of the NFT item.
     pub response_dst: TonAddress, //  address where to send a response with confirmation of a successful transfer and the rest of the incoming message coins.
     pub custom_payload: Option<TLBRef<TonCell>>,
-    pub forward_ton_amount: Coins, // the amount of nanotons to be sent to the destination address.
+    pub forward_ton_amount: TLBCoins, // the amount of nanotons to be sent to the destination address.
     pub forward_payload: TLBEitherRef<TonCell>, // optional custom data that should be sent to the destination address.
 }
 
@@ -34,7 +34,7 @@ impl NFTTransferMsg {
             new_owner: new_owner.clone(),
             response_dst: TonAddress::ZERO,
             custom_payload: None,
-            forward_ton_amount: Coins::ZERO,
+            forward_ton_amount: TLBCoins::ZERO,
             forward_payload: TLBEitherRef::new(TonCell::empty().to_owned()),
         }
     }
@@ -42,13 +42,11 @@ impl NFTTransferMsg {
 
 #[cfg(test)]
 mod tests {
-    use crate::block_tlb::Coins;
-    use crate::tep::nft::nft_transfer_msg::NFTTransferMsg;
+    use super::*;
     use std::str::FromStr;
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
-    use ton_core::types::tlb_core::TLBEitherRef;
 
     #[test]
     fn test_nft_transfer_msg() -> anyhow::Result<()> {
@@ -63,7 +61,7 @@ mod tests {
             new_owner: TonAddress::from_str("0:71055783d6928e8c007f22f1d799a3b4dbd9034e9d5975364f707b9efe839510")?,
             response_dst: TonAddress::from_str("0:286d2c92da998c4fcf82d274257cfa3d0a52bd412ce83dee64a404a7ceaabf31")?,
             custom_payload: None,
-            forward_ton_amount: Coins::new(10000000),
+            forward_ton_amount: TLBCoins::new(10000000),
             forward_payload: TLBEitherRef::new(payload),
         };
 

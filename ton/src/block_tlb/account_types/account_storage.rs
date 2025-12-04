@@ -1,6 +1,7 @@
 use crate::block_tlb::*;
 use ton_core::TLB;
 use ton_core::cell::TonHash;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::VarLenBytes;
 
 #[derive(Debug, Clone, PartialEq, TLB)]
@@ -14,7 +15,7 @@ pub struct StorageInfo {
     pub used: StorageUsed,
     pub storage_extra: MaybeStorageExtraInfo,
     pub last_paid: u32,
-    pub due_payment: Option<Coins>,
+    pub due_payment: Option<TLBCoins>,
 }
 
 #[derive(Debug, Clone, PartialEq, TLB)]

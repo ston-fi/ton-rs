@@ -14,7 +14,7 @@ pub enum TLResponse {
     // tonlib_api.tl_api, line 20
     Error {
         code: i32,
-        message: String,
+        msg: String,
     },
     // tonlib_api.tl_api, line 21
     Ok(()),
@@ -32,7 +32,7 @@ pub enum TLResponse {
     TLRawTxs(TLRawTxs),
     // tonlib_api.tl_api, line 58
     #[serde(rename = "raw.extMessageInfo")]
-    TLRawExtMessageInfo(TLRawExtMessageInfo),
+    TLRawExtMsgInfo(TLRawExtMessageInfo),
     // tonlib_api.tl_api, line 90
     #[serde(rename = "fullAccountState")]
     TLFullAccountState(Box<TLFullAccountState>),

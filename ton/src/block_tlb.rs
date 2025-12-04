@@ -3,8 +3,8 @@ mod _test_block_data;
 
 mod account_types;
 mod block_types;
-mod coins;
 mod config_types;
+mod currency_collection;
 mod hash_update;
 mod msg_types;
 mod out_action;
@@ -15,8 +15,8 @@ mod tx_types;
 
 pub use account_types::*;
 pub use block_types::*;
-pub use coins::*;
 pub use config_types::*;
+pub use currency_collection::*;
 pub use hash_update::*;
 pub use msg_types::*;
 pub use out_action::*;

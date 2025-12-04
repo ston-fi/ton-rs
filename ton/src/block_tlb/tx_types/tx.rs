@@ -72,11 +72,8 @@ impl TLB for TxMsgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block_tlb::{
-        AccStatusChange, AccStatusChangeUnchanged, AccountStatusActive, Coins, ComputePhaseVMInfo, TrComputePhase,
-        TrComputePhaseVM, TrStoragePhase, TxDescrTickTock,
-    };
     use std::str::FromStr;
+    use ton_core::types::tlb_core::TLBCoins;
     use ton_core::types::tlb_core::VarLen;
 
     #[test]
@@ -107,7 +104,7 @@ mod tests {
             descr: TxDescr::TickTock(TxDescrTickTock {
                 is_tock: true,
                 storage_phase: TrStoragePhase {
-                    storage_fees_collected: Coins::ZERO,
+                    storage_fees_collected: TLBCoins::ZERO,
                     storage_fees_due: None,
                     status_change: AccStatusChange::Unchanged(AccStatusChangeUnchanged),
                 },
@@ -116,7 +113,7 @@ mod tests {
                         success: true,
                         msg_state_used: false,
                         account_activated: false,
-                        gas_fees: Coins::ZERO,
+                        gas_fees: TLBCoins::ZERO,
                         compute_phase_vm_info: ComputePhaseVMInfo {
                             gas_used: VarLen::new(4914u32, 16),
                             gas_limit: VarLen::new(10000000u32, 24),
@@ -206,7 +203,7 @@ mod tests {
             descr: TxDescr::Ord(TxDescrOrd {
                 credit_first: false,
                 storage_phase: Some(TrStoragePhase {
-                    storage_fees_collected: Coins::new(2410),
+                    storage_fees_collected: TLBCoins::new(2410),
                     storage_fees_due: None,
                     status_change: AccStatusChange::Unchanged(AccStatusChangeUnchanged{}),
                 }),
@@ -218,7 +215,7 @@ mod tests {
                     success: true,
                     msg_state_used: false,
                     account_activated: false,
-                    gas_fees: Coins::new(4408000),
+                    gas_fees: TLBCoins::new(4408000),
                     compute_phase_vm_info: ComputePhaseVMInfo {
                         gas_used: VarLen::new(11020u32, 16),
                         gas_limit: VarLen::new(529389u32, 24),
@@ -236,8 +233,8 @@ mod tests {
                     valid: true,
                     no_funds: false,
                     status_change: AccStatusChange::Unchanged(AccStatusChangeUnchanged{}),
-                    total_fwd_fees: Some(Coins::new(1287600)),
-                    total_action_fees: Some(Coins::new(429193)),
+                    total_fwd_fees: Some(TLBCoins::new(1287600)),
+                    total_action_fees: Some(TLBCoins::new(429193)),
                     result_code: 0,
                     result_arg: None,
                     tot_actions: 2,

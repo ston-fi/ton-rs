@@ -17,7 +17,7 @@ use nacl::sign::signature;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
-use ton_core::types::tlb_core::{MsgAddressExt, TLBEitherRef};
+use ton_core::types::tlb_core::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct TonWallet {
@@ -76,8 +76,8 @@ impl TonWallet {
     }
 
     pub fn sign_ext_in_body(&self, ext_in_body: &TonCell) -> Result<TonCell, TonError> {
-        let message_hash = ext_in_body.cell_hash()?;
-        let sign = match signature(message_hash.as_slice(), self.key_pair.secret_key.as_slice()) {
+        let msg_hash = ext_in_body.cell_hash()?;
+        let sign = match signature(msg_hash.as_slice(), self.key_pair.secret_key.as_slice()) {
             Ok(signature) => signature,
             Err(err) => return Err(TonError::Custom(format!("{err:?}"))),
         };
@@ -88,17 +88,17 @@ impl TonWallet {
         let msg_info = CommonMsgInfo::ExtIn(CommonMsgInfoExtIn {
             src: MsgAddressExt::NONE,
             dst: self.address.to_msg_address_int(),
-            import_fee: Coins::ZERO,
+            import_fee: TLBCoins::ZERO,
         });
 
-        let mut message = Msg::new(msg_info, signed_body);
+        let mut msg = Msg::new(msg_info, signed_body);
         if add_state_init {
             let code = WalletVersion::get_code(self.version)?.clone();
             let data = WalletVersion::get_default_data(self.version, &self.key_pair, self.wallet_id)?;
             let state_init = StateInit::new(code, data);
-            message.init = Some(TLBEitherRef::new(state_init));
+            msg.init = Some(TLBEitherRef::new(state_init));
         }
-        Ok(message.to_cell()?)
+        Ok(msg.to_cell()?)
     }
 }
 

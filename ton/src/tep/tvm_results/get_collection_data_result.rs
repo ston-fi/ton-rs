@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
+use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 
@@ -13,10 +13,10 @@ pub struct GetCollectionDataResult {
 }
 
 impl TVMResult for GetCollectionDataResult {
-    fn from_stack(stack: &mut TVMStack) -> Result<Self, TonCoreError> {
-        let owner_address = TonAddress::from_cell(&stack.pop_cell()?)?;
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        let owner_address = TVMResult::from_stack(stack)?;
         let collection_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
-        let next_item_index = stack.pop_tiny_int()?;
+        let next_item_index = TVMResult::from_stack(stack)?;
 
         Ok(Self {
             next_item_index,
@@ -33,7 +33,7 @@ mod test {
     #[test]
     fn test_get_jetton_data_result() -> anyhow::Result<()> {
         // Plush pepes EQBG-g6ahkAUGWpefWbx-D_9sQ8oWbvy6puuq78U2c4NUDFS
-        let result = GetCollectionDataResult::from_boc_hex(
+        let result = GetCollectionDataResult::from_stack_boc_hex(
             "b5ee9c7201010601007b00020f000003044651b020010202020303040049bc82df6a2686900698fe9ffea6a6a00e8698380d5016b8c009880ea68881b2f833fc581094011201ffffffffffffffff0500660168747470733a2f2f6e66742e667261676d656e742e636f6d2f636f6c6c656374696f6e2f706c757368706570652e6a736f6e0000",
         )?;
         assert_eq!(result.next_item_index, -1);

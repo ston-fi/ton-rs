@@ -8,6 +8,6 @@ use async_trait::async_trait;
 pub trait JettonWalletMethods: TonContract {
     async fn get_wallet_data(&self) -> Result<GetWalletDataResult, TonError> {
         let stack_boc = self.emulate_get_method("get_wallet_data", &TVMStack::EMPTY, None).await?;
-        Ok(GetWalletDataResult::from_boc(stack_boc)?)
+        Ok(GetWalletDataResult::from_stack_boc(stack_boc)?)
     }
 }
