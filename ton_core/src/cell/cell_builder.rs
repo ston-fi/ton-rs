@@ -3,8 +3,8 @@ use crate::cell::CellMeta;
 use crate::cell::cell_meta::CellType;
 use crate::cell::ton_cell::{CellBorders, CellData, RefStorage, TonCell};
 use crate::cell::ton_cell_num::TonCellNum;
-use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitWrite, BitWriter};
+use crate::errors::{TonCoreError, TonCoreResult};
+use bitstream_io::{BigEndian, BitWrite, BitWriter, Integer};
 use std::cmp::min;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -141,15 +141,33 @@ impl CellBuilder {
             }
             bail_ton_core_data!("Can't write number {data_ref} in 0 bits");
         }
+        // hanlding overbit case
+        let n_size = N::tcn_sizeof_bytes() as usize * 8;
+        let bits_to_write = if bits_len > n_size {
+            let to_write = bits_len - n_size;
+            // Write padding bits - write_bit will handle capacity checking
+            for _ in 0..to_write {
+                self.write_bit(false)?;
+            }
+            n_size
+        } else {
+            bits_len
+        };
 
-        self.ensure_capacity(bits_len)?;
-        data_ref.tcn_write_bits(&mut self.data_writer, bits_len as u32)
+        data_ref.tcn_write_bits(self, bits_to_write as u32)
     }
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
 
     pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
-
+    #[inline(always)]
+    pub(crate) fn write_primitive<I: Integer>(&mut self, bits: u32, data: I) -> TonCoreResult<()> {
+        self.ensure_capacity(bits as usize)?;
+        self.data_writer.write_var(bits, data).map_err(|e| {
+            TonCoreError::data("CellBuilder::write_primitive", format!("Failed to write primitive data: {}", e))
+        })
+    }
+    #[inline(always)]
     fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {
         let new_bits_len = self.data_len_bits + bits_len;
         if new_bits_len <= TonCell::MAX_DATA_LEN_BITS {
@@ -252,7 +270,7 @@ mod tests {
     #[test]
     fn test_builder_write_num_in_many_bits() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        assert_err!(cell_builder.write_num(&0b1010_1010u8, 16));
+        assert_ok!(cell_builder.write_num(&0b1010_1010u8, 16));
         Ok(())
     }
 
