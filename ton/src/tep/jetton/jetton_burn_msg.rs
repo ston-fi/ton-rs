@@ -1,7 +1,7 @@
-use crate::block_tlb::Coins;
 use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{MsgAddress, TLBRef};
 
 /// ```raw
@@ -14,13 +14,13 @@ use ton_core::types::tlb_core::{MsgAddress, TLBRef};
 #[tlb(prefix = 0x595f07bc, bits_len = 32, ensure_empty = true)]
 pub struct JettonBurnMsg<Payload: TLB = TonCell> {
     pub query_id: u64,            // arbitrary request number
-    pub amount: Coins,            // amount to burn
+    pub amount: TLBCoins,         // amount to burn
     pub response_dst: MsgAddress, // address to send confirmation
     pub custom_payload: Option<TLBRef<Payload>>,
 }
 
 impl JettonBurnMsg {
-    pub fn new<T: Into<Coins>>(amount: T) -> Self {
+    pub fn new<T: Into<TLBCoins>>(amount: T) -> Self {
         JettonBurnMsg {
             query_id: 0,
             amount: amount.into(),
@@ -35,7 +35,6 @@ mod tests {
     use super::*;
     use std::str::FromStr;
 
-    use crate::block_tlb::Coins;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
 
@@ -47,7 +46,7 @@ mod tests {
 
         let expected_msg = JettonBurnMsg {
             query_id: 667217747695,
-            amount: Coins::new(528_161),
+            amount: TLBCoins::new(528_161),
             response_dst: TonAddress::from_str("EQBYE3OMjPlkHPsc-Dxs9zXk66yXXvKr9vgbMIoOPi-XUa-f")?
                 .to_msg_address_int()
                 .into(),
@@ -65,7 +64,7 @@ mod tests {
 
         let expected_burn_notcoin = JettonBurnMsg {
             query_id: 1,
-            amount: Coins::new(300_000_000_000),
+            amount: TLBCoins::new(300_000_000_000),
             response_dst: TonAddress::from_str("EQBmmSYIpYH8IxubmmOlnhlD8NRhY5la9SsdC-MTt3pXmOSI")?
                 .to_msg_address_int()
                 .into(),

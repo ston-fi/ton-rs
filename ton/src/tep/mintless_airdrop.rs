@@ -1,4 +1,3 @@
-use crate::block_tlb::Coins;
 use crate::tlb_adapters::DictKeyAdapterTonAddress;
 use crate::tlb_adapters::DictValAdapterTLB;
 use crate::tlb_adapters::TLBHashMap;
@@ -6,6 +5,7 @@ use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use std::collections::HashMap;
 use ton_core::TLB;
 use ton_core::types::TonAddress;
+use ton_core::types::tlb_core::TLBCoins;
 // TODO not tested
 #[derive(Clone, Debug, TLB)]
 pub struct MintlessAirdropDict {
@@ -15,7 +15,7 @@ pub struct MintlessAirdropDict {
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 pub struct MintlessAirdropData {
-    pub amount: Coins,
+    pub amount: TLBCoins,
     #[tlb(bits_len = 48)]
     pub start_from: u64,
     #[tlb(bits_len = 48)]

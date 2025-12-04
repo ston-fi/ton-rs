@@ -1,5 +1,6 @@
 use crate::block_tlb::*;
 use ton_core::TLB;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{MsgAddress, MsgAddressExt, MsgAddressInt};
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L155
@@ -15,7 +16,7 @@ pub enum CommonMsgInfo {
 pub struct CommonMsgInfoExtIn {
     pub src: MsgAddressExt,
     pub dst: MsgAddressInt,
-    pub import_fee: Coins,
+    pub import_fee: TLBCoins,
 }
 
 #[derive(Clone, Debug, PartialEq, TLB)]
@@ -27,8 +28,8 @@ pub struct CommonMsgInfoInt {
     pub src: MsgAddress, // it's MsgAddressInt in tlb, but in fact it can be at least MsgAddressNone
     pub dst: MsgAddress, // the same
     pub value: CurrencyCollection,
-    pub ihr_fee: Coins,
-    pub fwd_fee: Coins,
+    pub ihr_fee: TLBCoins,
+    pub fwd_fee: TLBCoins,
     pub created_lt: u64,
     pub created_at: u32,
 }
@@ -43,7 +44,7 @@ pub struct CommonMsgInfoExtOut {
 }
 
 impl CommonMsgInfoInt {
-    pub fn new(dst: MsgAddress, value: Coins) -> Self {
+    pub fn new(dst: MsgAddress, value: TLBCoins) -> Self {
         Self {
             dst,
             value: CurrencyCollection::new(value),
@@ -60,9 +61,9 @@ impl Default for CommonMsgInfoInt {
             bounced: false,
             src: MsgAddress::NONE,
             dst: MsgAddress::NONE,
-            value: CurrencyCollection::new(Coins::ZERO),
-            ihr_fee: Coins::ZERO,
-            fwd_fee: Coins::ZERO,
+            value: CurrencyCollection::new(TLBCoins::ZERO),
+            ihr_fee: TLBCoins::ZERO,
+            fwd_fee: TLBCoins::ZERO,
             created_lt: 0,
             created_at: 0,
         }
@@ -92,8 +93,8 @@ mod tests {
             })),
             dst: MsgAddress::NONE,
             value: CurrencyCollection::from_num(&0u32)?,
-            ihr_fee: Coins::ZERO,
-            fwd_fee: Coins::ZERO,
+            ihr_fee: TLBCoins::ZERO,
+            fwd_fee: TLBCoins::ZERO,
             created_lt: 0,
             created_at: 0,
         });

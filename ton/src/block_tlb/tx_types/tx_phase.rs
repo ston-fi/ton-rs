@@ -1,12 +1,13 @@
 use crate::block_tlb::*;
 use ton_core::TLB;
 use ton_core::cell::TonHash;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{TLBRef, VarLenBytes};
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 pub struct TrStoragePhase {
-    pub storage_fees_collected: Coins,
-    pub storage_fees_due: Option<Coins>,
+    pub storage_fees_collected: TLBCoins,
+    pub storage_fees_due: Option<TLBCoins>,
     pub status_change: AccStatusChange,
 }
 
@@ -30,8 +31,8 @@ pub struct TrActionPhase {
     pub valid: bool,
     pub no_funds: bool,
     pub status_change: AccStatusChange,
-    pub total_fwd_fees: Option<Coins>,
-    pub total_action_fees: Option<Coins>,
+    pub total_fwd_fees: Option<TLBCoins>,
+    pub total_action_fees: Option<TLBCoins>,
     pub result_code: i32,
     pub result_arg: Option<i32>,
     pub tot_actions: u16,
@@ -67,7 +68,7 @@ pub struct TrComputePhaseVM {
     pub success: bool,
     pub msg_state_used: bool,
     pub account_activated: bool,
-    pub gas_fees: Coins,
+    pub gas_fees: TLBCoins,
     pub compute_phase_vm_info: TLBRef<ComputePhaseVMInfo>,
 }
 
@@ -105,7 +106,7 @@ pub struct AccStatusChangeDeleted;
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 pub struct TrCreditPhase {
-    pub due_fees_collected: Option<Coins>,
+    pub due_fees_collected: Option<TLBCoins>,
     pub credit: CurrencyCollection,
 }
 
@@ -117,15 +118,15 @@ pub struct TrBouncePhaseNegFunds;
 #[tlb(prefix = 0b01, bits_len = 2)]
 pub struct TrBouncePhaseNoFunds {
     pub msg_size: StorageUsedShort,
-    pub req_fwd_fee: Coins,
+    pub req_fwd_fee: TLBCoins,
 }
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0b1, bits_len = 1)]
 pub struct TrBouncePhaseOk {
     pub msg_size: StorageUsedShort,
-    pub msg_fees: Coins,
-    pub fws_fees: Coins,
+    pub msg_fees: TLBCoins,
+    pub fws_fees: TLBCoins,
 }
 
 #[derive(Clone, Debug, PartialEq, TLB)]

@@ -8,8 +8,8 @@ mod example {
     use log4rs::config::{Appender, Root};
     use std::sync::Once;
     use std::time::Duration;
-    use ton::block_tlb::{Coins, CommonMsgInfoInt, Msg};
     use ton::block_tlb::{CommonMsgInfo, CurrencyCollection};
+    use ton::block_tlb::{CommonMsgInfoInt, Msg};
     use ton::contracts::TonWalletMethods;
     use ton::contracts::tl_provider::TLProvider;
     use ton::contracts::{ContractClient, TonContract, TonWalletContract};
@@ -20,6 +20,7 @@ mod example {
     use ton::ton_wallet::WalletVersion;
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
+    use ton_core::types::tlb_core::TLBCoins;
     use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
 
     // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
@@ -87,8 +88,8 @@ mod example {
                 src: MsgAddress::NONE,
                 dst: wallet.address.to_msg_address(),
                 value: CurrencyCollection::from_num(&50010u128)?,
-                ihr_fee: Coins::ZERO,
-                fwd_fee: Coins::ZERO,
+                ihr_fee: TLBCoins::ZERO,
+                fwd_fee: TLBCoins::ZERO,
                 created_lt: 0,
                 created_at: 0,
             }),

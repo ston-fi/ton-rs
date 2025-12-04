@@ -1,7 +1,7 @@
-use crate::block_tlb::Coins;
 use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef};
 
 ///```raw
@@ -14,24 +14,24 @@ use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef}
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0xf8a7ea5, bits_len = 32)]
 pub struct JettonTransferMsg<Payload: TLB = TonCell> {
-    pub query_id: u64, // arbitrary number to identify the transfer
-    pub amount: Coins, // amount of transferred jettons in elementary units
+    pub query_id: u64,    // arbitrary number to identify the transfer
+    pub amount: TLBCoins, // amount of transferred jettons in elementary units
     pub dst: MsgAddress,
     pub response_dst: MsgAddress, // address where to send a response with confirmation of a successful transfer and the rest of the incoming message Toncoins.
     pub custom_payload: Option<TLBRef<TonCell>>, // optional custom data (which is used by either sender or receiver jetton ton_wallet for inner logic).
-    pub forward_ton_amount: Coins,               // the amount of nano-tons to be sent to the destination address.
+    pub forward_ton_amount: TLBCoins,            // the amount of nano-tons to be sent to the destination address.
     pub forward_payload: TLBEitherRef<Payload>,  // data will be sent to the destination address "as is".
 }
 
 impl<T: TLB> JettonTransferMsg<T> {
-    pub fn new<C: Into<Coins>>(dst: MsgAddressInt, amount: C, payload: T) -> Self {
+    pub fn new<C: Into<TLBCoins>>(dst: MsgAddressInt, amount: C, payload: T) -> Self {
         JettonTransferMsg {
             query_id: 0,
             amount: amount.into(),
             dst: dst.into(),
             response_dst: MsgAddress::NONE,
             custom_payload: None,
-            forward_ton_amount: Coins::ZERO,
+            forward_ton_amount: TLBCoins::ZERO,
             forward_payload: TLBEitherRef::new(payload),
         }
     }
@@ -58,7 +58,7 @@ mod tests {
 
         let exp_msg = JettonTransferMsg {
             query_id: 6831775741563530532,
-            amount: Coins::from_str("2500000000000")?,
+            amount: TLBCoins::from_str("2500000000000")?,
             dst: TonAddress::from_str("0:7a92a3c8124a6d5126199765a0833f74db5d73d92253467062803eee117a580f")?
                 .to_msg_address_int()
                 .into(),
@@ -66,7 +66,7 @@ mod tests {
                 .to_msg_address_int()
                 .into(),
             custom_payload: None,
-            forward_ton_amount: Coins::new(600000000u128),
+            forward_ton_amount: TLBCoins::new(600000000u128),
             forward_payload: TLBEitherRef {
                 value: payload,
                 layout: EitherRefLayout::ToRef,

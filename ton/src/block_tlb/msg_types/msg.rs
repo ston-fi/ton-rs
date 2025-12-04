@@ -74,7 +74,7 @@ impl<Body: TLB> Msg<Body> {
                     MsgAddressInt::Std(addr) => addr.anycast = None,
                     MsgAddressInt::Var(addr) => addr.anycast = None,
                 }
-                info.import_fee = Coins::ZERO;
+                info.import_fee = TLBCoins::ZERO;
                 msg_normalized.init = None;
                 msg_normalized.body.layout = EitherRefLayout::ToRef;
                 msg_normalized.cell_hash()
@@ -114,8 +114,8 @@ mod tests {
         assert_eq!(TonAddress::from_msg_address(info.src)?, expected_src);
         assert_eq!(TonAddress::from_msg_address(info.dst)?, expected_dest);
         assert_eq!(info.value, CurrencyCollection::from_num(&3242439121u32)?);
-        assert_eq!(info.ihr_fee, Coins::ZERO);
-        assert_eq!(info.fwd_fee, Coins::ZERO);
+        assert_eq!(info.ihr_fee, TLBCoins::ZERO);
+        assert_eq!(info.fwd_fee, TLBCoins::ZERO);
         assert_eq!(info.created_lt, 53592141000000);
         assert_eq!(info.created_at, 1738593735u32);
 
@@ -133,7 +133,7 @@ mod tests {
         let expected_dst = TonAddress::from_str("EQCBjPu_JrsPyrc8fOT-ovj0ilv_1c2uD1KKQsS84KsG90PM")?;
         let dst = TonAddress::from_msg_address(ext_in_msg_info.dst.clone())?;
         assert_eq!(dst, expected_dst);
-        assert_eq!(ext_in_msg_info.import_fee, Coins::ZERO);
+        assert_eq!(ext_in_msg_info.import_fee, TLBCoins::ZERO);
 
         let cell = ext_in_msg_info.to_cell()?;
         let parsed = CommonMsgInfoExtIn::from_cell(&cell)?;
@@ -153,7 +153,7 @@ mod tests {
                 workchain: -1,
                 address: TonHash::from_str("adfd5f1d28db13e50591d5c76a976c15d8ab6cad90554748ab254871390d9334")?,
             }),
-            import_fee: Coins::new(12364u128),
+            import_fee: TLBCoins::new(12364u128),
         });
         let mut body_value_builder = TonCell::builder();
         body_value_builder.write_num(&200u32, 32)?;

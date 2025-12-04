@@ -17,7 +17,7 @@ use nacl::sign::signature;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
-use ton_core::types::tlb_core::{MsgAddressExt, TLBEitherRef};
+use ton_core::types::tlb_core::*;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct TonWallet {
@@ -88,7 +88,7 @@ impl TonWallet {
         let msg_info = CommonMsgInfo::ExtIn(CommonMsgInfoExtIn {
             src: MsgAddressExt::NONE,
             dst: self.address.to_msg_address_int(),
-            import_fee: Coins::ZERO,
+            import_fee: TLBCoins::ZERO,
         });
 
         let mut msg = Msg::new(msg_info, signed_body);
