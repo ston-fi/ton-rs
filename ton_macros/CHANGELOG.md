@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.3...ton_macros-v0.0.4) - 2025-12-08
+
+### Fixed
+
+- fix corner case if enum variant is enum itself
+
+### Other
+
+- derive From<Variant> for boxed types
+- Support tlb templates ([#125](https://github.com/ston-fi/ton-rs/pull/125))
+
 ## [0.0.3](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.2...ton_macros-v0.0.3) - 2025-11-29
 
 ### Other

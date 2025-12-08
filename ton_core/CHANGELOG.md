@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.11](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.10...ton_core-v0.0.11) - 2025-12-08
+
+### Fixed
+
+- fix corner case if enum variant is enum itself
+
+### Other
+
+- cleanup & fix ton_cell_num ([#147](https://github.com/ston-fi/ton-rs/pull/147))
+- Tvmresult trait extending ([#146](https://github.com/ston-fi/ton-rs/pull/146))
+- use fastnum instead of bignum in tvm ([#145](https://github.com/ston-fi/ton-rs/pull/145))
+- derive From<Variant> for boxed types
+- add TLBEitherRef::new_ref
+- add TonAddress::is_zero
+- Support tlb templates ([#125](https://github.com/ston-fi/ton-rs/pull/125))
+- expose bitstring representation of cell data ([#144](https://github.com/ston-fi/ton-rs/pull/144))
+- add enum example
+
 ## [0.0.10](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.9...ton_core-v0.0.10) - 2025-11-29
 
 ### Other

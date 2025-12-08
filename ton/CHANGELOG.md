@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.9](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.8...ton-v0.0.9) - 2025-12-08
+
+### Other
+
+- cleanup & fix ton_cell_num ([#147](https://github.com/ston-fi/ton-rs/pull/147))
+- Tvmresult trait extending ([#146](https://github.com/ston-fi/ton-rs/pull/146))
+- use fastnum instead of bignum in tvm ([#145](https://github.com/ston-fi/ton-rs/pull/145))
+- derive From<Variant> for boxed types
+- Support tlb templates ([#125](https://github.com/ston-fi/ton-rs/pull/125))
+- don't start recent_tx_loop if contract_cache is disabled ([#143](https://github.com/ston-fi/ton-rs/pull/143))
+- add enum example
+
 ## [0.0.8](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.7...ton-v0.0.8) - 2025-11-29
 
 ### Other
