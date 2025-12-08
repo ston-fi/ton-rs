@@ -3,7 +3,10 @@ use crate::cell::TonCell;
 use crate::cell::ton_cell::{CellBitsReader, CellBorders};
 use crate::cell::ton_cell_num::TonCellNum;
 use crate::errors::TonCoreError;
+use crate::errors::TonCoreResult;
+use bitstream_io::Integer;
 use bitstream_io::{BigEndian, BitRead, BitReader};
+use std::any::type_name;
 use std::io::{Cursor, SeekFrom};
 
 #[derive(Debug, Clone)]
@@ -65,8 +68,11 @@ impl<'a> CellParser<'a> {
     }
 
     pub fn read_num<N: TonCellNum>(&mut self, bits_len: usize) -> Result<N, TonCoreError> {
+        if bits_len == 0 {
+            return Ok(N::zero());
+        }
         self.ensure_enough_bits(bits_len)?;
-        N::tcn_read_bits(&mut self.data_reader, bits_len as u32)
+        N::tcn_read_bits(self, bits_len)
     }
 
     pub fn read_cell(&mut self, bits_len: usize, refs_len: u8) -> Result<TonCell, TonCoreError> {
@@ -141,6 +147,15 @@ impl<'a> CellParser<'a> {
             return Ok(bits_left);
         }
         bail_ton_core_data!("Not enough bits in cell: required {bit_len}, left {bits_left}");
+    }
+
+    // bitstream can't read/write signed properly: https://github.com/tuffy/bitstream-io/issues/26
+    #[inline(always)]
+    pub(crate) fn read_unsigned_primitive<I: Integer>(&mut self, bits_len: usize) -> TonCoreResult<I> {
+        match self.data_reader.read_var(bits_len as u32) {
+            Ok(value) => Ok(value),
+            Err(err) => bail_ton_core_data!("Failed to read {} in {bits_len} bits: {err}", type_name::<I>()),
+        }
     }
 }
 

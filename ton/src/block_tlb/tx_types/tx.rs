@@ -345,8 +345,7 @@ mod tests {
         )?;
         assert_eq!(
             tx.cell_hash()?,
-            TonHash::from_str("2afaee90416232498a9487d882eadbeb9db71743e492e68f750375f05ea9b202")?,
-            "{tx:?}"
+            TonHash::from_str("2afaee90416232498a9487d882eadbeb9db71743e492e68f750375f05ea9b202")?
         );
         Ok(())
     }
