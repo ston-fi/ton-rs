@@ -6,6 +6,7 @@ use fastnum::I512;
 use std::sync::Arc;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
+use ton_macros::TVMResult;
 
 #[rustfmt::skip]
 pub trait TVMResult: Sized {
@@ -38,5 +39,40 @@ mod trait_impl {
 
     impl TVMResult for TonAddress {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TonAddress::from_cell(&stack.pop_cell()?)?) }
+    }
+}
+
+mod tests {
+    use std::str::FromStr;
+
+    use crate::block_tlb::TVMStack;
+    use crate::errors::TonResult;
+    use crate::tep::tvm_results::TVMResult;
+    use ton_core::cell::TonCell;
+    use ton_core::traits::tlb::TLB;
+    use ton_core::types::TonAddress;
+    use ton_macros::TVMResult;
+
+    #[derive(TVMResult, Debug)]
+    pub struct TestStruct {
+        pub field1: i64,
+        pub field2: TonAddress,
+        pub field3: bool,
+    }
+
+    #[test]
+    pub fn tvm_result_macros() -> anyhow::Result<()> {
+        let mut stack = TVMStack::new(vec![]);
+        stack.push_tiny_int(1);
+        stack.push_cell(TonAddress::from_str("EQBiMfDMivebQb052Z6yR3jHrmwNhw1kQ5bcAUOBYsK_VPuK")?.to_cell()?);
+        stack.push_tiny_int(0);
+
+        let test_struct = TestStruct::from_stack(&mut stack)?;
+
+        assert_eq!(test_struct.field1, 1i64);
+        assert_eq!(test_struct.field2, TonAddress::from_str("EQBiMfDMivebQb052Z6yR3jHrmwNhw1kQ5bcAUOBYsK_VPuK")?);
+        assert_eq!(test_struct.field3, false);
+
+        Ok(())
     }
 }
