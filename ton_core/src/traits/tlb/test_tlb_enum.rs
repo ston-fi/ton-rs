@@ -1,7 +1,9 @@
+use crate::errors::TonCoreError;
 use crate::traits::tlb::TLB;
 use crate::types::TonAddress;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio_test::assert_err;
 use ton_macros::TLB;
 
 #[derive(TLB, Eq, PartialEq, Debug)]
@@ -65,5 +67,30 @@ fn test_tlb_enum_from() -> anyhow::Result<()> {
     let _e4: MyEnum = Arc::new(Struct4).into();
 
     let _e5: MyEnum = Box::new(e1).into();
+    Ok(())
+}
+
+#[test]
+fn test_tlb_enum_out_of_option() -> anyhow::Result<()> {
+    #[derive(TLB, Eq, PartialEq, Debug)]
+    enum OutOfOptionEnum {
+        Var1(Struct2),
+    }
+
+    let s1 = Struct1 { value: 1 };
+    let e1 = MyEnum::Var1(s1);
+    let e1_boc = e1.to_boc_hex()?;
+
+    let err = assert_err!(OutOfOptionEnum::from_boc_hex(&e1_boc));
+    match err {
+        TonCoreError::TLBEnumOutOfOptions {
+            message,
+            cell_boc_hex: boc_hex,
+        } => {
+            assert_eq!(message, "OutOfOptionEnum: got prefix: 4");
+            assert_eq!(boc_hex, e1_boc);
+        }
+        _ => panic!("Unexpected error type: {err}"),
+    }
     Ok(())
 }

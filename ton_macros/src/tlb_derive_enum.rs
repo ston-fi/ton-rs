@@ -78,16 +78,25 @@ pub(crate) fn tlb_derive_enum(
             let prefix_bits_len = #first_bits_ident;
             let actual_prefix = match parser.read_num::<usize>(prefix_bits_len) {
                 Ok(prefix) => prefix,
-                Err(err) => return Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions(format!("{}: {err}", #ident_str))),
+                Err(err) => return Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions {
+                message: format!("{}: {err}", #ident_str),
+                cell_boc_hex: original_parser.read_remaining()?.to_boc_hex()?,
+            })
             };
             parser.seek_bits(-(prefix_bits_len as i32))?;
             match actual_prefix {
                 #(#match_arms)*
-                _ => Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions(format!("{}: got prefix: 0x{actual_prefix:x}", #ident_str))),
+                _ => Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions {
+                message: format!("{}: got prefix: {actual_prefix}", #ident_str),
+                cell_boc_hex: original_parser.read_remaining()?.to_boc_hex()?,
+                }),
             }
         } else {
             #(#fallback_readers)*
-            Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions((#ident_str).to_string()))
+            Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions {
+                message: (#ident_str).to_string(),
+                cell_boc_hex: original_parser.read_remaining()?.to_boc_hex()?,
+            })
         }
     };
 

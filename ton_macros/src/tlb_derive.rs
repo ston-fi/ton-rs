@@ -103,6 +103,7 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
 
             fn read_definition(parser: &mut #crate_path::cell::CellParser) -> Result<Self, #crate_path::errors::TonCoreError> {
                 use #crate_path::traits::tlb::TLB;
+                let mut original_parser = parser.clone();
 
                 #read_def_tokens
             }
