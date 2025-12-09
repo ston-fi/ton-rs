@@ -30,8 +30,8 @@ pub enum TonCoreError {
         bits_exp: usize,
         bits_left: usize,
     },
-    #[error("TLBEnumOutOfOptions: data doesn't match any variant of {0}")]
-    TLBEnumOutOfOptions(String),
+    #[error("TLBEnumOutOfOptions: data doesn't match any variant of {message}, cell_boc_hex: {cell_boc_hex}")]
+    TLBEnumOutOfOptions { message: String, cell_boc_hex: String },
 
     // General errors
     #[error("Custom: {0}")]

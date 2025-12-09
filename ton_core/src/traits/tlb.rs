@@ -52,6 +52,9 @@ pub trait TLB: Sized {
         let boc = boc.into();
         match BoC::from_bytes(boc.clone()).and_then(|x| x.single_root()).and_then(|x| Self::from_cell(&x)) {
             Ok(cell) => Ok(cell),
+            Err(TonCoreError::TLBEnumOutOfOptions { message, cell_boc_hex }) => {
+                Err(TonCoreError::TLBEnumOutOfOptions { message, cell_boc_hex })
+            }
             Err(err) => bail_ton_core_data!(
                 "Fail to read {} from bytes: {}, err: {err}",
                 type_name::<Self>(),
