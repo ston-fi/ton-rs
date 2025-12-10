@@ -1,9 +1,10 @@
 mod builder;
 mod task_counter;
 
+pub use task_counter::*;
+
+use crate::emulators::emulator_pool::thread_pool::builder::Builder;
 use crate::errors::{TonError, TonResult};
-use crate::thread_pool::builder::Builder;
-use crate::thread_pool::task_counter::TaskCounter;
 use std::ops::Add;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
@@ -15,7 +16,7 @@ use tokio::sync::oneshot;
 const SLEEP_ON_FULL_QUEUE: Duration = Duration::from_millis(3);
 const MIN_QUEUE_LEN_TO_ACCEPT_TASKS: usize = 2;
 
-pub trait PoolObject: Send + Sync + 'static {
+pub(super) trait PoolObject: Send + Sync + 'static {
     type Task: Send + Sync;
     type Retval: Send + Sync;
     fn process<T: Into<Self::Task>>(&mut self, task: T) -> TonResult<Self::Retval>;
@@ -23,9 +24,9 @@ pub trait PoolObject: Send + Sync + 'static {
     fn descriptor(&self) -> &str { "undefined" }
 }
 
-/// Depends on number of objects provided, run one thread per object
-#[derive(Clone)]
-pub struct ThreadPool<T: PoolObject>(Arc<Inner<T>>);
+/// Run one thread per provider object
+/// Is not supposed to be used directly: use EmulatorPool instead (`EmulatorPool::builder()`)
+pub(super) struct ThreadPool<T: PoolObject>(Arc<Inner<T>>);
 
 impl<Obj: PoolObject> ThreadPool<Obj> {
     pub fn builder(objects: Vec<Obj>) -> TonResult<Builder<Obj>> { Builder::new(objects) }
@@ -53,7 +54,7 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
         }
     }
 
-    pub fn print_stats(&self) -> String {
+    pub fn display_stats(&self) -> String {
         let mut result = String::new();
 
         // Table header
@@ -96,6 +97,10 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
 
         result
     }
+}
+
+impl<T: PoolObject> Clone for ThreadPool<T> {
+    fn clone(&self) -> Self { ThreadPool(self.0.clone()) }
 }
 
 struct PoolTask<Obj: PoolObject> {

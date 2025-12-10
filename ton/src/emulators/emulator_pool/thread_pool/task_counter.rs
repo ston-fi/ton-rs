@@ -8,20 +8,20 @@ pub struct TaskCounter {
 }
 
 impl TaskCounter {
-    pub(super) fn new() -> Self { Self::default() }
+    pub(crate) fn new() -> Self { Self::default() }
 
-    pub(super) fn task_added(&'_ self) -> TaskCounterUpdater<'_> { TaskCounterUpdater::new(self) }
+    pub(crate) fn task_added(&'_ self) -> TaskCounterUpdater<'_> { TaskCounterUpdater::new(self) }
 }
 
 /// mark_done() must be called to mark task as successfully completed
 /// Otherwise, Drop will mark task as failed
-pub(super) struct TaskCounterUpdater<'a> {
+pub(crate) struct TaskCounterUpdater<'a> {
     counter: &'a TaskCounter,
     is_done: AtomicBool,
 }
 
 impl<'a> TaskCounterUpdater<'a> {
-    pub(super) fn new(counter: &'a TaskCounter) -> Self {
+    pub(crate) fn new(counter: &'a TaskCounter) -> Self {
         counter.in_progress.fetch_add(1, Ordering::Relaxed);
         Self {
             counter,
@@ -29,7 +29,7 @@ impl<'a> TaskCounterUpdater<'a> {
         }
     }
 
-    pub(super) fn task_done(self) {
+    pub(crate) fn task_done(self) {
         self.counter.in_progress.fetch_sub(1, Ordering::Relaxed);
         self.counter.done.fetch_add(1, Ordering::Relaxed);
         self.is_done.store(true, Ordering::Relaxed);
