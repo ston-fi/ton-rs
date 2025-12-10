@@ -19,7 +19,7 @@ macro_rules! extract_tuple_val {
 // https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb#L872C30-L872C40
 // Doesn't implement tlb schema directly for convenience purposes
 // Very similar with VMStackValue, but random access to underlying values
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TVMTuple(Vec<TVMStackValue>);
 
 impl Deref for TVMTuple {

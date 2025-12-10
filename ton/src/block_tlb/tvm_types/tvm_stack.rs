@@ -20,7 +20,7 @@ macro_rules! extract_stack_val {
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L864
 // Doesn't implement tlb schema directly for convenience purposes
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TVMStack(Vec<TVMStackValue>);
 
 impl Deref for TVMStack {
