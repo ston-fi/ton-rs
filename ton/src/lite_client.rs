@@ -1,20 +1,20 @@
-mod config;
+mod builder;
 mod connection;
 mod lite_types;
 mod liteapi_serde;
+mod req_params;
 mod unwrap_lite_rsp;
 
-pub use config::*;
+pub use builder::*;
 pub use lite_types::*;
+pub use req_params::*;
 
 use crate::block_tlb::{BlockIdExt, MaybeAccount};
 use crate::errors::TonError;
 use crate::libs_dict::LibsDict;
 use crate::lite_client::connection::Connection;
 use crate::unwrap_lite_rsp;
-use auto_pool::config::{AutoPoolConfig, PickStrategy};
 use auto_pool::pool::AutoPool;
-use std::cmp::max;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::Relaxed;
@@ -23,7 +23,7 @@ use tokio_retry::RetryIf;
 use tokio_retry::strategy::FixedInterval;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::constants::{TON_MASTERCHAIN, TON_SHARD_FULL};
-use ton_core::errors::TonCoreError;
+use ton_core::errors::{TonCoreError, TonCoreResult};
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 use ton_liteapi::tl::common::{AccountId, Int256};
@@ -34,17 +34,11 @@ const WAIT_MC_SEQNO_MS: u32 = 5000;
 const WAIT_CONNECTION_MS: u64 = 5;
 
 #[derive(Clone)]
-pub struct LiteClient {
-    inner: Arc<Inner>,
-}
+pub struct LiteClient(Arc<Inner>);
 
 // converts ton_block -> ton_liteapi objects under the hood
 impl LiteClient {
-    pub fn new(config: LiteClientConfig) -> Result<Self, TonError> {
-        Ok(Self {
-            inner: Arc::new(Inner::new(config)?),
-        })
-    }
+    pub fn builder() -> TonCoreResult<Builder> { Builder::new() }
 
     pub async fn get_mc_info(&self) -> Result<MasterchainInfo, TonError> {
         let rsp = self.exec(Request::GetMasterchainInfo, None, None).await?;
@@ -104,7 +98,7 @@ impl LiteClient {
     }
 
     pub async fn get_libs(&self, lib_ids: &[TonHash], params: Option<LiteReqParams>) -> Result<LibsDict, TonError> {
-        self.inner.get_libs_impl(lib_ids, params).await
+        self.0.get_libs_impl(lib_ids, params).await
     }
 
     pub async fn exec(
@@ -122,50 +116,17 @@ impl LiteClient {
         wait_mc_seqno: Option<u32>,
         params: Option<LiteReqParams>,
     ) -> Result<Response, TonError> {
-        self.inner.exec_with_retries(request, wait_mc_seqno, params).await
+        self.0.exec_with_retries(request, wait_mc_seqno, params).await
     }
 }
 
 struct Inner {
-    config: LiteClientConfig,
+    default_req_params: LiteReqParams,
     conn_pool: AutoPool<Connection>,
     global_req_id: AtomicU64,
 }
 
 impl Inner {
-    fn new(config: LiteClientConfig) -> Result<Self, TonError> {
-        let conn_per_node = max(1, config.connections_per_node);
-        log::info!(
-            "Creating LiteClient with {} conns per node; nodes_cnt: {}, default_req_params: {:?}",
-            conn_per_node,
-            config.net_config.lite_endpoints.len(),
-            config.default_req_params,
-        );
-
-        let mut connections = Vec::new();
-        for _ in 0..conn_per_node {
-            for endpoint in &config.net_config.lite_endpoints {
-                let conn = Connection::new(endpoint.clone(), config.conn_timeout)?;
-                connections.push(conn);
-            }
-        }
-        let ap_config = AutoPoolConfig {
-            wait_duration: Duration::MAX,
-            lock_duration: Duration::from_millis(2),
-            sleep_duration: Duration::from_millis(WAIT_CONNECTION_MS),
-            pick_strategy: PickStrategy::RANDOM,
-        };
-
-        let connection_pool = AutoPool::new_with_config(ap_config, connections);
-
-        Ok(Self {
-            config,
-            conn_pool: connection_pool,
-            global_req_id: AtomicU64::new(0),
-            // metrics,
-        })
-    }
-
     async fn get_libs_impl(&self, lib_ids: &[TonHash], params: Option<LiteReqParams>) -> Result<LibsDict, TonError> {
         let mut libs_dict = LibsDict::default();
         for chunk in lib_ids.chunks(16) {
@@ -215,7 +176,7 @@ impl Inner {
             }),
             request: req,
         };
-        let req_params = params.as_ref().unwrap_or(&self.config.default_req_params);
+        let req_params = params.as_ref().unwrap_or(&self.default_req_params);
         let req_id = self.global_req_id.fetch_add(1, Relaxed);
         let fi = FixedInterval::new(req_params.retry_waiting);
         let strategy = fi.take(req_params.retries_count as usize);

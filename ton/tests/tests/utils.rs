@@ -55,8 +55,13 @@ pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow:
 pub async fn make_lite_client(mainnet: bool) -> anyhow::Result<LiteClient> {
     init_logging();
     log::info!("initializing lite_client with mainnet={mainnet}...");
-    let mut config = LiteClientConfig::new(TonNetConfig::new_default(mainnet)?)?;
-    config.default_req_params.retries_count = 20;
-    config.default_req_params.retry_waiting = Duration::from_millis(200);
-    Ok(LiteClient::new(config)?)
+    let mut req_params = LiteReqParams::default();
+    req_params.retries_count = 20;
+    req_params.retry_waiting = Duration::from_millis(200);
+
+    let lite_client = LiteClient::builder()?
+        .with_net_config(TonNetConfig::new_default(mainnet)?)
+        .with_default_req_params(req_params)
+        .build()?;
+    Ok(lite_client)
 }

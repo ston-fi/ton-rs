@@ -1,7 +1,7 @@
 use crate::bail_ton;
 use crate::block_tlb::{BlockIdExt, BlockInfo};
 use crate::errors::{TonError, TonResult};
-use crate::lite_client::{LiteClient, LiteClientConfig};
+use crate::lite_client::LiteClient;
 use crate::net_config::TonNetConfig;
 use crate::tl_client::tl::{TLConfig, TLKeyStoreType, TLOptions};
 use crate::tl_client::{Inner, LiteNodeFilter, RetryStrategy, TLCallbacksStore, TLClient, TLConnection};
@@ -121,12 +121,11 @@ async fn update_net_config(builder: &Builder) -> TonResult<Option<TonNetConfig>>
     let net_config = TonNetConfig::new(&builder.init_opts.config.net_config_json)?;
     let cur_init_seqno = net_config.get_init_block_seqno();
 
-    let lite_config = LiteClientConfig::new(net_config)?;
-    let lite_client = LiteClient::new(lite_config.clone())?;
+    let lite_client = LiteClient::builder()?.with_net_config(net_config.clone()).build()?;
     let lite_client_ref = &lite_client;
 
-    let mut futs = Vec::with_capacity(lite_config.net_config.lite_endpoints.len());
-    for _ in lite_config.net_config.lite_endpoints.iter() {
+    let mut futs = vec![];
+    for _ in net_config.lite_endpoints.iter() {
         let future = async {
             let mc_info = lite_client_ref.get_mc_info().await?;
             let block = lite_client_ref.get_block(mc_info.last, None).await?;
@@ -151,7 +150,7 @@ async fn update_net_config(builder: &Builder) -> TonResult<Option<TonNetConfig>>
 
     if let Some(block) = max_block {
         log::info!("Got new init_block for TonNetConfig: {} -> {}", cur_init_seqno, block.seqno);
-        let mut net_conf = lite_config.net_config.clone();
+        let mut net_conf = net_config.clone();
         net_conf.set_init_block(&block);
         return Ok(Some(net_conf));
     }
