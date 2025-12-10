@@ -6,7 +6,6 @@ use fastnum::I512;
 use std::sync::Arc;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
-use ton_macros::TVMResult;
 
 #[rustfmt::skip]
 pub trait TVMResult: Sized {
@@ -18,8 +17,10 @@ pub trait TVMResult: Sized {
 }
 
 mod trait_impl {
+    use crate::tep::metadata::MetadataContent;
+
     use super::*;
-    use ton_core::types::TonAddress;
+    use ton_core::types::{TonAddress, tlb_core::TLBCoins};
 
     impl TVMResult for bool {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(stack.pop_number()? != I512::ZERO) }
@@ -40,15 +41,23 @@ mod trait_impl {
     impl TVMResult for TonAddress {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TonAddress::from_cell(&stack.pop_cell()?)?) }
     }
+
+    impl TVMResult for MetadataContent {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(MetadataContent::from_cell(&stack.pop_cell()?)?) }
+    }
+
+    impl TVMResult for TLBCoins {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TLBCoins::from_num(&stack.pop_number()?)?) }
+    }
 }
 
+#[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
     use crate::block_tlb::TVMStack;
     use crate::errors::TonResult;
     use crate::tep::tvm_results::TVMResult;
-    use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
     use ton_macros::TVMResult;

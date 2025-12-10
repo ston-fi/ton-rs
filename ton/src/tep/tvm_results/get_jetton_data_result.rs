@@ -2,38 +2,18 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use fastnum::I512;
+use ton_core::TVMResult;
 use ton_core::cell::TonCell;
-use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 use ton_core::types::tlb_core::TLBCoins;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, TVMResult)]
 pub struct GetJettonDataResult {
     pub total_supply: TLBCoins,
     pub mintable: bool,
     pub admin: TonAddress,
     pub content: MetadataContent,
     pub wallet_code: TonCell,
-}
-
-impl TVMResult for GetJettonDataResult {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
-        let wallet_code = stack.pop_cell()?;
-        let content = MetadataContent::from_cell(&stack.pop_cell()?)?;
-        let admin = TonAddress::from_cell(&stack.pop_cell()?)?;
-        let mintable = stack.pop_number()? != I512::ZERO;
-
-        let total_supply = TLBCoins::from_num(&stack.pop_number()?)?;
-
-        Ok(Self {
-            total_supply,
-            mintable,
-            admin,
-            content,
-            wallet_code,
-        })
-    }
 }
 
 #[cfg(test)]

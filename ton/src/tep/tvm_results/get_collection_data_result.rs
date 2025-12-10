@@ -2,33 +2,20 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::traits::tlb::TLB;
+use ton_core::TVMResult;
 use ton_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, TVMResult)]
 pub struct GetCollectionDataResult {
     pub next_item_index: i64,
     pub collection_content: MetadataContent,
     pub owner_address: TonAddress,
 }
 
-impl TVMResult for GetCollectionDataResult {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
-        let owner_address = TVMResult::from_stack(stack)?;
-        let collection_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
-        let next_item_index = TVMResult::from_stack(stack)?;
-
-        Ok(Self {
-            next_item_index,
-            owner_address,
-            collection_content,
-        })
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_get_jetton_data_result() -> anyhow::Result<()> {
