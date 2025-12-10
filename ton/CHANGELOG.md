@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.10](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.9...ton-v0.0.10) - 2025-12-10
+
+### Other
+
+- PartialEq for TVMStack ([#153](https://github.com/ston-fi/ton-rs/pull/153))
+- Testnet constants ([#150](https://github.com/ston-fi/ton-rs/pull/150))
+
 ## [0.0.9](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.8...ton-v0.0.9) - 2025-12-08
 
 ### Other
