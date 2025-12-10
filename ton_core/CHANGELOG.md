@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.12](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.11...ton_core-v0.0.12) - 2025-12-09
+
+### Other
+
+- cell boc hex to TLBEnumOutOfOptions for debugging ([#148](https://github.com/ston-fi/ton-rs/pull/148))
+
 ## [0.0.11](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.10...ton_core-v0.0.11) - 2025-12-08
 
 ### Fixed
