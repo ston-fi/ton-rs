@@ -121,11 +121,12 @@ fn check_bytes_len(bytes: &[u8]) -> Result<(), TonCoreError> {
 
 #[rustfmt::skip]
 mod traits_impl {
+    use super::*;
     use std::fmt::{Debug, Display, Formatter, UpperHex};
     use std::fmt::Result as FmtResult;
     use std::hash::Hash;
     use std::str::FromStr;
-    use crate::cell::ton_hash::{from_base64, from_hex, TonHash, TonHashData};
+    use crate::bail_ton_core_data;
     use crate::errors::TonCoreError;
 
     impl Default for TonHash { fn default() -> Self { TonHash::ZERO } }
@@ -140,7 +141,10 @@ mod traits_impl {
             if s.len() == 66 && (s.starts_with("0x") || s.starts_with("0X")) {
                 return from_hex(&s[2..]);
             }
-            from_base64(s)
+            match from_base64(s) {
+                Ok(hash) => Ok(hash),
+                Err(_) => bail_ton_core_data!("Parsing TonHash failed for str: {s}"),
+            }
         }
     }
     impl TryFrom<String> for TonHash {
