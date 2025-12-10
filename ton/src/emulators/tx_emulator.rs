@@ -1,7 +1,5 @@
 mod tx_emul_args;
 mod tx_emul_response;
-mod tx_emulator_pool;
-pub use tx_emulator_pool::*;
 
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};

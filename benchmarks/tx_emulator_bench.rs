@@ -12,11 +12,11 @@ use tokio::runtime::Runtime;
 use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::{Msg, ShardAccount, Tx};
 use ton::emulators::emul_bc_config::EmulBCConfig;
+use ton::emulators::emulator_pool::thread_pool::{PoolObject, ThreadPool};
 use ton::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationSuccess, TXEmulator};
 use ton::emulators::tx_emulator::{TXEmulTask, TXEmulatorPool};
 use ton::errors::TonResult;
 use ton::sys_utils::sys_tonlib_set_verbosity_level;
-use ton::thread_pool::{PoolObject, ThreadPool};
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
@@ -402,7 +402,7 @@ fn main() {
             println!("{}", TX_EMULATOR_POOL.get().unwrap().print_stats());
         }
         _ => {
-            println!("{}", THREAD_POOL.get().unwrap().print_stats());
+            println!("{}", THREAD_POOL.get().unwrap().display_stats());
         }
     }
 }
