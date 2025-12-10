@@ -1,7 +1,11 @@
 use crate::tests::utils::make_lite_client;
 use std::str::FromStr;
+use tokio_test::assert_ok;
+use ton::block_tlb::BlockIdExt;
 use ton::errors::TonError;
 use ton::unwrap_lite_rsp;
+use ton_core::cell::TonCell;
+use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 use ton_liteapi::tl::request::Request;
 use ton_liteapi::tl::response::Response;
@@ -29,6 +33,7 @@ async fn test_lite_client() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[ignore = "requires full (archive) testnet node"]
 #[tokio::test]
 async fn test_lite_client_testnet() -> anyhow::Result<()> {
     let lite_client = make_lite_client(false).await?;
@@ -37,5 +42,8 @@ async fn test_lite_client_testnet() -> anyhow::Result<()> {
     let account = lite_client.get_account_state(&usdt_addr, mc_info.last.seqno, None).await?;
     assert!(account.as_account().is_some());
 
+    // fetching zero-block
+    let state = lite_client.get_block_state(BlockIdExt::ZERO_BLOCK_ID_TESTNET, None).await?;
+    assert_ok!(TonCell::from_boc(state.data));
     Ok(())
 }

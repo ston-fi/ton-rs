@@ -28,7 +28,7 @@ use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 use ton_liteapi::tl::common::{AccountId, Int256};
 use ton_liteapi::tl::request::*;
-use ton_liteapi::tl::response::{BlockData, Response};
+use ton_liteapi::tl::response::{BlockData, BlockState, Response};
 
 const WAIT_MC_SEQNO_MS: u32 = 5000;
 const WAIT_CONNECTION_MS: u64 = 5;
@@ -77,6 +77,18 @@ impl LiteClient {
         let req = Request::GetBlock(GetBlock { id: block_id.into() });
         let rsp = self.exec(req, Some(seqno), params).await?;
         unwrap_lite_rsp!(rsp, BlockData)
+    }
+
+    // BlockState is not implemented in block_tlb, so we return ton_liteapi::BlockState here
+    pub async fn get_block_state(
+        &self,
+        block_id: BlockIdExt,
+        params: Option<LiteReqParams>,
+    ) -> Result<BlockState, TonError> {
+        let seqno = block_id.seqno;
+        let req = Request::GetState(GetState { id: block_id.into() });
+        let rsp = self.exec(req, Some(seqno), params).await?;
+        unwrap_lite_rsp!(rsp, BlockState)
     }
 
     pub async fn get_account_state(
