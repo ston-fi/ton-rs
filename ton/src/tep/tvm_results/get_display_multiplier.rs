@@ -5,6 +5,7 @@ use fastnum::I512;
 use ton_core::TVMResult;
 
 #[derive(Debug, Clone, PartialEq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetDisplayMultiplierResult {
     pub numerator: I512,
     pub denominator: I512,

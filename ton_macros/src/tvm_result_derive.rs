@@ -1,8 +1,18 @@
+use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{DeriveInput, parse_macro_input};
 
-pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+#[derive(deluxe::ExtractAttributes)]
+#[deluxe(attributes(tvm_result))]
+pub(crate) struct TVMResultHeaderAttributes {
+    pub(crate) ensure_empty: Option<bool>, // use false as default
+}
+
+pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
+    let mut input = syn::parse::<syn::DeriveInput>(input).unwrap();
+    let header_attrs: TVMResultHeaderAttributes = match deluxe::extract_attributes(&mut input) {
+        Ok(desc) => desc,
+        Err(e) => return e.into_compile_error(),
+    };
 
     let name = input.ident;
     let fields = if let syn::Data::Struct(syn::DataStruct {
@@ -13,7 +23,7 @@ pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> proc_macro::Tok
         named
     } else {
         // Now macros only for ordinary structs with named fields, add more if needed
-        unimplemented!()
+        unimplemented!("Now it is implemented only for ordinary structs with named fields")
     };
 
     let names = fields.clone().into_iter().map(|f| {
@@ -27,10 +37,18 @@ pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> proc_macro::Tok
         }
     });
 
+    let ensure_empty = if header_attrs.ensure_empty.unwrap_or(false) {
+        quote! {stack.ensure_empty()?;}
+    } else {
+        quote! {}
+    };
+
     let expanded = quote! {
         impl TVMResult for #name  {
             fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
                 #(#assigns)*
+
+                #ensure_empty
 
                 Ok(Self {
                     #(#names,) *
@@ -40,5 +58,5 @@ pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> proc_macro::Tok
     };
 
     // Hand the output tokens back to the compiler.
-    proc_macro::TokenStream::from(expanded)
+    expanded
 }

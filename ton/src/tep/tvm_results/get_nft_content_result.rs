@@ -5,6 +5,7 @@ use crate::tep::tvm_results::tvm_result::TVMResult;
 use ton_core::TVMResult;
 
 #[derive(Debug, Clone, PartialEq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetNFTContentResult {
     pub full_content: MetadataContent,
 }

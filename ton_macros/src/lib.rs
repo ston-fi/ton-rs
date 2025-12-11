@@ -13,5 +13,5 @@ use proc_macro::TokenStream;
 #[proc_macro_derive(TLB, attributes(tlb))]
 pub fn tlb_derive(input: TokenStream) -> TokenStream { tlb_derive_impl(input).into() }
 
-#[proc_macro_derive(TVMResult)]
-pub fn tvm_result_derive(input: TokenStream) -> TokenStream { tvm_result_derive_impl(input) }
+#[proc_macro_derive(TVMResult, attributes(tvm_result))]
+pub fn tvm_result_derive(input: TokenStream) -> TokenStream { tvm_result_derive_impl(input).into() }

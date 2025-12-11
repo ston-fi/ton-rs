@@ -7,6 +7,7 @@ use ton_core::TVMResult;
 use ton_core::types::TonAddress;
 
 #[derive(Debug, Clone, PartialEq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetNFTDataResult {
     pub init: bool,
     pub index: I512,

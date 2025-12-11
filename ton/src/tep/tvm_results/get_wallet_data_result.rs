@@ -7,6 +7,7 @@ use ton_core::cell::TonCell;
 use ton_core::types::TonAddress;
 
 #[derive(Debug, Clone, PartialEq, Eq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetWalletDataResult {
     pub balance: I512,
     pub owner: TonAddress,

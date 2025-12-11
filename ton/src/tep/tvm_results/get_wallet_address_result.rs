@@ -5,6 +5,7 @@ use ton_core::TVMResult;
 use ton_core::types::TonAddress;
 
 #[derive(Debug, Clone, PartialEq, Eq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetWalletAddressResult {
     pub address: TonAddress,
 }

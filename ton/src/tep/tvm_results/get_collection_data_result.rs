@@ -6,6 +6,7 @@ use ton_core::TVMResult;
 use ton_core::types::TonAddress;
 
 #[derive(Debug, Clone, PartialEq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetCollectionDataResult {
     pub next_item_index: i64,
     pub collection_content: MetadataContent,
