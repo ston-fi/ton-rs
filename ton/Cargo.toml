@@ -65,7 +65,8 @@ sha2.workspace = true
 reqwest.workspace = true
 derive_setters.workspace = true
 fastnum.workspace = true
-
+function_name.workspace = true
+bincode = { workspace = true, features = ["serde"] }
 [dev-dependencies]
 anyhow.workspace = true
 tokio-test.workspace = true

@@ -18,6 +18,10 @@ impl From<Arc<CString>> for EmulBCConfig {
     fn from(config: Arc<CString>) -> Self { Self(config) }
 }
 
+impl From<EmulBCConfig> for Arc<CString> {
+    fn from(config: EmulBCConfig) -> Self { config.0 }
+}
+
 impl EmulBCConfig {
     pub fn from_boc(config_boc: &[u8]) -> Result<Self, TonError> { Self::from_boc_base64(&STANDARD.encode(config_boc)) }
     pub fn from_boc_hex(config_boc_hex: &str) -> Result<Self, TonError> {
@@ -25,5 +29,13 @@ impl EmulBCConfig {
     }
     pub fn from_boc_base64(config_boc_base64: &str) -> Result<Self, TonError> {
         Ok(Self(Arc::new(CString::new(config_boc_base64)?)))
+    }
+    pub fn to_boc(&self) -> Result<Vec<u8>, TonError> {
+        let base64_str = self.to_string_lossy();
+        Ok(STANDARD.decode(base64_str.as_ref())?)
+    }
+    pub fn to_boc_hex(&self) -> Result<String, TonError> {
+        let boc_bytes = self.to_boc()?;
+        Ok(hex::encode(boc_bytes))
     }
 }

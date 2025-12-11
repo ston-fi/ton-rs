@@ -29,6 +29,10 @@ pub trait TonContract: Send + Sync + Sized {
         M: Into<TVMGetMethodID> + Send,
     {
         let method_id = method.into().to_id();
+        println!("contract state:{:?}", self.get_state());
+        println!("method id:{:?}", method_id);
+        println!("stack:{:?}", stack.to_boc().unwrap());
+
         let response =
             self.get_client().emulate_get_method(self.get_state(), method_id, stack.to_boc()?, mc_seqno).await?;
         response.stack_boc()
