@@ -3,10 +3,11 @@ use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
-use ton_core::traits::tlb::TLB;
+use ton_core::TVMResult;
 use ton_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetNFTDataResult {
     pub init: bool,
     pub index: I512,
@@ -15,27 +16,10 @@ pub struct GetNFTDataResult {
     pub individual_content: MetadataContent,
 }
 
-impl TVMResult for GetNFTDataResult {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
-        let individual_content = MetadataContent::from_cell(&stack.pop_cell()?)?;
-        let owner_address: TonAddress = TonAddress::from_cell(&stack.pop_cell()?)?;
-        let collection_address = TonAddress::from_cell(&stack.pop_cell()?)?;
-        let index = stack.pop_number()?;
-        let init = stack.pop_number()? != I512::ZERO;
-
-        Ok(Self {
-            init,
-            index,
-            collection_address,
-            owner_address,
-            individual_content,
-        })
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use ton_core::traits::tlb::TLB;
 
     #[test]
     fn test_get_nft_data_result() -> anyhow::Result<()> {

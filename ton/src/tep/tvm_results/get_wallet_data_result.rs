@@ -2,31 +2,17 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use crate::tep::tvm_results::TVMResult;
 use fastnum::I512;
+use ton_core::TVMResult;
 use ton_core::cell::TonCell;
 use ton_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, TVMResult)]
+#[tvm_result(ensure_empty = true)]
 pub struct GetWalletDataResult {
     pub balance: I512,
     pub owner: TonAddress,
     pub master: TonAddress,
     pub wallet_code: TonCell,
-}
-
-impl TVMResult for GetWalletDataResult {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
-        let wallet_code = TVMResult::from_stack(stack)?;
-        let master = TVMResult::from_stack(stack)?;
-        let owner = TVMResult::from_stack(stack)?;
-        let balance = TVMResult::from_stack(stack)?;
-
-        Ok(Self {
-            balance,
-            owner,
-            master,
-            wallet_code,
-        })
-    }
 }
 
 #[cfg(test)]

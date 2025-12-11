@@ -26,6 +26,7 @@ unstable = []
 
 [dependencies]
 # Internal
+ton_macros = {workspace = true}
 ton_core = {workspace = true, features = ["serde"] }
 tonlib-sys = { workspace = true, optional = true }
 

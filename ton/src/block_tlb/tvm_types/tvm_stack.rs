@@ -37,6 +37,14 @@ impl TVMStack {
 
     pub fn new(items: Vec<TVMStackValue>) -> Self { Self(items) }
 
+    pub fn ensure_empty(&self) -> TonResult<()> {
+        if !self.is_empty() {
+            return Err(TonError::TVMStackNotEmpty);
+        }
+
+        Ok(())
+    }
+
     pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }
     pub fn push_int(&mut self, value: I512) { self.push(TVMStackValue::Int(TVMInt { value })); }
     pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
@@ -55,7 +63,7 @@ impl TVMStack {
     pub fn pop_tiny_int(&mut self) -> TonResult<i64> { extract_stack_val!(self.pop(), TinyInt) }
     pub fn pop_int(&mut self) -> TonResult<I512> { extract_stack_val!(self.pop(), Int) }
     /// Pops Int or TinyInt as I512
-    pub fn pop_number(&mut self) -> TonResult<I512> {
+    pub fn pop_num(&mut self) -> TonResult<I512> {
         match self.pop_checked()? {
             TVMStackValue::Int(inner) => Ok(inner.value),
             TVMStackValue::TinyInt(inner) => Ok(I512::from_i64(inner.value)),

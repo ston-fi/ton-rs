@@ -88,6 +88,8 @@ pub enum TonError {
     TVMStackWrongType(String, String),
     #[error("TVMStackError: stack is empty")]
     TVMStackEmpty,
+    #[error("TVMStackError: stack is not empty, but should be")]
+    TVMStackNotEmpty,
 
     // Mnemonic
     #[error("MnemonicWordsCount: expected 24 words, got {0}")]
