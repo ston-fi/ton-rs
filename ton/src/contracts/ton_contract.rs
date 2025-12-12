@@ -90,14 +90,13 @@ macro_rules! ton_contract {
 
         impl TonContract for $name {
             fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self {
-                let data = state.data_boc.as_ref().and_then(|boc| <$data_ty as ::ton_core::traits::tlb::TLB>::from_boc(boc.to_owned()).ok());
+                let data = state.data_boc.as_ref().and_then(|boc| <$data_ty as TLB>::from_boc(boc.to_owned()).ok());
                 Self{client, state, data}
             }
             fn get_client(&self) -> &ContractClient { &self.client }
             fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
         }
 
-        #[allow(dead_code)]
         impl $name {
             pub async fn get_parsed_data(&self) -> Result<$data_ty, $crate::errors::TonError> {
                 <Self as TonContract>::get_parsed_data::<$data_ty>(self).await
