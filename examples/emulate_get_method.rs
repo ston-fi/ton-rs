@@ -8,24 +8,27 @@ mod example {
     use ton::emulators::tvm_emulator::TVMGetMethodID;
     use ton::errors::TonError;
     use ton::net_config::TonNetConfig;
+    use ton::tep::tvm_results::GetJettonDataResult;
     use ton::tl_client::TLClient;
     use ton::ton_contract;
+    use ton_core::TLB;
     use ton_core::traits::contract_provider::TonContractState;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
 
-    ton_contract!(StonfiPool);
+    ton_contract!(StonfiPool<StonFiPoolData>);
+
+    #[derive(Debug, Clone, TLB)]
+    struct StonFiPoolData {
+        address: TonAddress,
+    }
 
     impl StonfiPool {
-        async fn get_jetton_data(&self) -> Result<TVMStack, TonError> {
-            let boc = self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await?;
-            Ok(TVMStack::from_boc(boc)?)
+        async fn get_jetton_data(&self) -> Result<GetJettonDataResult, TonError> {
+            self.emulate_get_method::<_, GetJettonDataResult>("get_jetton_data", &TVMStack::EMPTY, None).await
         }
 
-        async fn get_pool_data(&self) -> Result<TVMStack, TonError> {
-            let boc = self.emulate_get_method("get_pool_data", &TVMStack::EMPTY, None).await?;
-            Ok(TVMStack::from_boc(boc)?)
-        }
+        async fn get_pool_data(&self) -> Result<StonFiPoolData, TonError> { self.get_parsed_data().await }
     }
 
     pub async fn real_main() -> anyhow::Result<()> {
@@ -40,8 +43,8 @@ mod example {
         let pool = StonfiPool::new(&ctr_cli, &address, None).await?;
         let jetton_data = pool.get_jetton_data().await?;
         let pool_data = pool.get_pool_data().await?;
-        println!("[predefined] jetton_data_result stack len: {:?}", jetton_data.len());
-        println!("[predefined] pool_data_result stack len: {:?}", pool_data.len());
+        println!("[predefined] jetton_data result: {:?}", jetton_data);
+        println!("[predefined] pool_data result: {:?}", pool_data);
 
         // Emulation using contract contract_client directly
         let state = ctr_cli.get_contract(&address, None).await?;

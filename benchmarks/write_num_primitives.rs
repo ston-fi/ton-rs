@@ -36,8 +36,7 @@ fn write_primitive_ton_lib_core_008() {
 }
 
 fn write_primitive_bit_writer() {
-    let mut buffer = Vec::new();
-    buffer.reserve(128);
+    let buffer = Vec::with_capacity(128);
     let tvb = TEST_WRITE_BIT as u32;
     let mut bit_writer = BitWriter::endian(buffer, BigEndian);
     for _ in 0..ITERATIONS_COUNT {
@@ -58,7 +57,7 @@ fn write_primitive_ton_rs_current() {
 }
 fn write_primitive_ton_rs_current_negative() {
     let mut builder = TonCell::builder();
-    let tv = TEST_VALUE as i32 * (-1i32);
+    let tv = -(TEST_VALUE as i32);
     for i in 0..ITERATIONS_COUNT {
         if i % THRESHOLD_TO_RECREATE_BUILDER == 0 {
             builder = TonCell::builder();
@@ -70,7 +69,7 @@ fn write_primitive_ton_rs_current_negative() {
 
 fn write_bigint_ton_rs_current_negative() {
     let mut builder = TonCell::builder();
-    let tv = BigInt::from(TEST_VALUE as i32 * (-1i32));
+    let tv = BigInt::from(-(TEST_VALUE as i32));
     for i in 0..ITERATIONS_COUNT {
         if i % THRESHOLD_TO_RECREATE_BUILDER == 0 {
             builder = TonCell::builder();

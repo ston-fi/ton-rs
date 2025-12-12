@@ -36,7 +36,7 @@ fn boc_read_tonlib_core_old() {
 fn boc_write_tonlib_core_old() {
     let cell = BagOfCells::parse(&SHARD_BLOCK_BOC).unwrap().single_root().unwrap();
     for _ in 0..ITERATIONS_COUNT {
-        black_box(BagOfCells::new(&[cell.clone()]).serialize(false).unwrap());
+        black_box(BagOfCells::new(std::slice::from_ref(&cell)).serialize(false).unwrap());
     }
 }
 

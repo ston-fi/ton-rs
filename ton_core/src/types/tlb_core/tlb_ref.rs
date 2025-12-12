@@ -69,7 +69,7 @@ mod tests {
     #[test]
     fn test_tlb_ref_serde_as_cell() -> anyhow::Result<()> {
         let mut cell_builder = TonCell::builder();
-        cell_builder.write_bits(&[0b00110000, 0b00111001], 16)?;
+        cell_builder.write_bits([0b00110000, 0b00111001], 16)?;
         let cell = cell_builder.build()?;
         let cell_ref = TLBRef::new(cell.clone());
         assert_eq!(cell, cell_ref.clone().into_inner());
