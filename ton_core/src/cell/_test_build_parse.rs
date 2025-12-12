@@ -118,7 +118,7 @@ fn test_merkle_proof() -> anyhow::Result<()> {
 #[test]
 fn test_build_parse_shard_block() -> anyhow::Result<()> {
     let boc_hex = include_str!("../../resources/tests/shard_block_6000000000000000_52111590.hex");
-    let cell = BoC::from_hex(&boc_hex)?.single_root()?;
+    let cell = BoC::from_hex(boc_hex)?.single_root()?;
     assert_ok!(cell.hash());
 
     let serialized = BoC::new(cell.clone()).to_hex(false)?;

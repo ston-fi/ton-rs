@@ -2,10 +2,11 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use crate::tep::tvm_results::TVMResult;
 use fastnum::I512;
+use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct GetWalletDataResult {
     pub balance: I512,
     pub owner: TonAddress,

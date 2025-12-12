@@ -18,7 +18,8 @@ pub trait TVMResult: Sized {
 
 mod trait_impl {
     use super::*;
-    use ton_core::types::TonAddress;
+    use ton_core::types::tlb_core::TLBCoins;
+    use ton_core::types::{Coins, TonAddress};
 
     impl TVMResult for bool {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(stack.pop_number()? != I512::ZERO) }
@@ -38,5 +39,11 @@ mod trait_impl {
 
     impl TVMResult for TonAddress {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TonAddress::from_cell(&stack.pop_cell()?)?) }
+    }
+
+    impl TVMResult for Coins {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+            Ok(Coins::from(TLBCoins::from_num(&stack.pop_number()?)?))
+        }
     }
 }
