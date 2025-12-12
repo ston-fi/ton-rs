@@ -3,12 +3,13 @@ use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
+use ton_core::TLB;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 use ton_core::types::tlb_core::TLBCoins;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, TLB)]
 pub struct GetJettonDataResult {
     pub total_supply: TLBCoins,
     pub mintable: bool,

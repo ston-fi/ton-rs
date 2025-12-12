@@ -9,14 +9,12 @@ use ton_core::types::TonAddress;
 #[async_trait]
 pub trait JettonMasterMethods: TonContract {
     async fn get_jetton_data(&self) -> Result<GetJettonDataResult, TonError> {
-        let stack_boc = self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await?;
-        Ok(GetJettonDataResult::from_stack_boc(stack_boc)?)
+        self.emulate_get_method::<_, GetJettonDataResult>("get_jetton_data", &TVMStack::EMPTY, None).await
     }
 
     async fn get_wallet_address(&self, owner: &TonAddress) -> Result<GetWalletAddressResult, TonError> {
         let mut stack = TVMStack::default();
         stack.push_cell_slice(owner.to_cell()?);
-        let stack_boc = self.emulate_get_method("get_wallet_address", &stack, None).await?;
-        Ok(GetWalletAddressResult::from_stack_boc(stack_boc)?)
+        self.emulate_get_method::<_, GetWalletAddressResult>("get_wallet_address", &stack, None).await
     }
 }

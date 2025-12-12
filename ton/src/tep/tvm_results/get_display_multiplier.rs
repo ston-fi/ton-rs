@@ -2,8 +2,9 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
+use ton_core::TLB;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, TLB)]
 pub struct GetDisplayMultiplierResult {
     pub numerator: I512,
     pub denominator: I512,

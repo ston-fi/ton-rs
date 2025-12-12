@@ -3,10 +3,11 @@ use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
+use ton_core::TLB;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, TLB)]
 pub struct GetNFTDataResult {
     pub init: bool,
     pub index: I512,
