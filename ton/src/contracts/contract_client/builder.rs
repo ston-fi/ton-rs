@@ -1,7 +1,7 @@
 use crate::contracts::ContractClient;
 use crate::contracts::contract_client::Inner;
 use crate::contracts::contract_client::contract_client_cache::ContractClientCache;
-use crate::emulators::tvm_emulator::{TVMEmulatorPool, TVMEmulatorWrapper};
+use crate::emulators::emulator_pool::EmulatorPool;
 use crate::errors::{TonError, TonResult};
 use derive_setters::Setters;
 use std::sync::Arc;
@@ -15,8 +15,8 @@ use ton_core::traits::contract_provider::TonProvider;
 pub struct Builder {
     #[setters(skip)]
     pub(super) provider: Arc<dyn TonProvider>,
-    pub(super) tvm_emulator_pool_size: usize,
-    pub(super) tvm_emulator_pool: Option<TVMEmulatorPool>,
+    pub(super) emulator_pool_size: usize,
+    pub(super) emulator_pool: Option<EmulatorPool>,
     pub(super) tvm_emulation_timeout: Duration,
     pub(super) refresh_loop_idle_on_error: Duration,
     pub(super) contract_cache_capacity: u64,
@@ -38,8 +38,8 @@ impl Builder {
     pub(super) fn new(provider: impl TonProvider) -> TonResult<Self> {
         let builder = Self {
             provider: Arc::new(provider),
-            tvm_emulator_pool_size: thread::available_parallelism().map_err(TonError::system)?.get(),
-            tvm_emulator_pool: None,
+            emulator_pool_size: thread::available_parallelism().map_err(TonError::system)?.get(),
+            emulator_pool: None,
             tvm_emulation_timeout: Duration::from_millis(10),
             refresh_loop_idle_on_error: Duration::from_millis(100),
             contract_cache_capacity: 0,
@@ -57,9 +57,9 @@ impl Builder {
 
     pub fn build(self) -> TonResult<ContractClient> {
         let cache = ContractClientCache::new(&self)?;
-        let emulator_pool = match self.tvm_emulator_pool {
+        let emulator_pool = match self.emulator_pool {
             Some(pool) => pool,
-            None => TVMEmulatorPool::builder(vec![TVMEmulatorWrapper; self.tvm_emulator_pool_size])?.build()?,
+            None => EmulatorPool::builder()?.with_threads_count(self.emulator_pool_size).build()?,
         };
         let inner = Inner {
             provider: self.provider,

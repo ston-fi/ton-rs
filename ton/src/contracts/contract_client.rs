@@ -7,6 +7,7 @@ pub mod tl_provider;
 use crate::contracts::contract_client::builder::Builder;
 use crate::contracts::contract_client::contract_client_cache::ContractClientCache;
 use crate::emulators::emul_bc_config::EmulBCConfig;
+use crate::emulators::emulator_pool::{EmulatorPool, PoolEmulationResponse, TVMRunGetMethodTask};
 use crate::emulators::tvm_emulator::*;
 use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
@@ -102,7 +103,7 @@ impl ContractClient {
         let emul_timeout = Some(self.inner.emulation_timeout);
 
         let mut emul_response = match emul_pool.exec(emul_task.clone(), emul_timeout).await? {
-            TVMEmulResponse::RunGetMethod(resp) => resp,
+            PoolEmulationResponse::EmulGetMethod(resp) => resp,
             _ => return Err(TonError::Custom("Unexpected TVMEmulResponse".to_string())),
         };
 
@@ -120,7 +121,7 @@ impl ContractClient {
             libs_dict.insert(missing_lib_hash, lib.into());
             emul_task.state.libs_boc = Some(Arc::new(libs_dict.to_boc()?));
             emul_response = match emul_pool.exec(emul_task.clone(), emul_timeout).await? {
-                TVMEmulResponse::RunGetMethod(resp) => resp,
+                PoolEmulationResponse::EmulGetMethod(resp) => resp,
                 _ => return Err(TonError::Custom("Unexpected TVMEmulResponse".to_string())),
             };
         }
@@ -142,7 +143,7 @@ impl ContractClient {
 
 struct Inner {
     provider: Arc<dyn TonProvider>,
-    emulator_pool: TVMEmulatorPool,
+    emulator_pool: EmulatorPool,
     emulation_timeout: Duration,
     cache: Arc<ContractClientCache>,
     bc_config: OnceCell<EmulBCConfig>,

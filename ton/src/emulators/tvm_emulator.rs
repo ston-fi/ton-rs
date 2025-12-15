@@ -1,10 +1,8 @@
 mod tvm_c7;
-mod tvm_emulator_pool;
 mod tvm_method_id;
 mod tvm_response;
 
 pub use tvm_c7::*;
-pub use tvm_emulator_pool::*;
 pub use tvm_method_id::*;
 pub use tvm_response::*;
 
@@ -48,7 +46,7 @@ impl TVMEmulator {
         Ok(emulator)
     }
 
-    pub fn new(code_boc: &[u8], data_boc: &[u8], c7: &TVMEmulatorC7) -> Result<Self, TonError> {
+    pub fn new(code_boc: &[u8], data_boc: &[u8], c7: &TVMEmulatorC7) -> TonResult<Self> {
         let code = CString::new(STANDARD.encode(code_boc.as_ref()))?;
         let data = CString::new(STANDARD.encode(data_boc.as_ref()))?;
         let ptr = unsafe { tvm_emulator_create(code.as_ptr(), data.as_ptr(), DEFAULT_TVM_LOG_VERBOSITY) };
@@ -60,7 +58,7 @@ impl TVMEmulator {
         Ok(emulator)
     }
 
-    pub fn set_c7(&mut self, c7: &TVMEmulatorC7) -> Result<(), TonError> {
+    pub fn set_c7(&mut self, c7: &TVMEmulatorC7) -> TonResult<()> {
         let address = CString::new(c7.address.to_hex().as_bytes())?;
         let seed = CString::new(c7.rand_seed.to_hex().as_bytes())?;
         let success = unsafe {
@@ -72,7 +70,7 @@ impl TVMEmulator {
         }
     }
 
-    pub fn set_debug_enabled(&mut self, enabled: bool) -> Result<(), TonError> {
+    pub fn set_debug_enabled(&mut self, enabled: bool) -> TonResult<()> {
         let success = unsafe { tvm_emulator_set_debug_enabled(self.ptr, enabled as i32) };
         match success {
             true => Ok(()),
@@ -80,7 +78,7 @@ impl TVMEmulator {
         }
     }
 
-    pub fn set_gas_limit(&mut self, limit: u64) -> Result<(), TonError> {
+    pub fn set_gas_limit(&mut self, limit: u64) -> TonResult<()> {
         let success = unsafe { tvm_emulator_set_gas_limit(self.ptr, limit) };
         match success {
             true => Ok(()),
@@ -88,7 +86,7 @@ impl TVMEmulator {
         }
     }
 
-    pub fn set_libs(&mut self, libs_boc: &[u8]) -> Result<(), TonError> {
+    pub fn set_libs(&mut self, libs_boc: &[u8]) -> TonResult<()> {
         let libs = CString::new(STANDARD.encode(libs_boc))?;
         let success = unsafe { tvm_emulator_set_libraries(self.ptr, libs.as_ptr()) };
         match success {
@@ -97,7 +95,7 @@ impl TVMEmulator {
         }
     }
 
-    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> Result<TVMRunGetMethodResponse, TonError>
+    pub fn run_get_method<T>(&mut self, method: T, stack_boc: &[u8]) -> TonResult<TVMRunGetMethodResponse>
     where
         T: Into<TVMGetMethodID>,
     {
@@ -110,7 +108,7 @@ impl TVMEmulator {
         TVMRunGetMethodResponse::from_json(json_str)
     }
 
-    pub fn send_int_msg(&mut self, msg_boc: &[u8], amount: u64) -> Result<TVMSendMsgResponse, TonError> {
+    pub fn send_int_msg(&mut self, msg_boc: &[u8], amount: u64) -> TonResult<TVMSendMsgResponse> {
         log::trace!("[TVMEmulator][send_int_msg]: msg_boc: {msg_boc:?}, amount: {amount}");
         let msg = CString::new(STANDARD.encode(msg_boc))?;
 
@@ -120,7 +118,7 @@ impl TVMEmulator {
         TVMSendMsgResponse::from_json(json_str)
     }
 
-    pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> Result<TVMSendMsgResponse, TonError> {
+    pub fn send_ext_msg(&mut self, msg_boc: &[u8]) -> TonResult<TVMSendMsgResponse> {
         log::trace!("[TVMEmulator][send_ext_msg]: msg_boc: {msg_boc:?}");
         let msg = make_base64_c_str(msg_boc)?;
         let response_ptr = unsafe { tvm_emulator_send_external_message(self.ptr, msg.as_ptr()) };
