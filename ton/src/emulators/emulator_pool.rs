@@ -1,15 +1,15 @@
 mod builder;
 mod pool_emulation_result;
 mod pool_emulation_task;
+mod pool_emulation_worker;
 mod thread_pool;
 
 pub use pool_emulation_result::*;
 pub use pool_emulation_task::*;
 
 use crate::emulators::emulator_pool::builder::Builder;
-use crate::emulators::emulator_pool::thread_pool::{PoolObject, TaskCounter, ThreadPool};
-use crate::emulators::tvm_emulator::TVMEmulator;
-use crate::emulators::tx_emulator::TXEmulator;
+use crate::emulators::emulator_pool::pool_emulation_worker::PoolEmulationWorker;
+use crate::emulators::emulator_pool::thread_pool::{TaskCounter, ThreadPool};
 use crate::errors::TonResult;
 use std::time::Duration;
 
@@ -18,6 +18,8 @@ pub struct EmulatorPool(ThreadPool<PoolEmulationWorker>);
 
 impl EmulatorPool {
     pub fn builder() -> TonResult<Builder> { Builder::new() }
+
+    /// timeout == None means default timeout will be used
     pub async fn exec(
         &self,
         task: impl Into<PoolEmulationTask>,
@@ -28,48 +30,6 @@ impl EmulatorPool {
     pub fn get_counters(&self) -> &Vec<TaskCounter> { self.0.get_counters() }
     pub fn get_counters_aggregated(&self) -> TaskCounter { self.0.get_counters_aggregated() }
     pub fn display_stats(&self) -> String { self.0.display_stats() }
-}
-
-struct PoolEmulationWorker {
-    description: String,
-    tx_emulator: TXEmulator,
-}
-
-impl PoolObject for PoolEmulationWorker {
-    type Task = PoolEmulationTask;
-    type Retval = PoolEmulationResponse;
-
-    #[rustfmt::skip]
-    fn process<T: Into<Self::Task>>(&mut self, task: T) -> TonResult<Self::Retval> {
-        match task.into() {
-            PoolEmulationTask::EmulGetMethod(args) => {
-                TVMEmulator::from_state(&args.state)?
-                    .run_get_method(args.method, &args.stack_boc)
-                    .map(PoolEmulationResponse::EmulGetMethod)
-            },
-            PoolEmulationTask::EmulSendExtMsg(args) =>  {
-                TVMEmulator::from_state(&args.state)?
-                    .send_ext_msg(&args.msg_boc)
-                    .map(PoolEmulationResponse::EmulSendExtMsg)
-            },
-            PoolEmulationTask::EmulSendIntMsg(args) => {
-                TVMEmulator::from_state(&args.state)?
-                    .send_int_msg(&args.msg_boc, args.amount)
-                    .map(PoolEmulationResponse::EmulSendIntMsg)
-            },
-            PoolEmulationTask::EmulOrdTx(args) => {
-                self.tx_emulator
-                    .emulate_ord(&args)
-                    .map(PoolEmulationResponse::EmulOrdTx)
-            },
-            PoolEmulationTask::EmulTickTockTx(args) => {
-                self.tx_emulator
-                    .emulate_ticktock(&args)
-                    .map(PoolEmulationResponse::EmulTickTockTx)
-            },
-        }
-    }
-    fn descriptor(&self) -> &str { &self.description }
 }
 
 #[cfg(test)]
