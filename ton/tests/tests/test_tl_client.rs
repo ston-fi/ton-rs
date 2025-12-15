@@ -1,13 +1,14 @@
 use crate::tests::utils::make_tl_client;
 use futures_util::try_join;
 use std::str::FromStr;
-use tokio_test::assert_ok;
+use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::{BlockIdExt, ShardIdent};
+use ton::errors::TonError;
 use ton::tl_client::tl::TLAccountState;
 use ton::tl_client::{TLClient, TLClientTrait};
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::traits::tlb::TLB;
-use ton_core::types::TonAddress;
+use ton_core::types::{TonAddress, TxLTHash};
 
 #[tokio::test]
 async fn test_tl_client_default() -> anyhow::Result<()> {
@@ -24,6 +25,7 @@ async fn test_tl_client_default() -> anyhow::Result<()> {
         assert_tl_client_get_account_state(&client),
         assert_tl_client_get_account_txs(&client),
         assert_tl_client_get_block_txs(&client),
+        assert_tl_client_account_state_by_tx_failed(&client),
     );
     assert_ok!(res);
     Ok(())
@@ -153,5 +155,23 @@ async fn assert_tl_client_get_block_txs(client: &TLClient) -> anyhow::Result<()>
     assert_eq!(tx_ids[15].tx_hash, TonHash::from_str("zer/c8RprjxJ80pQkEeQHBEAW+qr9dDSilEkGTTZ8iI=")?);
 
     // TODO would be nice to find a block with more than 256 txs to check inner loop
+    Ok(())
+}
+
+// archive node may be required for this test
+async fn assert_tl_client_account_state_by_tx_failed(client: &TLClient) -> anyhow::Result<()> {
+    let addr = TonAddress::from_str("EQAhpo6KCeZ3LVuCt66JGmsQz6GirOfcdoJDxFIPhNp2FHSK")?;
+    let tx_id = TxLTHash {
+        lt: 27045248000001,
+        hash: TonHash::from_str("881B0F781341C30DD0EE00E03CB225C10FF05C90E9847DF3C96C3D78A374F130")?,
+    };
+    let res = client.get_account_state_raw_by_tx(addr, tx_id).await;
+    let err = assert_err!(res);
+    match err {
+        TonError::TLClientResponseError { code: 0, msg } => {
+            assert!(msg.starts_with("VM Log: , VM Exit Code: 0"), "Unexpected error message: {msg}");
+        }
+        _ => panic!("Expected TLClientResponseError with code 0, got {:?}", err),
+    }
     Ok(())
 }

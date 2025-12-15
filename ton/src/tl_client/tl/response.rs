@@ -14,7 +14,7 @@ pub enum TLResponse {
     // tonlib_api.tl_api, line 20
     Error {
         code: i32,
-        msg: String,
+        message: String,
     },
     // tonlib_api.tl_api, line 21
     Ok(()),
