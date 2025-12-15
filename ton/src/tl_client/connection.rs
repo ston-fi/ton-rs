@@ -108,7 +108,10 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
         callbacks.on_result(tag, &result);
         let (response, maybe_extra) = match result {
             Ok(res) => res,
-            Err(_) => continue,
+            Err(err) => {
+                log::warn!("[{}] error received: {:?}", tag, err);
+                continue;
+            }
         };
 
         let maybe_req_ctx = maybe_extra
