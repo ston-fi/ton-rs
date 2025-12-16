@@ -85,17 +85,6 @@ struct TXEmulOrdArgsSerializable {
     libs_boc: Option<Vec<u8>>,
 }
 
-/// Serializes the provided `TXEmulOrdArgs` into a binary format.
-///
-/// # Parameters
-/// - `args`: The transaction emulation arguments to serialize, including the input message BOC and emulation parameters.
-///
-/// # Returns
-/// Returns a `TonResult` containing a `Vec<u8>` with the serialized binary data on success.
-///
-/// # Errors
-/// Returns an error if serialization of any of the fields fails.
-
 pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
     let bc_config_boc = args.emul_args.bc_config.to_boc()?;
     let serializable = TXEmulOrdArgsSerializable {
@@ -111,24 +100,9 @@ pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
     };
     let binary = bincode::encode_to_vec(&serializable, bincode::config::standard())
         .map_err(|e| TonError::Custom(format!("Failed to encode TXEmulOrdArgs: {e}")))?;
-
     Ok(binary)
 }
 
-/// Deserializes a binary blob into a `TXEmulOrdArgs` structure.
-///
-/// # Parameters
-/// - `binary`: A `Vec<u8>` containing the serialized `TXEmulOrdArgs`.
-///
-/// # Returns
-/// Returns a `TonResult<TXEmulOrdArgs>` containing the deserialized structure on success,
-/// or an error if deserialization fails or if any of the contained fields cannot be parsed.
-///
-/// # Errors
-/// Returns an error if:
-/// - The input binary cannot be decoded into a `TXEmulOrdArgsSerializable`.
-/// - The contained `bc_config_boc` cannot be parsed into an `EmulBCConfig`.
-/// - The contained `rand_seed` cannot be parsed into a `TonHash`.
 pub fn load_tx_emul_ord_args(binary: Vec<u8>) -> TonResult<TXEmulOrdArgs> {
     let (serializable, _): (TXEmulOrdArgsSerializable, usize) =
         bincode::decode_from_slice(&binary, bincode::config::standard()).unwrap();

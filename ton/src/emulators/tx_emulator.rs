@@ -269,7 +269,6 @@ mod tests {
         let mut emulator = TXEmulator::new(0, false)?;
         let shard_account = TEST_SHARD_ACCOUNT.clone();
         let ext_in_msg: Msg = TEST_MSG_IN_EXT.clone();
-
         let mut ord_args = create_test_tx_emul_ord_args(
             ext_in_msg,
             &shard_account,
@@ -294,7 +293,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_tx_emulator_no_libs() {
-        // no vm_code in result, remove should_panic when it will be fixed
+        // no vm_code in result, remove should_panic when it will be fixed 
         sys_tonlib_set_verbosity_level(1);
         let mut emulator = TXEmulator::new(0, false).unwrap();
 
