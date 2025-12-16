@@ -238,7 +238,7 @@ mod tests {
         )?;
 
         let mut ord_args =
-            create_test_tx_emul_ord_args(ext_in_msg, &shard_account, &BC_CONFIG, 1738323935, 53483578000001)?;
+            create_test_tx_emul_ord_args(ext_in_msg, &shard_account, &BC_CONFIG, 1738323935, 53483469000003)?;
         // Override default values with test-specific ones
         ord_args.emul_args.rand_seed =
             TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?;
@@ -264,7 +264,7 @@ mod tests {
         )?;
 
         let mut ord_args =
-            create_test_tx_emul_ord_args(ext_in_msg, &shard_account, &BC_CONFIG, 1738323935, 53483578000001)?;
+            create_test_tx_emul_ord_args(ext_in_msg, &shard_account, &BC_CONFIG, 1738323935, 53483469000003)?;
         assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
 
