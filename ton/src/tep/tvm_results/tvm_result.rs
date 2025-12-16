@@ -30,6 +30,11 @@ mod trait_impl {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_tiny_int() }
     }
 
+    impl TVMResult for u32 {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_tiny_int() }
+    }
+
+
     impl TVMResult for I512 {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_num() }
     }

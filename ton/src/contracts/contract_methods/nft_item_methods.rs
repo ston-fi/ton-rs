@@ -7,6 +7,6 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait NFTItemMethods: TonContract {
     async fn get_nft_data(&self) -> Result<GetNFTDataResult, TonError> {
-        self.emulate_get_method::<_, GetNFTDataResult>("get_nft_data", &TVMStack::EMPTY, None).await
+        self.emulate_get_method("get_nft_data", &TVMStack::EMPTY, None).await
     }
 }

@@ -18,7 +18,7 @@ mod example {
 
     ton_contract!(StonfiPool<StonFiPoolData>);
 
-    #[derive(Debug, Clone, TLB)]
+    #[derive(Debug, Clone)]
     struct StonFiPoolData {
         address: TonAddress,
     }
@@ -28,7 +28,6 @@ mod example {
             self.emulate_get_method::<_, GetJettonDataResult>("get_jetton_data", &TVMStack::EMPTY, None).await
         }
 
-        async fn get_pool_data(&self) -> Result<StonFiPoolData, TonError> { self.get_parsed_data().await }
     }
 
     pub async fn real_main() -> anyhow::Result<()> {
@@ -42,7 +41,7 @@ mod example {
         // Emulation using predefined implementation of TonContract
         let pool = StonfiPool::new(&ctr_cli, &address, None).await?;
         let jetton_data = pool.get_jetton_data().await?;
-        let pool_data = pool.get_pool_data().await?;
+        let pool_data = pool.get_parsed_data().await?;
         println!("[predefined] jetton_data result: {:?}", jetton_data);
         println!("[predefined] pool_data result: {:?}", pool_data);
 

@@ -19,19 +19,19 @@ pub trait TonContract: Send + Sync + Sized {
         Ok(Self::from_state(client.clone(), state))
     }
 
-    async fn emulate_get_method<M, T: TLB>(
+    async fn emulate_get_method<M>(
         &self,
         method: M,
         stack: &TVMStack,
         mc_seqno: Option<i32>,
-    ) -> Result<T, TonError>
+    ) -> Result<Vec<u8>, TonError>
     where
         M: Into<TVMGetMethodID> + Send,
     {
         let method_id = method.into().to_id();
         let response =
             self.get_client().emulate_get_method(self.get_state(), method_id, stack.to_boc()?, mc_seqno).await?;
-        Ok(T::from_boc(response.stack_boc()?)?)
+        response.stack_boc()
     }
 
     async fn get_parsed_data<D: TLB>(&self) -> Result<D, TonError> {
@@ -49,160 +49,55 @@ pub trait TonContract: Send + Sync + Sized {
 
 #[macro_export]
 macro_rules! ton_contract {
-    // Simple: no generics
-    ($name:ident) => {
+    ($name:ident < $DATATYPE:ty >) => {
         pub struct $name {
             client: ContractClient,
             state: std::sync::Arc<TonContractState>,
         }
 
         impl TonContract for $name {
+            type DataType = TonCell;
             fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self { Self{client, state} }
             fn get_client(&self) -> &ContractClient { &self.client }
             fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
         }
     };
-
-    // Simple with trait impls
-    ($name:ident : $($traits:tt)+) => {
+    ($name:ident < $DATATYPE:ty > : $($traits:tt)+) => {
         pub struct $name {
             client: ContractClient,
             state: std::sync::Arc<TonContractState>,
         }
 
         impl TonContract for $name {
+            type DataType = TonCell;
             fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self { Self{client, state} }
             fn get_client(&self) -> &ContractClient { &self.client }
             fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
         }
 
-        // Expand each trait via helper (accepts a type)
-        $crate::__impl_traits_for_contract!($name : $($traits)+);
-    };
-
-    // --- Concrete type: Name<SomeType> where SomeType is a concrete type path
-    ($name:ident < $data_ty:ty >) => {
-        pub struct $name {
-            client: ContractClient,
-            state: std::sync::Arc<TonContractState>,
-            data: Option<$data_ty>,
-        }
-
-        impl TonContract for $name {
-            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self {
-                let data = state.data_boc.as_ref().and_then(|boc| <$data_ty as TLB>::from_boc(boc.to_owned()).ok());
-                Self{client, state, data}
-            }
-            fn get_client(&self) -> &ContractClient { &self.client }
-            fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
-        }
-
-        impl $name {
-            pub async fn get_parsed_data(&self) -> Result<$data_ty, $crate::errors::TonError> {
-                <Self as TonContract>::get_parsed_data::<$data_ty>(self).await
-            }
-        }
-    };
-
-    // Concrete type with trait impls
-    ($name:ident < $data_type:ty > : $($traits:tt)+) => {
-        pub struct $name {
-            client: ContractClient,
-            state: std::sync::Arc<TonContractState>,
-            data: Option<$data_type>,
-        }
-
-        impl TonContract for $name {
-            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self {
-                let data = state.data_boc.as_ref().and_then(|boc| <$data_type as ::ton_core::traits::tlb::TLB>::from_boc(boc.to_owned()).ok());
-                Self{client, state, data}
-            }
-            fn get_client(&self) -> &ContractClient { &self.client }
-            fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
-        }
-
-        #[allow(dead_code)]
-        impl $name {
-            pub async fn get_parsed_data(&self) -> Result<$data_type, $crate::errors::TonError> {
-                <Self as TonContract>::get_parsed_data::<$data_type>(self).await
-            }
-        }
-
-        $crate::__impl_traits_for_contract!($name : $($traits)+);
-    };
-
-    // --- Generic identifier: Name<T> where T is a type parameter that should implement TLB
-    ($name:ident < $type_ident:ident >) => {
-        pub struct $name<$type_ident: ::ton_core::traits::tlb::TLB> {
-            client: ContractClient,
-            state: std::sync::Arc<TonContractState>,
-            data: Option<$type_ident>,
-        }
-
-        impl<$type_ident: ::ton_core::traits::tlb::TLB + Send + Sync> TonContract for $name<$type_ident> {
-            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self {
-                let data = state.data_boc.as_ref().and_then(|boc| <$type_ident as ::ton_core::traits::tlb::TLB>::from_boc(boc.to_owned()).ok());
-                Self{client, state, data}
-            }
-            fn get_client(&self) -> &ContractClient { &self.client }
-            fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
-        }
-
-        impl<$type_ident: ::ton_core::traits::tlb::TLB + Send + Sync> $name<$type_ident> {
-            pub async fn get_parsed_data(&self) -> Result<$type_ident, $crate::errors::TonError> {
-                <Self as TonContract>::get_parsed_data::<$type_ident>(self).await
-            }
-        }
-    };
-
-    // Generic identifier with trait impls
-    ($name:ident < $type_ident:ident > : $($traits:tt)+) => {
-        #[allow(dead_code)]
-        pub struct $name<$type_ident: ::ton_core::traits::tlb::TLB> {
-            client: ContractClient,
-            state: std::sync::Arc<TonContractState>,
-            data: Option<$type_ident>,
-        }
-
-        impl<$type_ident: ::ton_core::traits::tlb::TLB + Send + Sync> TonContract for $name<$type_ident> {
-            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self {
-                let data = state.data_boc.as_ref().and_then(|boc| <$type_ident as ::ton_core::traits::tlb::TLB>::from_boc(boc.to_owned()).ok());
-                Self{client, state, data}
-            }
-            fn get_client(&self) -> &ContractClient { &self.client }
-            fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
-        }
-
-        #[allow(dead_code)]
-        impl<$type_ident: ::ton_core::traits::tlb::TLB + Send + Sync> $name<$type_ident> {
-            pub async fn get_parsed_data(&self) -> Result<$type_ident, $crate::errors::TonError> {
-                <Self as TonContract>::get_parsed_data::<$type_ident>(self).await
-            }
-        }
-
-        // Implement requested traits for the parametrized type
-        $crate::__impl_traits_for_contract!($name<$type_ident> : $($traits)+);
+        // Expand each trait separated by '+'
+        $crate::__impl_traits_for_contract!($name < $DATATYPE:ty > : $($traits)+);
     };
 }
 
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __impl_traits_for_contract {
-    ($name_ty:ty : $trait:path) => {
-        impl $trait for $name_ty {}
+    // Single trait
+    ($name:ident : $trait:path) => {
+        impl $trait for $name {}
     };
 
-    ($name_ty:ty : $trait:path , $($rest:tt)+) => {
-        impl $trait for $name_ty {}
-        $crate::__impl_traits_for_contract!($name_ty : $($rest)+);
+    // Multiple traits separated by '+'
+    ($name:ident : $trait:path , $($rest:tt)+) => {
+        impl $trait for $name {}
+        $crate::__impl_traits_for_contract!($name : $($rest)+);
     };
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ton_core::TLB;
-
     #[test]
     #[allow(unused)]
     fn test_ton_contract_macro() {
@@ -213,15 +108,5 @@ mod tests {
 
         trait MyTrait2 {}
         ton_contract!(MyContract3: MyTrait1, MyTrait2);
-
-        #[derive(TLB)]
-        struct MyContract4Data;
-        ton_contract!(MyContract4<MyContract4Data>);
-        #[derive(TLB)]
-        struct MyContract5Data;
-        ton_contract!(MyContract5<MyContract5Data>: MyTrait1);
-        #[derive(TLB)]
-        struct MyContract6Data;
-        ton_contract!(MyContract6<MyContract6Data>: MyTrait1, MyTrait2);
     }
 }
