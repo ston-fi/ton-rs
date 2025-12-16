@@ -291,7 +291,7 @@ mod tests {
         let mut ord_args = load_tx_emul_ord_args(dumped_args).unwrap();
 
         let _response_good = emulator.emulate_ord(&ord_args).unwrap();
-        // assert_ne!(response_good.vm_exit_code.unwrap(), VM_CODE_NOT_ENOUGH_LIBS);
+
         ord_args.emul_args.libs_boc = None;
         let response_no_lib = emulator.emulate_ord(&ord_args).unwrap();
         assert_eq!(response_no_lib.vm_exit_code.unwrap(), VM_CODE_NOT_ENOUGH_LIBS);

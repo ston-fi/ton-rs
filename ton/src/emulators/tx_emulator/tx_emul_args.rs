@@ -86,16 +86,23 @@ struct TXEmulOrdArgsSerializable {
     libs_boc: Option<Vec<u8>>,
 }
 
+/// Serializes the provided `TXEmulOrdArgs` into a binary format.
+///
+/// # Parameters
+/// - `args`: The transaction emulation arguments to serialize, including the input message BOC and emulation parameters.
+///
+/// # Returns
+/// Returns a `TonResult` containing a `Vec<u8>` with the serialized binary data on success.
+///
+/// # Errors
+/// Returns an error if serialization of any of the fields fails.
 #[named]
 pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
-    let func = function_name!();
     let bc_config_boc = args.emul_args.bc_config.to_boc()?;
-    let bc_len = bc_config_boc.len();
     let serializable = TXEmulOrdArgsSerializable {
         in_msg_boc: args.in_msg_boc.as_ref().to_vec(),
         bc_config_boc,
         shard_account_boc: args.emul_args.shard_account_boc.as_ref().to_vec(),
-
         rand_seed: args.emul_args.rand_seed.as_slice().to_vec(),
         utime: args.emul_args.utime,
         lt: args.emul_args.lt,
@@ -104,11 +111,24 @@ pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
         libs_boc: args.emul_args.libs_boc.as_ref().map(|b| b.as_ref().to_vec()),
     };
     let binary = bincode::encode_to_vec(&serializable, bincode::config::standard()).unwrap();
-    println!("func: {}, bc_size:{} ,  total_len:{}", func, bc_len, binary.len());
+
     Ok(binary)
-    // std::fs::write(filename, binary).unwrap();
 }
 
+/// Deserializes a binary blob into a `TXEmulOrdArgs` structure.
+///
+/// # Parameters
+/// - `binary`: A `Vec<u8>` containing the serialized `TXEmulOrdArgs`.
+///
+/// # Returns
+/// Returns a `TonResult<TXEmulOrdArgs>` containing the deserialized structure on success,
+/// or an error if deserialization fails or if any of the contained fields cannot be parsed.
+///
+/// # Errors
+/// Returns an error if:
+/// - The input binary cannot be decoded into a `TXEmulOrdArgsSerializable`.
+/// - The contained `bc_config_boc` cannot be parsed into an `EmulBCConfig`.
+/// - The contained `rand_seed` cannot be parsed into a `TonHash`.
 pub fn load_tx_emul_ord_args(binary: Vec<u8>) -> TonResult<TXEmulOrdArgs> {
     let (serializable, _): (TXEmulOrdArgsSerializable, usize) =
         bincode::decode_from_slice(&binary, bincode::config::standard()).unwrap();
