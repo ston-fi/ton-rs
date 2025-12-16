@@ -6,7 +6,7 @@ use std::sync::Arc;
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
-use crate::errors::TonResult;
+use crate::errors::{TonError, TonResult};
 
 #[derive(Debug, Clone)]
 pub struct TXEmulOrdArgs {
@@ -70,7 +70,6 @@ impl Display for TXEmulTickTockArgs {
 }
 
 use bincode::{Decode, Encode};
-use function_name::named;
 
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
 struct TXEmulOrdArgsSerializable {
@@ -96,7 +95,7 @@ struct TXEmulOrdArgsSerializable {
 ///
 /// # Errors
 /// Returns an error if serialization of any of the fields fails.
-#[named]
+
 pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
     let bc_config_boc = args.emul_args.bc_config.to_boc()?;
     let serializable = TXEmulOrdArgsSerializable {
@@ -110,7 +109,8 @@ pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
         prev_blocks_boc: args.emul_args.prev_blocks_boc.as_ref().map(|b| b.as_ref().to_vec()),
         libs_boc: args.emul_args.libs_boc.as_ref().map(|b| b.as_ref().to_vec()),
     };
-    let binary = bincode::encode_to_vec(&serializable, bincode::config::standard()).unwrap();
+    let binary = bincode::encode_to_vec(&serializable, bincode::config::standard())
+        .map_err(|e| TonError::Custom(format!("Failed to encode TXEmulOrdArgs: {e}")))?;
 
     Ok(binary)
 }
@@ -154,6 +154,7 @@ pub fn create_test_tx_emul_ord_args(
     ext_in_msg: Msg,
     shard_account: &ShardAccount,
     emul_bc_cfg: &EmulBCConfig,
+    rand_seed: TonHash,
     utime: u32,
     lt: u64,
 ) -> TonResult<TXEmulOrdArgs> {
@@ -165,7 +166,7 @@ pub fn create_test_tx_emul_ord_args(
         emul_args: TXEmulArgs {
             shard_account_boc: shard_account_boc.into(),
             bc_config: emul_bc_cfg.clone(),
-            rand_seed: TonHash::ZERO,
+            rand_seed: rand_seed,
             utime,
             lt: shard_account.last_tx_lt,
             ignore_chksig: false,
