@@ -193,7 +193,7 @@ fn calc_hash<T: AsRef<[u8]> + std::hash::Hash>(data: T) -> u64 {
 mod tests {
     use super::*;
     use crate::block_tlb::{Msg, ShardAccount, Tx};
-    use crate::emulators::tx_emulator::tx_emul_args::create_test_tx_emul_ord_args;
+
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
     use std::str::FromStr;
     use std::sync::LazyLock;
@@ -263,19 +263,8 @@ mod tests {
             "b5ee9c72010204010001560001e1880125d7220d944052a2659cc2e1d9c4671742068426947941b3c933e43936912fc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014d4d18bb3ce5c84000000088001c01016862004975c883aea91de93142ae4dc222d803c74e5f130f37ef0d42fb353897fd0f982068e77800000000000000000000000000010201b20f8a7ea500000000000000005012a05f20080129343398aec31cdbbf7d32d977c27a96d5cd23c38fd4bd47be019abafb9b356b0024bae441b2880a544cb3985c3b388ce2e840d084d28f283679267c8726d225f90814dc9381030099259385618012934339d11465553b2f3e428ae79b0b1e2fd250b80784d4996dd44741736528ca0259f3a0f90024bae441b2880a544cb3985c3b388ce2e840d084d28f283679267c8726d225f910",
         )?;
 
-        let mut ord_args = TXEmulOrdArgs {
-            in_msg_boc: ext_in_msg.to_boc()?.into(),
-            emul_args: TXEmulArgs {
-                shard_account_boc: shard_account.to_boc()?.into(),
-                bc_config: BC_CONFIG.clone(),
-                rand_seed: TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?,
-                utime: 1738323935,
-                lt: 53483578000001,
-                ignore_chksig: false,
-                prev_blocks_boc: None,
-                libs_boc: None,
-            },
-        };
+        let mut ord_args =
+            create_test_tx_emul_ord_args(ext_in_msg, &shard_account, &BC_CONFIG, 1738323935, 53483578000001)?;
         assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
 
