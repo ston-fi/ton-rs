@@ -105,7 +105,8 @@ pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
 
 pub fn load_tx_emul_ord_args(binary: Vec<u8>) -> TonResult<TXEmulOrdArgs> {
     let (serializable, _): (TXEmulOrdArgsSerializable, usize) =
-        bincode::decode_from_slice(&binary, bincode::config::standard()).unwrap();
+        bincode::decode_from_slice(&binary, bincode::config::standard())
+            .map_err(|e| TonError::Custom(format!("Failed to decode TXEmulOrdArgs: {e}")))?;
     let bc_config = EmulBCConfig::from_boc(&serializable.bc_config_boc)?;
     let rand_seed = TonHash::from_slice(&serializable.rand_seed)?;
 

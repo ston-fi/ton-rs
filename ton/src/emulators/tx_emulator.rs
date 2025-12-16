@@ -280,9 +280,9 @@ mod tests {
         assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
 
-        let dumped_args = dump_tx_emul_ord_args(ord_args).unwrap();
+        let dumped_args = dump_tx_emul_ord_args(ord_args)?;
 
-        let ord_args = load_tx_emul_ord_args(dumped_args).unwrap();
+        let ord_args = load_tx_emul_ord_args(dumped_args)?;
 
         let response = assert_ok!(emulator.emulate_ord(&ord_args)).into_success()?;
         assert!(response.success);
@@ -293,18 +293,18 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_tx_emulator_no_libs() {
-        // no vm_code in result, remove should_panic when it will be fixed 
+        // no vm_code in result, remove should_panic when it will be fixed
         sys_tonlib_set_verbosity_level(1);
-        let mut emulator = TXEmulator::new(0, false).unwrap();
+        let mut emulator = assert_ok!(TXEmulator::new(0, false));
 
-        let dumped_args = std::fs::read(EMUL_ARGS_TEST_PATH).unwrap();
+        let dumped_args = assert_ok!(std::fs::read(EMUL_ARGS_TEST_PATH));
 
-        let mut ord_args = load_tx_emul_ord_args(dumped_args).unwrap();
+        let mut ord_args = assert_ok!(load_tx_emul_ord_args(dumped_args));
 
-        let _response_good = emulator.emulate_ord(&ord_args).unwrap();
+        let _response_good = assert_ok!(emulator.emulate_ord(&ord_args));
 
         ord_args.emul_args.libs_boc = None;
-        let response_no_lib = emulator.emulate_ord(&ord_args).unwrap();
+        let response_no_lib = assert_ok!(emulator.emulate_ord(&ord_args));
         assert_eq!(response_no_lib.vm_exit_code.unwrap(), VM_CODE_NOT_ENOUGH_LIBS);
     }
 }
