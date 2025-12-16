@@ -4,7 +4,6 @@ mod tx_emul_response;
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
 use crate::errors::{TonError, TonResult};
-use log::error;
 use std::ffi::CString;
 use std::sync::Arc;
 use ton_core::cell::TonHash;
@@ -65,24 +64,6 @@ impl TXEmulator {
         };
         let response_str = convert_emulator_response(response_ptr)?;
         TXEmulationResponse::from_json(response_str)
-    }
-
-    pub(crate) fn emulate_ord_debug(&mut self, args: &TXEmulOrdArgs) -> Result<TXEmulationResponse, TonError> {
-        self.prepare_emulator(&args.emul_args)?;
-        let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
-        let in_msg_c_str = make_base64_c_str(&args.in_msg_boc)?;
-        if args.emul_args.libs_boc.is_some() {
-            error!("ERROR_MSG_LIB_BOC");
-        }
-        let response_ptr = unsafe {
-            transaction_emulator_emulate_transaction(self.emulator, state_c_str.as_ptr(), in_msg_c_str.as_ptr())
-        };
-
-        let response_str = convert_emulator_response(response_ptr)?;
-        // dump_json_to_error(response_str.as_str());
-        error!("EMULATOR_RESPONSE_STR: \"{}\"", response_str);
-        let rsp = TXEmulationResponse::from_json(response_str).unwrap();
-        Ok(rsp)
     }
     fn prepare_emulator(&mut self, args: &TXEmulArgs) -> Result<(), TonError> {
         self.actualize_config(&args.bc_config)?;
@@ -218,7 +199,8 @@ mod tests {
     use std::sync::LazyLock;
     use tokio_test::{assert_err, assert_ok};
     use ton_core::traits::tlb::TLB;
-    static EMUL_ARGS_TEST_PATH: &str = "../../../resources/tests/txemulargs_with_libs.bin";
+    const VM_CODE_NOT_ENOUGH_LIBS: i32 = 9;
+    static EMUL_ARGS_TEST_PATH: &str = "../resources/tests/txemulargs_with_libs.bin";
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
         EmulBCConfig::from_boc_hex(include_str!("../../../resources/tests/bc_config_key_block_42123611.hex")).unwrap()
@@ -313,27 +295,21 @@ mod tests {
         assert_eq!(response.tx_parsed()?, expected_tx);
         Ok(())
     }
-
     #[test]
+    #[should_panic]
     fn test_tx_emulator_no_libs() {
+        // no vm_code in result
         sys_tonlib_set_verbosity_level(1);
         let mut emulator = TXEmulator::new(0, false).unwrap();
-        let shard_account = TEST_SHARD_ACCOUNT.clone();
-        let ext_in_msg: Msg = TLB::from_boc_hex(
-            "b5ee9c72010204010001560001e1880125d7220d944052a2659cc2e1d9c4671742068426947941b3c933e43936912fc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014d4d18bb3ce5c84000000088001c01016862004975c883aea91de93142ae4dc222d803c74e5f130f37ef0d42fb353897fd0f982068e77800000000000000000000000000010201b20f8a7ea500000000000000005012a05f20080129343398aec31cdbbf7d32d977c27a96d5cd23c38fd4bd47be019abafb9b356b0024bae441b2880a544cb3985c3b388ce2e840d084d28f283679267c8726d225f90814dc9381030099259385618012934339d11465553b2f3e428ae79b0b1e2fd250b80784d4996dd44741736528ca0259f3a0f90024bae441b2880a544cb3985c3b388ce2e840d084d28f283679267c8726d225f910",
-        ).unwrap();
 
         let dumped_args = std::fs::read(EMUL_ARGS_TEST_PATH).unwrap();
-        let mut emul_array: Vec<TXEmulator> = Vec::new();
-        let mut ord_args = load_tx_emul_ord_args(dumped_args).unwrap();
-        ord_args.emul_args.libs_boc = None;
-        let response_good = emulator.emulate_ord(&ord_args).unwrap();
-        println!("response: {:?}", response_good.raw_response);
 
+        let mut ord_args = load_tx_emul_ord_args(dumped_args).unwrap();
+
+        let response_good = emulator.emulate_ord(&ord_args).unwrap();
+        // assert_ne!(response_good.vm_exit_code.unwrap(), VM_CODE_NOT_ENOUGH_LIBS);
         ord_args.emul_args.libs_boc = None;
         let response_no_lib = emulator.emulate_ord(&ord_args).unwrap();
-        println!("response: {:?}", response_no_lib.raw_response);
-
-        panic!("here");
+        assert_eq!(response_no_lib.vm_exit_code.unwrap(), VM_CODE_NOT_ENOUGH_LIBS);
     }
 }
