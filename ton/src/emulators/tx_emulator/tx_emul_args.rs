@@ -160,7 +160,6 @@ pub fn create_test_tx_emul_ord_args(
 ) -> TonResult<TXEmulOrdArgs> {
     let in_msg_boc = ext_in_msg.to_boc()?;
     let shard_account_boc = shard_account.to_boc()?;
-    assert_eq!(lt, shard_account.last_tx_lt);
     Ok(TXEmulOrdArgs {
         in_msg_boc: in_msg_boc.into(),
         emul_args: TXEmulArgs {
@@ -168,7 +167,7 @@ pub fn create_test_tx_emul_ord_args(
             bc_config: emul_bc_cfg.clone(),
             rand_seed: rand_seed,
             utime,
-            lt: shard_account.last_tx_lt,
+            lt: lt,
             ignore_chksig: false,
             prev_blocks_boc: None,
             libs_boc: None,

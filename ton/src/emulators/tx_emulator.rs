@@ -248,7 +248,7 @@ mod tests {
             &BC_CONFIG,
             TEST_RAND_SEED.clone(),
             1738323935,
-            53483469000003,
+            53483578000001,
         )?;
         // Override default values with test-specific ones
 
@@ -288,7 +288,6 @@ mod tests {
 
         let response = assert_ok!(emulator.emulate_ord(&ord_args)).into_success()?;
         assert!(response.success);
-
         assert_eq!(response.shard_account_parsed()?, TEST_EXPECTED_SHARD_ACCOUNT.clone());
         assert_eq!(response.tx_parsed()?, TEST_EXPECTED_TX.clone());
         Ok(())
