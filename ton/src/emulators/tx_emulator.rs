@@ -252,7 +252,6 @@ mod tests {
         )?;
         // Override default values with test-specific ones
 
-        ord_args.emul_args.lt = 53483578000001;
         assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
 
@@ -277,7 +276,7 @@ mod tests {
             &BC_CONFIG,
             TEST_RAND_SEED.clone(),
             1738323935,
-            53483469000003,
+            53483578000001,
         )?;
         assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
