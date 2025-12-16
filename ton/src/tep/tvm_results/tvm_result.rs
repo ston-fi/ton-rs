@@ -31,9 +31,8 @@ mod trait_impl {
     }
 
     impl TVMResult for u32 {
-        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_tiny_int() }
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_num() }
     }
-
 
     impl TVMResult for I512 {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_num() }
@@ -49,6 +48,10 @@ mod trait_impl {
 
     impl TVMResult for MetadataContent {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(MetadataContent::from_cell(&stack.pop_cell()?)?) }
+    }
+
+    impl TVMResult for TonHash {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TonHash::from_num(&stack.pop_int()?)?) }
     }
 
     impl TVMResult for Coins {

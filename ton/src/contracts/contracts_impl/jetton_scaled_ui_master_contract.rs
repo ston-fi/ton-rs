@@ -1,8 +1,10 @@
-use crate::contracts::ContractClient;
 use crate::contracts::TonContract;
-use crate::contracts::contract_methods::{JettonMasterMethods, ScaledUIMethods};
-use crate::ton_contract;
+use crate::contracts::ContractClient;
+use crate::ton_core::traits::tlb::TLB;
 use crate::ton_core::traits::contract_provider::TonContractState;
+use ton_core::cell::TonCell;
+use crate::contracts::{JettonMasterMethods, ScaledUIMethods};
+use crate::ton_contract;
 
 // https://github.com/the-ton-tech/TEPs/blob/scaled-ui/text/0000-scaled-ui-jettons.md
-ton_contract!(JettonScaledUIMasterContract: JettonMasterMethods, ScaledUIMethods);
+ton_contract!(JettonScaledUIMasterContract<TonCell>: JettonMasterMethods, ScaledUIMethods);

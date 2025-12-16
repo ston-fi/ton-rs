@@ -13,25 +13,26 @@ pub trait TonContract: Send + Sync + Sized {
     fn from_state(client: ContractClient, state: Arc<TonContractState>) -> Self;
     fn get_state(&self) -> &Arc<TonContractState>;
     fn get_client(&self) -> &ContractClient;
+    type ContractData;
 
     async fn new(client: &ContractClient, address: &TonAddress, tx_id: Option<TxLTHash>) -> Result<Self, TonError> {
         let state = client.get_contract(address, tx_id.as_ref()).await?;
         Ok(Self::from_state(client.clone(), state))
     }
 
-    async fn emulate_get_method<M>(
+    async fn emulate_get_method<M, T:TLB>(
         &self,
         method: M,
         stack: &TVMStack,
         mc_seqno: Option<i32>,
-    ) -> Result<Vec<u8>, TonError>
+    ) -> Result<T, TonError>
     where
         M: Into<TVMGetMethodID> + Send,
     {
         let method_id = method.into().to_id();
         let response =
             self.get_client().emulate_get_method(self.get_state(), method_id, stack.to_boc()?, mc_seqno).await?;
-        response.stack_boc()
+        Ok(T::from_boc(response.stack_boc()?)?)
     }
 
     async fn get_parsed_data<D: TLB>(&self) -> Result<D, TonError> {
@@ -49,64 +50,54 @@ pub trait TonContract: Send + Sync + Sized {
 
 #[macro_export]
 macro_rules! ton_contract {
-    ($name:ident < $DATATYPE:ty >) => {
-        pub struct $name {
+    ($name:ident < $DATATYPE:ty > $( : $($traits:tt)+ )? ) => {
+        pub struct $name<T: TLB> {
             client: ContractClient,
             state: std::sync::Arc<TonContractState>,
+            _phantom: std::marker::PhantomData<T>,
         }
 
-        impl TonContract for $name {
-            type DataType = TonCell;
-            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self { Self{client, state} }
-            fn get_client(&self) -> &ContractClient { &self.client }
-            fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
-        }
-    };
-    ($name:ident < $DATATYPE:ty > : $($traits:tt)+) => {
-        pub struct $name {
-            client: ContractClient,
-            state: std::sync::Arc<TonContractState>,
-        }
-
-        impl TonContract for $name {
-            type DataType = TonCell;
-            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self { Self{client, state} }
+        impl TonContract for $name<$DATATYPE> {
+            type ContractData = $DATATYPE;
+            fn from_state(client: ContractClient, state: std::sync::Arc<TonContractState>) -> Self {
+                Self { client, state, _phantom: std::marker::PhantomData }
+            }
             fn get_client(&self) -> &ContractClient { &self.client }
             fn get_state(&self) -> &std::sync::Arc<TonContractState> { &self.state }
         }
 
-        // Expand each trait separated by '+'
-        $crate::__impl_traits_for_contract!($name < $DATATYPE:ty > : $($traits)+);
+        $(
+            $crate::__impl_traits_for_contract!($name<$DATATYPE> : $($traits)+);
+        )?
     };
 }
 
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __impl_traits_for_contract {
-    // Single trait
-    ($name:ident : $trait:path) => {
-        impl $trait for $name {}
+    // Single trait for a named type with its datatype
+    ($name:ident<$DATATYPE:ty> : $trait:path) => {
+        impl $trait for $name<$DATATYPE> {}
     };
 
-    // Multiple traits separated by '+'
-    ($name:ident : $trait:path , $($rest:tt)+) => {
-        impl $trait for $name {}
-        $crate::__impl_traits_for_contract!($name : $($rest)+);
+    // Multiple traits separated by commas — recurse while preserving <$DATATYPE>
+    ($name:ident<$DATATYPE:ty> : $trait:path , $($rest:tt)+) => {
+        impl $trait for $name<$DATATYPE> {}
+        $crate::__impl_traits_for_contract!($name<$DATATYPE> : $($rest)+);
     };
 }
 
 #[cfg(test)]
 mod tests {
+    use ton_core::cell::TonCell;
     use super::*;
     #[test]
     #[allow(unused)]
     fn test_ton_contract_macro() {
-        ton_contract!(MyContract1);
-
+        ton_contract!(MyContract1<TonCell>);
         trait MyTrait1 {}
-        ton_contract!(MyContract2: MyTrait1);
-
+        ton_contract!(MyContract2<TonCell>: MyTrait1);
         trait MyTrait2 {}
-        ton_contract!(MyContract3: MyTrait1, MyTrait2);
+        ton_contract!(MyContract3<TonCell>: MyTrait1, MyTrait2);
     }
 }

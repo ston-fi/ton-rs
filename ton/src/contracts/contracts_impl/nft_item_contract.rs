@@ -1,14 +1,16 @@
+use crate::ton_core::traits::tlb::TLB;
 use crate::contracts::ContractClient;
 use crate::contracts::contract_methods::{NFTCollectionMethods, NFTItemMethods};
 use crate::contracts::{NFTCollectionContract, TonContract};
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::GetNFTDataResult;
-use crate::ton_contract;
 use crate::ton_core::traits::contract_provider::TonContractState;
 use ton_core::errors::TonCoreError;
+use ton_core::cell::TonCell;
+use crate::ton_contract;
 
-ton_contract!(NFTItemContract: NFTItemMethods);
-impl NFTItemContract {
+ton_contract!(NFTItemContract<TonCell>: NFTItemMethods);
+impl NFTItemContract<TonCell> {
     pub async fn load_full_nft_data(&self) -> Result<GetNFTDataResult, TonCoreError> {
         let mut data = self.get_nft_data().await?;
         if let MetadataContent::Unsupported(meta) = data.individual_content {
