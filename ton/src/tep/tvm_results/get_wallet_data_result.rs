@@ -5,8 +5,9 @@ use fastnum::I512;
 use ton_core::TVMResult;
 use ton_core::cell::TonCell;
 use ton_core::types::TonAddress;
+use ton_macros::TLB;
 
-#[derive(Debug, Clone, PartialEq, Eq, TVMResult)]
+#[derive(Debug, Clone, PartialEq, Eq, TVMResult, TLB)]
 #[tvm_result(ensure_empty = true)]
 pub struct GetWalletDataResult {
     pub balance: I512,

@@ -20,7 +20,7 @@ pub trait TonContract: Send + Sync + Sized {
         Ok(Self::from_state(client.clone(), state))
     }
 
-    async fn emulate_get_method<M, T:TLB>(
+    async fn emulate_get_method<M, T: TLB>(
         &self,
         method: M,
         stack: &TVMStack,
@@ -89,8 +89,8 @@ macro_rules! __impl_traits_for_contract {
 
 #[cfg(test)]
 mod tests {
-    use ton_core::cell::TonCell;
     use super::*;
+    use ton_core::cell::TonCell;
     #[test]
     #[allow(unused)]
     fn test_ton_contract_macro() {

@@ -5,8 +5,9 @@ use crate::tep::tvm_results::tvm_result::TVMResult;
 use fastnum::I512;
 use ton_core::TVMResult;
 use ton_core::types::TonAddress;
+use ton_macros::TLB;
 
-#[derive(Debug, Clone, PartialEq, TVMResult)]
+#[derive(Debug, Clone, PartialEq, TVMResult, TLB)]
 #[tvm_result(ensure_empty = true)]
 pub struct GetNFTDataResult {
     pub init: bool,

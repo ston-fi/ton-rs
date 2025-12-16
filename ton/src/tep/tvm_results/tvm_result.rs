@@ -18,8 +18,10 @@ pub trait TVMResult: Sized {
 
 mod trait_impl {
     use crate::tep::metadata::MetadataContent;
+    use ton_core::cell::TonHash;
 
     use super::*;
+    use crate::errors::TonError;
     use ton_core::types::{Coins, TonAddress};
 
     impl TVMResult for bool {
@@ -31,7 +33,14 @@ mod trait_impl {
     }
 
     impl TVMResult for u32 {
-        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_num() }
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+            stack.pop_num().and_then(|num| {
+                num.try_into().map_err(|_| TonError::UnexpectedValue {
+                    expected: "u32".to_string(),
+                    actual: format!("num {}", num),
+                })
+            })
+        }
     }
 
     impl TVMResult for I512 {
@@ -90,7 +99,7 @@ mod tests {
 
         assert_eq!(test_struct.field1, 1i64);
         assert_eq!(test_struct.field2, TonAddress::from_str("EQBiMfDMivebQb052Z6yR3jHrmwNhw1kQ5bcAUOBYsK_VPuK")?);
-        assert_eq!(test_struct.field3, false);
+        assert!(!test_struct.field3);
 
         assert_err!(assert_ensure_empty_for_stack());
 
@@ -109,7 +118,7 @@ mod tests {
 
         assert_eq!(test_struct.field1, 1i64);
         assert_eq!(test_struct.field2, TonAddress::from_str("EQBiMfDMivebQb052Z6yR3jHrmwNhw1kQ5bcAUOBYsK_VPuK")?);
-        assert_eq!(test_struct.field3, false);
+        assert!(!test_struct.field3);
 
         Ok(())
     }

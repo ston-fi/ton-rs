@@ -3,11 +3,10 @@ use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::tvm_result::TVMResult;
 use ton_core::TLB;
-use ton_core::traits::tlb::TLB;
 use ton_core::TVMResult;
 use ton_core::types::TonAddress;
 
-#[derive(Debug, Clone, PartialEq, TVMResult)]
+#[derive(Debug, Clone, PartialEq, TVMResult, TLB)]
 #[tvm_result(ensure_empty = true)]
 pub struct GetCollectionDataResult {
     pub next_item_index: i64,

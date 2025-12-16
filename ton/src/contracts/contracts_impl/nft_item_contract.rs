@@ -1,13 +1,13 @@
-use crate::ton_core::traits::tlb::TLB;
 use crate::contracts::ContractClient;
 use crate::contracts::contract_methods::{NFTCollectionMethods, NFTItemMethods};
 use crate::contracts::{NFTCollectionContract, TonContract};
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::GetNFTDataResult;
-use crate::ton_core::traits::contract_provider::TonContractState;
-use ton_core::errors::TonCoreError;
-use ton_core::cell::TonCell;
 use crate::ton_contract;
+use crate::ton_core::traits::contract_provider::TonContractState;
+use crate::ton_core::traits::tlb::TLB;
+use ton_core::cell::TonCell;
+use ton_core::errors::TonCoreError;
 
 ton_contract!(NFTItemContract<TonCell>: NFTItemMethods);
 impl NFTItemContract<TonCell> {
