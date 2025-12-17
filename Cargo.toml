@@ -70,7 +70,7 @@ tokio-retry = "0.3"
 tokio-tower = "0.6"
 ton_liteapi = "0.2"
 tower = { version = "0.5", features = ["util"] }
-bincode = { version = "2.0.1" , features = ["serde"] }
+
 
 # tests
 anyhow = "1.0"

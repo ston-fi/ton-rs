@@ -7,7 +7,7 @@ use ton_core::cell::TonHash;
 use ton_core::serde::serde_ton_hash_hex;
 use ton_core::traits::tlb::TLB;
 
-use crate::errors::{TonError, TonResult};
+use crate::errors::{TonResult};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TXEmulOrdArgs {
