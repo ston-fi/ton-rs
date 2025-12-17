@@ -85,7 +85,7 @@ async fn assert_nft_item_load_full_nft_data(ctr_cli: &ContractClient) -> anyhow:
     let semichain = TonAddress::from_str("EQAbNqfCuv4Chy6D-2UBKzi3qYvVPrB-STOzBGQo5AKh4P9u")?;
     let contract = NFTItemContract::new(ctr_cli, &semichain, None).await?;
 
-    let data = contract.load_full_nft_data().await?;
+    let data = contract.ext_load_full_nft_data().await?;
     let meta_loader = MetaLoader::builder().build()?;
     let content_res: NFTItemMetadata = meta_loader.load(&data.individual_content).await?;
     let expected = NFTItemMetadata {

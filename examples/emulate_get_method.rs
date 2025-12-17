@@ -12,6 +12,7 @@ mod example {
     use ton::tl_client::TLClient;
     use ton::ton_contract;
     use ton_core::TLB;
+    use ton_core::cell::TonCell;
     use ton_core::traits::contract_provider::TonContractState;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;

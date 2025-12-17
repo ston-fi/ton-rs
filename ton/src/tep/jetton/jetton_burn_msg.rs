@@ -12,11 +12,11 @@ use ton_core::types::tlb_core::{MsgAddress, TLBRef};
 /// ```
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0x595f07bc, bits_len = 32, ensure_empty = true)]
-pub struct JettonBurnMsg<Payload: TLB = TonCell> {
+pub struct JettonBurnMsg<CustomPayloadT: TLB = TonCell> {
     pub query_id: u64,            // arbitrary request number
     pub amount: TLBCoins,         // amount to burn
     pub response_dst: MsgAddress, // address to send confirmation
-    pub custom_payload: Option<TLBRef<Payload>>,
+    pub custom_payload: Option<TLBRef<CustomPayloadT>>,
 }
 
 impl JettonBurnMsg {

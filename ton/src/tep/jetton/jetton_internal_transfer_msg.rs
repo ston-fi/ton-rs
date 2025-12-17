@@ -14,13 +14,13 @@ use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
 /// ```
 #[derive(Debug, Clone, PartialEq, TLB)]
 #[tlb(prefix = 0x178d4519, bits_len = 32, ensure_empty = true)]
-pub struct JettonInternalTransferMsg<Payload: TLB = TonCell> {
+pub struct JettonInternalTransferMsg<ForwardPayloadT: TLB = TonCell> {
     pub query_id: u64,
     pub amount: TLBCoins,
     pub from_address: MsgAddress,
     pub response_address: MsgAddress,
     pub forward_amount: TLBCoins,
-    pub forward_payload: TLBEitherRef<Payload>,
+    pub forward_payload: TLBEitherRef<ForwardPayloadT>,
 }
 
 #[cfg(test)]
