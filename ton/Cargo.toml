@@ -47,8 +47,7 @@ num-bigint.workspace = true
 num-traits.workspace = true
 ton_liteapi.workspace = true
 tokio.workspace = true
-serde= {workspace = true,features = ["derive"]}
-serde_with.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 auto_pool.workspace = true
 adnl.workspace = true
