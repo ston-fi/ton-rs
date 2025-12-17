@@ -40,7 +40,7 @@ impl Builder {
             provider: Arc::new(provider),
             emulator_pool_size: thread::available_parallelism().map_err(TonError::system)?.get(),
             emulator_pool: None,
-            tvm_emulation_timeout: Duration::from_millis(10),
+            tvm_emulation_timeout: Duration::from_secs(1),
             refresh_loop_idle_on_error: Duration::from_millis(100),
             contract_cache_capacity: 0,
             contract_cache_ttl: Duration::from_millis(0),
