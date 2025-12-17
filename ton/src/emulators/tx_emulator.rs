@@ -251,7 +251,6 @@ mod tests {
             1738323935,
             53483578000001,
         )?;
-        // Override default values with test-specific ones
 
         assert_err!(emulator.emulate_ord(&ord_args)?.into_success());
         ord_args.emul_args.ignore_chksig = true;
