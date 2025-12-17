@@ -1,14 +1,11 @@
 use crate::block_tlb::TVMStack;
-use crate::contracts::{ContractClient, NFTCollectionMethods};
+use crate::contracts::NFTCollectionMethods;
 use crate::contracts::{NFTCollectionContract, TonContract};
 use crate::errors::TonError;
 use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::GetNFTDataResult;
 use crate::ton_contract;
-use crate::ton_core::traits::contract_provider::TonContractState;
-use crate::ton_core::traits::tlb::TLB;
 use async_trait::async_trait;
-use ton_core::cell::TonCell;
 use ton_core::errors::TonCoreError;
 
 ton_contract!(NFTItemContract: NFTItemMethods);
