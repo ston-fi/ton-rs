@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
 use crate::contracts::TonContract;
 use crate::errors::TonResult;
-use crate::tep::tvm_results::{GetCollectionDataResult, GetNFTAddressByIndexResult, GetNFTContentResult, TVMResult};
+use crate::tep::tvm_results::{GetCollectionDataResult, GetNFTAddressByIndexResult, GetNFTContentResult};
 use async_trait::async_trait;
 use fastnum::I512;
 use ton_core::cell::TonCell;

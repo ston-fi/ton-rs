@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
 use crate::contracts::TonContract;
 use crate::errors::TonError;
-use crate::tep::tvm_results::{GetNFTDataResult, TVMResult};
+use crate::tep::tvm_results::GetNFTDataResult;
 use async_trait::async_trait;
 
 #[async_trait]
