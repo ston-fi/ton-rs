@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.5...ton_macros-v0.0.6) - 2025-12-17
+
+### Other
+
+- Tvm result macros ([#152](https://github.com/ston-fi/ton-rs/pull/152))
+
 ## [0.0.5](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.4...ton_macros-v0.0.5) - 2025-12-09
 
 ### Other

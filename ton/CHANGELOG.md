@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.10](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.9...ton-v0.0.10) - 2025-12-17
+
+### Fixed
+
+- fix tonlib error parsing
+
+### Other
+
+- ton_contract! macro cares about includes itself + up sys
+- tl_provider uses 1 connection to fetch blocks, fix naming in tep templated types, put ContractMethods together with ContractImpl
+- ton_contract! supports ContractDataType as template argument
+- Add tx emulator test and TxEmulOrdArgs serializator ([#157](https://github.com/ston-fi/ton-rs/pull/157))
+- add warn on error receiving
+- Single EmulatorPool for Tx & TVM emulators
+- Tvm result macros ([#152](https://github.com/ston-fi/ton-rs/pull/152))
+- PartialEq for TVMStack ([#153](https://github.com/ston-fi/ton-rs/pull/153))
+- Testnet constants ([#150](https://github.com/ston-fi/ton-rs/pull/150))
+
 ## [0.0.9](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.8...ton-v0.0.9) - 2025-12-08
 
 ### Other

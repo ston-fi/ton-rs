@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.13](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.12...ton_core-v0.0.13) - 2025-12-17
+
+### Other
+
+- ton_contract! supports ContractDataType as template argument
+- Testnet constants ([#150](https://github.com/ston-fi/ton-rs/pull/150))
+
 ## [0.0.12](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.11...ton_core-v0.0.12) - 2025-12-09
 
 ### Other
