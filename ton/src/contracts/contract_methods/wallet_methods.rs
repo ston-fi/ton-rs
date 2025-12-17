@@ -8,12 +8,6 @@ use ton_core::cell::TonHash;
 pub trait TonWalletMethods: TonContract {
     async fn seqno(&self) -> Result<u32, TonError> {
         let wallet_seqno: u32 = self.emulate_get_method("seqno", &TVMStack::EMPTY, None).await?;
-        if wallet_seqno < 0 {
-            return Err(TonError::UnexpectedValue {
-                expected: "non-negative integer".to_string(),
-                actual: wallet_seqno.to_string(),
-            });
-        }
         Ok(wallet_seqno)
     }
 
