@@ -1,11 +1,28 @@
 use crate::errors::TonError;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::ffi::CString;
 use std::ops::Deref;
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+// Custom serialization for EmulBCConfig
+pub mod serde_emul_bc_config {
+    use super::*;
+    use serde::de::Error;
+
+    pub fn serialize<S: Serializer>(config: &EmulBCConfig, serializer: S) -> Result<S::Ok, S::Error> {
+        let base64_str = config.to_string_lossy();
+        serializer.serialize_str(&base64_str)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<EmulBCConfig, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        EmulBCConfig::from_boc_base64(&s).map_err(Error::custom)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct EmulBCConfig(Arc<CString>);
 
 impl Deref for EmulBCConfig {
@@ -16,6 +33,18 @@ impl Deref for EmulBCConfig {
 
 impl From<Arc<CString>> for EmulBCConfig {
     fn from(config: Arc<CString>) -> Self { Self(config) }
+}
+
+impl Serialize for EmulBCConfig {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serde_emul_bc_config::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for EmulBCConfig {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        serde_emul_bc_config::deserialize(deserializer)
+    }
 }
 
 impl EmulBCConfig {

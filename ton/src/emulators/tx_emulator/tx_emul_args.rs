@@ -4,11 +4,12 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use std::sync::Arc;
 use ton_core::cell::TonHash;
+use ton_core::serde::serde_ton_hash_hex;
 use ton_core::traits::tlb::TLB;
 
 use crate::errors::{TonError, TonResult};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TXEmulOrdArgs {
     pub in_msg_boc: Arc<Vec<u8>>,
     pub emul_args: TXEmulArgs,
@@ -20,15 +21,20 @@ pub struct TXEmulTickTockArgs {
     pub emul_args: TXEmulArgs,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TXEmulArgs {
+    #[serde(with = "serde_arc_vec_u8_base64")]
     pub shard_account_boc: Arc<Vec<u8>>,
+    #[serde(with = "crate::emulators::emul_bc_config::serde_emul_bc_config")]
     pub bc_config: EmulBCConfig,
+    #[serde(with = "serde_ton_hash_hex")]
     pub rand_seed: TonHash,
     pub utime: u32,
     pub lt: u64,
     pub ignore_chksig: bool,
+    #[serde(with = "serde_opt_arc_vec_u8_base64")]
     pub prev_blocks_boc: Option<Arc<Vec<u8>>>,
+    #[serde(with = "serde_opt_arc_vec_u8_base64")]
     pub libs_boc: Option<Arc<Vec<u8>>>,
 }
 
@@ -69,58 +75,128 @@ impl Display for TXEmulTickTockArgs {
     }
 }
 
-use bincode::{Decode, Encode};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
+// Custom serialization for Arc<Vec<u8>> as base64
+mod serde_arc_vec_u8_base64 {
+    use super::*;
+    use serde::de::Error;
+
+    pub fn serialize<S: Serializer>(data: &Arc<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&STANDARD.encode(data.as_ref()))
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Arc<Vec<u8>>, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        let bytes = STANDARD.decode(&s).map_err(Error::custom)?;
+        Ok(Arc::new(bytes))
+    }
+}
+
+// Custom serialization for Option<Arc<Vec<u8>>> as base64
+mod serde_opt_arc_vec_u8_base64 {
+    use super::*;
+    use serde::de::Error;
+
+    pub fn serialize<S: Serializer>(data: &Option<Arc<Vec<u8>>>, serializer: S) -> Result<S::Ok, S::Error> {
+        match data {
+            Some(bytes) => serializer.serialize_some(&STANDARD.encode(bytes.as_ref())),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<Arc<Vec<u8>>>, D::Error> {
+        let opt = Option::<String>::deserialize(deserializer)?;
+        match opt {
+            Some(s) => {
+                let bytes = STANDARD.decode(&s).map_err(Error::custom)?;
+                Ok(Some(Arc::new(bytes)))
+            }
+            None => Ok(None),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct TXEmulOrdArgsSerializable {
-    in_msg_boc: Vec<u8>,
-    bc_config_boc: Vec<u8>,
-
-    shard_account_boc: Vec<u8>,
-    rand_seed: Vec<u8>,
+    in_msg_boc: String,        // base64 encoded
+    bc_config_boc: String,     // base64 encoded
+    shard_account_boc: String, // base64 encoded
+    rand_seed: String,         // hex encoded
     utime: u32,
     lt: u64,
     ignore_chksig: bool,
-    prev_blocks_boc: Option<Vec<u8>>,
-    libs_boc: Option<Vec<u8>>,
+    prev_blocks_boc: Option<String>, // base64 encoded
+    libs_boc: Option<String>,        // base64 encoded
 }
 
 pub fn dump_tx_emul_ord_args(args: TXEmulOrdArgs) -> TonResult<Vec<u8>> {
     let bc_config_boc = args.emul_args.bc_config.to_boc()?;
     let serializable = TXEmulOrdArgsSerializable {
-        in_msg_boc: args.in_msg_boc.as_ref().to_vec(),
-        bc_config_boc,
-        shard_account_boc: args.emul_args.shard_account_boc.as_ref().to_vec(),
-        rand_seed: args.emul_args.rand_seed.as_slice().to_vec(),
+        in_msg_boc: STANDARD.encode(args.in_msg_boc.as_ref()),
+        bc_config_boc: STANDARD.encode(&bc_config_boc),
+        shard_account_boc: STANDARD.encode(args.emul_args.shard_account_boc.as_ref()),
+        rand_seed: hex::encode(args.emul_args.rand_seed.as_slice()),
         utime: args.emul_args.utime,
         lt: args.emul_args.lt,
         ignore_chksig: args.emul_args.ignore_chksig,
-        prev_blocks_boc: args.emul_args.prev_blocks_boc.as_ref().map(|b| b.as_ref().to_vec()),
-        libs_boc: args.emul_args.libs_boc.as_ref().map(|b| b.as_ref().to_vec()),
+        prev_blocks_boc: args.emul_args.prev_blocks_boc.as_ref().map(|b| STANDARD.encode(b.as_ref())),
+        libs_boc: args.emul_args.libs_boc.as_ref().map(|b| STANDARD.encode(b.as_ref())),
     };
-    let binary = bincode::encode_to_vec(&serializable, bincode::config::standard())
-        .map_err(|e| TonError::Custom(format!("Failed to encode TXEmulOrdArgs: {e}")))?;
-    Ok(binary)
+    let json_str = serde_json::to_string(&serializable)
+        .map_err(|e| TonError::Custom(format!("Failed to encode TXEmulOrdArgs to JSON: {e}")))?;
+    Ok(json_str.into_bytes())
 }
 
 pub fn load_tx_emul_ord_args(binary: Vec<u8>) -> TonResult<TXEmulOrdArgs> {
-    let (serializable, _): (TXEmulOrdArgsSerializable, usize) =
-        bincode::decode_from_slice(&binary, bincode::config::standard())
-            .map_err(|e| TonError::Custom(format!("Failed to decode TXEmulOrdArgs: {e}")))?;
-    let bc_config = EmulBCConfig::from_boc(&serializable.bc_config_boc)?;
-    let rand_seed = TonHash::from_slice(&serializable.rand_seed)?;
+    let json_str = String::from_utf8(binary)
+        .map_err(|e| TonError::Custom(format!("Failed to decode binary to UTF-8 string: {e}")))?;
+    let serializable: TXEmulOrdArgsSerializable = serde_json::from_str(&json_str)
+        .map_err(|e| TonError::Custom(format!("Failed to decode TXEmulOrdArgs from JSON: {e}")))?;
+
+    let in_msg_boc = STANDARD
+        .decode(&serializable.in_msg_boc)
+        .map_err(|e| TonError::Custom(format!("Failed to decode in_msg_boc from base64: {e}")))?;
+    let bc_config_boc = STANDARD
+        .decode(&serializable.bc_config_boc)
+        .map_err(|e| TonError::Custom(format!("Failed to decode bc_config_boc from base64: {e}")))?;
+    let shard_account_boc = STANDARD
+        .decode(&serializable.shard_account_boc)
+        .map_err(|e| TonError::Custom(format!("Failed to decode shard_account_boc from base64: {e}")))?;
+    let rand_seed = hex::decode(&serializable.rand_seed)
+        .map_err(|e| TonError::Custom(format!("Failed to decode rand_seed from hex: {e}")))?;
+
+    let bc_config = EmulBCConfig::from_boc(&bc_config_boc)?;
+    let rand_seed = TonHash::from_slice(&rand_seed)?;
+
+    let prev_blocks_boc = serializable
+        .prev_blocks_boc
+        .map(|s| {
+            STANDARD
+                .decode(&s)
+                .map_err(|e| TonError::Custom(format!("Failed to decode prev_blocks_boc from base64: {e}")))
+        })
+        .transpose()?;
+    let libs_boc = serializable
+        .libs_boc
+        .map(|s| {
+            STANDARD.decode(&s).map_err(|e| TonError::Custom(format!("Failed to decode libs_boc from base64: {e}")))
+        })
+        .transpose()?;
 
     Ok(TXEmulOrdArgs {
-        in_msg_boc: serializable.in_msg_boc.into(),
+        in_msg_boc: in_msg_boc.into(),
         emul_args: TXEmulArgs {
-            shard_account_boc: serializable.shard_account_boc.into(),
+            shard_account_boc: shard_account_boc.into(),
             bc_config,
             rand_seed,
             utime: serializable.utime,
             lt: serializable.lt,
             ignore_chksig: serializable.ignore_chksig,
-            prev_blocks_boc: serializable.prev_blocks_boc.map(Into::into),
-            libs_boc: serializable.libs_boc.map(Into::into),
+            prev_blocks_boc: prev_blocks_boc.map(Into::into),
+            libs_boc: libs_boc.map(Into::into),
         },
     })
 }
@@ -148,4 +224,29 @@ pub fn create_test_tx_emul_ord_args(
             libs_boc: None,
         },
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::emulators::tx_emulator::{create_test_tx_emul_ord_args, dump_tx_emul_ord_args};
+
+    #[test]
+    fn test_tx_emul_args_serialize() -> anyhow::Result<()> {
+        let test_shard_acc = crate::emulators::tx_emulator::tests::TEST_SHARD_ACCOUNT.clone();
+        let ord_args = create_test_tx_emul_ord_args(
+            crate::emulators::tx_emulator::tests::TEST_MSG_IN_EXT.clone(),
+            &test_shard_acc,
+            &crate::emulators::tx_emulator::tests::BC_CONFIG,
+            crate::emulators::tx_emulator::tests::TEST_RAND_SEED.clone(),
+            1738323935,
+            53483578000001,
+        )?;
+
+        let dumped = dump_tx_emul_ord_args(ord_args.clone())?;
+
+        let loaded = super::load_tx_emul_ord_args(dumped)?;
+        assert_eq!(ord_args, loaded);
+
+        Ok(())
+    }
 }

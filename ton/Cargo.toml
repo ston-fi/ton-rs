@@ -47,7 +47,8 @@ num-bigint.workspace = true
 num-traits.workspace = true
 ton_liteapi.workspace = true
 tokio.workspace = true
-serde.workspace = true
+serde= {workspace = true,features = ["derive"]}
+serde_with.workspace = true
 serde_json.workspace = true
 auto_pool.workspace = true
 adnl.workspace = true
@@ -65,7 +66,7 @@ sha2.workspace = true
 reqwest.workspace = true
 derive_setters.workspace = true
 fastnum.workspace = true
-bincode = { workspace = true, features = ["serde"] }
+
 [dev-dependencies]
 anyhow.workspace = true
 tokio-test.workspace = true
