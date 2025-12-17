@@ -6,4 +6,4 @@ use crate::ton_core::traits::contract_provider::TonContractState;
 use crate::ton_core::traits::tlb::TLB;
 use ton_core::cell::TonCell;
 
-ton_contract!(TonWalletContract<TonCell>: TonWalletMethods);
+ton_contract!(TonWalletContract: TonWalletMethods);

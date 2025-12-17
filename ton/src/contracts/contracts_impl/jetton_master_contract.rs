@@ -7,4 +7,4 @@ use crate::ton_core::traits::tlb::TLB;
 use ton_core::cell::TonCell;
 
 // https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md#jetton-master-contract
-ton_contract!(JettonMasterContract<TonCell>: JettonMasterMethods);
+ton_contract!(JettonMasterContract: JettonMasterMethods);
