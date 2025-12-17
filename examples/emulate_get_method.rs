@@ -40,7 +40,7 @@ mod example {
         // Emulation using predefined implementation of TonContract
         let pool = StonfiPool::new(&ctr_cli, &address, None).await?;
         let jetton_data = pool.get_jetton_data().await?;
-        let pool_data: StonFiPoolData = pool.get_parsed_data().await?;
+        let pool_data = pool.get_parsed_data().await?;
         println!("[predefined] jetton_data result: {:?}", jetton_data);
         println!("[predefined] pool_data result: {:?}", pool_data);
 

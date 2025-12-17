@@ -2,6 +2,7 @@ use crate::block_tlb::TVMStack;
 use crate::contracts::contract_client::ContractClient;
 use crate::emulators::tvm_emulator::TVMGetMethodID;
 use crate::errors::TonError;
+use crate::tep::tvm_results::TVMResult;
 use std::sync::Arc;
 use ton_core::traits::contract_provider::TonContractState;
 use ton_core::traits::tlb::TLB;
@@ -13,14 +14,14 @@ pub trait TonContract: Send + Sync + Sized {
     fn from_state(client: ContractClient, state: Arc<TonContractState>) -> Self;
     fn get_state(&self) -> &Arc<TonContractState>;
     fn get_client(&self) -> &ContractClient;
-    type ContractData;
+    type ContractData: TLB;
 
     async fn new(client: &ContractClient, address: &TonAddress, tx_id: Option<TxLTHash>) -> Result<Self, TonError> {
         let state = client.get_contract(address, tx_id.as_ref()).await?;
         Ok(Self::from_state(client.clone(), state))
     }
 
-    async fn emulate_get_method<M, T: TLB>(
+    async fn emulate_get_method<M, T: TVMResult>(
         &self,
         method: M,
         stack: &TVMStack,
@@ -32,13 +33,13 @@ pub trait TonContract: Send + Sync + Sized {
         let method_id = method.into().to_id();
         let response =
             self.get_client().emulate_get_method(self.get_state(), method_id, stack.to_boc()?, mc_seqno).await?;
-        Ok(T::from_boc(response.stack_boc()?)?)
+        T::from_stack_boc(response.stack_boc()?)
     }
 
-    async fn get_parsed_data<D: TLB>(&self) -> Result<D, TonError> {
+    async fn get_parsed_data(&self) -> Result<Self::ContractData, TonError> {
         let state = self.get_state();
         match state.data_boc.as_ref() {
-            Some(data_boc) => Ok(D::from_boc(data_boc.to_owned())?),
+            Some(data_boc) => Ok(TLB::from_boc(data_boc.to_owned())?),
             None => Err(TonError::TonContractNotFull {
                 address: state.address.clone(),
                 tx_id: Some(state.last_tx_id.clone()),
