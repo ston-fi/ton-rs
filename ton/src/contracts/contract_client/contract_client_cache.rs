@@ -176,6 +176,11 @@ async fn recent_tx_loop(weak_cache: Weak<ContractClientCache>, idle_on_error: Du
                 continue;
             }
         };
+        log::debug!(
+            "[recent_tx_loop] mc_seqno {}: loaded {} txs (last per address)",
+            cur_mc_seqno,
+            latest_tx_per_addr.len()
+        );
 
         let update_cache_futs = latest_tx_per_addr.into_iter().map(|(address, tx_id)| async move {
             client_cache_ref.latest_tx_cache.insert(address.clone(), tx_id).await;
