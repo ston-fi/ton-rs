@@ -2,30 +2,39 @@
 mod example {
     use std::str::FromStr;
     use ton::block_tlb::TVMStack;
-    use ton::contracts::ContractClient;
-    use ton::contracts::TonContract;
     use ton::contracts::tl_provider::TLProvider;
+    use ton::contracts::{ContractClient, TonContract};
     use ton::emulators::tvm_emulator::TVMGetMethodID;
-    use ton::errors::TonError;
+    use ton::errors::TonResult;
     use ton::net_config::TonNetConfig;
     use ton::tep::tvm_results::GetJettonDataResult;
     use ton::tl_client::TLClient;
     use ton::ton_contract;
     use ton_core::TLB;
-    use ton_core::cell::TonCell;
-    use ton_core::traits::contract_provider::TonContractState;
-    use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
 
     ton_contract!(StonfiPool<StonFiPoolData>);
+    // macros expands to:
+    // pub struct StonfiPool {
+    //     client: ::ton::contracts::ContractClient,
+    //     state: std::sync::Arc<::ton::ton_core::traits::contract_provider::TonContractState>,
+    // }
+    // impl ::ton::contracts::TonContract for StonfiPool {
+    //     type ContractDataT = StonFiPoolData;
+    //     fn from_state(client: ::ton::contracts::ContractClient, state: std::sync::Arc<::ton::ton_core::traits::contract_provider::TonContractState>) -> Self {
+    //         Self { client, state }
+    //     }
+    //     fn get_state(&self) -> &std::sync::Arc<::ton::ton_core::traits::contract_provider::TonContractState> { &self.state }
+    //     fn get_client(&self) -> &::ton::contracts::ContractClient { &self.client }
+    // }
 
     #[derive(Debug, Clone, TLB)]
-    struct StonFiPoolData {
+    pub struct StonFiPoolData {
         address: TonAddress,
     }
 
-    impl StonfiPool<StonFiPoolData> {
-        async fn get_jetton_data(&self) -> Result<GetJettonDataResult, TonError> {
+    impl StonfiPool {
+        async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult> {
             self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await
         }
     }
