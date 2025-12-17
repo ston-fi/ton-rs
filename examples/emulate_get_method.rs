@@ -15,26 +15,25 @@ mod example {
 
     ton_contract!(StonfiPool<StonFiPoolData>);
     // macros expands to:
-    // pub struct StonfiPool<T: ::ton::ton_core::traits::tlb::TLB = ::ton::ton_core::cell::TonCell> {
+    // pub struct StonfiPool {
     //     client: ::ton::contracts::ContractClient,
     //     state: std::sync::Arc<::ton::ton_core::traits::contract_provider::TonContractState>,
-    //     _phantom: std::marker::PhantomData<T>,
     // }
-    // impl ::ton::contracts::TonContract for StonfiPool<StonFiPoolData> {
+    // impl ::ton::contracts::TonContract for StonfiPool {
     //     type ContractDataT = StonFiPoolData;
     //     fn from_state(client: ::ton::contracts::ContractClient, state: std::sync::Arc<::ton::ton_core::traits::contract_provider::TonContractState>) -> Self {
-    //         Self { client, state, _phantom: std::marker::PhantomData }
+    //         Self { client, state }
     //     }
     //     fn get_state(&self) -> &std::sync::Arc<::ton::ton_core::traits::contract_provider::TonContractState> { &self.state }
     //     fn get_client(&self) -> &::ton::contracts::ContractClient { &self.client }
     // }
 
     #[derive(Debug, Clone, TLB)]
-    struct StonFiPoolData {
+    pub struct StonFiPoolData {
         address: TonAddress,
     }
 
-    impl StonfiPool<StonFiPoolData> {
+    impl StonfiPool {
         async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult> {
             self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await
         }
