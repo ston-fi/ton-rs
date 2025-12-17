@@ -20,6 +20,7 @@ pub fn get_now_ns() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwra
 
 const FIBONACHI_TASK_LOAD: u64 = 13; // ~0,87
 
+#[allow(unused)]
 fn fibonachi(n: u64) -> u64 {
     if n == 0 {
         return 0;
@@ -29,6 +30,7 @@ fn fibonachi(n: u64) -> u64 {
     fibonachi(n - 1) + fibonachi(n - 2)
 }
 
+#[allow(unused)]
 pub fn cpu_load_function(load_microseconds: u64) -> u64 {
     let stop_time = get_now_ns() + (load_microseconds * 1000) as u128;
     let mut sum = 0u64;

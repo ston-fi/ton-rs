@@ -53,7 +53,7 @@ fn test_ton_cell_num_primitives_corner_cases() -> anyhow::Result<()> {
     assert_ton_cell_num_read_write(vec![(0u32, 32), (u32::MAX, 32)])?;
     assert_ton_cell_num_read_write(vec![(0u64, 64), (u64::MAX, 64)])?;
     assert_ton_cell_num_read_write(vec![(0u128, 128), (u128::MAX, 128)])?;
-    let size_usize = size_of::<usize>() * 8;
+    let size_usize = usize::BITS as usize;
     assert_ton_cell_num_read_write(vec![(0usize, size_usize), (usize::MAX, size_usize)])?;
 
     // signed
@@ -63,7 +63,7 @@ fn test_ton_cell_num_primitives_corner_cases() -> anyhow::Result<()> {
     assert_ton_cell_num_read_write(vec![(0i64, 64), (i64::MAX, 64), (i64::MIN, 64), (i64::MIN / 2, 64)])?;
     assert_ton_cell_num_read_write(vec![(0i128, 128), (i128::MAX, 128), (i128::MIN, 128), (i128::MIN / 2, 128)])?;
 
-    let size_usize = size_of::<isize>() * 8;
+    let size_usize = isize::BITS as usize;
     assert_ton_cell_num_read_write(vec![(0isize, size_usize), (isize::MAX, size_usize), (isize::MIN, size_usize + 1), (isize::MIN / 2, size_usize)])?;
     Ok(())
 }

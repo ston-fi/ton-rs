@@ -5,10 +5,12 @@ use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_results::GetNFTDataResult;
 use crate::ton_contract;
 use crate::ton_core::traits::contract_provider::TonContractState;
+use crate::ton_core::traits::tlb::TLB;
+use ton_core::cell::TonCell;
 use ton_core::errors::TonCoreError;
 
 ton_contract!(NFTItemContract: NFTItemMethods);
-impl NFTItemContract {
+impl NFTItemContract<TonCell> {
     pub async fn load_full_nft_data(&self) -> Result<GetNFTDataResult, TonCoreError> {
         let mut data = self.get_nft_data().await?;
         if let MetadataContent::Unsupported(meta) = data.individual_content {
