@@ -13,18 +13,18 @@ use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef}
 
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0xf8a7ea5, bits_len = 32)]
-pub struct JettonTransferMsg<Payload: TLB = TonCell> {
+pub struct JettonTransferMsg<CustomPayloadT: TLB = TonCell, ForwardPayloadT: TLB = TonCell> {
     pub query_id: u64,    // arbitrary number to identify the transfer
     pub amount: TLBCoins, // amount of transferred jettons in elementary units
     pub dst: MsgAddress,
     pub response_dst: MsgAddress, // address where to send a response with confirmation of a successful transfer and the rest of the incoming message Toncoins.
-    pub custom_payload: Option<TLBRef<TonCell>>, // optional custom data (which is used by either sender or receiver jetton ton_wallet for inner logic).
-    pub forward_ton_amount: TLBCoins,            // the amount of nano-tons to be sent to the destination address.
-    pub forward_payload: TLBEitherRef<Payload>,  // data will be sent to the destination address "as is".
+    pub custom_payload: Option<TLBRef<CustomPayloadT>>, // optional custom data (which is used by either sender or receiver jetton ton_wallet for inner logic).
+    pub forward_ton_amount: TLBCoins, // the amount of nano-tons to be sent to the destination address.
+    pub forward_payload: TLBEitherRef<ForwardPayloadT>, // data will be sent to the destination address "as is".
 }
 
-impl<T: TLB> JettonTransferMsg<T> {
-    pub fn new<C: Into<TLBCoins>>(dst: MsgAddressInt, amount: C, payload: T) -> Self {
+impl<CustomPayload: TLB, ForwardPayloadT: TLB> JettonTransferMsg<CustomPayload, ForwardPayloadT> {
+    pub fn new<C: Into<TLBCoins>>(dst: MsgAddressInt, amount: C, payload: ForwardPayloadT) -> Self {
         JettonTransferMsg {
             query_id: 0,
             amount: amount.into(),
@@ -50,7 +50,7 @@ mod tests {
     fn test_jetton_transfer_msg() -> anyhow::Result<()> {
         // int_msg from https://tonviewer.com/transaction/18679bed03915803746469e9fe498add0ffecd76ae3056bb9c3777c9f722becd
         let msg_boc = "b5ee9c720101020100650001b40f8a7ea55ecf57d735066d2460246139ca800800f52547902494daa24c332ecb41067ee9b6bae7b244a68ce0c5007ddc22f4b01f001f5d9cc275e5514e8386836ef59caa82e043c006d404f512ab7ee893e38f5f8d8847868c0101000be8e8e46c0020";
-        let msg = JettonTransferMsg::from_boc_hex(msg_boc)?;
+        let msg = JettonTransferMsg::<TonCell, TonCell>::from_boc_hex(msg_boc)?;
 
         let mut pl_builder = TonCell::builder();
         pl_builder.write_bits([232, 232, 228, 108, 0, 0], 42)?;

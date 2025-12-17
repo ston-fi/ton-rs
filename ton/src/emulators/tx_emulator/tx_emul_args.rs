@@ -134,9 +134,9 @@ pub fn create_test_tx_emul_ord_args(
         emul_args: TXEmulArgs {
             shard_account_boc: shard_account_boc.into(),
             bc_config: emul_bc_cfg.clone(),
-            rand_seed: rand_seed,
+            rand_seed,
             utime,
-            lt: lt,
+            lt,
             ignore_chksig: false,
             prev_blocks_boc: None,
             libs_boc: None,

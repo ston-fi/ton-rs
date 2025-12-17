@@ -89,8 +89,7 @@ impl TonProvider for TLProvider {
 
         let unseen_shards = self.get_or_load_unseen(conn, mc_seqno, &prev_shards, cur_shards.deref().clone()).await?;
         let txs_futs = unseen_shards.deref().iter().chain([&cur_mc_block]).map(|block_id| async {
-            let res = self
-                .client
+            let res = conn
                 .get_block_txs(block_id)
                 .await?
                 .into_iter()
@@ -166,14 +165,14 @@ impl TLProvider {
         Ok(self
             .unseen_cache
             .try_get_with(mc_seqno, async move {
-                let unseen_shards = self.get_unseen_shards(conn, mc_seqno, prev_shards, cur_shards).await?;
+                let unseen_shards = self.load_unseen_shards(conn, mc_seqno, prev_shards, cur_shards).await?;
                 Ok(Arc::new(unseen_shards))
             })
             .await?)
     }
 
     #[async_recursion]
-    async fn get_unseen_shards(
+    async fn load_unseen_shards(
         &self,
         conn: &TLConnection,
         mc_seqno: u32,
@@ -185,8 +184,8 @@ impl TLProvider {
                 return Ok::<_, TonError>(Default::default());
             }
 
-            let prev_ids = self.get_prev_blocks_with_retry(conn, mc_seqno, &block_id).await?;
-            let mut unseen_prev_ids = self.get_unseen_shards(conn, mc_seqno, prev_shards, prev_ids).await?;
+            let prev_ids = self.load_prev_block_ids_with_retry(conn, mc_seqno, &block_id).await?;
+            let mut unseen_prev_ids = self.load_unseen_shards(conn, mc_seqno, prev_shards, prev_ids).await?;
             unseen_prev_ids.insert(block_id);
             Ok(unseen_prev_ids)
         });
@@ -195,7 +194,7 @@ impl TLProvider {
         Ok(blocks)
     }
 
-    async fn get_prev_blocks_with_retry(
+    async fn load_prev_block_ids_with_retry(
         &self,
         conn: &TLConnection,
         mc_seqno: u32,

@@ -49,10 +49,11 @@ pub trait TonContract: Send + Sync + Sized {
     }
 }
 
+/// Check usage examples in the tests module below
 #[macro_export]
 macro_rules! ton_contract {
     ($name:ident) => {
-        pub struct $name<T: TLB> {
+        pub struct $name<T: TLB = TonCell> {
             client: ContractClient,
             state: std::sync::Arc<TonContractState>,
             _phantom: std::marker::PhantomData<T>,
@@ -68,7 +69,7 @@ macro_rules! ton_contract {
         }
     };
     ($name:ident $( : $($traits:tt)+ )? ) => {
-        pub struct $name<T: TLB> {
+        pub struct $name<T: TLB = TonCell> {
             client: ContractClient,
             state: std::sync::Arc<TonContractState>,
             _phantom: std::marker::PhantomData<T>,
@@ -88,7 +89,7 @@ macro_rules! ton_contract {
         )?
     };
     ($name:ident < $DATATYPE:ty > $( : $($traits:tt)+ )? ) => {
-        pub struct $name<T: TLB> {
+        pub struct $name<T: TLB = TonCell> {
             client: ContractClient,
             state: std::sync::Arc<TonContractState>,
             _phantom: std::marker::PhantomData<T>,
@@ -133,11 +134,13 @@ mod tests {
     use ton_macros::TLB;
 
     #[test]
-    #[allow(unused)]
+    #[allow(unused)] // we just check it compiles
     fn test_ton_contract_macro() {
         ton_contract!(MyContract1);
+
         trait MyTrait1 {}
         ton_contract!(MyContract2: MyTrait1);
+
         trait MyTrait2 {}
         ton_contract!(MyContract3: MyTrait1, MyTrait2);
 

@@ -12,11 +12,11 @@ use ton_core::types::tlb_core::TLBEitherRef;
 /// ```
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0x7362d09c, bits_len = 32, ensure_empty = true)]
-pub struct JettonTransferNotificationMsg<Payload: TLB = TonCell> {
-    pub query_id: u64,                          // should be equal with request's query_id
-    pub amount: TLBCoins,                       // amount of transferred jettons
-    pub sender: TonAddress,                     // is address of the previous owner of transferred jettons
-    pub forward_payload: TLBEitherRef<Payload>, //  optional custom data that should be sent to the destination address.
+pub struct JettonTransferNotificationMsg<ForwardPayloadT: TLB = TonCell> {
+    pub query_id: u64,                                  // should be equal with request's query_id
+    pub amount: TLBCoins,                               // amount of transferred jettons
+    pub sender: TonAddress,                             // is address of the previous owner of transferred jettons
+    pub forward_payload: TLBEitherRef<ForwardPayloadT>, //  optional custom data that should be sent to the destination address.
 }
 
 impl<T: TLB> JettonTransferNotificationMsg<T> {
