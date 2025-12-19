@@ -15,6 +15,10 @@ use ton_core::types::tlb_core::TLBRef;
 #[derive(Clone, TLB, PartialEq)]
 pub enum TVMStackValue {
     Null(TVMNull),
+    U8(TVMU8),
+    U16(TVMU16),
+    U32(TVMU32),
+    U64(TVMU64),
     TinyInt(TVMTinyInt),
     Int(TVMInt),
     Nan(TVMNan),
@@ -59,6 +63,29 @@ pub struct TVMBuilder {
     pub cell: TLBRef<TonCell>,
 }
 
+#[derive(Debug, Clone, TLB, PartialEq)]
+#[tlb(prefix = 0x06, bits_len = 8)]
+pub struct TVMU8 {
+    pub value: u8,
+}
+
+#[derive(Debug, Clone, TLB, PartialEq)]
+#[tlb(prefix = 0x07, bits_len = 8)]
+pub struct TVMU16 {
+    pub value: u16,
+}
+
+#[derive(Debug, Clone, TLB, PartialEq)]
+#[tlb(prefix = 0x08, bits_len = 8)]
+pub struct TVMU32 {
+    pub value: u32,
+}
+
+#[derive(Debug, Clone, TLB, PartialEq)]
+#[tlb(prefix = 0x09, bits_len = 8)]
+pub struct TVMU64 {
+    pub value: u64,
+}
 #[derive(Debug, Clone, TLB, PartialEq)]
 pub enum TVMCont {
     Std(VMContStd),
@@ -166,6 +193,10 @@ impl Display for TVMStackValue {
         use Deref;
         match self {
             TVMStackValue::Null(_) => write!(f, "Null"),
+            TVMStackValue::U8(v) => write!(f, "U8({})", v.value),
+            TVMStackValue::U16(v) => write!(f, "U16({})", v.value),
+            TVMStackValue::U32(v) => write!(f, "U32({})", v.value),
+            TVMStackValue::U64(v) => write!(f, "U64({})", v.value),
             TVMStackValue::TinyInt(v) => write!(f, "TinyInt({})", v.value),
             TVMStackValue::Int(v) => write!(f, "Int({})", v.value),
             TVMStackValue::Nan(_) => write!(f, "Nan"),

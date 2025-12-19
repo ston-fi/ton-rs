@@ -21,7 +21,6 @@ mod trait_impl {
     use ton_core::cell::TonHash;
 
     use super::*;
-    use crate::errors::TonError;
     use ton_core::types::{Coins, TonAddress};
 
     impl TVMResult for bool {
@@ -32,15 +31,20 @@ mod trait_impl {
         fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_tiny_int() }
     }
 
+    impl TVMResult for u8 {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_u8() }
+    }
+
+    impl TVMResult for u16 {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_u16() }
+    }
+
     impl TVMResult for u32 {
-        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
-            stack.pop_num().and_then(|num| {
-                num.try_into().map_err(|_| TonError::UnexpectedValue {
-                    expected: "u32".to_string(),
-                    actual: format!("num {}", num),
-                })
-            })
-        }
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_u32() }
+    }
+
+    impl TVMResult for u64 {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_u64() }
     }
 
     impl TVMResult for I512 {
