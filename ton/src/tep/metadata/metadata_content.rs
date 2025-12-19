@@ -1,3 +1,5 @@
+use crate::block_tlb::{TVMStack, TVMType};
+use crate::errors::TonResult;
 use crate::tep::snake_data::SnakeData;
 use crate::tlb_adapters::DictKeyAdapterTonHash;
 use crate::tlb_adapters::DictValAdapterTLB;
@@ -6,6 +8,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use ton_core::TLB;
 use ton_core::cell::{TonCell, TonHash};
+use ton_core::traits::tlb::TLB;
 use ton_core::types::tlb_core::TLBRef;
 
 pub type MetadataDict = HashMap<TonHash, TLBRef<SnakeData>>;
@@ -33,4 +36,8 @@ pub struct MetadataExternal {
 #[derive(PartialEq, Eq, Debug, Clone, TLB)]
 pub struct MetadataUnsupported {
     pub cell: TonCell,
+}
+
+impl TVMType for MetadataContent {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(MetadataContent::from_cell(&stack.pop_cell()?)?) }
 }

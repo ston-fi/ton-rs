@@ -1,10 +1,7 @@
-use crate::block_tlb::TVMStack;
-use crate::errors::TonResult;
-use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::TVMResult;
 use ton_core::types::TonAddress;
+use ton_macros::TVMType;
 
-#[derive(Debug, Clone, PartialEq, Eq, TVMResult)]
+#[derive(Debug, Clone, PartialEq, Eq, TVMType)]
 pub struct GetNFTAddressByIndexResult {
     pub nft_address: TonAddress,
 }
@@ -12,6 +9,7 @@ pub struct GetNFTAddressByIndexResult {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::block_tlb::TVMType;
     use std::str::FromStr;
 
     #[test]

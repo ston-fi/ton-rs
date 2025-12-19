@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
 use crate::contracts::TonContract;
 use crate::errors::TonResult;
-use crate::tep::tvm_results::{GetCollectionDataResult, GetNFTAddressByIndexResult, GetNFTContentResult};
+use crate::tep::tvm_result::{GetCollectionDataResult, GetNFTAddressByIndexResult, GetNFTContentResult};
 use crate::ton_contract;
 use async_trait::async_trait;
 use fastnum::I512;
@@ -15,9 +15,13 @@ pub trait NFTCollectionMethods: TonContract {
         self.emulate_get_method("get_collection_data", &TVMStack::EMPTY, None).await
     }
 
-    async fn get_nft_content(&self, index: I512, individual_content: TonCell) -> TonResult<GetNFTContentResult> {
+    async fn get_nft_content<T: Into<I512> + Send>(
+        &self,
+        index: T,
+        individual_content: TonCell,
+    ) -> TonResult<GetNFTContentResult> {
         let mut stack = TVMStack::default();
-        stack.push_int(index);
+        stack.push_int(index.into());
         stack.push_cell(individual_content);
 
         self.emulate_get_method("get_nft_content", &stack, None).await

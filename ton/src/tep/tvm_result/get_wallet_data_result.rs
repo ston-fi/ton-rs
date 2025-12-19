@@ -1,13 +1,10 @@
-use crate::block_tlb::TVMStack;
-use crate::errors::TonResult;
-use crate::tep::tvm_results::TVMResult;
 use fastnum::I512;
-use ton_core::TVMResult;
 use ton_core::cell::TonCell;
 use ton_core::types::TonAddress;
+use ton_macros::TVMType;
 
-#[derive(Debug, Clone, PartialEq, Eq, TVMResult)]
-#[tvm_result(ensure_empty = true)]
+#[derive(Debug, Clone, PartialEq, Eq, TVMType)]
+#[tvm_type(ensure_empty = true)]
 pub struct GetWalletDataResult {
     pub balance: I512,
     pub owner: TonAddress,
@@ -18,6 +15,7 @@ pub struct GetWalletDataResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::block_tlb::TVMType;
     use std::str::FromStr;
 
     #[test]

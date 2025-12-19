@@ -1,8 +1,10 @@
+mod traits;
 mod tvm_cell_slice;
 mod tvm_stack;
 mod tvm_stack_value;
 mod tvm_tuple;
 
+pub use traits::*;
 pub use tvm_cell_slice::*;
 pub use tvm_stack::*;
 pub use tvm_stack_value::*;

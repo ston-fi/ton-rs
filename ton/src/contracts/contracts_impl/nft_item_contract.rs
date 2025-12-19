@@ -3,7 +3,7 @@ use crate::contracts::NFTCollectionMethods;
 use crate::contracts::{NFTCollectionContract, TonContract};
 use crate::errors::TonError;
 use crate::tep::metadata::MetadataContent;
-use crate::tep::tvm_results::GetNFTDataResult;
+use crate::tep::tvm_result::GetNFTDataResult;
 use crate::ton_contract;
 use async_trait::async_trait;
 use ton_core::errors::TonCoreError;

@@ -1,7 +1,7 @@
 use crate::block_tlb::TVMStack;
 use crate::contracts::TonContract;
 use crate::errors::TonError;
-use crate::tep::tvm_results::{GetDisplayMultiplierResult, GetJettonDataResult, GetWalletAddressResult};
+use crate::tep::tvm_result::{GetDisplayMultiplierResult, GetJettonDataResult, GetWalletAddressResult};
 use crate::ton_contract;
 use crate::ton_core::traits::tlb::TLB;
 use async_trait::async_trait;

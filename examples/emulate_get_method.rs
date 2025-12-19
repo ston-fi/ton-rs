@@ -7,7 +7,7 @@ mod example {
     use ton::emulators::tvm_emulator::TVMGetMethodID;
     use ton::errors::TonResult;
     use ton::net_config::TonNetConfig;
-    use ton::tep::tvm_results::GetJettonDataResult;
+    use ton::tep::tvm_result::GetJettonDataResult;
     use ton::tl_client::TLClient;
     use ton::ton_contract;
     use ton_core::TLB;

@@ -1,17 +1,30 @@
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 
 #[derive(deluxe::ExtractAttributes)]
-#[deluxe(attributes(tvm_result))]
-pub(crate) struct TVMResultHeaderAttributes {
+#[deluxe(attributes(tvm_type))]
+pub(crate) struct TVMTypeHeaderAttributes {
     pub(crate) ensure_empty: Option<bool>, // use false as default
 }
 
-pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
+pub fn tvm_type_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let mut input = syn::parse::<syn::DeriveInput>(input).unwrap();
-    let header_attrs: TVMResultHeaderAttributes = match deluxe::extract_attributes(&mut input) {
+    let header_attrs: TVMTypeHeaderAttributes = match deluxe::extract_attributes(&mut input) {
         Ok(desc) => desc,
         Err(e) => return e.into_compile_error(),
+    };
+
+    let crate_path = if let Ok(ton_crate) = crate_name("ton") {
+        match ton_crate {
+            FoundCrate::Itself => quote::quote! { crate },
+            FoundCrate::Name(name) => {
+                let ident = format_ident!("{name}");
+                quote! { #ident }
+            }
+        }
+    } else {
+        panic!("Can't find ton_core or ton crate");
     };
 
     let name = input.ident;
@@ -33,7 +46,7 @@ pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let assigns = fields.into_iter().rev().map(|f| {
         let name = &f.ident;
         quote! {
-            let #name = TVMResult::from_stack(stack)?;
+            let #name = #crate_path::block_tlb::TVMType::from_stack(stack)?;
         }
     });
 
@@ -44,8 +57,8 @@ pub fn tvm_result_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     };
 
     let expanded = quote! {
-        impl TVMResult for #name  {
-            fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        impl #crate_path::block_tlb::TVMType for #name  {
+            fn from_stack(stack: &mut #crate_path::block_tlb::TVMStack) -> #crate_path::errors::TonResult<Self> {
                 #(#assigns)*
 
                 #ensure_empty

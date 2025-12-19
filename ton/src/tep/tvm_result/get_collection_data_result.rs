@@ -1,12 +1,9 @@
-use crate::block_tlb::TVMStack;
-use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
-use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::TVMResult;
 use ton_core::types::TonAddress;
+use ton_macros::TVMType;
 
-#[derive(Debug, Clone, PartialEq, TVMResult)]
-#[tvm_result(ensure_empty = true)]
+#[derive(Debug, Clone, PartialEq, TVMType)]
+#[tvm_type(ensure_empty = true)]
 pub struct GetCollectionDataResult {
     pub next_item_index: i64,
     pub collection_content: MetadataContent,
@@ -16,6 +13,7 @@ pub struct GetCollectionDataResult {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::block_tlb::TVMType;
     use ton_core::traits::tlb::TLB;
 
     #[test]
