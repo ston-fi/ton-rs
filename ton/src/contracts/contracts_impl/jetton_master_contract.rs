@@ -1,11 +1,12 @@
-use crate::block_tlb::TVMStack;
+use crate::block_tlb::{TVMStack, ToTVMStack};
 use crate::contracts::TonContract;
-use crate::errors::TonError;
+use crate::errors::{TonError, TonResult};
 use crate::tep::tvm_result::{GetDisplayMultiplierResult, GetJettonDataResult, GetWalletAddressResult};
 use crate::ton_contract;
 use crate::ton_core::traits::tlb::TLB;
 use async_trait::async_trait;
 use ton_core::types::TonAddress;
+use ton_macros::ton_method;
 
 // https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md#jetton-master-contract
 ton_contract!(JettonMasterContract: JettonMasterMethods);
@@ -19,11 +20,15 @@ pub trait JettonMasterMethods: TonContract {
         self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await
     }
 
-    async fn get_wallet_address(&self, owner: &TonAddress) -> Result<GetWalletAddressResult, TonError> {
-        let mut stack = TVMStack::default();
-        stack.push_cell_slice(owner.to_cell()?);
+    // #[ton_method]
+    // async fn get_wallet_address(&self, owner: &TonAddress) -> TonResult<GetWalletAddressResult>;
+
+    async fn get_wallet_address(&self, owner: &TonAddress) -> TonResult<GetWalletAddressResult> {
+        let mut stack = crate::block_tlb::TVMStack::default();
+        crate::block_tlb::ToTVMStack::push_to_stack(owner, &mut stack)?;
         self.emulate_get_method("get_wallet_address", &stack, None).await
     }
+
 }
 
 #[async_trait]

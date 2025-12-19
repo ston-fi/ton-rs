@@ -1,6 +1,7 @@
 use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use crate::utils::get_crate_name_or_panic;
 
 #[derive(deluxe::ExtractAttributes)]
 #[deluxe(attributes(tvm_type))]
@@ -15,17 +16,7 @@ pub fn tvm_type_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
         Err(e) => return e.into_compile_error(),
     };
 
-    let crate_path = if let Ok(ton_crate) = crate_name("ton") {
-        match ton_crate {
-            FoundCrate::Itself => quote::quote! { crate },
-            FoundCrate::Name(name) => {
-                let ident = format_ident!("{name}");
-                quote! { #ident }
-            }
-        }
-    } else {
-        panic!("Can't find ton_core or ton crate");
-    };
+    let crate_path = get_crate_name_or_panic("ton");
 
     let name = input.ident;
     let fields = if let syn::Data::Struct(syn::DataStruct {
