@@ -1,17 +1,13 @@
 use proc_macro::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
-use quote::{format_ident, quote, ToTokens};
+use quote::{quote, ToTokens};
 use syn::{parse_macro_input, TraitItemFn};
-use crate::utils::get_crate_name_or_panic;
+use crate::utils::crate_name_or_panic;
 
-pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn ton_method_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut method = parse_macro_input!(item as TraitItemFn);
     let method_name_str = method.sig.ident.to_string();
 
-    let crate_path = get_crate_name_or_panic("ton");
-
-    // Ensure the trait method is async so we can use await in the generated body
-    method.sig.asyncness = Some(Default::default());
+    let crate_path = crate_name_or_panic("ton");
 
     // Collect generic idents that have an Into bound
     use syn::{GenericParam, TypeParamBound};
@@ -39,13 +35,12 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    let body_inner = if args.is_empty() {
+    let body = if args.is_empty() {
         quote! {
             self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY, None).await
         }
     } else {
         let push_args = args.iter().map(|(ident, ty, is_ref)| {
-            // If arg type is a generic with Into bound, use ident.into()
             let use_into = match ty {
                 syn::Type::Path(tp) => tp.path.get_ident().map(|id| generics_into.contains(id)).unwrap_or(false),
                 _ => false,
@@ -67,10 +62,8 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    // Trampoline future pattern to keep await in a local async block
-    let body = quote!({ #body_inner });
-
-    method.default = Some(syn::parse_quote!(#body));
+    // Replace the method block with generated default implementation
+    method.default = Some(syn::parse_quote!({ #body }));
 
     TokenStream::from(method.into_token_stream())
 }

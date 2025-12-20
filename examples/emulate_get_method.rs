@@ -10,7 +10,7 @@ mod example {
     use ton::tep::tvm_result::GetJettonDataResult;
     use ton::tl_client::TLClient;
     use ton::ton_contract;
-    use ton_core::TLB;
+    use ton_core::{ton_method, TLB};
     use ton_core::types::TonAddress;
 
     ton_contract!(StonfiPool<StonFiPoolData>);
@@ -34,9 +34,8 @@ mod example {
     }
 
     impl StonfiPool {
-        async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult> {
-            self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await
-        }
+        #[ton_method]
+        async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult>;
     }
 
     pub async fn real_main() -> anyhow::Result<()> {
