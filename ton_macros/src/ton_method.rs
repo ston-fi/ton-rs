@@ -37,7 +37,7 @@ pub fn ton_method_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let body = if args.is_empty() {
         quote! {
-            self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY, None).await
+            self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY, None)
         }
     } else {
         let push_args = args.iter().map(|(ident, ty, is_ref)| {
@@ -47,7 +47,7 @@ pub fn ton_method_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
             };
 
             if use_into {
-                quote! { #crate_path::block_tlb::ToTVMStack::push_to_stack(&#ident.into(), &mut stack)?; }
+                quote! { #crate_path::block_tlb::ToTVMStack::push_to_stack(&(#ident.into()), &mut stack)?; }
             } else if *is_ref {
                 quote! { #crate_path::block_tlb::ToTVMStack::push_to_stack(#ident, &mut stack)?; }
             } else {
@@ -58,12 +58,12 @@ pub fn ton_method_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {
             let mut stack = #crate_path::block_tlb::TVMStack::default();
             #( #push_args )*
-            self.emulate_get_method(#method_name_str, &stack, None).await
+            self.emulate_get_method(#method_name_str, &stack, None)
         }
     };
 
-    // Replace the method block with generated default implementation
-    method.default = Some(syn::parse_quote!({ #body }));
+    // Replace the method block with generated default implementation returning a boxed future for async_trait compatibility.
+    method.default = Some(syn::parse_quote!({ Box::pin(async move { #body.await }) }));
 
     TokenStream::from(method.into_token_stream())
 }

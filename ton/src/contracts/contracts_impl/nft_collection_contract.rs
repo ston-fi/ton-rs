@@ -18,6 +18,7 @@ pub trait NFTCollectionMethods: TonContract {
     #[ton_method]
     async fn get_nft_content<T: Into<I512> + Send>(&self, index: T, individual_content: TonCell) -> TonResult<GetNFTContentResult>;
 
+
     #[ton_method]
     async fn get_nft_address_by_index<T: Into<I512> + Send>(&self, index: T) -> TonResult<GetNFTAddressByIndexResult>;
 }
