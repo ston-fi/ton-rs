@@ -13,9 +13,4 @@ ton_contract!(JettonWalletContract: JettonWalletMethods);
 pub trait JettonWalletMethods: TonContract {
     #[ton_method]
     async fn get_wallet_data(&self) -> TonResult<GetWalletDataResult>;
-
-    // async fn get_wallet_data(&self) -> Result<GetWalletDataResult, TonError> { self.emulate_get_method("get_wallet_data", &crate::block_tlb::TVMStack::EMPTY, None).await }
-
-    // async fn get_wallet_data(&self) -> Result<GetWalletDataResult, TonError> {  self.emulate_get_method("get_wallet_data", &crate::block_tlb::TVMStack::EMPTY, None).await }
-    // async fn get_wallet_data(&self) -> Result<GetWalletDataResult, TonError> { self.emulate_get_method("get_wallet_data", &crate::block_tlb::TVMStack::EMPTY, None).await }
 }

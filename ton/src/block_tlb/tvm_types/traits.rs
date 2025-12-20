@@ -79,6 +79,7 @@ mod tvm_type_impls {
 mod to_tvm_stack_impls {
     use super::*;
     use fastnum::I512;
+    use ton_core::cell::{TonCell};
     use ton_core::types::TonAddress;
 
     impl ToTVMStack for bool {
@@ -105,6 +106,13 @@ mod to_tvm_stack_impls {
     impl ToTVMStack for TonAddress {
         fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
             stack.push_cell(self.to_cell()?);
+            Ok(())
+        }
+    }
+
+    impl ToTVMStack for TonCell {
+        fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
+            stack.push_cell(self.clone());
             Ok(())
         }
     }

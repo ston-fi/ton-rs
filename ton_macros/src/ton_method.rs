@@ -10,13 +10,31 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let crate_path = get_crate_name_or_panic("ton");
 
-    // Collect argument idents (skip receiver like &self) and track if the arg is a reference
-    let mut args: Vec<(syn::Ident, bool)> = Vec::new();
+    // Ensure the trait method is async so we can use await in the generated body
+    method.sig.asyncness = Some(Default::default());
+
+    // Collect generic idents that have an Into bound
+    use syn::{GenericParam, TypeParamBound};
+    let mut generics_into: std::collections::HashSet<syn::Ident> = std::collections::HashSet::new();
+    for gp in method.sig.generics.params.iter() {
+        if let GenericParam::Type(tp) = gp {
+            for b in tp.bounds.iter() {
+                if let TypeParamBound::Trait(tb) = b {
+                    if tb.path.segments.iter().any(|seg| seg.ident == "Into") {
+                        generics_into.insert(tp.ident.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    // Collect argument idents, their type, and whether the arg is a reference
+    let mut args: Vec<(syn::Ident, syn::Type, bool)> = Vec::new();
     for input in method.sig.inputs.iter() {
         if let syn::FnArg::Typed(pat_ty) = input {
             if let syn::Pat::Ident(pat_ident) = &*pat_ty.pat {
                 let is_ref = matches!(&*pat_ty.ty, syn::Type::Reference(_));
-                args.push((pat_ident.ident.clone(), is_ref));
+                args.push((pat_ident.ident.clone(), (*pat_ty.ty).clone(), is_ref));
             }
         }
     }
@@ -26,17 +44,19 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
             self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY, None).await
         }
     } else {
-        let push_args = args.iter().map(|(ident, is_ref)| {
-            if *is_ref {
-                // Argument is already a reference, &.
-                quote! {
-                    #crate_path::block_tlb::ToTVMStack::push_to_stack(#ident, &mut stack)?;
-                }
+        let push_args = args.iter().map(|(ident, ty, is_ref)| {
+            // If arg type is a generic with Into bound, use ident.into()
+            let use_into = match ty {
+                syn::Type::Path(tp) => tp.path.get_ident().map(|id| generics_into.contains(id)).unwrap_or(false),
+                _ => false,
+            };
+
+            if use_into {
+                quote! { #crate_path::block_tlb::ToTVMStack::push_to_stack(&#ident.into(), &mut stack)?; }
+            } else if *is_ref {
+                quote! { #crate_path::block_tlb::ToTVMStack::push_to_stack(#ident, &mut stack)?; }
             } else {
-                // Value arg. Pass by reference as expected by ToTVMStack.
-                quote! {
-                    #crate_path::block_tlb::ToTVMStack::push_to_stack(&#ident, &mut stack)?;
-                }
+                quote! { #crate_path::block_tlb::ToTVMStack::push_to_stack(&#ident, &mut stack)?; }
             }
         });
 
@@ -47,12 +67,10 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    // Wrap in async block to satisfy async_trait's boxed Future expectations for default impls
-    // let body = quote!({ async move { #body_inner } });
+    // Trampoline future pattern to keep await in a local async block
+    let body = quote!({ #body_inner });
 
-    // Replace the method block with generated default implementation
-    method.default = Some(syn::parse_quote!({#body_inner}));
+    method.default = Some(syn::parse_quote!(#body));
 
-    // Return the modified method item
     TokenStream::from(method.into_token_stream())
 }
