@@ -10,27 +10,35 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let crate_path = get_crate_name_or_panic("ton");
 
-    // Collect argument idents (skip receiver like &self)
-    let mut arg_idents: Vec<syn::Ident> = Vec::new();
+    // Collect argument idents (skip receiver like &self) and track if the arg is a reference
+    let mut args: Vec<(syn::Ident, bool)> = Vec::new();
     for input in method.sig.inputs.iter() {
         if let syn::FnArg::Typed(pat_ty) = input {
             if let syn::Pat::Ident(pat_ident) = &*pat_ty.pat {
-                arg_idents.push(pat_ident.ident.clone());
+                let is_ref = matches!(&*pat_ty.ty, syn::Type::Reference(_));
+                args.push((pat_ident.ident.clone(), is_ref));
             }
         }
     }
 
-    let body = if arg_idents.is_empty() {
+    let body_inner = if args.is_empty() {
         quote! {
-            self.emulate_get_method(#method_name_str, #crate_path::block_tlb::TVMStack::EMPTY, None).await
+            self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY, None).await
         }
     } else {
-        let push_args = arg_idents.iter().map(|ident| {
-            quote! {
-                #crate_path::block_tlb::ToTVMStack::push_to_stack(&#ident, &mut stack)?;
+        let push_args = args.iter().map(|(ident, is_ref)| {
+            if *is_ref {
+                // Argument is already a reference, &.
+                quote! {
+                    #crate_path::block_tlb::ToTVMStack::push_to_stack(#ident, &mut stack)?;
+                }
+            } else {
+                // Value arg. Pass by reference as expected by ToTVMStack.
+                quote! {
+                    #crate_path::block_tlb::ToTVMStack::push_to_stack(&#ident, &mut stack)?;
+                }
             }
         });
-
 
         quote! {
             let mut stack = #crate_path::block_tlb::TVMStack::default();
@@ -39,8 +47,11 @@ pub fn ton_method_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    // Wrap in async block to satisfy async_trait's boxed Future expectations for default impls
+    // let body = quote!({ async move { #body_inner } });
+
     // Replace the method block with generated default implementation
-    method.default = Some(syn::parse_quote!({ #body }));
+    method.default = Some(syn::parse_quote!({#body_inner}));
 
     // Return the modified method item
     TokenStream::from(method.into_token_stream())
