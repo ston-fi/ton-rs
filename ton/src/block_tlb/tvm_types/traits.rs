@@ -79,7 +79,7 @@ mod tvm_type_impls {
 mod push_to_stack_impls {
     use super::*;
     use fastnum::I512;
-    use ton_core::cell::{TonCell};
+    use ton_core::cell::TonCell;
     use ton_core::types::TonAddress;
 
     impl PushToStack for bool {

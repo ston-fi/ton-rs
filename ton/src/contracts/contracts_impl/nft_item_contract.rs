@@ -5,7 +5,7 @@ use crate::tep::metadata::MetadataContent;
 use crate::tep::tvm_result::GetNFTDataResult;
 use crate::ton_contract;
 use async_trait::async_trait;
-use ton_macros::ton_method;
+use ton_macros::ton_methods;
 
 ton_contract!(NFTItemContract: NFTItemMethods);
 
@@ -25,7 +25,7 @@ impl NFTItemContract {
 }
 
 #[async_trait]
+#[ton_methods]
 pub trait NFTItemMethods: TonContract {
-    #[ton_method]
     async fn get_nft_data(&self) -> TonResult<GetNFTDataResult>;
 }

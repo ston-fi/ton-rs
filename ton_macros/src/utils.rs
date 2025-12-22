@@ -1,5 +1,5 @@
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::TokenStream;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{format_ident, quote};
 
 pub(crate) fn crate_name_or_panic(orig_name: &'static str) -> TokenStream {
@@ -11,7 +11,7 @@ pub(crate) fn crate_name_or_panic(orig_name: &'static str) -> TokenStream {
         FoundCrate::Itself => quote::quote! { crate },
         FoundCrate::Name(name) => {
             let ident = format_ident!("{name}");
-                quote! { #ident }
-            }
+            quote! { #ident }
+        }
     }
 }

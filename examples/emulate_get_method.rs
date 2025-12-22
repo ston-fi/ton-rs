@@ -10,8 +10,8 @@ mod example {
     use ton::tep::tvm_result::GetJettonDataResult;
     use ton::tl_client::TLClient;
     use ton::ton_contract;
-    use ton_core::{ton_method, TLB};
     use ton_core::types::TonAddress;
+    use ton_core::{TLB, ton_methods};
 
     ton_contract!(StonfiPool<StonFiPoolData>);
     // macros expands to:
@@ -33,8 +33,8 @@ mod example {
         address: TonAddress,
     }
 
+    #[ton_methods]
     impl StonfiPool {
-        #[ton_method]
         async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult>;
     }
 

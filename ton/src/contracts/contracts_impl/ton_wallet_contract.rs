@@ -1,16 +1,14 @@
 use crate::contracts::TonContract;
-use crate::errors::{TonResult};
+use crate::errors::TonResult;
 use crate::ton_contract;
 use async_trait::async_trait;
 use ton_core::cell::TonHash;
-use ton_macros::ton_method;
+use ton_macros::ton_methods;
 
 #[async_trait]
+#[ton_methods]
 pub trait TonWalletMethods: TonContract {
-    #[ton_method]
     async fn seqno(&self) -> TonResult<u32>;
-
-    #[ton_method]
     async fn get_public_key(&self) -> TonResult<TonHash>;
 }
 
