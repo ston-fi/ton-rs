@@ -2,7 +2,7 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use fastnum::{U256, I512};
+use fastnum::{I512, U256};
 use std::sync::Arc;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
