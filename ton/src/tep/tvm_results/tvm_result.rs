@@ -2,7 +2,7 @@ use crate::block_tlb::TVMStack;
 use crate::errors::TonResult;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use fastnum::I512;
+use fastnum::{U256, I512};
 use std::sync::Arc;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
@@ -70,6 +70,17 @@ mod trait_impl {
             stack.pop_num().and_then(|num| {
                 num.try_into().map_err(|_| TonError::UnexpectedValue {
                     expected: "u64".to_string(),
+                    actual: format!("num {}", num),
+                })
+            })
+        }
+    }
+
+    impl TVMResult for U256 {
+        fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+            stack.pop_num().and_then(|num| {
+                U256::from_str(&num.to_string()).map_err(|_| TonError::UnexpectedValue {
+                    expected: "U256".to_string(),
                     actual: format!("num {}", num),
                 })
             })
