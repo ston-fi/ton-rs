@@ -1,6 +1,4 @@
-use crate::block_tlb::{
-    TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTuple, TVMU8, TVMU16, TVMU32, TVMU64,
-};
+use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTuple};
 use crate::errors::{TonError, TonResult};
 use fastnum::I512;
 use std::fmt::Display;
@@ -47,10 +45,6 @@ impl TVMStack {
         Ok(())
     }
 
-    pub fn push_u8(&mut self, value: u8) { self.push(TVMStackValue::U8(TVMU8 { value })); }
-    pub fn push_u16(&mut self, value: u16) { self.push(TVMStackValue::U16(TVMU16 { value })); }
-    pub fn push_u32(&mut self, value: u32) { self.push(TVMStackValue::U32(TVMU32 { value })); }
-    pub fn push_u64(&mut self, value: u64) { self.push(TVMStackValue::U64(TVMU64 { value })); }
     pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }
     pub fn push_int(&mut self, value: I512) { self.push(TVMStackValue::Int(TVMInt { value })); }
     pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
@@ -65,10 +59,7 @@ impl TVMStack {
             Some(value) => Ok(value),
         }
     }
-    pub fn pop_u8(&mut self) -> TonResult<u8> { extract_stack_val!(self.pop(), U8) }
-    pub fn pop_u16(&mut self) -> TonResult<u16> { extract_stack_val!(self.pop(), U16) }
-    pub fn pop_u32(&mut self) -> TonResult<u32> { extract_stack_val!(self.pop(), U32) }
-    pub fn pop_u64(&mut self) -> TonResult<u64> { extract_stack_val!(self.pop(), U64) }
+
     pub fn pop_tiny_int(&mut self) -> TonResult<i64> { extract_stack_val!(self.pop(), TinyInt) }
     pub fn pop_int(&mut self) -> TonResult<I512> { extract_stack_val!(self.pop(), Int) }
     /// Pops Int or TinyInt as I512
@@ -163,94 +154,6 @@ mod tests {
 
         let stack_parsed = TVMStack::from_cell(&cell)?;
         assert!(stack_parsed.is_empty());
-        Ok(())
-    }
-
-    #[test]
-    fn test_vm_stack_u8() -> anyhow::Result<()> {
-        let mut stack = TVMStack::new(vec![]);
-        stack.push_u8(1u8);
-        let stack_cell = stack.to_cell()?;
-
-        let mut parser = stack_cell.parser();
-        let depth: u32 = parser.read_num(24)?;
-        assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?, TonCell::empty());
-
-        match TVMStackValue::read(&mut parser)? {
-            TVMStackValue::U8(val) => assert_eq!(val.value, 1u8),
-            _ => panic!("Expected U8"),
-        }
-
-        let mut stack_parsed = TVMStack::from_cell(&stack_cell)?;
-        assert_eq!(stack_parsed.len(), 1);
-        assert_eq!(stack_parsed.pop_u8()?, 1u8);
-        Ok(())
-    }
-
-    #[test]
-    fn test_vm_stack_u16() -> anyhow::Result<()> {
-        let mut stack = TVMStack::new(vec![]);
-        stack.push_u16(1u16);
-        let stack_cell = stack.to_cell()?;
-
-        let mut parser = stack_cell.parser();
-        let depth: u32 = parser.read_num(24)?;
-        assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?, TonCell::empty());
-
-        match TVMStackValue::read(&mut parser)? {
-            TVMStackValue::U16(val) => assert_eq!(val.value, 1u16),
-            _ => panic!("Expected U16"),
-        }
-
-        let mut stack_parsed = TVMStack::from_cell(&stack_cell)?;
-        assert_eq!(stack_parsed.len(), 1);
-        assert_eq!(stack_parsed.pop_u16()?, 1u16);
-        Ok(())
-    }
-
-    #[test]
-    fn test_vm_stack_u32() -> anyhow::Result<()> {
-        let mut stack = TVMStack::new(vec![]);
-        stack.push_u32(1u32);
-        let stack_cell = stack.to_cell()?;
-
-        let mut parser = stack_cell.parser();
-        let depth: u32 = parser.read_num(24)?;
-        assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?, TonCell::empty());
-
-        match TVMStackValue::read(&mut parser)? {
-            TVMStackValue::U32(val) => assert_eq!(val.value, 1u32),
-            _ => panic!("Expected U32"),
-        }
-
-        let mut stack_parsed = TVMStack::from_cell(&stack_cell)?;
-        assert_eq!(stack_parsed.len(), 1);
-        assert_eq!(stack_parsed.pop_u32()?, 1u32);
-        Ok(())
-    }
-
-    #[test]
-    fn test_vm_stack_tiny_u_int() -> anyhow::Result<()> {
-        let mut stack = TVMStack::new(vec![]);
-        stack.push_u64(1u64);
-        let stack_cell = stack.to_cell()?;
-
-        let mut parser = stack_cell.parser();
-        let depth: u32 = parser.read_num(24)?;
-        assert_eq!(depth, 1);
-        assert_eq!(parser.read_next_ref()?, TonCell::empty());
-
-        match TVMStackValue::read(&mut parser)? {
-            TVMStackValue::U64(val) => assert_eq!(val.value, 1u64),
-            _ => panic!("Expected U64"),
-        }
-
-        let mut stack_parsed = TVMStack::from_cell(&stack_cell)?;
-        assert_eq!(stack_parsed.len(), 1);
-        assert_eq!(stack_parsed.pop_u64()?, 1u64);
         Ok(())
     }
 
