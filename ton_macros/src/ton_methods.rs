@@ -65,6 +65,7 @@ fn rewrite_struct_impl(impl_items: &mut ItemImpl) {
     }
 }
 
+#[rustfmt::skip]
 fn build_body(signature: &Signature) -> proc_macro2::TokenStream {
     let method_name_str = signature.ident.to_string();
     let crate_path = crate_name_or_panic("ton");
@@ -77,12 +78,10 @@ fn build_body(signature: &Signature) -> proc_macro2::TokenStream {
     let push_args = args.into_iter().map(|info| {
         let ident = info.ident;
         match (info.is_generic, info.is_ref) {
-            (true, true) => quote! { #crate_path::block_tlb::PushToStack::push_to_stack(#ident.into(), &mut stack)?; },
-            (true, false) => {
-                quote! { #crate_path::block_tlb::PushToStack::push_to_stack(&#ident.into(), &mut stack)?; }
-            }
-            (false, true) => quote! { #crate_path::block_tlb::PushToStack::push_to_stack(#ident, &mut stack)?; },
-            (false, false) => quote! { #crate_path::block_tlb::PushToStack::push_to_stack(&#ident, &mut stack)?; },
+            (true, true) => quote! { #crate_path::block_tlb::ToTVMStack::to_stack(#ident.into(), &mut stack)?; },
+            (true, false) => quote! { #crate_path::block_tlb::ToTVMStack::to_stack(&#ident.into(), &mut stack)?; },
+            (false, true) => quote! { #crate_path::block_tlb::ToTVMStack::to_stack(#ident, &mut stack)?; },
+            (false, false) => quote! { #crate_path::block_tlb::ToTVMStack::to_stack(&#ident, &mut stack)?; },
         }
     });
     quote! {

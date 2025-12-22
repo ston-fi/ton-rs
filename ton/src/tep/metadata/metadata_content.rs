@@ -1,4 +1,4 @@
-use crate::block_tlb::{TVMStack, TVMType};
+use crate::block_tlb::{FromTVMStack, TVMStack};
 use crate::errors::TonResult;
 use crate::tep::snake_data::SnakeData;
 use crate::tlb_adapters::DictKeyAdapterTonHash;
@@ -38,6 +38,6 @@ pub struct MetadataUnsupported {
     pub cell: TonCell,
 }
 
-impl TVMType for MetadataContent {
+impl FromTVMStack for MetadataContent {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(MetadataContent::from_cell(&stack.pop_cell()?)?) }
 }

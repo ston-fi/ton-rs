@@ -1,10 +1,10 @@
 use crate::tep::metadata::MetadataContent;
 use ton_core::cell::TonCell;
 use ton_core::types::{Coins, TonAddress};
-use ton_macros::TVMType;
+use ton_macros::FromTVMStack;
 
-#[derive(Debug, Clone, PartialEq, TVMType)]
-#[tvm_type(ensure_empty = true)]
+#[derive(Debug, Clone, PartialEq, FromTVMStack)]
+#[from_tvm_stack(ensure_empty = true)]
 pub struct GetJettonDataResult {
     pub total_supply: Coins,
     pub mintable: bool,
@@ -16,7 +16,7 @@ pub struct GetJettonDataResult {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::block_tlb::TVMType;
+    use crate::block_tlb::FromTVMStack;
     use std::str::FromStr;
 
     #[test]

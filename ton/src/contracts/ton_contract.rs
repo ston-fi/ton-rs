@@ -1,4 +1,4 @@
-use crate::block_tlb::{TVMStack, TVMType};
+use crate::block_tlb::{FromTVMStack, TVMStack};
 use crate::contracts::contract_client::ContractClient;
 use crate::emulators::tvm_emulator::TVMGetMethodID;
 use crate::errors::{TonError, TonResult};
@@ -20,7 +20,7 @@ pub trait TonContract: Send + Sync + Sized {
         Ok(Self::from_state(client.clone(), state))
     }
 
-    async fn emulate_get_method<M, T: TVMType>(
+    async fn emulate_get_method<M, T: FromTVMStack>(
         &self,
         method: M,
         stack: &TVMStack,

@@ -1,7 +1,7 @@
 use ton_core::types::TonAddress;
-use ton_macros::TVMType;
+use ton_macros::FromTVMStack;
 
-#[derive(Debug, Clone, PartialEq, Eq, TVMType)]
+#[derive(Debug, Clone, PartialEq, Eq, FromTVMStack)]
 pub struct GetNFTAddressByIndexResult {
     pub nft_address: TonAddress,
 }
@@ -9,7 +9,7 @@ pub struct GetNFTAddressByIndexResult {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::block_tlb::TVMType;
+    use crate::block_tlb::FromTVMStack;
     use std::str::FromStr;
 
     #[test]

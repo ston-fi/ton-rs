@@ -3,14 +3,14 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 #[derive(deluxe::ExtractAttributes)]
-#[deluxe(attributes(tvm_type))]
-pub(crate) struct TVMTypeHeaderAttributes {
-    pub(crate) ensure_empty: Option<bool>, // use false as default
+#[deluxe(attributes(from_tvm_stack))]
+struct HeaderAttributes {
+    ensure_empty: Option<bool>, // use false as default
 }
 
-pub fn tvm_type_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
+pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let mut input = syn::parse::<syn::DeriveInput>(input).unwrap();
-    let header_attrs: TVMTypeHeaderAttributes = match deluxe::extract_attributes(&mut input) {
+    let header_attrs: HeaderAttributes = match deluxe::extract_attributes(&mut input) {
         Ok(desc) => desc,
         Err(e) => return e.into_compile_error(),
     };
@@ -36,7 +36,7 @@ pub fn tvm_type_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let assigns = fields.into_iter().rev().map(|f| {
         let name = &f.ident;
         quote! {
-            let #name = #crate_path::block_tlb::TVMType::from_stack(stack)?;
+            let #name = #crate_path::block_tlb::FromTVMStack::from_stack(stack)?;
         }
     });
 
@@ -47,7 +47,7 @@ pub fn tvm_type_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     };
 
     let expanded = quote! {
-        impl #crate_path::block_tlb::TVMType for #name  {
+        impl #crate_path::block_tlb::FromTVMStack for #name  {
             fn from_stack(stack: &mut #crate_path::block_tlb::TVMStack) -> #crate_path::errors::TonResult<Self> {
                 #(#assigns)*
 
