@@ -15,7 +15,7 @@ pub trait TVMType: Sized {
     fn from_stack_boc_base64(boc: &str) -> TonResult<Self> { Self::from_stack_boc(BASE64_STANDARD.decode(boc)?) }
 }
 
-pub trait ToTVMStack {
+pub trait PushToStack {
     fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()>;
 }
 
@@ -76,41 +76,41 @@ mod tvm_type_impls {
 }
 
 /// Implementations of TVMType for base classes
-mod to_tvm_stack_impls {
+mod push_to_stack_impls {
     use super::*;
     use fastnum::I512;
     use ton_core::cell::{TonCell};
     use ton_core::types::TonAddress;
 
-    impl ToTVMStack for bool {
+    impl PushToStack for bool {
         fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
             stack.push_tiny_int(if *self { 1 } else { 0 });
             Ok(())
         }
     }
 
-    impl ToTVMStack for i64 {
+    impl PushToStack for i64 {
         fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
             stack.push_tiny_int(*self);
             Ok(())
         }
     }
 
-    impl ToTVMStack for I512 {
+    impl PushToStack for I512 {
         fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
             stack.push_int(*self);
             Ok(())
         }
     }
 
-    impl ToTVMStack for TonAddress {
+    impl PushToStack for TonAddress {
         fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
-            stack.push_cell(self.to_cell()?);
+            stack.push_cell_slice(self.to_cell()?);
             Ok(())
         }
     }
 
-    impl ToTVMStack for TonCell {
+    impl PushToStack for TonCell {
         fn push_to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
             stack.push_cell(self.clone());
             Ok(())

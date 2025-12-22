@@ -1,4 +1,4 @@
-use crate::block_tlb::{ToTVMStack};
+use crate::block_tlb::{PushToStack};
 use crate::contracts::TonContract;
 use crate::errors::{TonError, TonResult};
 use crate::tep::tvm_result::{GetDisplayMultiplierResult, GetJettonDataResult, GetWalletAddressResult};
