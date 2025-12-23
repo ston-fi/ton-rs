@@ -1,6 +1,7 @@
 use crate::tep::metadata::MetadataContent;
 use hmac::digest::crypto_common;
 use reqwest::StatusCode;
+use std::io;
 use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
@@ -14,7 +15,7 @@ use ton_liteapi::types::LiteError;
 #[macro_export]
 macro_rules! bail_ton {
     ($($arg:tt)*) => {
-        return Err(TonError::Custom(format!($($arg)*)))
+        return Err($crate::errors::TonError::Custom(format!($($arg)*)))
     };
 }
 
@@ -160,6 +161,10 @@ pub enum MetaLoaderError {
 
 impl TonError {
     pub fn system<T: ToString>(msg: T) -> Self { TonError::SystemError(msg.to_string()) }
+}
+
+impl From<io::Error> for TonError {
+    fn from(err: io::Error) -> Self { TonError::system(err) }
 }
 
 impl From<TonError> for TonCoreError {

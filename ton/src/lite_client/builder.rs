@@ -1,3 +1,4 @@
+use crate::errors::TonResult;
 use crate::lite_client::connection::Connection;
 use crate::lite_client::req_params::LiteReqParams;
 use crate::lite_client::{Inner, LiteClient, WAIT_CONNECTION_MS};
@@ -9,7 +10,6 @@ use std::cmp::max;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::time::Duration;
-use ton_core::errors::TonCoreResult;
 
 #[derive(Setters, Debug, Clone)]
 #[setters(prefix = "with_", strip_option)]
@@ -23,7 +23,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub(super) fn new() -> TonCoreResult<Self> {
+    pub(super) fn new() -> TonResult<Self> {
         let builder = Self {
             net_config: TonNetConfig::new_default(true)?,
             connections_per_node: 1,
@@ -35,17 +35,17 @@ impl Builder {
         Ok(builder)
     }
 
-    pub fn with_net_config_json(mut self, json: &str) -> TonCoreResult<Self> {
+    pub fn with_net_config_json(mut self, json: &str) -> TonResult<Self> {
         self.net_config = TonNetConfig::new(json)?;
         Ok(self)
     }
 
-    pub fn with_net_config_path(mut self, path: &str) -> TonCoreResult<Self> {
+    pub fn with_net_config_path(mut self, path: &str) -> TonResult<Self> {
         self.net_config = TonNetConfig::from_path(path)?;
         Ok(self)
     }
 
-    pub fn build(self) -> TonCoreResult<LiteClient> {
+    pub fn build(self) -> TonResult<LiteClient> {
         let conn_per_node = max(1, self.connections_per_node);
         log::info!(
             "Creating LiteClient with {} conns per node; nodes_cnt: {}, default_req_params: {:?}",

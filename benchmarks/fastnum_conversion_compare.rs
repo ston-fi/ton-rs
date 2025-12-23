@@ -2,8 +2,7 @@ mod benchmark_utils;
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use fastnum::{i512, I512, U256};
-
+use fastnum::{I512, U256, i512};
 
 static VALUE: I512 = i512!(90111020304222200504);
 
