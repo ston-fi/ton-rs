@@ -153,6 +153,8 @@ impl CellBuilder {
 
     pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
 
+    pub fn refs_left(&self) -> usize { TonCell::MAX_REFS_COUNT - self.refs.len() }
+
     pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
 
     #[inline(always)]
@@ -572,6 +574,20 @@ mod tests {
         assert_eq!(builder.data_bits_left(), TonCell::MAX_DATA_LEN_BITS - 12);
         builder.write_num(&BigUint::from(1u32), 4)?;
         assert_eq!(builder.data_bits_left(), TonCell::MAX_DATA_LEN_BITS - 16);
+        Ok(())
+    }
+
+    #[test]
+    fn test_builder_data_refs_left() -> anyhow::Result<()> {
+        let mut builder = TonCell::builder();
+        assert_eq!(builder.refs_left(), TonCell::MAX_REFS_COUNT);
+        let mut ref_builder = TonCell::builder();
+        ref_builder.write_bit(true)?;
+        let cell_ref = ref_builder.build()?;
+        builder.write_ref(cell_ref.clone())?;
+        assert_eq!(builder.refs_left(), TonCell::MAX_REFS_COUNT - 1);
+        builder.write_ref(cell_ref.clone())?;
+        assert_eq!(builder.refs_left(), TonCell::MAX_REFS_COUNT - 2);
         Ok(())
     }
 }
