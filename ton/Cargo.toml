@@ -49,6 +49,7 @@ ton_liteapi.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_with.workspace = true
 auto_pool.workspace = true
 adnl.workspace = true
 tokio-tower.workspace = true
