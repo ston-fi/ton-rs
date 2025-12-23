@@ -7,11 +7,11 @@ mod example {
     use ton::emulators::tvm_emulator::TVMGetMethodID;
     use ton::errors::TonResult;
     use ton::net_config::TonNetConfig;
-    use ton::tep::tvm_results::GetJettonDataResult;
+    use ton::tep::tvm_result::GetJettonDataResult;
     use ton::tl_client::TLClient;
     use ton::ton_contract;
-    use ton_core::TLB;
     use ton_core::types::TonAddress;
+    use ton_core::{TLB, ton_methods};
 
     ton_contract!(StonfiPool<StonFiPoolData>);
     // macros expands to:
@@ -33,10 +33,9 @@ mod example {
         address: TonAddress,
     }
 
+    #[ton_methods]
     impl StonfiPool {
-        async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult> {
-            self.emulate_get_method("get_jetton_data", &TVMStack::EMPTY, None).await
-        }
+        async fn get_jetton_data(&self) -> TonResult<GetJettonDataResult>;
     }
 
     pub async fn real_main() -> anyhow::Result<()> {

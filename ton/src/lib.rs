@@ -15,4 +15,6 @@ pub mod emulators;
 #[cfg(feature = "tonlibjson")]
 pub mod sys_utils;
 #[cfg(feature = "tonlibjson")]
+pub mod test_utils;
+#[cfg(feature = "tonlibjson")]
 pub mod tl_client;

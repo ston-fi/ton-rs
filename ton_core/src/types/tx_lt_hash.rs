@@ -1,6 +1,7 @@
 use crate::bail_ton_core_data;
 use crate::cell::TonHash;
 use crate::errors::TonCoreError;
+use std::fmt::Display;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -12,6 +13,10 @@ pub struct TxLTHash {
 impl TxLTHash {
     pub const ZERO: Self = Self::new(0, TonHash::ZERO);
     pub const fn new(lt: i64, hash: TonHash) -> Self { Self { lt, hash } }
+}
+
+impl Display for TxLTHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}:{}", self.lt, self.hash) }
 }
 
 // Expects format "lt:hash", where lt is a number and hash is a hex string

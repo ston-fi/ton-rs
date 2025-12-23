@@ -1,11 +1,8 @@
-use crate::block_tlb::TVMStack;
-use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
-use crate::tep::tvm_results::tvm_result::TVMResult;
-use ton_core::TVMResult;
+use ton_macros::FromTVMStack;
 
-#[derive(Debug, Clone, PartialEq, TVMResult)]
-#[tvm_result(ensure_empty = true)]
+#[derive(Debug, Clone, PartialEq, FromTVMStack)]
+#[from_tvm_stack(ensure_empty = true)]
 pub struct GetNFTContentResult {
     pub full_content: MetadataContent,
 }
@@ -13,6 +10,7 @@ pub struct GetNFTContentResult {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::block_tlb::FromTVMStack;
 
     #[test]
     fn test_get_nft_full_content() -> anyhow::Result<()> {

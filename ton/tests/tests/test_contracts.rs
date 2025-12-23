@@ -7,11 +7,15 @@ use tokio_test::assert_ok;
 use ton::contracts::NFTItemContract;
 use ton::contracts::tl_provider::TLProvider;
 use ton::contracts::*;
+use ton::errors::TonResult;
 use ton::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
 use ton::tep::nft::NFTItemMetadata;
 use ton::tep::snake_data::SnakeData;
+use ton::tep::tvm_result::GetWalletDataResult;
+use ton::ton_contract;
 use ton_core::cell::TonHash;
 use ton_core::types::{TonAddress, TxLTHash};
+use ton_macros::ton_methods;
 
 #[tokio::test]
 async fn test_contracts() -> anyhow::Result<()> {
@@ -23,6 +27,7 @@ async fn test_contracts() -> anyhow::Result<()> {
 
     let res = try_join!(
         assert_jetton_wallet_get_wallet(&ctr_cli),
+        assert_jetton_wallet_custom_impl(&ctr_cli),
         assert_jetton_master(&ctr_cli),
         assert_jetton_scaled_ui_master_contract(&ctr_cli),
         assert_wallet_contract_get_public_key(&ctr_cli),
@@ -45,13 +50,26 @@ async fn assert_jetton_wallet_get_wallet(ctr_cli: &ContractClient) -> anyhow::Re
     Ok(())
 }
 
+async fn assert_jetton_wallet_custom_impl(ctr_cli: &ContractClient) -> anyhow::Result<()> {
+    let usdt_wallet = TonAddress::from_str("EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM")?;
+    ton_contract!(JettonWallet);
+
+    #[ton_methods]
+    impl JettonWallet {
+        async fn get_wallet_data(&self) -> TonResult<GetWalletDataResult>;
+    }
+    let contract = JettonWallet::new(ctr_cli, &usdt_wallet, None).await?;
+    assert_ok!(contract.get_wallet_data().await);
+    Ok(())
+}
+
 async fn assert_jetton_master(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
     let contract = JettonMasterContract::new(ctr_cli, &usdt_master, None).await?;
     assert_ok!(contract.get_jetton_data().await);
     let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
-    let wallet = assert_ok!(contract.get_wallet_address(&owner).await);
-    assert_eq!(wallet.address.to_string(), "EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM");
+    let wallet_address = assert_ok!(contract.get_wallet_address(&owner).await);
+    assert_eq!(wallet_address.to_string(), "EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM");
     Ok(())
 }
 

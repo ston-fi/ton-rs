@@ -61,6 +61,12 @@ path = "cell_deep_copy.rs"
 harness = false
 
 [[bench]]
+name = "fastnum_conversion_compare"
+path = "fastnum_conversion_compare.rs"
+harness = false
+
+
+[[bench]]
 name = "tx_emulator_bench"
 path = "tx_emulator_bench.rs"
 harness = false

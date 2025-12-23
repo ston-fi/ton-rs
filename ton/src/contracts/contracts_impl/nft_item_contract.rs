@@ -1,17 +1,16 @@
-use crate::block_tlb::TVMStack;
 use crate::contracts::NFTCollectionMethods;
 use crate::contracts::{NFTCollectionContract, TonContract};
-use crate::errors::TonError;
+use crate::errors::TonResult;
 use crate::tep::metadata::MetadataContent;
-use crate::tep::tvm_results::GetNFTDataResult;
+use crate::tep::tvm_result::GetNFTDataResult;
 use crate::ton_contract;
 use async_trait::async_trait;
-use ton_core::errors::TonCoreError;
+use ton_macros::ton_methods;
 
 ton_contract!(NFTItemContract: NFTItemMethods);
 
 impl NFTItemContract {
-    pub async fn ext_load_full_nft_data(&self) -> Result<GetNFTDataResult, TonCoreError> {
+    pub async fn ext_load_full_nft_data(&self) -> TonResult<GetNFTDataResult> {
         let mut data = self.get_nft_data().await?;
         let MetadataContent::Unsupported(meta) = data.individual_content else {
             return Ok(data);
@@ -26,8 +25,7 @@ impl NFTItemContract {
 }
 
 #[async_trait]
+#[ton_methods]
 pub trait NFTItemMethods: TonContract {
-    async fn get_nft_data(&self) -> Result<GetNFTDataResult, TonError> {
-        self.emulate_get_method("get_nft_data", &TVMStack::EMPTY, None).await
-    }
+    async fn get_nft_data(&self) -> TonResult<GetNFTDataResult>;
 }

@@ -38,6 +38,7 @@ async-trait.workspace = true
 sha2.workspace = true
 once_cell.workspace = true
 serde = { workspace = true, optional = true }
+serde_with.workspace = true
 serde_json = { workspace = true, optional = true }
 smallvec.workspace = true
 bitvec.workspace = true

@@ -4,7 +4,9 @@ use crate::cell::TonCellNum;
 use crate::errors::TonCoreError;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use fastnum::U256;
 use std::hash::Hash;
+
 #[derive(Clone, PartialEq, Hash, Eq, Ord, PartialOrd)]
 pub struct TonHash(TonHashData);
 
@@ -38,6 +40,11 @@ impl TonHash {
         let mut parser = cell.parser();
         let bytes = parser.read_bits(32 * 8)?;
         Self::from_slice(&bytes)
+    }
+
+    pub fn to_num(&self) -> U256 {
+        // unwrap is save: TonHash always has 32 bytes
+        U256::from_le_slice(self.as_slice()).unwrap()
     }
 
     pub fn as_slice(&self) -> &[u8] { self.0.as_slice() }
@@ -294,6 +301,17 @@ mod tests {
 
         let mut hash = TonHash::ZERO;
         assert_err!(hash.rewrite_first_bits(1u8, 129));
+        Ok(())
+    }
+
+    #[test]
+    fn test_ton_hash_to_num() -> anyhow::Result<()> {
+        let zero_num = TonHash::ZERO.to_num();
+        assert_eq!(zero_num, U256::from(0u8));
+
+        let max_hash = TonHash::from_slice_sized(&[255u8; 32]);
+        let max_num = max_hash.to_num();
+        assert_eq!(max_num, U256::MAX);
         Ok(())
     }
 }
