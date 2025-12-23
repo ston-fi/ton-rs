@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.6...ton_macros-v0.0.7) - 2025-12-23
+
+### Other
+
+- FromTVMStack, ToTVMStack, #[ton_methods] macro
+
 ## [0.0.6](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.5...ton_macros-v0.0.6) - 2025-12-17
 
 ### Other

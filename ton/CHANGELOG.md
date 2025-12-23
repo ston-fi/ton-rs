@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.11](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.10...ton-v0.0.11) - 2025-12-23
+
+### Other
+
+- FromTVMStack, ToTVMStack, #[ton_methods] macro
+- meaningful timeout for emulation
+
 ## [0.0.10](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.9...ton-v0.0.10) - 2025-12-17
 
 ### Fixed
