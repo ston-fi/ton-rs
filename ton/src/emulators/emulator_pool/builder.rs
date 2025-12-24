@@ -22,7 +22,7 @@ impl Builder {
         let cores_count = thread::available_parallelism().map_err(TonError::system)?.get();
         let builder = Self {
             threads_count: max(1, cores_count - 1), // leave one core for the rest of the system
-            default_exec_timeout: Duration::from_millis(10),
+            default_exec_timeout: Duration::from_secs(1),
             max_thread_queue_len: 10,
             emulator_log_level: 0,
             emulator_debug_enabled: false,
