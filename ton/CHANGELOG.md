@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.12](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.11...ton-v0.0.12) - 2025-12-24
+
+### Other
+
+- up emulator_pool interface ([#165](https://github.com/ston-fi/ton-rs/pull/165))
+- increase default pool timeout 10ms -> 1s
+
 ## [0.0.11](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.10...ton-v0.0.11) - 2025-12-23
 
 ### Other
