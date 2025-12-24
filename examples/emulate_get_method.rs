@@ -56,7 +56,7 @@ mod example {
         // Emulation using contract contract_client directly
         let state = ctr_cli.get_contract(&address, None).await?;
         let method_id = TVMGetMethodID::from("get_jetton_data").to_id();
-        let emul_result = ctr_cli.emulate_get_method(&state, method_id, TVMStack::EMPTY_BOC.to_owned(), None).await?;
+        let emul_result = ctr_cli.emul_get_method(&state, method_id, TVMStack::EMPTY_BOC.to_owned(), None).await?;
         let jetton_data = emul_result.stack_parsed()?;
         println!("[arbitrary] jetton_data_result stack len: {:?}", jetton_data.len());
         Ok(())

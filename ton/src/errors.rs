@@ -83,6 +83,8 @@ pub enum TonError {
     EmulatorMissingLibrary(TonHash),
     #[error("EmulatorTooManyLibraries: reach libraries limit ({0})")]
     EmulatorTooManyLibraries(usize),
+    #[error("EmulatorEnexpectedResponse: {0}")]
+    EmulatorUnexpectedResponse(String),
 
     // TVMStack
     #[error("TVMStackError: fail to pop specified type. expected: {0}, got: {1}")]
