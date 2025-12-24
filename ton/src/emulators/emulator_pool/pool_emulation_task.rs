@@ -3,15 +3,15 @@ use crate::emulators::tx_emulator::{TXEmulOrdArgs, TXEmulTickTockArgs};
 use std::sync::Arc;
 
 pub enum PoolEmulationTask {
-    EmulGetMethod(TVMRunGetMethodTask),
+    EmulGetMethod(TVMGetMethodTask),
     EmulSendExtMsg(TVMSendExtMsgTask),
     EmulSendIntMsg(TVMSendIntMsgTask),
     EmulOrdTx(TXEmulOrdArgs),
     EmulTickTockTx(TXEmulTickTockArgs),
 }
 
-impl From<TVMRunGetMethodTask> for PoolEmulationTask {
-    fn from(task: TVMRunGetMethodTask) -> Self { PoolEmulationTask::EmulGetMethod(task) }
+impl From<TVMGetMethodTask> for PoolEmulationTask {
+    fn from(task: TVMGetMethodTask) -> Self { PoolEmulationTask::EmulGetMethod(task) }
 }
 impl From<TVMSendExtMsgTask> for PoolEmulationTask {
     fn from(task: TVMSendExtMsgTask) -> Self { PoolEmulationTask::EmulSendExtMsg(task) }
@@ -27,7 +27,7 @@ impl From<TXEmulTickTockArgs> for PoolEmulationTask {
 }
 
 #[derive(Clone, Debug)]
-pub struct TVMRunGetMethodTask {
+pub struct TVMGetMethodTask {
     pub state: TVMState,
     pub method: TVMGetMethodID,
     pub stack_boc: Arc<Vec<u8>>,

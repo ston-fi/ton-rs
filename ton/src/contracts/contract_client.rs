@@ -7,7 +7,7 @@ pub mod tl_provider;
 use crate::contracts::contract_client::builder::Builder;
 use crate::contracts::contract_client::contract_client_cache::ContractClientCache;
 use crate::emulators::emul_bc_config::EmulBCConfig;
-use crate::emulators::emulator_pool::{EmulatorPool, PoolEmulationResponse, TVMRunGetMethodTask};
+use crate::emulators::emulator_pool::{EmulatorPool, TVMGetMethodTask};
 use crate::emulators::tvm_emulator::*;
 use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
@@ -41,7 +41,7 @@ impl ContractClient {
     /// mc_seqno can be specified to run emulation in a specific blockchain state
     /// If mc_seqno is None, head state will be used
     /// Is not used yet
-    pub async fn emulate_get_method<S: Into<Arc<Vec<u8>>>>(
+    pub async fn emul_get_method<S: Into<Arc<Vec<u8>>>>(
         &self,
         state: &TonContractState,
         method_id: i32,
@@ -75,7 +75,7 @@ impl ContractClient {
             config: self.get_bc_config().await?.clone(),
         };
 
-        let mut emul_task = TVMRunGetMethodTask {
+        let mut emul_task = TVMGetMethodTask {
             state: TVMState {
                 code_boc: code_boc.to_owned(),
                 data_boc: state.data_boc.as_ref().map(|x| x.to_owned()).unwrap_or(Arc::new(vec![])),
@@ -102,10 +102,7 @@ impl ContractClient {
         let emul_pool = &self.inner.emulator_pool;
         let emul_timeout = Some(self.inner.emulation_timeout);
 
-        let mut emul_response = match emul_pool.exec(emul_task.clone(), emul_timeout).await? {
-            PoolEmulationResponse::EmulGetMethod(resp) => resp,
-            _ => return Err(TonError::Custom("Unexpected TVMEmulResponse".to_string())),
-        };
+        let mut emul_response = emul_pool.emul_get_method(emul_task.clone(), emul_timeout).await?;
 
         let mut iteration = 0;
         while let Some(missing_lib_hash) = emul_response.missing_lib()? {
@@ -120,10 +117,7 @@ impl ContractClient {
 
             libs_dict.insert(missing_lib_hash, lib.into());
             emul_task.state.libs_boc = Some(Arc::new(libs_dict.to_boc()?));
-            emul_response = match emul_pool.exec(emul_task.clone(), emul_timeout).await? {
-                PoolEmulationResponse::EmulGetMethod(resp) => resp,
-                _ => return Err(TonError::Custom("Unexpected TVMEmulResponse".to_string())),
-            };
+            emul_response = emul_pool.emul_get_method(emul_task.clone(), emul_timeout).await?;
         }
         emul_response.into_success()
     }

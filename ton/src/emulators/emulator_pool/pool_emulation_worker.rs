@@ -18,17 +18,17 @@ impl PoolObject for PoolEmulationWorker {
         match task.into() {
             PoolEmulationTask::EmulGetMethod(args) => {
                 TVMEmulator::from_state(&args.state)?
-                    .run_get_method(args.method, &args.stack_boc)
+                    .emul_get_method(args.method, &args.stack_boc)
                     .map(PoolEmulationResponse::EmulGetMethod)
             },
             PoolEmulationTask::EmulSendExtMsg(args) =>  {
                 TVMEmulator::from_state(&args.state)?
-                    .send_ext_msg(&args.msg_boc)
+                    .emul_send_ext_msg(&args.msg_boc)
                     .map(PoolEmulationResponse::EmulSendExtMsg)
             },
             PoolEmulationTask::EmulSendIntMsg(args) => {
                 TVMEmulator::from_state(&args.state)?
-                    .send_int_msg(&args.msg_boc, args.amount)
+                    .emul_send_int_msg(&args.msg_boc, args.amount)
                     .map(PoolEmulationResponse::EmulSendIntMsg)
             },
             PoolEmulationTask::EmulOrdTx(args) => {
