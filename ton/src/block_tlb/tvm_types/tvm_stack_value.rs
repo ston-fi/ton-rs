@@ -5,11 +5,11 @@ use crate::tlb_adapters::TLBHashMap;
 use crate::ton_core::types::tlb_core::adapters::ConstLen;
 use fastnum::I512;
 use std::collections::HashMap;
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
 use std::sync::Arc;
 use ton_core::TLB;
-use ton_core::cell::TonCell;
+use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBRef;
 
 #[derive(Clone, TLB, PartialEq)]
@@ -22,7 +22,7 @@ pub enum TVMStackValue {
     CellSlice(TVMCellSlice),
     Builder(TVMBuilder), // TODO is not tested
     Cont(TVMCont),       // TODO is not tested
-    Tuple(TVMTuple),
+    Tuple(TVMTupleSized),
 }
 
 #[derive(Debug, Clone, TLB, PartialEq)]
@@ -60,6 +60,7 @@ pub struct TVMBuilder {
 }
 
 #[derive(Debug, Clone, TLB, PartialEq)]
+#[tlb(prefix = 0x06, bits_len = 8)]
 pub enum TVMCont {
     Std(VMContStd),
     Envelope(TVMContEnvelope),
@@ -71,6 +72,13 @@ pub enum TVMCont {
     WhileCond(VMContWhileCond),
     WhileBody(VMContWhileBody),
     PushInt(VMContPushInt),
+}
+
+#[derive(Debug, Clone, TLB, PartialEq)]
+#[tlb(prefix = 0x07, bits_len = 8)]
+pub struct TVMTupleSized {
+    pub len: u16,
+    pub value: TVMTuple,
 }
 
 #[derive(Debug, Clone, TLB, PartialEq)]
@@ -158,22 +166,21 @@ pub struct VMContPushInt {
 }
 
 impl Debug for TVMStackValue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { write!(f, "{self}") }
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { write!(f, "{self}") }
 }
 
 impl Display for TVMStackValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        use Deref;
         match self {
             TVMStackValue::Null(_) => write!(f, "Null"),
             TVMStackValue::TinyInt(v) => write!(f, "TinyInt({})", v.value),
             TVMStackValue::Int(v) => write!(f, "Int({})", v.value),
             TVMStackValue::Nan(_) => write!(f, "Nan"),
-            TVMStackValue::Cell(v) => write!(f, "Cell({})", v.value.deref()),
-            TVMStackValue::CellSlice(v) => write!(f, "CellSlice({})", v.value),
+            TVMStackValue::Cell(v) => write!(f, "Cell({})", v.value.hash().unwrap_or(&TonHash::ZERO)),
+            TVMStackValue::CellSlice(v) => write!(f, "CellSlice({})", v.value.hash().unwrap_or(&TonHash::ZERO)),
             TVMStackValue::Builder(_) => write!(f, "Builder"),
             TVMStackValue::Cont(_) => write!(f, "Cont"),
-            TVMStackValue::Tuple(v) => write!(f, "Tuple[{v:?}"),
+            TVMStackValue::Tuple(v) => write!(f, "Tuple({v:#?})"),
         }
     }
 }
