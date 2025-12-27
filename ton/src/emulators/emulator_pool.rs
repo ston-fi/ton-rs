@@ -62,10 +62,9 @@ mod tests {
     use crate::block_tlb::{Msg, ShardAccount, TVMStack};
     use crate::emulators::emul_bc_config::EmulBCConfig;
     use crate::emulators::emulator_pool::EmulatorPool;
-    use crate::emulators::emulator_pool::pool_emulation_response::PoolEmulationResponse;
     use crate::emulators::emulator_pool::pool_emulation_task::TVMGetMethodTask;
     use crate::emulators::tvm_emulator::{TVMEmulatorC7, TVMGetMethodResponse, TVMState};
-    use crate::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulationResponse};
+    use crate::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs};
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
     use std::str::FromStr;
     use std::sync::Arc;

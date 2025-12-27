@@ -1,4 +1,4 @@
-use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTuple, TVMTupleSized};
+use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTuple};
 use crate::errors::{TonError, TonResult};
 use fastnum::I512;
 use std::fmt::Display;
@@ -51,13 +51,7 @@ impl TVMStack {
     pub fn push_cell_slice(&mut self, cell: TonCell) {
         self.push(TVMStackValue::CellSlice(TVMCellSlice::from_cell(cell)));
     }
-    pub fn push_tuple(&mut self, tuple: TVMTuple) {
-        let wrapper = TVMTupleSized {
-            len: tuple.len() as u16,
-            value: tuple,
-        };
-        self.push(TVMStackValue::Tuple(wrapper));
-    }
+    pub fn push_tuple(&mut self, value: TVMTuple) { self.push(TVMStackValue::Tuple(value)); }
 
     pub fn pop_checked(&mut self) -> TonResult<TVMStackValue> {
         match self.pop() {
@@ -89,7 +83,7 @@ impl TVMStack {
     pub fn pop_tuple(&mut self) -> TonResult<TVMTuple> {
         match self.pop() {
             None => Err(TonError::TVMStackEmpty),
-            Some(TVMStackValue::Tuple(tuple)) => Ok(tuple.value),
+            Some(TVMStackValue::Tuple(tuple)) => Ok(tuple),
             Some(rest) => Err(TonError::TVMStackWrongType("Tuple".to_string(), format!("{rest:?}"))),
         }
     }

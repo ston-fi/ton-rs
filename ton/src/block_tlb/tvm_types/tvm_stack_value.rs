@@ -22,7 +22,7 @@ pub enum TVMStackValue {
     CellSlice(TVMCellSlice),
     Builder(TVMBuilder), // TODO is not tested
     Cont(TVMCont),       // TODO is not tested
-    Tuple(TVMTupleSized),
+    Tuple(TVMTuple),
 }
 
 #[derive(Debug, Clone, TLB, PartialEq)]
@@ -72,13 +72,6 @@ pub enum TVMCont {
     WhileCond(VMContWhileCond),
     WhileBody(VMContWhileBody),
     PushInt(VMContPushInt),
-}
-
-#[derive(Debug, Clone, TLB, PartialEq)]
-#[tlb(prefix = 0x07, bits_len = 8)]
-pub struct TVMTupleSized {
-    pub len: u16,
-    pub value: TVMTuple,
 }
 
 #[derive(Debug, Clone, TLB, PartialEq)]

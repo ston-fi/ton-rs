@@ -1,10 +1,10 @@
-use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt, TVMTupleSized};
+use crate::block_tlb::{TVMCell, TVMCellSlice, TVMInt, TVMStackValue, TVMTinyInt};
 use crate::errors::{TonError, TonResult};
 use fastnum::I512;
 use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_core::errors::{TonCoreError, TonCoreResult};
-use ton_core::traits::tlb::TLB;
+use ton_core::errors::{TonCoreResult};
+use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 macro_rules! extract_tuple_val {
     ($maybe_result:expr, $variant:ident) => {
@@ -39,13 +39,7 @@ impl TVMTuple {
     pub fn push_int(&mut self, value: I512) { self.push(TVMStackValue::Int(TVMInt { value })); }
     pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
     pub fn push_cell_slice(&mut self, cell: TonCell) { self.push(TVMStackValue::CellSlice(TVMCellSlice::from_cell(cell))); }
-    pub fn push_tuple(&mut self, value: TVMTuple) {
-        let tuple_sized = TVMTupleSized {
-            len: value.len() as u16,
-            value,
-        };
-        self.push(TVMStackValue::Tuple(tuple_sized))
-    }
+    pub fn push_tuple(&mut self, value: TVMTuple) { self.push(TVMStackValue::Tuple(value))}
 
     pub fn get_tiny_int(&self, index: usize) -> TonResult<&i64> { extract_tuple_val!(self.get(index), TinyInt) }
     pub fn get_int(&self, index: usize) -> TonResult<&I512> { extract_tuple_val!(self.get(index), Int) }
@@ -58,17 +52,26 @@ impl TVMTuple {
         }
     }
     pub fn get_cell_slice(&self, index: usize) -> TonResult<&TonCell> { extract_tuple_val!(self.get(index), CellSlice) }
-    pub fn get_tuple(&self, index: usize) -> TonResult<&TVMTuple> { extract_tuple_val!(self.get(index), Tuple) }
+    pub fn get_tuple(&self, index: usize) -> TonResult<&TVMTuple> {
+        match self.get(index) {
+            None => Err(TonError::TVMStackEmpty),
+            Some(TVMStackValue::Tuple(val)) => Ok(&val),
+            Some(rest) => Err(TonError::TVMStackWrongType("Tuple".to_string(), format!("{rest:?}"))),
+        }
+    }
 }
 
 impl TLB for TVMTuple {
+    const PREFIX: TLBPrefix = TLBPrefix::new(0x07, 8);
     fn read_definition(parser: &mut CellParser) -> TonCoreResult<Self> {
+        let _size: u16 = parser.read_num(16)?;
         let mut data = Vec::new();
         read_tuple(parser, &mut data)?;
         Ok(TVMTuple(data))
     }
 
     fn write_definition(&self, builder: &mut CellBuilder) -> TonCoreResult<()> {
+        builder.write_num(&self.len(), 16)?;
         write_tuple(builder, self)?;
         Ok(())
     }
@@ -131,14 +134,4 @@ fn write_tuple_ref(builder: &mut CellBuilder, data: &[TVMStackValue]) -> TonCore
     let mut rest_builder = TonCell::builder();
     write_tuple(&mut rest_builder, &data)?;
     builder.write_ref(rest_builder.build()?)
-}
-
-impl Into<TVMStackValue> for TVMTuple {
-    fn into(self) -> TVMStackValue {
-        let wrapper = TVMTupleSized {
-            len: self.len() as u16,
-            value: self,
-        };
-        TVMStackValue::Tuple(wrapper)
-    }
 }
