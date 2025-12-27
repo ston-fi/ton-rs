@@ -3,7 +3,7 @@ use crate::errors::{TonError, TonResult};
 use fastnum::I512;
 use std::ops::{Deref, DerefMut};
 use ton_core::cell::{CellBuilder, CellParser, TonCell};
-use ton_core::errors::{TonCoreResult};
+use ton_core::errors::TonCoreResult;
 use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 macro_rules! extract_tuple_val {
@@ -55,7 +55,7 @@ impl TVMTuple {
     pub fn get_tuple(&self, index: usize) -> TonResult<&TVMTuple> {
         match self.get(index) {
             None => Err(TonError::TVMStackEmpty),
-            Some(TVMStackValue::Tuple(val)) => Ok(&val),
+            Some(TVMStackValue::Tuple(val)) => Ok(val),
             Some(rest) => Err(TonError::TVMStackWrongType("Tuple".to_string(), format!("{rest:?}"))),
         }
     }
@@ -132,6 +132,6 @@ fn write_tuple_ref(builder: &mut CellBuilder, data: &[TVMStackValue]) -> TonCore
         return builder.write_ref(data[0].to_cell()?);
     }
     let mut rest_builder = TonCell::builder();
-    write_tuple(&mut rest_builder, &data)?;
+    write_tuple(&mut rest_builder, data)?;
     builder.write_ref(rest_builder.build()?)
 }

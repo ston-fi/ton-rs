@@ -136,7 +136,7 @@ mod tests {
             utime: 1738323935,
             lt: 53483578000001,
             ignore_chksig: true,
-            prev_blocks_boc: None,
+            c7_prev_blocks_info_boc: None,
             libs_boc: None,
         };
         let ord_args = TXEmulOrdArgs {
