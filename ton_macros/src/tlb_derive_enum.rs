@@ -11,27 +11,13 @@ pub(crate) fn tlb_derive_enum(
     generics: &syn::Generics,
 ) -> (TokenStream, TokenStream, TokenStream) {
     // Prepare variant info (tuple-like enums with exactly one unnamed field)
-    let variant_infos: Vec<_> = data
-        .variants
-        .iter()
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let Fields::Unnamed(fields) = &variant.fields else {
-                panic!("tlb_derive_enum only supports tuple-like enums");
-            };
-            if fields.unnamed.len() != 1 {
-                panic!("Each enum variant must have exactly one unnamed field");
-            }
-            let field_type = &fields.unnamed.first().unwrap().ty;
-            (variant_name, field_type)
-        })
-        .collect();
+    let variants_info = collect_variant_info(data);
 
     // Fallback reader: try each variant sequentially (use full trait qualification)
-    let fallback_readers = variant_infos.iter().map(|(variant_name, field_type)| {
+    let fallback_readers = variants_info.iter().map(|(var_name, field_type)| {
         quote! {
             match <#field_type as #crate_path::traits::tlb::TLB>::read(parser) {
-                Ok(res) => return Ok(#ident::#variant_name(res)),
+                Ok(res) => return Ok(#ident::#var_name(res)),
                 Err(#crate_path::errors::TonCoreError::TLBWrongPrefix { .. }) => {},
                 Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions { .. }) => {},
                 Err(err) => return Err(err),
@@ -40,7 +26,7 @@ pub(crate) fn tlb_derive_enum(
     });
 
     // Generate const bits_len values for each variant
-    let const_bits_decls = variant_infos.iter().enumerate().map(|(i, (_, ty))| {
+    let const_bits_decls = variants_info.iter().enumerate().map(|(i, (_, ty))| {
         let name = Ident::new(&format!("PREFIX_BITS_LEN_{i}"), ident.span());
         quote! { const #name: usize = <#ty as TLB>::PREFIX.bits_len; }
     });
@@ -50,7 +36,7 @@ pub(crate) fn tlb_derive_enum(
     // Build all-same expression at runtime (bool), using the consts above
     let all_same_checks = {
         let mut exprs: Vec<TokenStream> = Vec::new();
-        for i in 1..variant_infos.len() {
+        for i in 1..variants_info.len() {
             let cname = Ident::new(&format!("PREFIX_BITS_LEN_{}", i), ident.span());
             exprs.push(quote! { #first_bits_ident == #cname });
         }
@@ -64,7 +50,7 @@ pub(crate) fn tlb_derive_enum(
     let ident_str = ident.to_string();
 
     // Optimized match arms: use guard with equality against Type::PREFIX.value
-    let match_arms = variant_infos.iter().map(|(_, ty)| {
+    let match_arms = variants_info.iter().map(|(_, ty)| {
         quote! {
             actual_prefix if actual_prefix == <#ty as TLB>::PREFIX.value => <#ty as TLB>::read(parser).map(Into::into),
         }
@@ -76,13 +62,8 @@ pub(crate) fn tlb_derive_enum(
         const ALL_BITS_LEN_SAME: bool = #all_same_checks ;
         if ALL_BITS_LEN_SAME {
             let prefix_bits_len = #first_bits_ident;
-            let actual_prefix = match parser.read_num::<usize>(prefix_bits_len) {
-                Ok(prefix) => prefix,
-                Err(err) => return Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions {
-                message: format!("{}: {err}", #ident_str),
-                cell_boc_hex: original_parser.read_remaining()?.to_boc_hex()?,
-            })
-            };
+            let actual_prefix = parser.read_num::<usize>(prefix_bits_len)?;
+
             parser.seek_bits(-(prefix_bits_len as i32))?;
             match actual_prefix {
                 #(#match_arms)*
@@ -123,6 +104,23 @@ pub(crate) fn tlb_derive_enum(
     };
 
     (read_impl, write_impl, extra_impl)
+}
+
+fn collect_variant_info(data: &mut DataEnum) -> Vec<(&Ident, &syn::Type)> {
+    data.variants
+        .iter()
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let Fields::Unnamed(fields) = &variant.fields else {
+                panic!("tlb_derive_enum only supports tuple-like enums");
+            };
+            if fields.unnamed.len() != 1 {
+                panic!("Each enum variant must have exactly one unnamed field");
+            }
+            let field_type = &fields.unnamed.first().unwrap().ty;
+            (variant_name, field_type)
+        })
+        .collect()
 }
 
 // generate From<X> for each enum variant

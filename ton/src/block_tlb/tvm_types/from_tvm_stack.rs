@@ -75,8 +75,8 @@ impl FromTVMStack for TonAddress {
 impl FromTVMStack for TonHash {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let hash = match stack.pop_checked()? {
-            TVMStackValue::Int(num) => Self::from_num(&num.value)?,
-            TVMStackValue::TinyInt(num) => Self::from_num(&num.value)?,
+            TVMStackValue::Int(num) => Self::from_i512(&num.value)?,
+            TVMStackValue::TinyInt(num) => Self::from_i512(&I512::from_i64(num.value))?,
             TVMStackValue::Cell(cell) => TonHash::from_cell(&cell.value)?,
             TVMStackValue::CellSlice(cell) => TonHash::from_cell(&cell.value)?,
             rest => {

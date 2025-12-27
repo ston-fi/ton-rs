@@ -34,7 +34,7 @@ pub struct TXEmulArgs {
     pub lt: u64,
     pub ignore_chksig: bool,
     #[serde(with = "serde_opt_arc_vec_u8_base64")]
-    pub prev_blocks_boc: Option<Arc<Vec<u8>>>,
+    pub c7_prev_blocks_info_boc: Option<Arc<Vec<u8>>>,
     #[serde(with = "serde_opt_arc_vec_u8_base64")]
     pub libs_boc: Option<Arc<Vec<u8>>>,
 }
@@ -43,7 +43,7 @@ impl Display for TXEmulArgs {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let shard_acc_str = hex::encode(self.shard_account_boc.deref());
 
-        let prev_blocks_str = match &self.prev_blocks_boc {
+        let prev_blocks_str = match &self.c7_prev_blocks_info_boc {
             None => "None",
             Some(boc) => &hex::encode(boc.deref()),
         };
@@ -138,7 +138,7 @@ pub fn create_test_tx_emul_ord_args(
             utime,
             lt,
             ignore_chksig: false,
-            prev_blocks_boc: None,
+            c7_prev_blocks_info_boc: None,
             libs_boc: None,
         },
     })

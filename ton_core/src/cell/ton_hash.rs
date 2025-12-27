@@ -1,10 +1,8 @@
 use crate::bail_ton_core_data;
-use crate::cell::TonCell;
-use crate::cell::TonCellNum;
 use crate::errors::TonCoreError;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use fastnum::U256;
+use fastnum::{I512, U256};
 use std::hash::Hash;
 
 #[derive(Clone, PartialEq, Hash, Eq, Ord, PartialOrd)]
@@ -33,18 +31,30 @@ impl TonHash {
         Ok(Self(TonHashData::Vec(data)))
     }
 
-    pub fn from_num<T: TonCellNum>(num: &T) -> Result<Self, TonCoreError> {
-        let mut builder = TonCell::builder();
-        builder.write_num(num, 32 * 8)?;
-        let cell = builder.build()?;
-        let mut parser = cell.parser();
-        let bytes = parser.read_bits(32 * 8)?;
-        Self::from_slice(&bytes)
+    pub fn from_u256(num: &U256) -> Result<Self, TonCoreError> {
+        let slice = &mut [0u8; 32];
+        let num_bytes = num.to_radix_le(256);
+        let offset = 32 - num_bytes.len();
+        slice[offset..].copy_from_slice(&num_bytes);
+        Ok(Self::from_slice_sized(slice))
     }
 
-    pub fn to_num(&self) -> U256 {
+    pub fn from_i512(num: &I512) -> Result<Self, TonCoreError> {
+        let num_bytes = num.to_radix_le(256);
+        if num_bytes.len() > 32 {
+            bail_ton_core_data!("I512 value is too large to fit into TonHash");
+        }
+        TonHash::from_u256(&U256::from_radix_le(&num_bytes, 256).unwrap())
+    }
+
+    pub fn to_u256(&self) -> U256 {
         // unwrap is save: TonHash always has 32 bytes
-        U256::from_le_slice(self.as_slice()).unwrap()
+        U256::from_radix_le(self.as_slice(), 256).unwrap()
+    }
+
+    pub fn to_i512(&self) -> I512 {
+        // unwrap is save: TonHash always has 32 bytes
+        I512::from_radix_le(self.as_slice(), 256).unwrap()
     }
 
     pub fn as_slice(&self) -> &[u8] { self.0.as_slice() }
@@ -306,11 +316,11 @@ mod tests {
 
     #[test]
     fn test_ton_hash_to_num() -> anyhow::Result<()> {
-        let zero_num = TonHash::ZERO.to_num();
+        let zero_num = TonHash::ZERO.to_u256();
         assert_eq!(zero_num, U256::from(0u8));
 
         let max_hash = TonHash::from_slice_sized(&[255u8; 32]);
-        let max_num = max_hash.to_num();
+        let max_num = max_hash.to_u256();
         assert_eq!(max_num, U256::MAX);
         Ok(())
     }

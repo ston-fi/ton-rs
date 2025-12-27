@@ -1,5 +1,10 @@
+mod c7_prev_blocks_info;
 mod tx_emul_args;
 mod tx_emul_response;
+
+pub use c7_prev_blocks_info::*;
+pub use tx_emul_args::*;
+pub use tx_emul_response::*;
 
 use crate::emulators::emul_bc_config::EmulBCConfig;
 use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
@@ -9,8 +14,7 @@ use std::sync::Arc;
 use ton_core::cell::TonHash;
 use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
 use tonlib_sys::*;
-pub use tx_emul_args::*;
-pub use tx_emul_response::*;
+
 pub struct TXEmulator {
     emulator: *mut std::ffi::c_void,
     cur_bc_config_hash: u64,
@@ -74,7 +78,7 @@ impl TXEmulator {
             self.actualize_libs(libs.as_ref())?;
         }
         self.actualize_ignore_chksig(args.ignore_chksig)?;
-        if let Some(prev_blocks) = &args.prev_blocks_boc {
+        if let Some(prev_blocks) = &args.c7_prev_blocks_info_boc {
             self.actualize_prev_blocks_info(prev_blocks.as_ref())?;
         }
         Ok(())
@@ -201,7 +205,6 @@ mod tests {
     use ton_core::traits::tlb::TLB;
     #[allow(dead_code)]
     const VM_CODE_NOT_ENOUGH_LIBS: i32 = 9;
-    static EMUL_ARGS_TEST_PATH: &str = "../resources/tests/txemulord_with_libs.json";
     static TEST_EXPECTED_TX: LazyLock<Tx> = LazyLock::new(|| {
         Tx::from_boc_hex(
             "b5ee9c7241020c010002f50003b5792eb9106ca20295132ce6170ece2338ba10342134a3ca0d9e499f21c9b4897e4000030a49dab028194fb2314023373e7b36b05b69e31508eba9ba24a60e994060fee1ca55302f8c2000030a4972bcd43679cb7df00034657bf0280102030201e00405008272fb026ad92478055ab0086833e193b9e2ad35aa0073769228fcdc27ed38ef72a4c533ffcf55fd97275de407b0068404ed61966be66ec1e82d6c49d100f01e6064020f0c51c618a18604400a0b01e1880125d7220d944052a2659cc2e1d9c4671742068426947941b3c933e43936912fc800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014d4d18bb3ce5c84000000088001c060101df07016862004975c883aea91de93142ae4dc222d803c74e5f130f37ef0d42fb353897fd0f982068e77800000000000000000000000000010801b1680125d7220d944052a2659cc2e1d9c4671742068426947941b3c933e43936912fc90024bae441d7548ef498a15726e1116c01e3a72f89879bf786a17d9a9c4bfe87cc103473bc000614884c000061493b560504cf396fbec00801b20f8a7ea500000000000000005012a05f20080129343398aec31cdbbf7d32d977c27a96d5cd23c38fd4bd47be019abafb9b356b0024bae441b2880a544cb3985c3b388ce2e840d084d28f283679267c8726d225f90814dc9381090099259385618012934339d11465553b2f3e428ae79b0b1e2fd250b80784d4996dd44741736528ca0259f3a0f90024bae441b2880a544cb3985c3b388ce2e840d084d28f283679267c8726d225f910009d419d8313880000000000000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020006fc987b3184c14882800000000000200000000000224cb2890dee94c80761e06b8c446b1a9835aff2fc055cee75373ceeceffa6b4240d03f644db9e7b3").unwrap()
@@ -267,18 +270,36 @@ mod tests {
     fn test_tx_emulator_no_libs() -> anyhow::Result<()> {
         // no vm_code in result, remove should_panic when it will be fixed
         sys_tonlib_set_verbosity_level(1);
-        let mut emulator = assert_ok!(TXEmulator::new(0, false));
 
-        let dumped_args = String::from_utf8(assert_ok!(std::fs::read(EMUL_ARGS_TEST_PATH)))?;
+        let args_json = include_str!("../../resources/tests/txemulord_with_libs.json");
+        let mut emulator = TXEmulator::new(0, false)?;
+        let mut emul_ord_args: TXEmulOrdArgs = serde_json::from_str(args_json)?;
 
-        let mut ord_args: TXEmulOrdArgs = assert_ok!(serde_json::from_str(&dumped_args));
+        let _response_good = assert_ok!(emulator.emulate_ord(&emul_ord_args));
 
-        let _response_good = assert_ok!(emulator.emulate_ord(&ord_args));
-
-        ord_args.emul_args.libs_boc = None;
-        let response_no_lib = assert_ok!(emulator.emulate_ord(&ord_args));
+        emul_ord_args.emul_args.libs_boc = None;
+        let response_no_lib = assert_ok!(emulator.emulate_ord(&emul_ord_args));
         assert_eq!(response_no_lib.vm_exit_code, None);
         // assert_eq!(response_no_lib.vm_exit_code.unwrap(), VM_CODE_NOT_ENOUGH_LIBS);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_tx_emulator_prev_blocks_info_required() -> anyhow::Result<()> {
+        // https://tonviewer.com/transaction/3b464a32195b556407a922e3bbfea138550b5cc038551adcdc28d4cf73291daf
+        let args_json = include_str!(
+            "../../resources/tests/txemulord_EQAQAUqxkIId2T0l1v0CBjczoPW7pS-5pQ0-J2Ap1pvac9XY_64826315000001.json"
+        );
+
+        let emul_args: TXEmulOrdArgs = serde_json::from_str(args_json)?;
+        let mut emulator = TXEmulator::new(0, false)?;
+        let emul_result = assert_ok!(emulator.emulate_ord(&emul_args)?.into_success());
+        let tx = Tx::from_boc_base64(&emul_result.tx_boc_b64)?;
+        assert_eq!(
+            tx.state_update.new,
+            TonHash::from_str("0ea69e8e0f7fd83dea1e196016b8a2b4762692027736a8c7c79fdcb7c41f6aaa")?
+        );
 
         Ok(())
     }
