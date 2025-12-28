@@ -33,6 +33,8 @@ pub async fn load_cached_tx(
     Ok(Tx::from_boc_hex(&bytes)?)
 }
 
+// Tonlib usually fails to load contract state because of hash mismatch (emulation failed)
+// You can't do anything with it, just try another state
 pub async fn load_cached_contract_state(
     cache_dir: &str,
     address: &TonAddress,
