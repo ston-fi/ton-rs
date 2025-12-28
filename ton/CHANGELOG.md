@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.13](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.12...ton-v0.0.13) - 2025-12-28
+
+### Fixed
+
+- fix TVMTuple TLB ([#166](https://github.com/ston-fi/ton-rs/pull/166))
+
 ## [0.0.12](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.11...ton-v0.0.12) - 2025-12-24
 
 ### Other
