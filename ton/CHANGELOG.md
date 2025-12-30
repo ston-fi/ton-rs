@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.14](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.13...ton-v0.0.14) - 2025-12-30
+
+### Other
+
+- update last_mc_blocks_div_100 ([#168](https://github.com/ston-fi/ton-rs/pull/168))
+
 ## [0.0.13](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.12...ton-v0.0.13) - 2025-12-28
 
 ### Fixed
