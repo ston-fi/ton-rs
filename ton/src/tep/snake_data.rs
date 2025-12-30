@@ -32,7 +32,11 @@ impl SnakeData {
 
 impl FromStr for SnakeData {
     type Err = TonCoreError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> { Ok(SnakeData::new(s.as_bytes().to_vec())) }
+    fn from_str(s: &str) -> Result<Self, Self::Err> { Ok(Self::from(s)) }
+}
+
+impl From<&str> for SnakeData {
+    fn from(s: &str) -> Self { SnakeData::new(s.as_bytes().to_vec()) }
 }
 
 impl TLB for SnakeData {
@@ -143,6 +147,14 @@ mod tests {
 
         assert_eq!(SnakeData::from_str("my awesome snakedata")?.as_str(), "my awesome snakedata");
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_snake_data_from_str() -> anyhow::Result<()> {
+        let s = "Hello, SnakeData!";
+        let snake_data = SnakeData::from_str(s)?;
+        assert_eq!(snake_data.as_str(), s);
         Ok(())
     }
 }
