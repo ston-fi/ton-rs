@@ -1,5 +1,6 @@
 use crate::block_tlb::{TVMStack, TVMStackValue};
 use crate::errors::{TonError, TonResult};
+use crate::tep::snake_data::SnakeData;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use fastnum::*;
@@ -92,6 +93,10 @@ impl FromTVMStack for TonHash {
 
 impl FromTVMStack for Coins {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(Coins::try_from(stack.pop_num()?)?) }
+}
+
+impl FromTVMStack for SnakeData {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_cell(&stack.pop_cell()?)?) }
 }
 
 #[cfg(test)]
