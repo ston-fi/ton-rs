@@ -116,6 +116,10 @@ impl<'a> CellParser<'a> {
         Ok(self.cell.borders.end_bit - reader_pos)
     }
 
+    pub fn current_bit_offset(&mut self) -> Result<usize, TonCoreError> {
+        Ok(self.data_reader.position_in_bits()? as usize)
+    }
+
     pub fn refs_left(&mut self) -> usize { self.cell.borders.end_ref as usize - self.next_ref_pos }
 
     pub fn seek_bits(&mut self, offset: i32) -> Result<(), TonCoreError> {

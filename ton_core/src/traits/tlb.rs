@@ -33,8 +33,18 @@ pub trait TLB: Sized {
 
     /// interface - must be used by external code to read/write TLB objects
     fn read(parser: &mut CellParser) -> TonCoreResult<Self> {
+        let offset_before_read = parser.current_bit_offset()?;
+
+        // verify_prefix handles rollback of bits
         Self::verify_prefix(parser)?;
-        Self::read_definition(parser)
+        match Self::read_definition(parser) {
+            Ok(res) => Ok(res),
+            Err(err) => {
+                let bits_read = parser.current_bit_offset()?.saturating_sub(offset_before_read);
+                parser.seek_bits(-(bits_read as i32))?;
+                Err(err)
+            }
+        }
     }
 
     fn write(&self, builder: &mut CellBuilder) -> TonCoreResult<()> {
@@ -150,7 +160,24 @@ impl TLBPrefix {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio_test::{assert_err, assert_ok};
     use ton_macros::TLB;
+
+    #[derive(Debug)]
+    struct FailingTLBObj(u8);
+
+    impl TLB for FailingTLBObj {
+        fn read_definition(parser: &mut CellParser) -> TonCoreResult<Self> {
+            let byte = u8::read_definition(parser)?;
+            if byte == 0x01 {
+                bail_ton_core_data!("Failed reading definition")
+            } else {
+                Ok(FailingTLBObj(byte))
+            }
+        }
+
+        fn write_definition(&self, builder: &mut CellBuilder) -> TonCoreResult<()> { self.0.write_definition(builder) }
+    }
 
     #[test]
     fn test_tlb_derive() -> anyhow::Result<()> {
@@ -180,6 +207,27 @@ mod tests {
         let cell = TestTLBObject(42).to_cell()?;
         let parsed = TestTLBObject::from_cell(&cell)?;
         assert_eq!(parsed.0, 42);
+        Ok(())
+    }
+
+    #[test]
+    fn test_failing_definition_read() -> anyhow::Result<()> {
+        let valid = FailingTLBObj(0);
+        let cell = valid.to_cell()?;
+        let mut parser = cell.parser();
+        assert_eq!(parser.current_bit_offset()?, 0);
+
+        assert_ok!(FailingTLBObj::read(&mut parser));
+        assert_eq!(parser.current_bit_offset()?, 8);
+
+        let invalid = FailingTLBObj(1);
+        let cell = invalid.to_cell()?;
+        let mut parser = cell.parser();
+        assert_eq!(parser.current_bit_offset()?, 0);
+
+        assert_err!(FailingTLBObj::read(&mut parser));
+        assert_eq!(parser.current_bit_offset()?, 0);
+
         Ok(())
     }
 }
