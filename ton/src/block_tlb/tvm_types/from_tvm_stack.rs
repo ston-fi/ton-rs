@@ -99,9 +99,14 @@ impl FromTVMStack for SnakeData {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_cell(&stack.pop_cell()?)?) }
 }
 
+impl FromTVMStack for String {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_stack(stack)?.as_str().to_string()) }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::block_tlb::{FromTVMStack, TVMInt, TVMStack};
+    use crate::tep::snake_data::SnakeData;
     use fastnum::I256;
     use std::str::FromStr;
     use tokio_test::assert_err;
@@ -174,6 +179,20 @@ mod tests {
 
         let parsed_u1024 = fastnum::U1024::from_stack(&mut stack.clone())?;
         assert_eq!(parsed_u1024, fastnum::U1024::from(val));
+        Ok(())
+    }
+
+    #[test]
+    fn test_from_tvm_stack_string() -> anyhow::Result<()> {
+        let original = "Hello, TVMStack!".to_string();
+        let snake_data = SnakeData::from_str(&original)?;
+        let cell = snake_data.to_cell()?;
+
+        let mut stack = TVMStack::new(vec![]);
+        stack.push_cell(cell);
+
+        let parsed: String = FromTVMStack::from_stack(&mut stack)?;
+        assert_eq!(parsed, original);
         Ok(())
     }
 }
