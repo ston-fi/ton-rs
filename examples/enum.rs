@@ -28,6 +28,14 @@ struct Struct4 {
     value: TonAddress,
 }
 
+#[derive(TLB, Eq, PartialEq, Debug)]
+#[tlb(prefix = 4, bits_len = 8)]
+enum InnerEnum {
+    Var1(u8),
+    Var2(u8),
+    Var3(u8),
+}
+
 /// Automatically match underlying variant by prefix (tlb tag)
 #[derive(TLB, Eq, PartialEq, Debug)]
 enum MyEnum {
@@ -35,6 +43,7 @@ enum MyEnum {
     Var2(Struct2),
     Var3(Box<Struct3>),
     Var4(Arc<Struct4>),
+    Var5(InnerEnum),
 }
 
 fn main() -> anyhow::Result<()> {

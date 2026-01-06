@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use convert_case::{Case, Casing};
 use deluxe::____private::Ident;
 use proc_macro2::TokenStream;
@@ -5,21 +7,31 @@ use quote::quote;
 use syn::{DataEnum, Fields};
 
 pub(crate) fn tlb_derive_enum(
+    // TODO: Check all prefix are different
+    // INTO README tests and examples about enums and usage rules
     crate_path: &TokenStream,
     ident: &Ident,
     data: &mut DataEnum,
     generics: &syn::Generics,
 ) -> (TokenStream, TokenStream, TokenStream) {
+    let ident_str = ident.to_string();
     // Prepare variant info (tuple-like enums with exactly one unnamed field)
     let variants_info = collect_variant_info(data);
+
+    let prefix_impl = variants_info.iter().enumerate().map(|(idx, (_, field_type))| {
+        let idx: u128 = idx as u128;
+        quote! {
+            impl __TLBPrefixTaken<{ if <#field_type as TLB>::PREFIX.bits_len == 0 { (#idx << 64) | 0 } else {((<#field_type as TLB>::PREFIX.value as u128) << 64) | (<#field_type as TLB>::PREFIX.bits_len as u128)} }> for #ident {}
+        }
+    });
 
     // Fallback reader: try each variant sequentially (use full trait qualification)
     let fallback_readers = variants_info.iter().map(|(var_name, field_type)| {
         quote! {
-            match <#field_type as #crate_path::traits::tlb::TLB>::read(parser) {
+            match <#field_type as TLB>::read(parser) {
                 Ok(res) => return Ok(#ident::#var_name(res)),
                 Err(#crate_path::errors::TonCoreError::TLBWrongPrefix { .. }) => {},
-                Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions { .. }) => {},
+                Err(#crate_path::errors::TonCoreError::TLBEnumOutOfOptions { .. }) if <#field_type as TLB>::PREFIX.bits_len ==0 => {},
                 Err(err) => return Err(err),
             };
         }
@@ -47,8 +59,6 @@ pub(crate) fn tlb_derive_enum(
         }
     };
 
-    let ident_str = ident.to_string();
-
     // Optimized match arms: use guard with equality against Type::PREFIX.value
     let match_arms = variants_info.iter().map(|(_, ty)| {
         quote! {
@@ -58,6 +68,9 @@ pub(crate) fn tlb_derive_enum(
 
     // Inline if/else inside read(): optimized vs fallback
     let read_impl = quote! {
+        trait __TLBPrefixTaken<const P: u128> {}
+        #(#prefix_impl)*
+
         #(#const_bits_decls)*
         const ALL_BITS_LEN_SAME: bool = #all_same_checks ;
         if ALL_BITS_LEN_SAME {
