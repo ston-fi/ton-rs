@@ -33,14 +33,14 @@ pub trait TLB: Sized {
 
     /// interface - must be used by external code to read/write TLB objects
     fn read(parser: &mut CellParser) -> TonCoreResult<Self> {
-        let checkpoint = parser.checkpoint()?;
+        let checkpoint = parser.get_position()?;
 
         // verify_prefix handles rollback of bits
         Self::verify_prefix(parser)?;
         match Self::read_definition(parser) {
             Ok(res) => Ok(res),
             Err(err) => {
-                parser.restore(checkpoint)?;
+                parser.set_position(checkpoint)?;
                 Err(err)
             }
         }
@@ -218,20 +218,20 @@ mod tests {
         let valid = FailingTLBObjWithRef(0);
         let cell = valid.to_cell()?;
         let mut parser = cell.parser();
-        let checkpoint = parser.checkpoint()?;
+        let position = parser.get_position()?;
 
         assert_ok!(FailingTLBObjWithRef::read(&mut parser));
-        let after_ok = parser.checkpoint()?;
-        assert_eq!(after_ok.bit_offset(), checkpoint.bit_offset() + 8);
-        assert_eq!(after_ok.next_ref_pos(), checkpoint.next_ref_pos() + 1);
+        let after_ok = parser.get_position()?;
+        assert_eq!(after_ok.bits_offset, position.bits_offset + 8);
+        assert_eq!(after_ok.next_ref_pos, position.next_ref_pos + 1);
 
         let invalid = FailingTLBObjWithRef(1);
         let cell = invalid.to_cell()?;
         let mut parser = cell.parser();
-        let checkpoint = parser.checkpoint()?;
+        let checkpoint = parser.get_position()?;
 
         assert_err!(FailingTLBObjWithRef::read(&mut parser));
-        let after_err = parser.checkpoint()?;
+        let after_err = parser.get_position()?;
         assert_eq!(after_err, checkpoint);
 
         Ok(())

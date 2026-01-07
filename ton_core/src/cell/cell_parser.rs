@@ -16,19 +16,6 @@ pub struct CellParser<'a> {
     next_ref_pos: usize,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct ParserCheckpoint {
-    bit_offset: u64,
-    next_ref_pos: usize,
-}
-
-#[cfg(test)]
-impl ParserCheckpoint {
-    pub(crate) fn bit_offset(&self) -> u64 { self.bit_offset }
-
-    pub(crate) fn next_ref_pos(&self) -> usize { self.next_ref_pos }
-}
-
 impl<'a> CellParser<'a> {
     /// use cell.parser() for creation
     pub(super) fn new(cell: &'a TonCell) -> Self {
@@ -42,25 +29,6 @@ impl<'a> CellParser<'a> {
             data_reader,
             next_ref_pos,
         }
-    }
-
-    pub fn checkpoint(&mut self) -> Result<ParserCheckpoint, TonCoreError> {
-        Ok(ParserCheckpoint {
-            bit_offset: self.data_reader.position_in_bits()?,
-            next_ref_pos: self.next_ref_pos,
-        })
-    }
-
-    pub fn restore(&mut self, checkpoint: ParserCheckpoint) -> Result<(), TonCoreError> {
-        if self.data_reader.position_in_bits()? < checkpoint.bit_offset {
-            return Err(TonCoreError::Custom(String::from(
-                "Parser can restore only from previous bits, not from higher",
-            )));
-        }
-        let offset = self.data_reader.position_in_bits()?.saturating_sub(checkpoint.bit_offset);
-        self.seek_bits(-(offset as i32))?;
-        self.next_ref_pos = checkpoint.next_ref_pos;
-        Ok(())
     }
 
     pub fn original_cell(&self) -> &'a TonCell { self.cell }
@@ -150,13 +118,21 @@ impl<'a> CellParser<'a> {
 
     pub fn refs_left(&mut self) -> usize { self.cell.borders.end_ref as usize - self.next_ref_pos }
 
-    pub fn current_bit_offset(&mut self) -> Result<u64, TonCoreError> { Ok(self.data_reader.position_in_bits()?) }
-
     pub fn seek_bits(&mut self, offset: i32) -> Result<(), TonCoreError> {
         let new_pos = self.data_reader.position_in_bits()? as i32 + offset;
-        if new_pos < 0 || new_pos as usize > self.cell.borders.end_bit {
+        let new_pos_unsigned = if new_pos < 0 {
             bail_ton_core_data!(
-                "Bad seek position in slice: new_pos {new_pos}, data_bits_len {}",
+                "Bad seek position in slice: new_pos {new_pos}, start_bit {}, end_bit {}",
+                self.cell.borders.start_bit,
+                self.cell.borders.end_bit
+            );
+        } else {
+            new_pos as usize
+        };
+        if new_pos_unsigned < self.cell.borders.start_bit || new_pos_unsigned > self.cell.borders.end_bit {
+            bail_ton_core_data!(
+                "Bad seek position in slice: new_pos {new_pos}, start_bit {}, end_bit {}",
+                self.cell.borders.start_bit,
                 self.cell.borders.end_bit
             );
         }
@@ -191,6 +167,38 @@ impl<'a> CellParser<'a> {
             Err(err) => bail_ton_core_data!("Failed to read {} in {bits_len} bits: {err}", type_name::<I>()),
         }
     }
+
+    pub fn get_position(&mut self) -> Result<ParserPosition, TonCoreError> {
+        Ok(ParserPosition {
+            bits_offset: self.data_reader.position_in_bits()?,
+            next_ref_pos: self.next_ref_pos,
+        })
+    }
+
+    pub fn set_position(&mut self, position: ParserPosition) -> Result<(), TonCoreError> {
+        let cur_position = self.data_reader.position_in_bits()?;
+        let offset = position.bits_offset as i32 - cur_position as i32;
+        self.seek_bits(offset)?;
+
+        if position.next_ref_pos < self.cell.borders.start_ref as usize
+            || position.next_ref_pos > self.cell.borders.end_ref as usize
+        {
+            bail_ton_core_data!(
+                "Bad seek position in slice: next_ref_pos {}, start_ref {}, end_ref {}",
+                position.next_ref_pos,
+                self.cell.borders.start_ref,
+                self.cell.borders.end_ref
+            );
+        }
+        self.next_ref_pos = position.next_ref_pos;
+        Ok(())
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParserPosition {
+    pub bits_offset: u64,
+    pub next_ref_pos: usize,
 }
 
 #[cfg(test)]
