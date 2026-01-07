@@ -32,8 +32,8 @@ struct Struct4 {
 #[tlb(prefix = 4, bits_len = 8)]
 enum InnerEnum {
     Var1(u8),
-    Var2(u8),
-    Var3(u8),
+    Var2(u16),
+    Var3(u32),
 }
 
 /// Automatically match underlying variant by prefix (tlb tag)

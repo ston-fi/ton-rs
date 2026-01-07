@@ -16,6 +16,19 @@ pub struct CellParser<'a> {
     next_ref_pos: usize,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct ParserCheckpoint {
+    bit_offset: u64,
+    next_ref_pos: usize,
+}
+
+#[cfg(test)]
+impl ParserCheckpoint {
+    pub(crate) fn bit_offset(&self) -> u64 { self.bit_offset }
+
+    pub(crate) fn next_ref_pos(&self) -> usize { self.next_ref_pos }
+}
+
 impl<'a> CellParser<'a> {
     /// use cell.parser() for creation
     pub(super) fn new(cell: &'a TonCell) -> Self {
@@ -29,6 +42,25 @@ impl<'a> CellParser<'a> {
             data_reader,
             next_ref_pos,
         }
+    }
+
+    pub fn checkpoint(&mut self) -> Result<ParserCheckpoint, TonCoreError> {
+        Ok(ParserCheckpoint {
+            bit_offset: self.data_reader.position_in_bits()?,
+            next_ref_pos: self.next_ref_pos,
+        })
+    }
+
+    pub fn restore(&mut self, checkpoint: ParserCheckpoint) -> Result<(), TonCoreError> {
+        if self.data_reader.position_in_bits()? < checkpoint.bit_offset {
+            return Err(TonCoreError::Custom(String::from(
+                "Parser can restore only from previous bits, not from higher",
+            )));
+        }
+        let offset = self.data_reader.position_in_bits()?.saturating_sub(checkpoint.bit_offset);
+        self.seek_bits(-(offset as i32))?;
+        self.next_ref_pos = checkpoint.next_ref_pos;
+        Ok(())
     }
 
     pub fn original_cell(&self) -> &'a TonCell { self.cell }
@@ -116,11 +148,9 @@ impl<'a> CellParser<'a> {
         Ok(self.cell.borders.end_bit - reader_pos)
     }
 
-    pub fn current_bit_offset(&mut self) -> Result<usize, TonCoreError> {
-        Ok(self.data_reader.position_in_bits()? as usize)
-    }
-
     pub fn refs_left(&mut self) -> usize { self.cell.borders.end_ref as usize - self.next_ref_pos }
+
+    pub fn current_bit_offset(&mut self) -> Result<u64, TonCoreError> { Ok(self.data_reader.position_in_bits()?) }
 
     pub fn seek_bits(&mut self, offset: i32) -> Result<(), TonCoreError> {
         let new_pos = self.data_reader.position_in_bits()? as i32 + offset;

@@ -1,5 +1,3 @@
-use std::collections::{HashMap, HashSet};
-
 use convert_case::{Case, Casing};
 use deluxe::____private::Ident;
 use proc_macro2::TokenStream;
