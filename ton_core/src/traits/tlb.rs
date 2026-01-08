@@ -33,14 +33,14 @@ pub trait TLB: Sized {
 
     /// interface - must be used by external code to read/write TLB objects
     fn read(parser: &mut CellParser) -> TonCoreResult<Self> {
-        let checkpoint = parser.get_position()?;
+        let parser_position = parser.get_position()?;
 
         // verify_prefix handles rollback of bits
         Self::verify_prefix(parser)?;
         match Self::read_definition(parser) {
             Ok(res) => Ok(res),
             Err(err) => {
-                parser.set_position(checkpoint)?;
+                parser.set_position(parser_position)?;
                 Err(err)
             }
         }
@@ -228,11 +228,11 @@ mod tests {
         let invalid = FailingTLBObjWithRef(1);
         let cell = invalid.to_cell()?;
         let mut parser = cell.parser();
-        let checkpoint = parser.get_position()?;
+        let parser_position = parser.get_position()?;
 
         assert_err!(FailingTLBObjWithRef::read(&mut parser));
         let after_err = parser.get_position()?;
-        assert_eq!(after_err, checkpoint);
+        assert_eq!(after_err, parser_position);
 
         Ok(())
     }

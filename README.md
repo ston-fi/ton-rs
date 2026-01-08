@@ -10,7 +10,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 ## ton_macros
 
 - `TLB` Derive macros: Automatically derive TLB trait for your types based on it's members
-- Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [enum.rs](examples/enum.rs) example)
+- Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [enum.rs](examples/enum.rs) example). Provides powerful enums, but use them carefully; read the [Enum with TLB macros](#enum-with-tlb-macros) chapter.
 
 ## ton_core
 - `serde` feature: provides few mods to ser/de core types, check [ton_core/src/serde.rs](ton_core/src/serde.rs). Disabled by default.
@@ -74,10 +74,19 @@ fn main() {
 TLB macros can derive TLB for enums. You can define enums with a common prefix or with no common prefix.
 Enums without a common prefix are tricky: if you embed such an enum into another enum, its variants are effectively inlined into the outer enum.
 ```rust 
+
+#[derive(TLB)]
+#[tlb(prefix = 0b010, bits_len = 3)]
+struct Variant1(u8);
+
+#[derive(TLB)]
+#[tlb(prefix = 0b011, bits_len = 3)]
+struct Variant2(u8);
+
 #[derive(TLB)]
 enum InnerEnum { // No common prefix
-    Variant1(u8), // Prefix = 0b010
-    Variant2(u16), // Prefix = 0b011
+    Variant1(Variant1), // Prefix = 0b010
+    Variant2(Variant2), // Prefix = 0b011
 }
 
 #[derive(TLB)]
