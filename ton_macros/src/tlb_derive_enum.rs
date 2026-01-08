@@ -5,8 +5,6 @@ use quote::quote;
 use syn::{DataEnum, Fields};
 
 pub(crate) fn tlb_derive_enum(
-    // TODO: Check all prefix are different
-    // INTO README tests and examples about enums and usage rules
     crate_path: &TokenStream,
     ident: &Ident,
     data: &mut DataEnum,

@@ -26,6 +26,10 @@ struct Struct3;
 #[tlb(prefix = 4, bits_len = 8)]
 struct Struct4;
 
+#[derive(TLB, Eq, PartialEq, Debug)]
+#[tlb(prefix = 1, bits_len = 1)]
+struct TaggedU8(u8);
+
 /// Automatically match underlying variant by prefix (tlb tag)
 #[derive(TLB, Eq, PartialEq, Debug)]
 enum MyEnum {
@@ -34,6 +38,31 @@ enum MyEnum {
     Var3(Box<Struct3>),
     Var4(Arc<Struct4>),
     Var5(Box<MyEnum>),
+}
+
+#[derive(TLB, Eq, PartialEq, Debug)]
+enum InnerEnumWithNull {
+    Null(u8),
+}
+
+#[derive(TLB, Eq, PartialEq, Debug)]
+#[tlb(prefix = 0b0, bits_len = 1)]
+enum InnerEnumWithPrefix {
+    Null(u8),
+}
+
+#[derive(TLB, Eq, PartialEq, Debug)]
+enum OuterEnumWithShadow {
+    First(Struct1),
+    Second(InnerEnumWithNull),
+    Third(TaggedU8),
+}
+
+#[derive(TLB, Eq, PartialEq, Debug)]
+enum OuterEnumNoShadow {
+    First(Struct1),
+    Second(InnerEnumWithPrefix),
+    Third(TaggedU8),
 }
 
 #[test]
@@ -67,6 +96,26 @@ fn test_tlb_enum_from() -> anyhow::Result<()> {
     let _e4: MyEnum = Arc::new(Struct4).into();
 
     let _e5: MyEnum = Box::new(e1).into();
+    Ok(())
+}
+
+#[test]
+fn test_inner_null_shadows_outer_third_variant() -> anyhow::Result<()> {
+    let third = OuterEnumWithShadow::Third(TaggedU8(0b1010_1010));
+    let cell = third.to_cell()?;
+    let parsed = OuterEnumWithShadow::from_cell(&cell)?;
+    assert!(matches!(parsed, OuterEnumWithShadow::Second(InnerEnumWithNull::Null(_))));
+    assert_ne!(parsed, third);
+    Ok(())
+}
+
+#[test]
+fn test_inner_prefix_allows_outer_third_variant() -> anyhow::Result<()> {
+    let third = OuterEnumNoShadow::Third(TaggedU8(0b1010_1010));
+    let cell = third.to_cell()?;
+    let parsed = OuterEnumNoShadow::from_cell(&cell)?;
+    assert!(matches!(parsed, OuterEnumNoShadow::Third(_)));
+    assert_eq!(parsed, third);
     Ok(())
 }
 
