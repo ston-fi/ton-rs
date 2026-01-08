@@ -48,7 +48,7 @@ pub struct TxDescrTickTock {
 }
 
 #[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(prefix = 0b0110, bits_len = 4)]
+#[tlb(prefix = 0b0100, bits_len = 4)]
 pub struct TxDescrSplitPrepare {
     pub split_info: SplitMergeInfo,
     pub storage_phase: Option<TrStoragePhase>,
