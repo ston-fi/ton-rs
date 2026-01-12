@@ -7,6 +7,7 @@ use fastnum::*;
 use std::sync::Arc;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::traits::tlb::TLB;
+use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::{Coins, TonAddress};
 
 /// Trait allows reading data from TVMStack
@@ -95,6 +96,10 @@ impl FromTVMStack for Coins {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(Coins::try_from(stack.pop_num()?)?) }
 }
 
+impl FromTVMStack for TLBCoins {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TLBCoins::from_cell(&stack.pop_cell()?)?) }
+}
+
 impl FromTVMStack for SnakeData {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_cell(&stack.pop_cell()?)?) }
 }
@@ -103,9 +108,22 @@ impl FromTVMStack for String {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_stack(stack)?.as_str().to_string()) }
 }
 
+impl<T: FromTVMStack> FromTVMStack for Option<T> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        let Some(last) = stack.last() else {
+            return Err(TonError::TVMStackEmpty);
+        };
+        if last.as_null().is_some() {
+            let _ = stack.pop_checked()?; // drop value from stack
+            return Ok(None);
+        }
+        Ok(Some(T::from_stack(stack)?))
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::block_tlb::{FromTVMStack, TVMInt, TVMStack};
+    use crate::block_tlb::{FromTVMStack, TVMInt, TVMNull, TVMStack};
     use crate::tep::snake_data::SnakeData;
     use fastnum::I256;
     use std::str::FromStr;
@@ -193,6 +211,32 @@ mod tests {
 
         let parsed: String = FromTVMStack::from_stack(&mut stack)?;
         assert_eq!(parsed, original);
+        Ok(())
+    }
+
+    #[test]
+    fn test_from_tvm_stack_optional() -> anyhow::Result<()> {
+        let mut stack_with_value = TVMStack::default();
+        stack_with_value.push_tiny_int(111);
+        stack_with_value.push_tiny_int(222);
+
+        let mut stack_none = TVMStack::default();
+        stack_none.push(TVMNull.into());
+        stack_none.push_tiny_int(222);
+
+        #[derive(FromTVMStack, Debug)]
+        struct TestStruct {
+            pub value: Option<u8>,
+            pub another_field: u8,
+        }
+
+        let parsed_some = TestStruct::from_stack(&mut stack_with_value)?;
+        assert_eq!(parsed_some.value, Some(111));
+        assert_eq!(parsed_some.another_field, 222);
+
+        let parsed_none = TestStruct::from_stack(&mut stack_none)?;
+        assert_eq!(parsed_none.value, None);
+        assert_eq!(parsed_none.another_field, 222);
         Ok(())
     }
 }
