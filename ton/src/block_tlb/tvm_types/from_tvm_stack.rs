@@ -216,27 +216,21 @@ mod tests {
 
     #[test]
     fn test_from_tvm_stack_optional() -> anyhow::Result<()> {
-        let mut stack_with_value = TVMStack::default();
-        stack_with_value.push_tiny_int(111);
-        stack_with_value.push_tiny_int(222);
-
-        let mut stack_none = TVMStack::default();
-        stack_none.push(TVMNull.into());
-        stack_none.push_tiny_int(222);
-
+        let mut stack = TVMStack::default();
+        stack.push_tiny_int(11);
+        stack.push(TVMNull.into());
+        stack.push_tiny_int(33);
         #[derive(FromTVMStack, Debug)]
         struct TestStruct {
-            pub value: Option<u8>,
+            pub opt_some: Option<u8>,
+            pub opt_none: Option<u8>,
             pub another_field: u8,
         }
 
-        let parsed_some = TestStruct::from_stack(&mut stack_with_value)?;
-        assert_eq!(parsed_some.value, Some(111));
-        assert_eq!(parsed_some.another_field, 222);
-
-        let parsed_none = TestStruct::from_stack(&mut stack_none)?;
-        assert_eq!(parsed_none.value, None);
-        assert_eq!(parsed_none.another_field, 222);
+        let parsed = TestStruct::from_stack(&mut stack)?;
+        assert_eq!(parsed.opt_some, Some(11));
+        assert_eq!(parsed.opt_none, None);
+        assert_eq!(parsed.another_field, 33);
         Ok(())
     }
 }
