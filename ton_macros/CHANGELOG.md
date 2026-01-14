@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.9](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.8...ton_macros-v0.0.9) - 2026-01-14
+
+### Other
+
+- BE 3102 ([#171](https://github.com/ston-fi/ton-rs/pull/171))
+
 ## [0.0.8](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.7...ton_macros-v0.0.8) - 2025-12-28
 
 ### Fixed
