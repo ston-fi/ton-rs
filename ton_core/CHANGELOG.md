@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.17](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.16...ton_core-v0.0.17) - 2026-01-14
+
+### Other
+
+- add NATIVE alias for TonAddress
+- BE 3102 ([#171](https://github.com/ston-fi/ton-rs/pull/171))
+
 ## [0.0.16](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.0.15...ton_core-v0.0.16) - 2025-12-28
 
 ### Fixed
