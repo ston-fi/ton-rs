@@ -17,6 +17,20 @@ pub enum TxDescr {
     MergeInstall(TxDescrMergeInstall),
 }
 
+impl TxDescr {
+    pub fn action(&self) -> Option<&TrActionPhase> {
+        match &self {
+            TxDescr::Ord(descr) => descr.action.as_deref(),
+            TxDescr::Storage(_) => None,
+            TxDescr::TickTock(descr) => descr.action.as_deref(),
+            TxDescr::SplitPrepare(descr) => descr.action.as_deref(),
+            TxDescr::SplitInstall(_) => None,
+            TxDescr::MergePrepare(_) => None,
+            TxDescr::MergeInstall(descr) => descr.action.as_deref(),
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, TLB)]
 #[tlb(prefix = 0b0000, bits_len = 4)]
 pub struct TxDescrOrd {
