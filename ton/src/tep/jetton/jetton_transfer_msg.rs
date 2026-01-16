@@ -14,9 +14,9 @@ use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef}
 #[derive(Clone, Debug, PartialEq, TLB)]
 #[tlb(prefix = 0xf8a7ea5, bits_len = 32)]
 pub struct JettonTransferMsg<CustomPayloadT: TLB = TonCell, ForwardPayloadT: TLB = TonCell> {
-    pub query_id: u64,    // arbitrary number to identify the transfer
-    pub amount: TLBCoins, // amount of transferred jettons in elementary units
-    pub dst: MsgAddress,
+    pub query_id: u64,                                  // arbitrary number to identify the transfer
+    pub amount: TLBCoins,                               // amount of transferred jettons in elementary units
+    pub dst: MsgAddress,                                // new jetton owner
     pub response_dst: MsgAddress, // address where to send a response with confirmation of a successful transfer and the rest of the incoming message Toncoins.
     pub custom_payload: Option<TLBRef<CustomPayloadT>>, // optional custom data (which is used by either sender or receiver jetton ton_wallet for inner logic).
     pub forward_ton_amount: TLBCoins, // the amount of nano-tons to be sent to the destination address.
