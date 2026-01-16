@@ -21,6 +21,10 @@ pub trait FromTVMStack: Sized {
     fn from_stack_boc_base64(boc: &str) -> TonResult<Self> { Self::from_stack_boc(BASE64_STANDARD.decode(boc)?) }
 }
 
+impl FromTVMStack for TVMStack {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(stack.clone()) }
+}
+
 impl FromTVMStack for bool {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(stack.pop_num()? != I512::ZERO) }
 }
