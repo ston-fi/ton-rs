@@ -233,6 +233,7 @@ async fn assert_sbt_methods(ctr_cli: &ContractClient) -> anyhow::Result<()> {
 
     let address = assert_ok!(contract.get_authority_address().await);
     let time = assert_ok!(contract.get_revoked_time().await);
+    let _ = assert_ok!(contract.get_nft_data().await);
 
     assert_eq!(address, TonAddress::from_cell(&TonCell::from_boc_hex("b5ee9c7201010101000300000120")?)?);
     assert_eq!(time, 0);
