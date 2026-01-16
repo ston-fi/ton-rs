@@ -13,7 +13,9 @@ use ton::tep::nft::NFTItemMetadata;
 use ton::tep::snake_data::SnakeData;
 use ton::tep::tvm_result::GetWalletDataResult;
 use ton::ton_contract;
+use ton_core::cell::TonCell;
 use ton_core::cell::TonHash;
+use ton_core::traits::tlb::TLB;
 use ton_core::types::{TonAddress, TxLTHash};
 use ton_macros::ton_methods;
 
@@ -38,6 +40,7 @@ async fn test_contracts() -> anyhow::Result<()> {
         assert_nft_collection_get_nft_address_by_index(&ctr_cli),
         assert_nft_collection_get_collection_data_is_valid(&ctr_cli),
         assert_nft_collection_get_collection_data_nft(&ctr_cli),
+        assert_sbt_methods(&ctr_cli),
     );
     assert_ok!(res);
     Ok(())
@@ -219,5 +222,20 @@ async fn assert_nft_collection_get_nft_address_by_index_is_valid(ctr_cli: &Contr
     assert_eq!(res_0.nft_address, expected_addr_0);
     assert_eq!(res_1.nft_address, expected_addr_1);
     assert_eq!(res_2.nft_address, expected_addr_2);
+    Ok(())
+}
+
+async fn assert_sbt_methods(ctr_cli: &ContractClient) -> anyhow::Result<()> {
+    // Could fail as contract can be revoked
+    // https://tonviewer.com/EQDqVGhM9Utj6OWRYsdfyeLmcdH_8ZBOkcn6Fvii9pidyXWU?section=method
+    let address = TonAddress::from_str("EQDqVGhM9Utj6OWRYsdfyeLmcdH_8ZBOkcn6Fvii9pidyXWU")?;
+    let contract = SBTContract::new(ctr_cli, &address, None).await?;
+
+    let address = assert_ok!(contract.get_authority_address().await);
+    let time = assert_ok!(contract.get_revoked_time().await);
+    let _ = assert_ok!(contract.get_nft_data().await);
+
+    assert_eq!(address, TonAddress::from_cell(&TonCell::from_boc_hex("b5ee9c7201010101000300000120")?)?);
+    assert_eq!(time, 0);
     Ok(())
 }
