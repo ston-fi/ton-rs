@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.18](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.17...ton-v0.0.18) - 2026-01-19
+
+### Other
+
+- cleanup TonWallet interface
+- impl FromTVMStack for TVMStack
+
 ## [0.0.17](https://github.com/ston-fi/ton-rs/compare/ton-v0.0.16...ton-v0.0.17) - 2026-01-16
 
 ### Other
