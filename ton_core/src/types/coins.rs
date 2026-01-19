@@ -2,11 +2,10 @@ use crate::bail_ton_core_data;
 use crate::errors::{TonCoreError, TonCoreResult};
 use num_traits::{ToPrimitive, Zero};
 use std::fmt::Debug;
-use ton_macros::TLB;
 
 /// A safe wrapper around u128 to represent coin amounts with checked arithmetic operations
 /// Supports conversion from various numeric types and TLBCoins
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, TLB)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Coins(u128);
 
 pub trait IntoCoins {
