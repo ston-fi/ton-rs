@@ -50,13 +50,7 @@ impl WalletVersion {
             .ok_or_else(|| TonCoreError::Custom(format!("No code found for {version:?}")))
     }
 
-    pub fn code_by_version(ver: WalletVersion) -> Result<&'static TonCell, TonCoreError> {
-        TON_WALLET_CODE_BY_VERSION
-            .get(&ver)
-            .ok_or_else(|| TonCoreError::Custom(format!("No code found for version: {ver:?}")))
-    }
-
-    pub fn version_by_code(code_hash: TonHash) -> Result<WalletVersion, TonCoreError> {
+    pub fn get_version_by_code(code_hash: TonHash) -> Result<WalletVersion, TonCoreError> {
         TON_WALLET_VERSION_BY_CODE
             .get(&code_hash)
             .copied()
