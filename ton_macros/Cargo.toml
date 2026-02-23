@@ -1,6 +1,6 @@
 [package]
 name = "ton_macros"
-version = "0.0.9"
+version = "0.1.0"
 description.workspace = true
 keywords.workspace = true
 edition.workspace = true
@@ -17,7 +17,7 @@ include = [
 ]
 
 [dependencies]
-convert_case = "0.10"
+convert_case = "0.11"
 deluxe = "0.5"
 proc-macro-crate = "3.3"
 proc-macro2 = "1.0"
