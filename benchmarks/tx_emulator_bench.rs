@@ -406,3 +406,6 @@
 //         }
 //     }
 // }
+
+// Stub entrypoint so this bench target compiles while benchmark body is intentionally commented out.
+fn main() {}
