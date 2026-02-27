@@ -4,6 +4,30 @@ use ::serde::de::Error;
 use ::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 
+impl Serialize for TonHash {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serde_ton_hash_hex::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for TonHash {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        serde_ton_hash_hex::deserialize(deserializer)
+    }
+}
+
+impl Serialize for TonAddress {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serde_ton_address_base64_url::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for TonAddress {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        serde_ton_address_base64_url::deserialize(deserializer)
+    }
+}
+
 // TonHash
 pub mod serde_ton_hash_hex {
     use super::*;
@@ -220,6 +244,57 @@ mod tests {
         assert_eq!(val_json, expected_json);
         let parsed_val = serde_json::from_str::<TestStruct>(&val_json.to_string())?;
         assert_eq!(parsed_val, val);
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_serde_ton_address_ton_hash() -> anyhow::Result<()> {
+        use serde_json::json;
+
+        #[derive(Serialize, Deserialize, Debug, PartialEq)]
+        struct TestStruct {
+            address: TonAddress,
+            hash: TonHash,
+            hash_opt: Option<TonHash>,
+        }
+
+        let address = TonAddress::from_str("EQCGScrZe1xbyWqWDvdI6mzP-GAcAWFv6ZXuaJOuSqemxku4")?;
+        let hash = TonHash::from_str("16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7")?;
+
+        let val = TestStruct {
+            address: address.clone(),
+            hash: hash.clone(),
+            hash_opt: Some(hash.clone()),
+        };
+
+        let val_json_str = serde_json::to_string(&val)?;
+        let val_json = serde_json::from_str::<serde_json::Value>(&val_json_str)?;
+        let expected_json = json!({
+            "address": "EQCGScrZe1xbyWqWDvdI6mzP-GAcAWFv6ZXuaJOuSqemxku4",
+            "hash": "16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7",
+            "hash_opt": "16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7",
+        });
+        assert_eq!(val_json, expected_json);
+
+        let parsed_val = serde_json::from_str::<TestStruct>(&val_json.to_string())?;
+        assert_eq!(parsed_val, val);
+
+        let val_none = TestStruct {
+            address,
+            hash,
+            hash_opt: None,
+        };
+        let val_none_json = serde_json::from_str::<serde_json::Value>(&serde_json::to_string(&val_none)?)?;
+        assert_eq!(
+            val_none_json,
+            json!({
+                "address": "EQCGScrZe1xbyWqWDvdI6mzP-GAcAWFv6ZXuaJOuSqemxku4",
+                "hash": "16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7",
+                "hash_opt": null,
+            })
+        );
+        let parsed_none = serde_json::from_str::<TestStruct>(&val_none_json.to_string())?;
+        assert_eq!(parsed_none, val_none);
         Ok(())
     }
 }
