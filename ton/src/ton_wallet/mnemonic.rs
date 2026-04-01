@@ -1,12 +1,12 @@
 use crate::errors::TonError;
+use ed25519_dalek::{SECRET_KEY_LENGTH, SecretKey, SigningKey, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH};
 use hmac::{Hmac, Mac};
-use nacl::sign::generate_keypair;
 use pbkdf2::password_hash::Output;
 use pbkdf2::{Params, pbkdf2_hmac};
 use sha2::Sha512;
 use std::collections::HashSet;
 use std::sync::LazyLock;
-use std::{cmp, fmt};
+use std::{cmp, convert::TryInto, fmt};
 
 const WORDLIST_EN: &str = include_str!("../../resources/mnemonics/wordlist_en.txt");
 const PBKDF_ITERATIONS: u32 = 100000;
@@ -21,8 +21,8 @@ pub struct Mnemonic {
 
 #[derive(PartialEq, Eq, Clone, Hash)]
 pub struct KeyPair {
-    pub public_key: Vec<u8>,
-    pub secret_key: Vec<u8>,
+    pub public_key: [u8; PUBLIC_KEY_LENGTH],
+    pub secret_key: [u8; KEYPAIR_LENGTH],
 }
 
 impl fmt::Debug for KeyPair {
@@ -86,10 +86,20 @@ impl Mnemonic {
     pub fn to_key_pair(&self) -> Result<KeyPair, TonError> {
         let entropy = to_entropy(&self.words, self.password.as_ref())?;
         let seed = pbkdf2_sha512(entropy, "TON default seed", PBKDF_ITERATIONS, 64)?;
-        let key_pair = generate_keypair(&seed.as_slice()[0..32]);
+
+        let secret_key_bytes: &SecretKey =
+            seed.get(..SECRET_KEY_LENGTH).and_then(|bytes| bytes.try_into().ok()).ok_or_else(|| {
+                TonError::Custom(format!(
+                    "Invalid Ed25519 secret key length: got {}, expected {}",
+                    seed.len(),
+                    SECRET_KEY_LENGTH
+                ))
+            })?;
+
+        let signing_key = SigningKey::from_bytes(secret_key_bytes);
         Ok(KeyPair {
-            public_key: key_pair.pkey.to_vec(),
-            secret_key: key_pair.skey.to_vec(),
+            public_key: signing_key.verifying_key().to_bytes(),
+            secret_key: signing_key.to_keypair_bytes(),
         })
     }
 }
