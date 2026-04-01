@@ -1,5 +1,5 @@
 use crate::errors::TonError;
-use ed25519_dalek::{SECRET_KEY_LENGTH, SecretKey, SigningKey, KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH};
+use ed25519_dalek::{KEYPAIR_LENGTH, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH, SecretKey, SigningKey};
 use hmac::{Hmac, Mac};
 use pbkdf2::password_hash::Output;
 use pbkdf2::{Params, pbkdf2_hmac};
