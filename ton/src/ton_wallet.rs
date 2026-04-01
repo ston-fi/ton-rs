@@ -4,6 +4,7 @@ mod wallet_constants;
 mod wallet_tlb;
 mod wallet_version;
 
+use ed25519_dalek::{Signer, SigningKey};
 pub use mnemonic::*;
 pub use wallet_code::*;
 pub use wallet_constants::*;
@@ -13,7 +14,6 @@ pub use wallet_version::*;
 use super::*;
 use crate::block_tlb::*;
 use crate::errors::TonError;
-use nacl::sign::signature;
 use ton_core::cell::TonCell;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
@@ -77,10 +77,15 @@ impl TonWallet {
 
     pub fn sign_ext_in_body(&self, ext_in_body: &TonCell) -> Result<TonCell, TonError> {
         let msg_hash = ext_in_body.cell_hash()?;
-        let sign = match signature(msg_hash.as_slice(), self.key_pair.secret_key.as_slice()) {
-            Ok(signature) => signature,
-            Err(err) => return Err(TonError::Custom(format!("{err:?}"))),
-        };
+
+        let signing_key = SigningKey::from_keypair_bytes(&self.key_pair.secret_key)
+            .map_err(|err| TonError::Custom(format!("Failed to parse Ed25519 keypair: {err}")))?;
+
+        if signing_key.verifying_key().to_bytes() != self.key_pair.public_key {
+            return Err(TonError::Custom("Failed to parse Ed25519 keypair: mismatched public key".to_string()));
+        }
+
+        let sign = signing_key.sign(msg_hash.as_slice()).to_bytes().to_vec();
         WalletVersion::sign_msg(self.version, ext_in_body, &sign)
     }
 
@@ -145,10 +150,14 @@ mod tests {
 
     #[test]
     fn test_ton_wallet_debug() -> anyhow::Result<()> {
-        let key_pair = KeyPair {
-            public_key: vec![1, 2, 3],
-            secret_key: vec![4, 5, 6],
-        };
+        let mut public_key = [0; ed25519_dalek::PUBLIC_KEY_LENGTH];
+        public_key[..3].copy_from_slice(&[1, 2, 3]);
+
+        let mut secret_key = [0; ed25519_dalek::KEYPAIR_LENGTH];
+        secret_key[..3].copy_from_slice(&[4, 5, 6]);
+
+        let key_pair = KeyPair { public_key, secret_key };
+
         let wallet = TonWallet {
             key_pair,
             version: WalletVersion::V4R2,
@@ -157,7 +166,10 @@ mod tests {
         };
 
         let debug_output = format!("{wallet:?}");
-        let expected_output = "TonWallet { version: V4R2, key_pair: KeyPair { public_key: [1, 2, 3], secret_key: \"***REDACTED***\" }, address: TonAddress(\"EQBiMfDMivebQb052Z6yR3jHrmwNhw1kQ5bcAUOBYsK_VPuK\"), wallet_id: 42 }";
+        let expected_output = format!(
+            "TonWallet {{ version: V4R2, key_pair: KeyPair {{ public_key: {:?}, secret_key: \"***REDACTED***\" }}, address: TonAddress(\"EQBiMfDMivebQb052Z6yR3jHrmwNhw1kQ5bcAUOBYsK_VPuK\"), wallet_id: 42 }}",
+            public_key
+        );
         assert_eq!(debug_output, expected_output);
         Ok(())
     }
@@ -237,7 +249,6 @@ mod tests {
 
         let key_pair_v5 = make_keypair(MNEMONIC_STR_V5);
         let wallet_v5 = TonWallet::new(WalletVersion::V5R1, key_pair_v5)?;
-        dbg!(&wallet_v5);
 
         let mut builder = TonCell::builder();
         100u32.write(&mut builder)?;
