@@ -113,6 +113,13 @@ impl LiteClient {
         self.0.get_libs_impl(lib_ids, params).await
     }
 
+    pub async fn send_msg(&self, body: Vec<u8>, params: Option<LiteReqParams>) -> TonResult<u32> {
+        let request = Request::SendMessage(SendMessage { body });
+        let rsp = self.exec(request, None, params).await?;
+        let status = unwrap_lite_rsp!(rsp, SendMsgStatus)?;
+        Ok(status.status)
+    }
+
     pub async fn exec(
         &self,
         req: Request,
