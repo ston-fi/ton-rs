@@ -17,6 +17,14 @@ jobs:
   build_default_features:
     runs-on: ubuntu-latest
     steps:
+      - name: Install clang toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+          CLANG_BIN="$(command -v clang)"
+          CLANGXX_BIN="$(command -v clang++)"
+          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
+          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -30,16 +38,19 @@ jobs:
   build_all_features:
     runs-on: ubuntu-latest
     steps:
-    - name: Install libraries
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libsodium-dev libsecp256k1-dev liblz4-dev
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - uses: Swatinem/rust-cache@v2
-    - run: cargo build --all --all-features --verbose
-    - run: cargo clippy --fix --all-features
-    - run: cargo test --lib --all --all-features 
-
+      - name: Install libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
+          CLANG_BIN="$(command -v clang)"
+          CLANGXX_BIN="$(command -v clang++)"
+          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
+          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --all --all-features --verbose
+      - run: cargo clippy --fix --all-features
+      - run: cargo test --lib --all --all-features

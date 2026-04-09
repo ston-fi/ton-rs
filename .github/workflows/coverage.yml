@@ -15,6 +15,14 @@ jobs:
   coverage_ton_lib:
     runs-on: ubuntu-latest
     steps:
+      - name: Install libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
+          CLANG_BIN="$(command -v clang)"
+          CLANGXX_BIN="$(command -v clang++)"
+          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
+          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
