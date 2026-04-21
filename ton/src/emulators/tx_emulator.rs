@@ -6,185 +6,418 @@ pub use c7_prev_blocks_info::*;
 pub use tx_emul_args::*;
 pub use tx_emul_response::*;
 
-use crate::emulators::emul_bc_config::EmulBCConfig;
-use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
-use crate::errors::{TonError, TonResult};
-use std::ffi::CString;
-use std::sync::Arc;
-use ton_core::cell::TonHash;
-use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
-use tonlib_sys::*;
+#[cfg(not(feature = "rustemulator"))]
+mod sys_emulator {
+    use std::ffi::CString;
+    use std::sync::Arc;
 
-pub struct TXEmulator {
-    emulator: *mut std::ffi::c_void,
-    cur_bc_config_hash: u64,
-    cur_random_seed: TonHash,
-    cur_utime: u32,
-    cur_lt: u64,
-    cur_libs_hash: u64,
-    cur_ignore_chksig: bool,
-    cur_prev_blocks_info_hash: u64,
+    use ton_core::cell::TonHash;
+    use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
+    use tonlib_sys::*;
+
+    use crate::emulators::emul_bc_config::EmulBCConfig;
+    use crate::emulators::emul_utils::{convert_emulator_response, make_base64_c_str, set_param_failed};
+    use crate::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulTickTockArgs, TXEmulationResponse};
+    use crate::errors::{TonError, TonResult};
+
+    pub struct TXEmulator {
+        emulator: *mut std::ffi::c_void,
+        cur_bc_config_hash: u64,
+        cur_random_seed: TonHash,
+        cur_utime: u32,
+        cur_lt: u64,
+        cur_libs_hash: u64,
+        cur_ignore_chksig: bool,
+        cur_prev_blocks_info_hash: u64,
+    }
+
+    impl TXEmulator {
+        pub fn new(log_level: u32, debug_enabled: bool) -> TonResult<Self> {
+            let zero_config = Arc::new(CString::new(TON_ZERO_CONFIG_BOC_B64)?);
+            let ptr = unsafe { transaction_emulator_create(zero_config.as_ptr(), log_level) };
+            if ptr.is_null() {
+                return Err(TonError::EmulatorCreationFailed);
+            }
+            let mut emulator = Self {
+                emulator: ptr,
+                cur_bc_config_hash: super::calc_hash(zero_config.as_bytes()),
+                cur_random_seed: Default::default(),
+                cur_utime: 0,
+                cur_lt: 0,
+                cur_libs_hash: super::calc_hash([]),
+                cur_ignore_chksig: false,
+                cur_prev_blocks_info_hash: 0,
+            };
+            emulator.set_debug_enabled(debug_enabled)?;
+            Ok(emulator)
+        }
+
+        /// shard_account: https://github.com/ton-blockchain/ton/blob/cee4c674ea999fecc072968677a34a7545ac9c4d/crypto/block/block.tlb#L275 (NOT Account!!)
+        /// You can't emulate tick-tock tx using this method
+        pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> TonResult<TXEmulationResponse> {
+            self.prepare_emulator(&args.emul_args)?;
+            let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
+            let in_msg_c_str = make_base64_c_str(&args.in_msg_boc)?;
+            let response_ptr = unsafe {
+                transaction_emulator_emulate_transaction(self.emulator, state_c_str.as_ptr(), in_msg_c_str.as_ptr())
+            };
+            let response_str = convert_emulator_response(response_ptr)?;
+            TXEmulationResponse::from_json(response_str)
+        }
+
+        pub fn emulate_ticktock(&mut self, args: &TXEmulTickTockArgs) -> TonResult<TXEmulationResponse> {
+            self.prepare_emulator(&args.emul_args)?;
+            let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
+            let response_ptr = unsafe {
+                transaction_emulator_emulate_tick_tock_transaction(self.emulator, state_c_str.as_ptr(), args.is_tock)
+            };
+            let response_str = convert_emulator_response(response_ptr)?;
+            TXEmulationResponse::from_json(response_str)
+        }
+
+        fn prepare_emulator(&mut self, args: &TXEmulArgs) -> TonResult<()> {
+            self.actualize_config(&args.bc_config)?;
+            self.actualize_rand_seed(&args.rand_seed)?;
+            self.actualize_utime(args.utime)?;
+            self.actualize_lt(args.lt)?;
+            if let Some(libs) = &args.libs_boc {
+                self.actualize_libs(libs.as_ref())?;
+            }
+            self.actualize_ignore_chksig(args.ignore_chksig)?;
+            if let Some(prev_blocks) = &args.c7_prev_blocks_info_boc {
+                self.actualize_prev_blocks_info(prev_blocks.as_ref())?;
+            }
+            Ok(())
+        }
+
+        fn actualize_config(&mut self, config: &EmulBCConfig) -> TonResult<()> {
+            let config_hash = super::calc_hash(config.as_bytes());
+            if self.cur_bc_config_hash == config_hash {
+                return Ok(());
+            }
+            match unsafe { transaction_emulator_set_config(self.emulator, config.as_ptr()) } {
+                true => self.cur_bc_config_hash = config_hash,
+                false => return set_param_failed("config"),
+            }
+            Ok(())
+        }
+
+        fn actualize_rand_seed(&mut self, rand_seed: &TonHash) -> TonResult<()> {
+            if self.cur_random_seed == *rand_seed {
+                return Ok(());
+            }
+            match unsafe {
+                transaction_emulator_set_rand_seed(self.emulator, CString::new(hex::encode(rand_seed))?.as_ptr())
+            } {
+                true => self.cur_random_seed = TonHash::from_slice_sized(rand_seed.as_slice_sized()),
+                false => return set_param_failed("rand_seed"),
+            }
+            Ok(())
+        }
+
+        fn actualize_utime(&mut self, utime: u32) -> TonResult<()> {
+            if self.cur_utime == utime {
+                return Ok(());
+            }
+            match unsafe { transaction_emulator_set_unixtime(self.emulator, utime) } {
+                true => self.cur_utime = utime,
+                false => return set_param_failed("utime"),
+            }
+            Ok(())
+        }
+
+        fn actualize_lt(&mut self, lt: u64) -> TonResult<()> {
+            if self.cur_lt == lt {
+                return Ok(());
+            }
+            match unsafe { transaction_emulator_set_lt(self.emulator, lt) } {
+                true => self.cur_lt = lt,
+                false => return set_param_failed("lt"),
+            }
+            Ok(())
+        }
+
+        fn actualize_libs(&mut self, libs_boc: &[u8]) -> TonResult<()> {
+            let libs_hash = super::calc_hash(libs_boc);
+            if self.cur_libs_hash == libs_hash {
+                return Ok(());
+            }
+            let libs = make_base64_c_str(libs_boc)?;
+            match unsafe { transaction_emulator_set_libs(self.emulator, libs.as_ptr()) } {
+                true => self.cur_libs_hash = libs_hash,
+                false => return set_param_failed("libs"),
+            }
+            Ok(())
+        }
+
+        fn set_debug_enabled(&mut self, debug_enabled: bool) -> TonResult<()> {
+            match unsafe { transaction_emulator_set_debug_enabled(self.emulator, debug_enabled) } {
+                true => Ok(()),
+                false => set_param_failed("debug_enabled"),
+            }
+        }
+
+        fn actualize_prev_blocks_info(&mut self, prev_blocks_info: &[u8]) -> TonResult<()> {
+            let prev_blocks_hash = super::calc_hash(prev_blocks_info);
+            if self.cur_prev_blocks_info_hash == prev_blocks_hash {
+                return Ok(());
+            }
+            let block_info = make_base64_c_str(prev_blocks_info)?;
+            match unsafe { transaction_emulator_set_prev_blocks_info(self.emulator, block_info.as_ptr()) } {
+                true => self.cur_prev_blocks_info_hash = prev_blocks_hash,
+                false => return set_param_failed("prev_blocks_info"),
+            }
+            Ok(())
+        }
+
+        fn actualize_ignore_chksig(&mut self, ignore: bool) -> TonResult<()> {
+            if self.cur_ignore_chksig == ignore {
+                return Ok(());
+            }
+            match unsafe { transaction_emulator_set_ignore_chksig(self.emulator, ignore) } {
+                true => self.cur_ignore_chksig = ignore,
+                false => return set_param_failed("ignore_chksig"),
+            }
+            Ok(())
+        }
+    }
+
+    impl Drop for TXEmulator {
+        fn drop(&mut self) {
+            unsafe {
+                transaction_emulator_destroy(self.emulator);
+            }
+        }
+    }
+
+    unsafe impl Send for TXEmulator {}
+    unsafe impl Sync for TXEmulator {}
 }
 
-impl TXEmulator {
-    pub fn new(log_level: u32, debug_enabled: bool) -> TonResult<Self> {
-        let zero_config = Arc::new(CString::new(TON_ZERO_CONFIG_BOC_B64)?);
-        let ptr = unsafe { transaction_emulator_create(zero_config.as_ptr(), log_level) };
-        if ptr.is_null() {
-            return Err(TonError::EmulatorCreationFailed);
-        }
-        let mut emulator = Self {
-            emulator: ptr,
-            cur_bc_config_hash: calc_hash(zero_config.as_bytes()),
-            cur_random_seed: Default::default(),
-            cur_utime: 0,
-            cur_lt: 0,
-            cur_libs_hash: calc_hash([]),
-            cur_ignore_chksig: false,
-            cur_prev_blocks_info_hash: 0,
-        };
-        emulator.set_debug_enabled(debug_enabled)?;
-        Ok(emulator)
+#[cfg(not(feature = "rustemulator"))]
+pub use sys_emulator::*;
+
+#[cfg(feature = "rustemulator")]
+mod rust_emulator {
+    use std::ops::Deref;
+    use std::sync::Arc;
+
+    use base64::Engine;
+    use base64::engine::general_purpose::STANDARD;
+    use rsquad_ton_block::{Deserializable, HashmapE, Serializable, UInt256, read_single_root_boc};
+    use rsquad_ton_executor::{
+        BlockchainConfig, ExecuteParams, ExecutorError, OrdinaryTransactionExecutor, TickTockTransactionExecutor,
+        TransactionExecutor,
+    };
+    use rsquad_ton_vm::executor::BehaviorModifiers;
+    use serde_json::json;
+    use ton_core::cell::TonHash;
+    use ton_core::constants::TON_ZERO_CONFIG_BOC_B64;
+
+    use crate::emulators::emul_bc_config::EmulBCConfig;
+    use crate::emulators::rsquad_converter::{
+        config_params_from_emul_config, prev_blocks_info_from_boc, ton_hash_to_uint256,
+    };
+    use crate::emulators::tx_emulator::{TXEmulArgs, TXEmulOrdArgs, TXEmulTickTockArgs, TXEmulationResponse};
+    use crate::errors::{TonError, TonResult};
+
+    pub struct TXEmulator {
+        cur_bc_config: rsquad_ton_block::ConfigParams,
+        cur_bc_config_hash: u64,
+        cur_random_seed: UInt256,
+        cur_utime: u32,
+        cur_lt: u64,
+        cur_libs_hash: u64,
+        cur_libs: Option<rsquad_ton_block::Cell>,
+        cur_ignore_chksig: bool,
+        cur_prev_blocks_info_hash: u64,
+        cur_prev_blocks_info_boc: Option<Arc<Vec<u8>>>,
     }
 
-    /// shard_account: https://github.com/ton-blockchain/ton/blob/cee4c674ea999fecc072968677a34a7545ac9c4d/crypto/block/block.tlb#L275 (NOT Account!!)
-    /// You can't emulate tick-tock tx using this method
-    pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> TonResult<TXEmulationResponse> {
-        self.prepare_emulator(&args.emul_args)?;
-        let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
-        let in_msg_c_str = make_base64_c_str(&args.in_msg_boc)?;
-        let response_ptr = unsafe {
-            transaction_emulator_emulate_transaction(self.emulator, state_c_str.as_ptr(), in_msg_c_str.as_ptr())
-        };
-        let response_str = convert_emulator_response(response_ptr)?;
-        TXEmulationResponse::from_json(response_str)
+    impl TXEmulator {
+        pub fn new(_log_level: u32, _debug_enabled: bool) -> TonResult<Self> {
+            let zero_config_bytes = STANDARD.decode(TON_ZERO_CONFIG_BOC_B64)?;
+            Ok(Self {
+                cur_bc_config: config_params_from_emul_config(&EmulBCConfig::from_boc(&zero_config_bytes)?)?,
+                cur_bc_config_hash: super::calc_hash(TON_ZERO_CONFIG_BOC_B64.as_bytes()),
+                cur_random_seed: UInt256::default(),
+                cur_utime: 0,
+                cur_lt: 0,
+                cur_libs_hash: super::calc_hash([]),
+                cur_libs: None,
+                cur_ignore_chksig: false,
+                cur_prev_blocks_info_hash: 0,
+                cur_prev_blocks_info_boc: None,
+            })
+        }
+
+        pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> TonResult<TXEmulationResponse> {
+            self.prepare_emulator(&args.emul_args)?;
+            let shard_account =
+                rsquad_ton_block::ShardAccount::construct_from_bytes(args.emul_args.shard_account_boc.deref())?;
+            let in_msg = read_single_root_boc(args.in_msg_boc.deref())?;
+            self.emulate_tx(shard_account, Some(in_msg), false)
+        }
+
+        pub fn emulate_ticktock(&mut self, args: &TXEmulTickTockArgs) -> TonResult<TXEmulationResponse> {
+            self.prepare_emulator(&args.emul_args)?;
+            let shard_account =
+                rsquad_ton_block::ShardAccount::construct_from_bytes(args.emul_args.shard_account_boc.deref())?;
+            self.emulate_tx(shard_account, None, args.is_tock)
+        }
+
+        fn emulate_tx(
+            &self,
+            mut shard_account: rsquad_ton_block::ShardAccount,
+            in_msg_cell: Option<rsquad_ton_block::Cell>,
+            is_tock: bool,
+        ) -> TonResult<TXEmulationResponse> {
+            let config = BlockchainConfig::with_config(self.cur_bc_config.clone())?;
+            let dict_hash_min_cells = config.size_limits_config().acc_state_cells_for_storage_dict;
+            let executor: Box<dyn TransactionExecutor> = if in_msg_cell.is_some() {
+                Box::new(OrdinaryTransactionExecutor::new(config))
+            } else {
+                Box::new(TickTockTransactionExecutor::new(config, rsquad_ton_block::TransactionTickTock::new(is_tock)))
+            };
+            let block_lt = self.cur_lt - self.cur_lt % 1_000_000;
+            let params = ExecuteParams {
+                block_lt,
+                last_tr_lt: self.cur_lt,
+                block_unixtime: self.cur_utime,
+                seed_block: self.cur_random_seed.clone(),
+                state_libs: HashmapE::with_hashmap(256, self.cur_libs.clone()),
+                behavior_modifiers: Some(BehaviorModifiers {
+                    chksig_always_succeed: self.cur_ignore_chksig,
+                }),
+                prev_blocks_info: prev_blocks_info_from_boc(
+                    self.cur_prev_blocks_info_boc.as_deref().map(|value| value.as_slice()),
+                )?,
+                ..Default::default()
+            };
+
+            let mut account = shard_account.read_account()?;
+            let now = std::time::Instant::now();
+            let result = executor.execute_with_params(in_msg_cell, &mut account, params);
+            let elapsed_time = now.elapsed().as_micros() as f64 / 1_000_000.0;
+
+            let response = match result {
+                Ok(mut tx) => {
+                    account.update_storage_stat(dict_hash_min_cells).map_err(TonError::system)?;
+                    tx.set_prev_trans_lt(shard_account.last_trans_lt());
+                    tx.set_prev_trans_hash(shard_account.last_trans_hash().clone());
+                    let old_hash = shard_account.account_hash();
+                    shard_account.write_account(&account)?;
+                    let new_hash = shard_account.account_hash();
+                    let hash_update = rsquad_ton_block::HashUpdate::with_hashes(old_hash, new_hash);
+                    tx.write_state_update(&hash_update)?;
+
+                    let tx_cell = tx.serialize()?;
+                    shard_account.set_last_trans_hash(tx_cell.repr_hash());
+                    shard_account.set_last_trans_lt(tx.logical_time());
+                    json!({
+                        "success": true,
+                        "transaction": STANDARD.encode(rsquad_ton_block::write_boc(&tx_cell)?),
+                            "shard_account": STANDARD.encode(rsquad_ton_block::write_boc(&shard_account.serialize()?)?),
+                        "vm_log": "",
+                        "actions": null,
+                        "elapsed_time": elapsed_time,
+                    })
+                }
+                Err(err) => {
+                    if let Some(ExecutorError::NoAcceptError(vm_exit_code, _)) = err.downcast_ref() {
+                        json!({
+                            "success": false,
+                            "error": "External message not accepted by smart contract",
+                            "external_not_accepted": true,
+                            "vm_log": "",
+                            "vm_exit_code": vm_exit_code,
+                            "elapsed_time": elapsed_time,
+                        })
+                    } else {
+                        json!({
+                            "success": false,
+                            "error": err.to_string(),
+                            "external_not_accepted": false,
+                            "elapsed_time": elapsed_time,
+                        })
+                    }
+                }
+            };
+            TXEmulationResponse::from_json(response.to_string())
+        }
+
+        fn prepare_emulator(&mut self, args: &TXEmulArgs) -> TonResult<()> {
+            self.actualize_config(&args.bc_config)?;
+            self.actualize_rand_seed(&args.rand_seed)?;
+            self.actualize_utime(args.utime)?;
+            self.actualize_lt(args.lt)?;
+            if let Some(libs) = &args.libs_boc {
+                self.actualize_libs(libs.as_ref())?;
+            }
+            self.actualize_ignore_chksig(args.ignore_chksig)?;
+            if let Some(prev_blocks) = &args.c7_prev_blocks_info_boc {
+                self.actualize_prev_blocks_info(prev_blocks.clone())?;
+            }
+            Ok(())
+        }
+
+        fn actualize_config(&mut self, config: &EmulBCConfig) -> TonResult<()> {
+            let config_hash = super::calc_hash(config.as_bytes());
+            if self.cur_bc_config_hash != config_hash {
+                self.cur_bc_config = config_params_from_emul_config(config)?;
+                self.cur_bc_config_hash = config_hash;
+            }
+            Ok(())
+        }
+
+        fn actualize_rand_seed(&mut self, rand_seed: &TonHash) -> TonResult<()> {
+            let rand_seed = ton_hash_to_uint256(rand_seed)?;
+            if self.cur_random_seed != rand_seed {
+                self.cur_random_seed = rand_seed;
+            }
+            Ok(())
+        }
+
+        fn actualize_utime(&mut self, utime: u32) -> TonResult<()> {
+            self.cur_utime = utime;
+            Ok(())
+        }
+
+        fn actualize_lt(&mut self, lt: u64) -> TonResult<()> {
+            self.cur_lt = lt;
+            Ok(())
+        }
+
+        fn actualize_libs(&mut self, libs_boc: &[u8]) -> TonResult<()> {
+            let libs_hash = super::calc_hash(libs_boc);
+            if self.cur_libs_hash != libs_hash {
+                self.cur_libs = Some(read_single_root_boc(libs_boc)?);
+                self.cur_libs_hash = libs_hash;
+            }
+            Ok(())
+        }
+
+        fn actualize_prev_blocks_info(&mut self, prev_blocks_info: Arc<Vec<u8>>) -> TonResult<()> {
+            let prev_blocks_hash = super::calc_hash(prev_blocks_info.as_ref());
+            if self.cur_prev_blocks_info_hash != prev_blocks_hash {
+                self.cur_prev_blocks_info_boc = Some(prev_blocks_info);
+                self.cur_prev_blocks_info_hash = prev_blocks_hash;
+            }
+            Ok(())
+        }
+
+        fn actualize_ignore_chksig(&mut self, ignore: bool) -> TonResult<()> {
+            self.cur_ignore_chksig = ignore;
+            Ok(())
+        }
     }
 
-    pub fn emulate_ticktock(&mut self, args: &TXEmulTickTockArgs) -> TonResult<TXEmulationResponse> {
-        self.prepare_emulator(&args.emul_args)?;
-        let state_c_str = make_base64_c_str(&args.emul_args.shard_account_boc)?;
-        let response_ptr = unsafe {
-            transaction_emulator_emulate_tick_tock_transaction(self.emulator, state_c_str.as_ptr(), args.is_tock)
-        };
-        let response_str = convert_emulator_response(response_ptr)?;
-        TXEmulationResponse::from_json(response_str)
-    }
-    fn prepare_emulator(&mut self, args: &TXEmulArgs) -> TonResult<()> {
-        self.actualize_config(&args.bc_config)?;
-        self.actualize_rand_seed(&args.rand_seed)?;
-        self.actualize_utime(args.utime)?;
-        self.actualize_lt(args.lt)?;
-        if let Some(libs) = &args.libs_boc {
-            self.actualize_libs(libs.as_ref())?;
-        }
-        self.actualize_ignore_chksig(args.ignore_chksig)?;
-        if let Some(prev_blocks) = &args.c7_prev_blocks_info_boc {
-            self.actualize_prev_blocks_info(prev_blocks.as_ref())?;
-        }
-        Ok(())
-    }
-
-    fn actualize_config(&mut self, config: &EmulBCConfig) -> TonResult<()> {
-        let config_hash = calc_hash(config.as_bytes());
-        if self.cur_bc_config_hash == config_hash {
-            return Ok(());
-        }
-        match unsafe { transaction_emulator_set_config(self.emulator, config.as_ptr()) } {
-            true => self.cur_bc_config_hash = config_hash,
-            false => return set_param_failed("config"),
-        }
-        Ok(())
-    }
-
-    fn actualize_rand_seed(&mut self, rand_seed: &TonHash) -> TonResult<()> {
-        if self.cur_random_seed == *rand_seed {
-            return Ok(());
-        }
-        match unsafe {
-            transaction_emulator_set_rand_seed(self.emulator, CString::new(hex::encode(rand_seed))?.as_ptr())
-        } {
-            true => self.cur_random_seed = TonHash::from_slice_sized(rand_seed.as_slice_sized()),
-            false => return set_param_failed("rand_seed"),
-        }
-        Ok(())
-    }
-
-    fn actualize_utime(&mut self, utime: u32) -> TonResult<()> {
-        if self.cur_utime == utime {
-            return Ok(());
-        }
-        match unsafe { transaction_emulator_set_unixtime(self.emulator, utime) } {
-            true => self.cur_utime = utime,
-            false => return set_param_failed("utime"),
-        }
-        Ok(())
-    }
-
-    fn actualize_lt(&mut self, lt: u64) -> TonResult<()> {
-        if self.cur_lt == lt {
-            return Ok(());
-        }
-        match unsafe { transaction_emulator_set_lt(self.emulator, lt) } {
-            true => self.cur_lt = lt,
-            false => return set_param_failed("lt"),
-        }
-        Ok(())
-    }
-
-    fn actualize_libs(&mut self, libs_boc: &[u8]) -> TonResult<()> {
-        let libs_hash = calc_hash(libs_boc);
-        if self.cur_libs_hash == libs_hash {
-            return Ok(());
-        }
-        let libs = make_base64_c_str(libs_boc)?;
-        match unsafe { transaction_emulator_set_libs(self.emulator, libs.as_ptr()) } {
-            true => self.cur_libs_hash = libs_hash,
-            false => return set_param_failed("libs"),
-        }
-        Ok(())
-    }
-
-    fn set_debug_enabled(&mut self, debug_enabled: bool) -> TonResult<()> {
-        match unsafe { transaction_emulator_set_debug_enabled(self.emulator, debug_enabled) } {
-            true => Ok(()),
-            false => set_param_failed("debug_enabled"),
-        }
-    }
-
-    fn actualize_prev_blocks_info(&mut self, prev_blocks_info: &[u8]) -> TonResult<()> {
-        let prev_blocks_hash = calc_hash(prev_blocks_info);
-        if self.cur_prev_blocks_info_hash == prev_blocks_hash {
-            return Ok(());
-        }
-        let block_info = make_base64_c_str(prev_blocks_info)?;
-        match unsafe { transaction_emulator_set_prev_blocks_info(self.emulator, block_info.as_ptr()) } {
-            true => self.cur_prev_blocks_info_hash = prev_blocks_hash,
-            false => return set_param_failed("prev_blocks_info"),
-        }
-        Ok(())
-    }
-
-    fn actualize_ignore_chksig(&mut self, ignore: bool) -> TonResult<()> {
-        if self.cur_ignore_chksig == ignore {
-            return Ok(());
-        }
-        match unsafe { transaction_emulator_set_ignore_chksig(self.emulator, ignore) } {
-            true => self.cur_ignore_chksig = ignore,
-            false => return set_param_failed("ignore_chksig"),
-        }
-        Ok(())
-    }
+    unsafe impl Send for TXEmulator {}
+    unsafe impl Sync for TXEmulator {}
 }
 
-impl Drop for TXEmulator {
-    fn drop(&mut self) {
-        unsafe {
-            transaction_emulator_destroy(self.emulator);
-        }
-    }
-}
-unsafe impl Send for TXEmulator {}
-unsafe impl Sync for TXEmulator {}
+#[cfg(feature = "rustemulator")]
+pub use rust_emulator::*;
 
 fn calc_hash<T: AsRef<[u8]> + std::hash::Hash>(data: T) -> u64 {
     use std::hash::{DefaultHasher, Hasher};
@@ -196,12 +429,14 @@ fn calc_hash<T: AsRef<[u8]> + std::hash::Hash>(data: T) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block_tlb::{Msg, ShardAccount, Tx};
-
+    use crate::block_tlb::Tx;
+    use crate::block_tlb::{Msg, ShardAccount};
+    use crate::emulators::emul_bc_config::EmulBCConfig;
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
     use std::str::FromStr;
     use std::sync::LazyLock;
     use tokio_test::{assert_err, assert_ok};
+    use ton_core::cell::TonHash;
     use ton_core::traits::tlb::TLB;
     #[allow(dead_code)]
     const VM_CODE_NOT_ENOUGH_LIBS: i32 = 9;

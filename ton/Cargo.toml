@@ -21,8 +21,8 @@ include = [
 
 [features]
 tonlibjson = ["dep:tonlib-sys"]
+rustemulator = ["dep:rsquad_ton_block", "dep:rsquad_ton_executor", "dep:rsquad_ton_vm"]
 unstable = []
-
 
 [dependencies]
 # Internal
@@ -66,6 +66,9 @@ sha2.workspace = true
 reqwest.workspace = true
 derive_setters.workspace = true
 fastnum.workspace = true
+rsquad_ton_block = { workspace = true, optional = true }
+rsquad_ton_executor = { workspace = true, optional = true }
+rsquad_ton_vm = { workspace = true, optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
