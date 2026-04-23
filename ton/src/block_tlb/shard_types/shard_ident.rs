@@ -190,6 +190,33 @@ mod tests {
     }
 
     #[test]
+    fn test_block_tlb_shard_ident_prefix_len() {
+        let test_cases = [
+            (0x8000_0000_0000_0000, 0),
+            (0x4000_0000_0000_0000, 1),
+            (0xC000_0000_0000_0000, 1),
+            (0x6000_0000_0000_0000, 2),
+            (0x8, 60),
+        ];
+
+        for (shard, expected_len) in test_cases {
+            assert_eq!(ShardIdent::new(0, shard).prefix_len(), expected_len, "shard 0x{shard:016X}");
+        }
+    }
+
+    #[test]
+    fn test_block_tlb_shard_ident_split_rejects_max_depth() {
+        let deepest_shard = ShardIdent::new(0, 0x8);
+        assert!(deepest_shard.split().is_err());
+    }
+
+    #[test]
+    fn test_block_tlb_shard_ident_merge_rejects_full_shard() {
+        let full_shard = ShardIdent::new(0, TON_SHARD_FULL);
+        assert!(full_shard.merge().is_err());
+    }
+
+    #[test]
     fn test_shard_ident_contains_addr() -> anyhow::Result<()> {
         let addr = TonAddress::from_str("EQDc_nrm5oOVCVQM8GRJ5q_hr1jgpNQjsGkIGE-uztt26_Ep")?;
 
