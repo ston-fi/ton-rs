@@ -1,5 +1,5 @@
 use crate::bail_ton;
-use crate::block_tlb::{BlockIdExt, BlockInfo};
+use crate::block_tlb::BlockIdExt;
 use crate::errors::{TonError, TonResult};
 use crate::lite_client::LiteClient;
 use crate::net_config::TonNetConfig;
@@ -13,10 +13,6 @@ use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::Semaphore;
-use ton_core::cell::TonCell;
-use ton_core::errors::TonCoreError;
-use ton_core::traits::tlb::TLB;
-use ton_liteapi::tl::response::BlockData;
 
 #[derive(Setters, Debug)]
 #[setters(prefix = "with_", strip_option)]
@@ -129,19 +125,18 @@ async fn update_net_config(builder: &Builder) -> TonResult<Option<TonNetConfig>>
         let future = async {
             let mc_info = lite_client_ref.get_mc_info().await?;
             let block = lite_client_ref.get_block(mc_info.last, None).await?;
-            let seqno = parse_key_block_seqno(block)?;
-            lite_client_ref.lookup_mc_block(seqno).await
+            lite_client_ref.lookup_mc_block(block.data.info.prev_key_block_seqno).await
         };
         futs.push(future);
     }
     let exec_timeout = Duration::from_secs(builder.update_init_block_timeout_sec.saturating_sub(1));
-    let results = tokio::time::timeout(exec_timeout, join_all(futs)).await?;
+    let key_block_ids = tokio::time::timeout(exec_timeout, join_all(futs)).await?;
     let mut max_block: Option<BlockIdExt> = None;
-    for res in &results {
-        match res {
-            Ok(block) => {
-                if max_block.is_none() || max_block.as_ref().unwrap().seqno < block.seqno {
-                    max_block = Some(block.clone());
+    for block_id_res in &key_block_ids {
+        match block_id_res {
+            Ok(block_id) => {
+                if max_block.is_none() || max_block.as_ref().unwrap().seqno < block_id.seqno {
+                    max_block = Some(block_id.clone());
                 }
             }
             Err(err) => log::warn!("Failed to get recent_init_block from node: {err:?}"),
@@ -155,28 +150,4 @@ async fn update_net_config(builder: &Builder) -> TonResult<Option<TonNetConfig>>
         return Ok(Some(net_conf));
     }
     Ok(None)
-}
-
-fn parse_key_block_seqno(block: BlockData) -> Result<u32, TonError> {
-    let block_cell = TonCell::from_boc(block.data)?;
-    if block_cell.refs().is_empty() {
-        return Err(TonError::Custom("No refs in block cell".to_string()));
-        // TODO make proper block parser
-    }
-    let mut parser = block_cell.refs()[0].parser();
-    let tag: usize = parser.read_num(32)?;
-    if tag != BlockInfo::PREFIX.value {
-        return Err(TonCoreError::TLBWrongPrefix {
-            exp: BlockInfo::PREFIX.value,
-            given: tag,
-            bits_exp: BlockInfo::PREFIX.bits_len,
-            bits_left: parser.data_bits_left()? + 32,
-        }
-        .into());
-    }
-    // version(32), merge_info(8), flags(8), seqno(32), vert_seqno(32), shard(104), utime(32), start/end lt(128),
-    // validator_list_hash(32), catchain_seqno(32), min_ref_mc_seqno(32)
-    parser.read_bits(32 + 8 + 8 + 32 + 32 + 104 + 32 + 128 + 32 + 32 + 32)?;
-    let key_block_seqno = parser.read_num(32)?;
-    Ok(key_block_seqno)
 }

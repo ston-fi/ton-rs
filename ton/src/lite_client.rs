@@ -9,7 +9,7 @@ pub use builder::*;
 pub use lite_types::*;
 pub use req_params::*;
 
-use crate::block_tlb::{BlockIdExt, MaybeAccount};
+use crate::block_tlb::{Block, BlockIdExt, MaybeAccount};
 use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
 use crate::lite_client::connection::Connection;
@@ -28,9 +28,9 @@ use ton_core::traits::tlb::TLB;
 use ton_core::types::TonAddress;
 use ton_liteapi::tl::common::{AccountId, Int256};
 use ton_liteapi::tl::request::*;
-use ton_liteapi::tl::response::{BlockData, BlockState, Response};
+use ton_liteapi::tl::response::{BlockState, Response};
 
-const WAIT_MC_SEQNO_MS: u32 = 5000;
+const WAIT_MC_SEQNO_MS: u32 = 1000;
 const WAIT_CONNECTION_MS: u64 = 5;
 
 #[derive(Clone)]
@@ -76,7 +76,11 @@ impl LiteClient {
         let seqno = block_id.seqno;
         let req = Request::GetBlock(GetBlock { id: block_id.into() });
         let rsp = self.exec(req, Some(seqno), params).await?;
-        unwrap_lite_rsp!(rsp, BlockData)
+        let lite_block_data = unwrap_lite_rsp!(rsp, BlockData)?;
+        Ok(BlockData {
+            id: lite_block_data.id.into(),
+            data: Block::from_boc(lite_block_data.data)?,
+        })
     }
 
     // BlockState is not implemented in block_tlb, so we return ton_liteapi::BlockState here
@@ -96,7 +100,7 @@ impl LiteClient {
         address: &TonAddress,
         mc_seqno: u32,
         params: Option<LiteReqParams>,
-    ) -> Result<MaybeAccount, TonError> {
+    ) -> TonResult<MaybeAccount> {
         let req = Request::GetAccountState(GetAccountState {
             id: self.lookup_mc_block(mc_seqno).await?.into(),
             account: AccountId {
