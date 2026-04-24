@@ -1,8 +1,12 @@
 use crate::errors::{TonError, TonResult};
+#[cfg(not(feature = "rustemulator"))]
 use base64::Engine;
+#[cfg(not(feature = "rustemulator"))]
 use base64::prelude::BASE64_STANDARD;
+#[cfg(not(feature = "rustemulator"))]
 use std::ffi::CString;
 
+#[cfg(not(feature = "rustemulator"))]
 pub(super) fn convert_emulator_response(c_str: *const std::os::raw::c_char) -> TonResult<String> {
     if c_str.is_null() {
         return Err(TonError::EmulatorNullResponse);
@@ -22,6 +26,8 @@ pub(super) fn require_field<T>(val: Option<T>, field: &'static str, raw_response
     })
 }
 
+#[cfg(not(feature = "rustemulator"))]
 pub(super) fn set_param_failed(param: &'static str) -> TonResult<()> { Err(TonError::EmulatorSetParamFailed(param)) }
 
+#[cfg(not(feature = "rustemulator"))]
 pub(super) fn make_base64_c_str(data: &[u8]) -> TonResult<CString> { Ok(CString::new(BASE64_STANDARD.encode(data))?) }

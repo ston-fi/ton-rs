@@ -185,3 +185,8 @@ impl From<&TonError> for TonCoreError {
 impl From<Arc<TonError>> for TonError {
     fn from(err: Arc<TonError>) -> Self { Self::ArcSelf(err) }
 }
+
+#[cfg(feature = "rustemulator")]
+impl From<rsquad_ton_block::Error> for TonError {
+    fn from(err: rsquad_ton_block::Error) -> Self { TonError::Custom(err.to_string()) }
+}

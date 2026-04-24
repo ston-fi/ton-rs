@@ -23,8 +23,8 @@ publish = false
 # Internal (stonfi-managed)
 ton_macros = {path = "ton_macros", version = "0.1"}
 ton_core = {path = "ton_core", version = "0.1"}
-#tonlib-sys = { path="../tonlib-sys", features = ["with_debug_info"] }
-tonlib-sys = { version = "2026.4.0", features = ["with_debug_info"] }
+tonlib-sys = { path="../tonlib-sys", features = ["with_debug_info"] }
+#tonlib-sys = { version = "2026.4.0", features = ["with_debug_info"] }
 
 
 # External
@@ -71,6 +71,9 @@ tokio-retry = "0.3"
 tokio-tower = "0.6"
 ton_liteapi = "0.2"
 tower = { version = "0.5", features = ["util"] }
+rsquad_ton_block = { package = "ton_block", git = "https://github.com/RSquad/ton-rust-node.git", rev = "d4fa52c85e05935b46899b66a25cf645245f570d" }
+rsquad_ton_executor = { package = "ton_executor", git = "https://github.com/RSquad/ton-rust-node.git", rev = "d4fa52c85e05935b46899b66a25cf645245f570d" }
+rsquad_ton_vm = { package = "ton_vm", git = "https://github.com/RSquad/ton-rust-node.git", rev = "d4fa52c85e05935b46899b66a25cf645245f570d" }
 
 
 # tests
