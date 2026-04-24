@@ -14,6 +14,8 @@ use std::time::Duration;
 #[derive(Setters, Debug, Clone)]
 #[setters(prefix = "with_", strip_option)]
 pub struct Builder {
+    #[setters(skip)]
+    mainnet: bool,
     net_config: TonNetConfig,
     connections_per_node: u32,
     conn_timeout: Duration,
@@ -25,6 +27,7 @@ pub struct Builder {
 impl Builder {
     pub(super) fn new() -> TonResult<Self> {
         let builder = Self {
+            mainnet: true,
             net_config: TonNetConfig::new_default(true)?,
             connections_per_node: 1,
             conn_timeout: Duration::from_millis(500),
@@ -33,6 +36,12 @@ impl Builder {
             metrics_enabled: true,
         };
         Ok(builder)
+    }
+
+    pub fn with_mainnet(mut self, mainnet: bool) -> TonResult<Self> {
+        self.mainnet = mainnet;
+        self.net_config = TonNetConfig::new_default(mainnet)?;
+        Ok(self)
     }
 
     pub fn with_net_config_json(mut self, json: &str) -> TonResult<Self> {
@@ -70,6 +79,7 @@ impl Builder {
 
         let connection_pool = AutoPool::new_with_config(ap_config, connections);
         let inner = Inner {
+            mainnet: self.mainnet,
             default_req_params: self.default_req_params,
             conn_pool: connection_pool,
             global_req_id: AtomicU64::new(0),
