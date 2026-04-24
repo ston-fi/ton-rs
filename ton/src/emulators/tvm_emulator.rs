@@ -346,13 +346,13 @@ mod tests {
             TonAddress::from_str("Ef8CmPZLxWB-9ypeGdGhEqA6ZNLBFUwnqXPH2eUQd_MzbGh_")?,
             BC_CONFIG.clone(),
         )?;
-        let mut emulator = TVMEmulator::new(&code, &TonCell::EMPTY_BOC, &c7)?;
+        let mut emulator = TVMEmulator::new(&code, TonCell::EMPTY_BOC, &c7)?;
 
         let mut run_test_case = |arg1: &I512, arg2: &I512| {
             let expected = *arg1 * arg2;
             let mut stack = TVMStack::default();
-            stack.push_int(arg1.clone());
-            stack.push_int(arg2.clone());
+            stack.push_int(*arg1);
+            stack.push_int(*arg2);
             let emulator_result = assert_ok!(emulator.emul_get_method("get_val", &stack.to_boc()?)).into_success()?;
             let mut res_stack = emulator_result.stack_parsed()?;
             assert_eq!(emulator_result.vm_exit_code, 0);

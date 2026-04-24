@@ -201,13 +201,13 @@ impl TLProvider {
         block_id: &BlockIdExt,
     ) -> Result<HashSet<BlockIdExt>, TonError> {
         if let Ok(header) = conn.get_block_header(block_id.clone()).await {
-            return Ok(HashSet::from_iter(header.prev_blocks.unwrap_or_default().into_iter()));
+            return Ok(HashSet::from_iter(header.prev_blocks.unwrap_or_default()));
         }
         let mut last_error = None;
         for _ in 0..3 {
             let new_conn = self.find_connection(mc_seqno).await?;
             match new_conn.get_block_header(block_id.clone()).await {
-                Ok(header) => return Ok(HashSet::from_iter(header.prev_blocks.unwrap_or_default().into_iter())),
+                Ok(header) => return Ok(HashSet::from_iter(header.prev_blocks.unwrap_or_default())),
                 Err(err) => last_error = Some(err),
             }
             tokio::time::sleep(Duration::from_millis(50)).await;

@@ -4,6 +4,7 @@ use crate::block_tlb::block_types::block_id_ext::BlockIdExt;
 use crate::block_tlb::block_types::block_prev_info::{BlockPrevInfoAfterMerge, PrevBlockInfo};
 use std::ops::Deref;
 use ton_core::TLB;
+use ton_core::bail_ton_core;
 use ton_core::cell::{CellBuilder, CellParser, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::{TLB, TLBPrefix};
@@ -60,6 +61,9 @@ impl BlockInfo {
         };
         let prev_ids = match &self.prev_ref {
             PrevBlockInfo::Regular(ext_ref) => {
+                if self.after_split && ext_ref.seqno == 0 {
+                    bail_ton_core!("shardchains cannot be split immediately after initial state");
+                }
                 let shard = match self.after_split {
                     true => self.shard.merge()?,
                     false => self.shard.clone(),
@@ -67,6 +71,12 @@ impl BlockInfo {
                 vec![make_block_id(ext_ref.clone(), shard)]
             }
             PrevBlockInfo::AfterMerge(ext_refs) => {
+                if self.after_split {
+                    bail_ton_core!("shardchains cannot be simultaneously split and merged at the same block");
+                }
+                if ext_refs.prev1.seqno == 0 || ext_refs.prev2.seqno == 0 {
+                    bail_ton_core!("shardchains cannot be merged immediately after initial state");
+                }
                 let (shard1, shard2) = self.shard.split()?;
                 vec![
                     make_block_id(ext_refs.prev1.deref().clone(), shard1),
@@ -351,5 +361,102 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_block_tlb_block_info_prev_block_ids_after_split_uses_parent_shard() -> anyhow::Result<()> {
+        let mut block_info = BlockInfo::default();
+        block_info.shard.workchain = 0;
+        block_info.shard.shard = 0x6000000000000000;
+        block_info.after_split = true;
+        block_info.prev_ref = PrevBlockInfo::Regular(ExtBlockRef {
+            end_lt: 1,
+            seqno: 2,
+            root_hash: TonHash::from_slice_sized(&[3u8; 32]),
+            file_hash: TonHash::from_slice_sized(&[4u8; 32]),
+        });
+
+        let prev_block_ids = block_info.prev_block_ids()?;
+        assert_eq!(
+            prev_block_ids,
+            vec![BlockIdExt {
+                shard_ident: ShardIdent {
+                    workchain: 0,
+                    shard: 0x4000000000000000,
+                },
+                seqno: 2,
+                root_hash: TonHash::from_slice_sized(&[3u8; 32]),
+                file_hash: TonHash::from_slice_sized(&[4u8; 32]),
+            }]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_block_tlb_block_info_prev_block_ids_rejects_split_after_genesis() {
+        let mut block_info = BlockInfo::default();
+        block_info.shard.workchain = 0;
+        block_info.shard.shard = 0x6000000000000000;
+        block_info.after_split = true;
+        block_info.prev_ref = PrevBlockInfo::Regular(ExtBlockRef {
+            end_lt: 1,
+            seqno: 0,
+            root_hash: TonHash::from_slice_sized(&[3u8; 32]),
+            file_hash: TonHash::from_slice_sized(&[4u8; 32]),
+        });
+
+        assert!(block_info.prev_block_ids().is_err());
+    }
+
+    #[test]
+    fn test_block_tlb_block_info_prev_block_ids_rejects_split_and_merge_at_once() {
+        let mut block_info = BlockInfo::default();
+        block_info.shard.workchain = 0;
+        block_info.shard.shard = 0x8000000000000000;
+        block_info.after_split = true;
+        block_info.prev_ref = PrevBlockInfo::AfterMerge(BlockPrevInfoAfterMerge {
+            prev1: ExtBlockRef {
+                end_lt: 1,
+                seqno: 2,
+                root_hash: TonHash::from_slice_sized(&[3u8; 32]),
+                file_hash: TonHash::from_slice_sized(&[4u8; 32]),
+            }
+            .into(),
+            prev2: ExtBlockRef {
+                end_lt: 5,
+                seqno: 6,
+                root_hash: TonHash::from_slice_sized(&[7u8; 32]),
+                file_hash: TonHash::from_slice_sized(&[8u8; 32]),
+            }
+            .into(),
+        });
+
+        assert!(block_info.prev_block_ids().is_err());
+    }
+
+    #[test]
+    fn test_block_tlb_block_info_prev_block_ids_rejects_merge_after_genesis() {
+        let mut block_info = BlockInfo::default();
+        block_info.shard.workchain = 0;
+        block_info.shard.shard = 0x8000000000000000;
+        block_info.prev_ref = PrevBlockInfo::AfterMerge(BlockPrevInfoAfterMerge {
+            prev1: ExtBlockRef {
+                end_lt: 1,
+                seqno: 0,
+                root_hash: TonHash::from_slice_sized(&[3u8; 32]),
+                file_hash: TonHash::from_slice_sized(&[4u8; 32]),
+            }
+            .into(),
+            prev2: ExtBlockRef {
+                end_lt: 5,
+                seqno: 6,
+                root_hash: TonHash::from_slice_sized(&[7u8; 32]),
+                file_hash: TonHash::from_slice_sized(&[8u8; 32]),
+            }
+            .into(),
+        });
+
+        assert!(block_info.prev_block_ids().is_err());
     }
 }

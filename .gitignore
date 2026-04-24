@@ -6,3 +6,4 @@ Cargo.lock
 .vscode
 .DS_Store
 flamegraph.svg
+LLM_README.md
