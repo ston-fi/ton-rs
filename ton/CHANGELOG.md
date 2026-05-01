@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/ston-fi/ton-rs/compare/ton-v0.1.3...ton-v0.1.4) - 2026-05-01
+
+### Other
+
+- Complete block tlb ([#189](https://github.com/ston-fi/ton-rs/pull/189))
+
 ## [0.1.3](https://github.com/ston-fi/ton-rs/compare/ton-v0.1.2...ton-v0.1.3) - 2026-04-09
 
 ### Other
