@@ -74,10 +74,17 @@ async fn assert_jetton_master(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let wallet_address = assert_ok!(contract.get_wallet_address(&owner).await);
     assert_eq!(wallet_address.to_string(), "EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM");
 
+    // meta has unaliged data, is not supported yet
     let broken_meta_master = TonAddress::from_str("EQDr9oR_vr9zsMv1vrN3V6Ob47Rw1fX7NTaUgDP0I85rs6-h")?;
     let contract = JettonMasterContract::new(ctr_cli, &broken_meta_master, None).await?;
     let res = assert_ok!(contract.get_jetton_data().await);
     assert!(res.content.as_unsupported().is_some());
+
+    // admin stack value is Null instead of Slice
+    let broken_admin_master = TonAddress::from_str("EQBc2QDlG4ey7fgM6hlJVu9q9kIWDmryuIYuKPmwpe4Bzymf")?;
+    let contract = JettonMasterContract::new(ctr_cli, &broken_admin_master, None).await?;
+    let res = assert_ok!(contract.get_jetton_data().await);
+    assert_eq!(res.admin, TonAddress::ZERO);
     Ok(())
 }
 
