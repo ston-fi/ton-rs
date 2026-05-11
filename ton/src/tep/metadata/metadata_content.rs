@@ -49,7 +49,7 @@ impl TLB for MetadataContent {
         let prefix: u8 = match parser.read_num(8) {
             Ok(x) => x,
             Err(e) => {
-                log::debug!("Fail to read metadata prefix: {e}");
+                log::warn!("Fail to read metadata prefix: {e}");
                 let unsupported = MetadataUnsupported {
                     cell: original_parser.read_remaining()?,
                 };
@@ -64,7 +64,7 @@ impl TLB for MetadataContent {
         };
 
         if let Err(err) = &parsed {
-            log::debug!("Fail to parse metadata: {err}");
+            log::warn!("Fail to parse metadata: {err}");
             let unsupported = MetadataUnsupported {
                 cell: original_parser.read_remaining()?,
             };
