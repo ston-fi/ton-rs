@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5](https://github.com/ston-fi/ton-rs/compare/ton-v0.1.4...ton-v0.1.5) - 2026-05-11
+
+### Other
+
+- Metacontent parsing fallback ([#193](https://github.com/ston-fi/ton-rs/pull/193))
+
 ## [0.1.4](https://github.com/ston-fi/ton-rs/compare/ton-v0.1.3...ton-v0.1.4) - 2026-05-01
 
 ### Other
