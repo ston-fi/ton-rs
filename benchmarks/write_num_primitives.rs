@@ -5,7 +5,6 @@ use num_bigint::BigInt;
 use std::hint::black_box;
 
 use ton_core::cell::TonCell;
-use ton_lib_core_008::cell::TonCell as TonCell008;
 use tonlib_core::cell::CellBuilder as TonlibCellBuilder;
 const ITERATIONS_COUNT: usize = 100;
 
@@ -21,17 +20,6 @@ fn write_primitive_tonlib() {
         }
         let res = builder.store_u32(TEST_WRITE_BIT, TEST_VALUE).unwrap();
         black_box(res);
-    }
-}
-
-fn write_primitive_ton_lib_core_008() {
-    let mut builder = TonCell008::builder();
-    for i in 0..ITERATIONS_COUNT {
-        if i % THRESHOLD_TO_RECREATE_BUILDER == 0 {
-            builder = TonCell008::builder();
-        }
-        builder.write_num(&TEST_VALUE, TEST_WRITE_BIT).unwrap();
-        black_box(&builder);
     }
 }
 
@@ -104,7 +92,6 @@ fn write_i512_ton_rs_current_negative() {
 fn benchmark_functions(c: &mut Criterion) {
     c.bench_function("write_primitive_baseline_bit_writer", |b| b.iter(write_primitive_bit_writer));
     c.bench_function("write_primitive_tonlib", |b| b.iter(write_primitive_tonlib));
-    c.bench_function("write_primitive_ton_lib_core_008", |b| b.iter(write_primitive_ton_lib_core_008));
     c.bench_function("write_primitive_ton_rs_current", |b| b.iter(write_primitive_ton_rs_current));
     c.bench_function("write_primitive_ton_rs_current_negative", |b| b.iter(write_primitive_ton_rs_current_negative));
     c.bench_function("write_bigint_ton_rs_current_negative", |b| b.iter(write_bigint_ton_rs_current_negative));
