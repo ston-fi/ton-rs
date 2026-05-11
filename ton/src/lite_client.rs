@@ -144,6 +144,8 @@ impl LiteClient {
 }
 
 struct Inner {
+    #[allow(unused)]
+    mainnet: bool,
     default_req_params: LiteReqParams,
     conn_pool: AutoPool<Connection>,
     global_req_id: AtomicU64,

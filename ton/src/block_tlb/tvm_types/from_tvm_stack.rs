@@ -1,3 +1,4 @@
+use crate::bail_ton;
 use crate::block_tlb::{TVMStack, TVMStackValue};
 use crate::errors::{TonError, TonResult};
 use crate::tep::snake_data::SnakeData;
@@ -75,7 +76,17 @@ impl FromTVMStack for TonCell {
 }
 
 impl FromTVMStack for TonAddress {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TonAddress::from_cell(&stack.pop_cell()?)?) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        let cell = match stack.pop_checked()? {
+            TVMStackValue::Null(_) => return Ok(TonAddress::ZERO),
+            TVMStackValue::Cell(cell) => cell.value.into_inner(),
+            TVMStackValue::CellSlice(slice) => slice.to_cell()?,
+            rest => {
+                bail_ton!("Can't parse TonAddress from TVMStack: Expecting Cell, CellSlice or Null. Got {:?}", rest)
+            }
+        };
+        Ok(TonAddress::from_cell(&cell)?)
+    }
 }
 
 impl FromTVMStack for TonHash {
