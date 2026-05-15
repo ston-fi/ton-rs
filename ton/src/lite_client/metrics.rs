@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering::Relaxed};
 use std::time::{Duration, Instant};
 use ton_liteapi::tl::request::Request;
+use ton_liteapi::tl::response::Response;
 
 pub(super) struct LiteClientMetrics {
     pub(super) known_nodes_count: u32,
@@ -86,7 +87,9 @@ impl<'a> MetricGuard<'a> {
         }
     }
 
-    pub(super) fn set_ok(&mut self, ok: bool) { self.ok = ok; }
+    pub(super) fn record_result(&mut self, result: &Result<Response, TonError>) {
+        self.ok = matches!(result, Ok(response) if !matches!(response, Response::Error(_)));
+    }
 
     pub(super) fn record_connection_wait(&self, duration: Duration) {
         self.metrics.wait_connection_ms_total.fetch_add(duration_ms_u64(duration), Relaxed);
@@ -154,3 +157,30 @@ fn req_to_str(req: &Request) -> &'static str {
 }
 
 fn duration_ms_u64(duration: Duration) -> u64 { duration.as_millis().min(u64::MAX as u128) as u64 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ton_liteapi::tl::common::String as TlString;
+    use ton_liteapi::tl::response::{Error, Response};
+
+    #[test]
+    fn test_lite_client_metrics_counts_response_error_as_failed() {
+        let metrics = LiteClientMetrics::new(1, 1).unwrap();
+        let response = Ok(Response::Error(Error {
+            code: -1,
+            message: TlString::from("lite server error"),
+        }));
+
+        {
+            let mut guard = MetricGuard::new(&metrics, &Request::GetMasterchainInfo, false);
+            guard.record_result(&response);
+        }
+
+        let snapshot = metrics.snapshot();
+        assert_eq!(snapshot.requests_failed.get("get_mc_info"), Some(&1));
+        assert_eq!(snapshot.requests_ok.get("get_mc_info"), None);
+        assert_eq!(snapshot.requests_count_total.get("get_mc_info"), Some(&1));
+        assert_eq!(snapshot.ongoing_requests, 0);
+    }
+}

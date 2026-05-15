@@ -260,7 +260,7 @@ impl Inner {
         metric_guard.record_connection_wait(wait_connection_started.elapsed());
 
         let result = conn.exec(req.clone(), req_timeout).await;
-        metric_guard.set_ok(result.is_ok());
+        metric_guard.record_result(&result);
         result
     }
 }
