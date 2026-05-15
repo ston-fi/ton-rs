@@ -2,6 +2,7 @@ mod builder;
 mod connection;
 mod lite_types;
 mod liteapi_serde;
+pub mod metrics;
 mod req_params;
 mod unwrap_lite_rsp;
 
@@ -13,15 +14,16 @@ use crate::block_tlb::{Block, BlockIdExt, MaybeAccount};
 use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
 use crate::lite_client::connection::Connection;
+use crate::lite_client::metrics::{LiteClientMetrics, LiteClientMetricsSnapshot, MetricGuard};
 use crate::{bail_ton, unwrap_lite_rsp};
 use auto_pool::pool::AutoPool;
 use everscale_types::boc::Boc;
 use everscale_types::cell::HashBytes;
 use everscale_types::models::ShardState;
 use std::sync::Arc;
-use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::Relaxed;
-use std::time::Duration;
+use std::sync::atomic::{AtomicU32, AtomicU64};
+use std::time::{Duration, Instant};
 use tokio_retry::RetryIf;
 use tokio_retry::strategy::FixedInterval;
 use ton_core::cell::{TonCell, TonHash};
@@ -132,7 +134,7 @@ impl LiteClient {
                 id: Int256(*address.hash.as_slice_sized()),
             },
         });
-        let rsp = self.exec_with_timeout(req, Some(mc_seqno), params).await?;
+        let rsp = self.exec(req, Some(mc_seqno), params).await?;
         let account_state_rsp = unwrap_lite_rsp!(rsp, AccountState)?;
         Ok(MaybeAccount::from_boc(account_state_rsp.state)?)
     }
@@ -154,9 +156,11 @@ impl LiteClient {
         wait_mc_seqno: Option<u32>,
         params: Option<LiteReqParams>,
     ) -> Result<Response, TonError> {
+        #[allow(deprecated)]
         self.exec_with_timeout(req, wait_mc_seqno, params).await
     }
 
+    #[deprecated]
     pub async fn exec_with_timeout(
         &self,
         request: Request,
@@ -165,6 +169,8 @@ impl LiteClient {
     ) -> Result<Response, TonError> {
         self.0.exec_with_retries(request, wait_mc_seqno, params).await
     }
+
+    pub fn metrics(&self) -> LiteClientMetricsSnapshot { self.0.metrics.snapshot() }
 }
 
 struct Inner {
@@ -172,6 +178,7 @@ struct Inner {
     default_req_params: LiteReqParams,
     conn_pool: AutoPool<Connection>,
     global_req_id: AtomicU64,
+    metrics: LiteClientMetrics,
 }
 
 impl Inner {
@@ -226,17 +233,35 @@ impl Inner {
         };
         let req_params = params.as_ref().unwrap_or(&self.default_req_params);
         let req_id = self.global_req_id.fetch_add(1, Relaxed);
+        let attempts = AtomicU32::new(0);
         let fi = FixedInterval::new(req_params.retry_waiting);
         let strategy = fi.take(req_params.retries_count as usize);
-        let exec_request = || async { self.exec_impl(req_id, &wrap_req, req_params.query_timeout).await };
+
+        let exec_request = || async {
+            let is_retry = attempts.fetch_add(1, Relaxed) > 0;
+            self.exec_impl(req_id, &wrap_req, req_params.query_timeout, is_retry).await
+        };
         RetryIf::spawn(strategy, exec_request, retry_condition).await
     }
 
-    async fn exec_impl(&self, req_id: u64, req: &WrappedRequest, req_timeout: Duration) -> TonResult<Response> {
+    async fn exec_impl(
+        &self,
+        req_id: u64,
+        req: &WrappedRequest,
+        req_timeout: Duration,
+        is_retry: bool,
+    ) -> TonResult<Response> {
         log::trace!("LiteClient exec_impl: req_id={req_id}, req={req:?}");
+        let mut metric_guard = MetricGuard::new(&self.metrics, &req.request, is_retry);
+
         // pool is configured to spin until get connection
+        let wait_connection_started = Instant::now();
         let mut conn = self.conn_pool.get_async().await.unwrap();
-        conn.exec(req.clone(), req_timeout).await
+        metric_guard.record_connection_wait(wait_connection_started.elapsed());
+
+        let result = conn.exec(req.clone(), req_timeout).await;
+        metric_guard.set_ok(result.is_ok());
+        result
     }
 }
 
