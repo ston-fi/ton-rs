@@ -20,6 +20,7 @@ use auto_pool::pool::AutoPool;
 use everscale_types::boc::Boc;
 use everscale_types::cell::HashBytes;
 use everscale_types::models::ShardState;
+use futures_util::stream::{FuturesUnordered, StreamExt};
 use std::sync::Arc;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicU32, AtomicU64};
@@ -176,7 +177,7 @@ impl LiteClient {
 struct Inner {
     mainnet: bool,
     default_req_params: LiteReqParams,
-    conn_pool: AutoPool<Connection>,
+    conn_pool: AutoPool<Vec<Connection>>,
     global_req_id: AtomicU64,
     metrics: LiteClientMetrics,
 }
@@ -256,10 +257,38 @@ impl Inner {
 
         // pool is configured to spin until get connection
         let wait_connection_started = Instant::now();
-        let mut conn = self.conn_pool.get_async().await.unwrap();
+        let Some(mut conns) = self.conn_pool.get_async().await else {
+            bail_ton!("AutoPool misconfigured: get_async() returned None");
+        };
+
         metric_guard.record_connection_wait(wait_connection_started.elapsed());
 
-        let result = conn.exec(req.clone(), req_timeout).await;
+        let mut requests = conns
+            .iter_mut()
+            .map(|conn| {
+                let req = req.clone();
+                async move {
+                    match conn.exec(req, req_timeout).await {
+                        Ok(Response::Error(err)) => Err(TonError::LiteClientErrorResponse(err)),
+                        other => other,
+                    }
+                }
+            })
+            .collect::<FuturesUnordered<_>>();
+
+        let mut last_err = None;
+        while let Some(result) = requests.next().await {
+            match result {
+                Ok(response) => {
+                    let result = Ok(response);
+                    metric_guard.record_result(&result);
+                    return result;
+                }
+                Err(err) => last_err = Some(err),
+            }
+        }
+
+        let result = Err(last_err.unwrap_or_else(|| TonError::Custom("LiteClient has no connections".to_string())));
         metric_guard.record_result(&result);
         result
     }

@@ -70,10 +70,12 @@ impl Builder {
 
         let mut connections = Vec::new();
         for _ in 0..conn_per_node {
+            let mut nodes_conns = Vec::new();
             for endpoint in &self.net_config.lite_endpoints {
                 let conn = Connection::new(endpoint.clone(), self.conn_timeout)?;
-                connections.push(conn);
+                nodes_conns.push(conn);
             }
+            connections.push(nodes_conns);
         }
         let ap_config = AutoPoolConfig {
             wait_duration: Duration::MAX,
