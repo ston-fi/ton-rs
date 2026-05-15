@@ -13,8 +13,11 @@ use crate::block_tlb::{Block, BlockIdExt, MaybeAccount};
 use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
 use crate::lite_client::connection::Connection;
-use crate::unwrap_lite_rsp;
+use crate::{bail_ton, unwrap_lite_rsp};
 use auto_pool::pool::AutoPool;
+use everscale_types::boc::Boc;
+use everscale_types::cell::HashBytes;
+use everscale_types::models::ShardState;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::Relaxed;
@@ -83,7 +86,7 @@ impl LiteClient {
         })
     }
 
-    // BlockState is not implemented in block_tlb, so we return ton_liteapi::BlockState here
+    // BlockState is not implemented in block_tlb yet, so we return ton_liteapi::BlockState here
     pub async fn get_block_state(
         &self,
         block_id: BlockIdExt,
@@ -101,6 +104,27 @@ impl LiteClient {
         mc_seqno: u32,
         params: Option<LiteReqParams>,
     ) -> TonResult<MaybeAccount> {
+        if mc_seqno == 0 {
+            // zero state can't be received from lite-node directly
+            // but we can extract it from zero state
+            let block_id = if self.0.mainnet {
+                BlockIdExt::ZERO_BLOCK_ID
+            } else {
+                BlockIdExt::ZERO_BLOCK_ID_TESTNET
+            };
+            let state = self.get_block_state(block_id, params).await?;
+            let cell = Boc::decode(&state.data)?;
+            let shard_state: ShardState = cell.parse()?;
+            let ShardState::Unsplit(unsplit) = shard_state else {
+                bail_ton!("zero state must be unsplit")
+            };
+            let Some((_, account)) = unsplit.load_accounts()?.get(HashBytes(*address.hash.as_slice_sized()))? else {
+                bail_ton!("Account with address {} not found in zero block", address)
+            };
+            let maybe_account = MaybeAccount::from_boc(Boc::encode(account.account.inner()))?;
+            return Ok(maybe_account);
+        }
+
         let req = Request::GetAccountState(GetAccountState {
             id: self.lookup_mc_block(mc_seqno).await?.into(),
             account: AccountId {
@@ -144,7 +168,6 @@ impl LiteClient {
 }
 
 struct Inner {
-    #[allow(unused)]
     mainnet: bool,
     default_req_params: LiteReqParams,
     conn_pool: AutoPool<Connection>,
