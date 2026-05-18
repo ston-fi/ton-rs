@@ -71,6 +71,8 @@ tokio-retry = "0.3"
 tokio-tower = "0.6"
 ton_liteapi = "0.2"
 tower = { version = "0.5", features = ["util"] }
+everscale-types = "0.1.2"
+dashmap = "7.0.0-rc2"
 
 
 # tests

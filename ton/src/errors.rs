@@ -46,6 +46,8 @@ pub enum TonError {
     LiteClientConnTimeout(Duration),
     #[error("LiteClientReqTimeout: {0:?}")]
     LiteClientReqTimeout(Box<(Request, Duration)>),
+    #[error("EverscaleError: {0:?}")]
+    EverscaleError(String),
 
     // TonlibClient
     #[error("TLClientCreationFailed: tonlib_client_json_create returns null")]
@@ -159,6 +161,14 @@ pub enum MetaLoaderError {
         status: StatusCode,
         msg: String,
     },
+}
+
+impl From<everscale_types::error::Error> for TonError {
+    fn from(err: everscale_types::error::Error) -> Self { TonError::EverscaleError(err.to_string()) }
+}
+
+impl From<everscale_types::boc::de::Error> for TonError {
+    fn from(err: everscale_types::boc::de::Error) -> Self { TonError::EverscaleError(err.to_string()) }
 }
 
 impl TonError {

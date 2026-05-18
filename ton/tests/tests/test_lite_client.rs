@@ -1,6 +1,6 @@
 use crate::tests::utils::make_lite_client;
 use std::str::FromStr;
-use tokio_test::assert_ok;
+use tokio_test::{assert_err, assert_ok};
 use ton::block_tlb::BlockIdExt;
 use ton::errors::TonError;
 use ton::unwrap_lite_rsp;
@@ -30,6 +30,11 @@ async fn test_lite_client() -> anyhow::Result<()> {
     let account = lite_client.get_account_state(&usdt_addr, mc_info.last.seqno, None).await?;
     assert!(account.as_account().is_some());
 
+    // fetch zero state
+    let system_addr = TonAddress::from_str("Ef8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAU")?;
+    let account = lite_client.get_account_state(&system_addr, 0, None).await?;
+    assert!(account.as_account().is_some());
+    assert_err!(lite_client.get_account_state(&usdt_addr, 0, None).await);
     Ok(())
 }
 

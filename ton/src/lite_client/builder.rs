@@ -1,5 +1,6 @@
 use crate::errors::TonResult;
 use crate::lite_client::connection::Connection;
+use crate::lite_client::metrics::LiteClientMetrics;
 use crate::lite_client::req_params::LiteReqParams;
 use crate::lite_client::{Inner, LiteClient, WAIT_CONNECTION_MS};
 use crate::net_config::TonNetConfig;
@@ -21,6 +22,7 @@ pub struct Builder {
     conn_timeout: Duration,
     default_req_params: LiteReqParams,
     last_seqno_polling_period: Duration,
+    #[deprecated = "doesn't change behaviour, metrics are always enabled"]
     metrics_enabled: bool,
 }
 
@@ -33,6 +35,7 @@ impl Builder {
             conn_timeout: Duration::from_millis(500),
             default_req_params: LiteReqParams::default(),
             last_seqno_polling_period: Duration::from_millis(5000),
+            #[allow(deprecated)]
             metrics_enabled: true,
         };
         Ok(builder)
@@ -56,19 +59,23 @@ impl Builder {
 
     pub fn build(self) -> TonResult<LiteClient> {
         let conn_per_node = max(1, self.connections_per_node);
+        let nodes_count = self.net_config.lite_endpoints.len();
+
         log::info!(
             "Creating LiteClient with {} conns per node; nodes_cnt: {}, default_req_params: {:?}",
             conn_per_node,
-            self.net_config.lite_endpoints.len(),
+            nodes_count,
             self.default_req_params,
         );
 
         let mut connections = Vec::new();
         for _ in 0..conn_per_node {
+            let mut nodes_conns = Vec::new();
             for endpoint in &self.net_config.lite_endpoints {
                 let conn = Connection::new(endpoint.clone(), self.conn_timeout)?;
-                connections.push(conn);
+                nodes_conns.push(conn);
             }
+            connections.push(nodes_conns);
         }
         let ap_config = AutoPoolConfig {
             wait_duration: Duration::MAX,
@@ -77,12 +84,15 @@ impl Builder {
             pick_strategy: PickStrategy::RANDOM,
         };
 
+        let metrics = LiteClientMetrics::new(nodes_count as u32, conn_per_node)?;
+
         let connection_pool = AutoPool::new_with_config(ap_config, connections);
         let inner = Inner {
             mainnet: self.mainnet,
             default_req_params: self.default_req_params,
             conn_pool: connection_pool,
             global_req_id: AtomicU64::new(0),
+            metrics,
         };
         Ok(LiteClient(Arc::new(inner)))
     }

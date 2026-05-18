@@ -66,6 +66,8 @@ sha2.workspace = true
 reqwest.workspace = true
 derive_setters.workspace = true
 fastnum.workspace = true
+everscale-types.workspace = true
+dashmap.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true
