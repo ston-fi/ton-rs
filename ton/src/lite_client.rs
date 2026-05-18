@@ -73,15 +73,16 @@ impl LiteClient {
             with_shard_hashes: None,
             with_prev_blk_signatures: None,
         });
-        let rsp = self.exec(req, Some(seqno), None).await?;
+        let wait_seqno = if wc == TON_MASTERCHAIN { Some(seqno) } else { None };
+
+        let rsp = self.exec(req, wait_seqno, None).await?;
         let lite_id = unwrap_lite_rsp!(rsp, BlockHeader)?.id;
         Ok(lite_id.into())
     }
 
     pub async fn get_block(&self, block_id: BlockIdExt, params: Option<LiteReqParams>) -> TonResult<BlockData> {
-        let seqno = block_id.seqno;
         let req = Request::GetBlock(GetBlock { id: block_id.into() });
-        let rsp = self.exec(req, Some(seqno), params).await?;
+        let rsp = self.exec(req, None, params).await?;
         let lite_block_data = unwrap_lite_rsp!(rsp, BlockData)?;
         Ok(BlockData {
             id: lite_block_data.id.into(),
@@ -95,9 +96,8 @@ impl LiteClient {
         block_id: BlockIdExt,
         params: Option<LiteReqParams>,
     ) -> Result<BlockState, TonError> {
-        let seqno = block_id.seqno;
         let req = Request::GetState(GetState { id: block_id.into() });
-        let rsp = self.exec(req, Some(seqno), params).await?;
+        let rsp = self.exec(req, None, params).await?;
         unwrap_lite_rsp!(rsp, BlockState)
     }
 
@@ -135,7 +135,7 @@ impl LiteClient {
                 id: Int256(*address.hash.as_slice_sized()),
             },
         });
-        let rsp = self.exec(req, Some(mc_seqno), params).await?;
+        let rsp = self.exec(req, None, params).await?;
         let account_state_rsp = unwrap_lite_rsp!(rsp, AccountState)?;
         Ok(MaybeAccount::from_boc(account_state_rsp.state)?)
     }
