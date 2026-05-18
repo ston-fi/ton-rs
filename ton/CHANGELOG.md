@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/ston-fi/ton-rs/compare/ton-v0.1.5...ton-v0.1.6) - 2026-05-18
+
+### Other
+
+- Complete lite client ([#195](https://github.com/ston-fi/ton-rs/pull/195))
+
 ## [0.1.5](https://github.com/ston-fi/ton-rs/compare/ton-v0.1.4...ton-v0.1.5) - 2026-05-11
 
 ### Other
