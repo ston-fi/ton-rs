@@ -45,12 +45,13 @@ impl TLB for SnakeData {
             data: vec![],
             chunks_bits_len: vec![],
         };
-        result.read_chunk(parser)?;
+        let mut bits_read = 0;
+        result.read_chunk(parser, &mut bits_read)?;
 
         let mut maybe_next_ref = parser.read_next_ref().cloned();
         while let Ok(next_ref) = maybe_next_ref {
             let mut cur_parser = next_ref.parser();
-            result.read_chunk(&mut cur_parser)?;
+            result.read_chunk(&mut cur_parser, &mut bits_read)?;
             maybe_next_ref = cur_parser.read_next_ref().cloned();
         }
         Ok(result)
@@ -73,23 +74,25 @@ impl TLB for SnakeData {
 }
 
 impl SnakeData {
-    fn read_chunk(&mut self, parser: &mut CellParser) -> Result<(), TonCoreError> {
+    fn read_chunk(&mut self, parser: &mut CellParser, bits_read: &mut usize) -> Result<(), TonCoreError> {
         let cur_cell_bits_len = parser.data_bits_left()?;
         if cur_cell_bits_len == 0 {
             return Ok(());
         }
-        let Some(prev_bits_len) = self.chunks_bits_len.last() else {
+        if self.chunks_bits_len.is_empty() {
             self.data.extend(parser.read_bits(cur_cell_bits_len)?);
             self.chunks_bits_len.push(cur_cell_bits_len);
+            *bits_read += cur_cell_bits_len;
             return Ok(());
-        };
+        }
 
-        let last_byte_filled_bits = prev_bits_len % 8;
-        let last_byte_free_bits = (8 - prev_bits_len % 8) % 8;
+        let last_byte_filled_bits = *bits_read % 8;
+        let last_byte_free_bits = (8 - last_byte_filled_bits) % 8;
         if last_byte_free_bits >= cur_cell_bits_len {
             let bits = parser.read_bits(cur_cell_bits_len)?[0];
             *self.data.last_mut().unwrap() |= bits >> (last_byte_filled_bits); // definetely have something in data as chunks_bits_len.last() != None
             self.chunks_bits_len.push(cur_cell_bits_len);
+            *bits_read += cur_cell_bits_len;
 
             return Ok(());
         }
@@ -101,9 +104,8 @@ impl SnakeData {
 
         self.data.extend(parser.read_bits(cur_cell_bits_len - last_byte_free_bits)?);
         self.chunks_bits_len.push(cur_cell_bits_len);
+        *bits_read += cur_cell_bits_len;
 
-        dbg!(&self.data);
-        dbg!(&self.chunks_bits_len);
         Ok(())
     }
 
@@ -230,6 +232,31 @@ mod tests {
     }
 
     #[test]
+    fn test_snake_data_read_definition_three_unaligned_cells() -> anyhow::Result<()> {
+        let mut last_child_builder = TonCell::builder();
+        last_child_builder.write_bits([0b1010_0000], 3)?;
+        let last_child = last_child_builder.build()?;
+
+        let mut child_builder = TonCell::builder();
+        child_builder.write_bits([0b0011_1100], 8)?;
+        child_builder.write_ref(last_child)?;
+        let child = child_builder.build()?;
+
+        let mut builder = TonCell::builder();
+        builder.write_bits([0b1101_1000], 5)?;
+        builder.write_ref(child)?;
+        let cell = builder.build()?;
+
+        let mut parser = cell.parser();
+        let parsed = SnakeData::read_definition(&mut parser)?;
+
+        assert_eq!(parsed.data, vec![0b1101_1001, 0b1110_0101]);
+        assert_eq!(parsed.chunks_bits_len, vec![5, 8, 3]);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_snake_data_write_definition_two_unaligned_cells() -> anyhow::Result<()> {
         let snake_data = SnakeData {
             data: vec![0b1010_1100, 0b1110_1011, 0b1001_0110],
@@ -254,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_snake_data_string_roundtrip_across_cells() -> anyhow::Result<()> {
-        let s = "snake-data-string-roundtrip-".repeat(8);
+        let s = "snake-data-string-roundtrip-".repeat(40);
         let snake_data = SnakeData::from_str(&s)?;
 
         let cell = snake_data.to_cell()?;
