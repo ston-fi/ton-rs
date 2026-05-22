@@ -39,14 +39,11 @@ async fn assert_get_jetton_content_uri() -> anyhow::Result<()> {
         content.as_external().unwrap().uri.data,
         SnakeData::from_str("https://tarantini.dev/ston/moon.json")?.data
     );
-<<<<<<< HEAD
     let _meta_loader = MetaLoader::builder().build()?;
     // meta is not available anymore
     // let content_res: JettonMetadata = assert_ok!(meta_loader.load(&res.content).await);
     // assert_eq!(content_res.symbol.as_ref().unwrap(), &String::from("MOON"));
     // assert_eq!(content_res.decimals.unwrap(), 0x9);
-=======
->>>>>>> 61e6f5c (Now content is by default TonCell, to get metadataContent, use content())
     Ok(())
 }
 
