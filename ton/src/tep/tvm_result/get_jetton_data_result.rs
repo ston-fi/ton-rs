@@ -15,7 +15,7 @@ pub struct GetJettonDataResult {
 }
 
 impl GetJettonDataResult {
-    pub fn content(&self) -> Result<MetadataContent, ton_core::errors::TonCoreError> {
+    pub fn content_parsed(&self) -> Result<MetadataContent, ton_core::errors::TonCoreError> {
         MetadataContent::from_cell(&self.content)
     }
 }
