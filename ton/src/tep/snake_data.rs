@@ -12,12 +12,12 @@ use ton_core::traits::tlb::TLB;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnakeData {
     pub data: Vec<u8>,
-    pub chunks_len: Vec<usize>,
+    pub chunks_bits_len: Vec<usize>,
 }
 
 #[rustfmt::skip]
 impl SnakeData {
-    pub fn new(data: Vec<u8>) -> Self { Self { data, chunks_len: vec![] } }
+    pub fn new(data: Vec<u8>) -> Self { Self { data, chunks_bits_len: vec![] } }
     pub fn as_str(&self) -> Cow<'_, str> {
         if self.data.is_empty() {
             return Cow::Borrowed("");
@@ -43,51 +43,107 @@ impl TLB for SnakeData {
     fn read_definition(parser: &mut CellParser) -> Result<Self, TonCoreError> {
         let mut result = SnakeData {
             data: vec![],
-            chunks_len: vec![],
+            chunks_bits_len: vec![],
         };
-        Self::read_chunk(parser, &mut result)?;
+        let mut bits_read = 0;
+        result.read_chunk(parser, &mut bits_read)?;
 
         let mut maybe_next_ref = parser.read_next_ref().cloned();
         while let Ok(next_ref) = maybe_next_ref {
             let mut cur_parser = next_ref.parser();
-            Self::read_chunk(&mut cur_parser, &mut result)?;
+            result.read_chunk(&mut cur_parser, &mut bits_read)?;
             maybe_next_ref = cur_parser.read_next_ref().cloned();
         }
         Ok(result)
     }
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
-        Self::write_chunk(builder, &self.data, &self.chunks_len)
+        let data_bits_len = if self.chunks_bits_len.is_empty() {
+            self.data.len() * 8
+        } else {
+            self.chunks_bits_len.iter().sum()
+        };
+        if data_bits_len > self.data.len() * 8 {
+            bail_ton_core_data!(
+                "SnakeData chunks contain {data_bits_len} bits, but data contains only {} bits",
+                self.data.len() * 8
+            );
+        }
+        self.write_chunk(builder, 0, data_bits_len, &self.chunks_bits_len)
     }
 }
 
 impl SnakeData {
-    fn read_chunk(parser: &mut CellParser, result: &mut Self) -> Result<(), TonCoreError> {
-        let chunk_bits_len = parser.data_bits_left()?;
-        if chunk_bits_len % 8 != 0 {
-            bail_ton_core_data!("Expecting data_chunk_len % 8 == 0, got {chunk_bits_len}");
+    fn read_chunk(&mut self, parser: &mut CellParser, bits_read: &mut usize) -> Result<(), TonCoreError> {
+        let cur_cell_bits_len = parser.data_bits_left()?;
+        if cur_cell_bits_len == 0 {
+            return Ok(());
         }
-        result.data.extend(parser.read_bits(chunk_bits_len)?);
-        result.chunks_len.push(chunk_bits_len / 8);
-        Ok(())
-    }
-
-    fn write_chunk(builder: &mut CellBuilder, data: &[u8], chunks_len: &[usize]) -> Result<(), TonCoreError> {
-        let bytes_to_write = if chunks_len.is_empty() {
-            min(data.len(), builder.data_bits_left() / 8)
-        } else {
-            chunks_len[0]
-        };
-
-        let chunk = &data[0..bytes_to_write];
-        builder.write_bits(chunk, chunk.len() * 8)?;
-        if bytes_to_write == data.len() {
+        if self.chunks_bits_len.is_empty() {
+            self.data.extend(parser.read_bits(cur_cell_bits_len)?);
+            self.chunks_bits_len.push(cur_cell_bits_len);
+            *bits_read += cur_cell_bits_len;
             return Ok(());
         }
 
-        let chunks_len_rest = if chunks_len.len() > 1 { &chunks_len[1..] } else { &[] };
+        let last_byte_filled_bits = *bits_read % 8;
+        let last_byte_free_bits = (8 - last_byte_filled_bits) % 8;
+        if last_byte_free_bits >= cur_cell_bits_len {
+            let bits = parser.read_bits(cur_cell_bits_len)?[0];
+            *self.data.last_mut().unwrap() |= bits >> (last_byte_filled_bits); // definetely have something in data as chunks_bits_len.last() != None
+            self.chunks_bits_len.push(cur_cell_bits_len);
+            *bits_read += cur_cell_bits_len;
+
+            return Ok(());
+        }
+
+        if last_byte_free_bits > 0 {
+            let bits = parser.read_bits(last_byte_free_bits)?[0];
+            *self.data.last_mut().unwrap() |= bits >> (last_byte_filled_bits); // filling last unfilled byte
+        }
+
+        self.data.extend(parser.read_bits(cur_cell_bits_len - last_byte_free_bits)?);
+        self.chunks_bits_len.push(cur_cell_bits_len);
+        *bits_read += cur_cell_bits_len;
+
+        Ok(())
+    }
+
+    fn write_chunk(
+        &self,
+        builder: &mut CellBuilder,
+        bits_offset: usize,
+        data_bits_len: usize,
+        chunks_bits_len: &[usize],
+    ) -> Result<(), TonCoreError> {
+        if bits_offset == data_bits_len {
+            return Ok(());
+        }
+
+        let bits_to_write = if let Some(chunk_bits_len) = chunks_bits_len.first() {
+            *chunk_bits_len
+        } else {
+            min(data_bits_len - bits_offset, builder.data_bits_left())
+        };
+        if bits_to_write > data_bits_len - bits_offset {
+            bail_ton_core_data!(
+                "SnakeData chunk contains {bits_to_write} bits, but only {} data bits left",
+                data_bits_len - bits_offset
+            );
+        }
+
+        builder.write_bits_with_offset(&self.data, bits_offset, bits_to_write)?;
+        if bits_offset + bits_to_write == data_bits_len {
+            return Ok(());
+        }
+
+        let chunks_bits_len_rest = if chunks_bits_len.len() > 1 {
+            &chunks_bits_len[1..]
+        } else {
+            &[]
+        };
         let mut child_builder = TonCell::builder();
-        Self::write_chunk(&mut child_builder, &data[bytes_to_write..], chunks_len_rest)?;
+        self.write_chunk(&mut child_builder, bits_offset + bits_to_write, data_bits_len, chunks_bits_len_rest)?;
         builder.write_ref(child_builder.build()?)
     }
 }
@@ -135,17 +191,103 @@ mod tests {
         let cell = builder.build()?;
         let mut parser = cell.parser();
         let _ = parser.read_bits(512); // skip
-        assert_eq!(parser.data_bits_left()?, 63 * 8);
-        assert_eq!(parser.read_bits(63 * 8)?, vec![0b11111111; 63]);
+        assert_eq!(parser.data_bits_left()?, 511);
+        let mut expected_bits = vec![0b11111111; 63];
+        expected_bits.push(0b11111110);
+        assert_eq!(parser.read_bits(511)?, expected_bits);
 
         // just in case - write to empty cell
         let cell = snake_data.to_cell()?;
-        assert_eq!(cell.data_len_bits(), 1016);
-        assert_eq!(cell.refs()[0].data_len_bits(), 8);
+        assert_eq!(cell.data_len_bits(), 1023);
+        assert_eq!(cell.refs()[0].data_len_bits(), 1);
 
         // from_str
 
         assert_eq!(SnakeData::from_str("my awesome snakedata")?.as_str(), "my awesome snakedata");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_snake_data_read_definition_two_unaligned_cells() -> anyhow::Result<()> {
+        let mut child_builder = TonCell::builder();
+        child_builder.write_bits([0b0111_0010, 0b1100_0000], 11)?;
+        let child = child_builder.build()?;
+
+        let mut builder = TonCell::builder();
+        builder.write_bits([0b1010_1100, 0b1110_1000], 13)?;
+        builder.write_ref(child)?;
+        let cell = builder.build()?;
+
+        assert_eq!(cell.data_len_bits(), 13);
+        assert_eq!(cell.refs().len(), 1);
+        assert_eq!(cell.refs()[0].data_len_bits(), 11);
+
+        let mut parser = cell.parser();
+        let parsed = SnakeData::read_definition(&mut parser)?;
+        assert_eq!(parsed.data, vec![0b1010_1100, 0b1110_1011, 0b1001_0110]);
+        assert_eq!(parsed.chunks_bits_len, vec![13, 11]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_snake_data_read_definition_three_unaligned_cells() -> anyhow::Result<()> {
+        let mut last_child_builder = TonCell::builder();
+        last_child_builder.write_bits([0b1010_0000], 3)?;
+        let last_child = last_child_builder.build()?;
+
+        let mut child_builder = TonCell::builder();
+        child_builder.write_bits([0b0011_1100], 8)?;
+        child_builder.write_ref(last_child)?;
+        let child = child_builder.build()?;
+
+        let mut builder = TonCell::builder();
+        builder.write_bits([0b1101_1000], 5)?;
+        builder.write_ref(child)?;
+        let cell = builder.build()?;
+
+        let mut parser = cell.parser();
+        let parsed = SnakeData::read_definition(&mut parser)?;
+
+        assert_eq!(parsed.data, vec![0b1101_1001, 0b1110_0101]);
+        assert_eq!(parsed.chunks_bits_len, vec![5, 8, 3]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_snake_data_write_definition_two_unaligned_cells() -> anyhow::Result<()> {
+        let snake_data = SnakeData {
+            data: vec![0b1010_1100, 0b1110_1011, 0b1001_0110],
+            chunks_bits_len: vec![13, 11],
+        };
+
+        let cell = snake_data.to_cell()?;
+
+        assert_eq!(cell.data_len_bits(), 13);
+        assert_eq!(cell.refs().len(), 1);
+        assert_eq!(cell.refs()[0].data_len_bits(), 11);
+        assert!(cell.refs()[0].refs().is_empty());
+
+        let mut parser = cell.parser();
+        assert_eq!(parser.read_bits(13)?, vec![0b1010_1100, 0b1110_1000]);
+
+        let mut child_parser = cell.refs()[0].parser();
+        assert_eq!(child_parser.read_bits(11)?, vec![0b0111_0010, 0b1100_0000]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_snake_data_string_roundtrip_across_cells() -> anyhow::Result<()> {
+        let s = "snake-data-string-roundtrip-".repeat(40);
+        let snake_data = SnakeData::from_str(&s)?;
+
+        let cell = snake_data.to_cell()?;
+        let parsed = SnakeData::from_cell(&cell)?;
+        assert_eq!(parsed.as_str(), s);
+        assert_eq!(parsed.data, s.as_bytes());
 
         Ok(())
     }

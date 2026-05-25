@@ -1,5 +1,6 @@
 use crate::tep::metadata::MetadataContent;
 use ton_core::cell::TonCell;
+use ton_core::traits::tlb::TLB;
 use ton_core::types::{Coins, TonAddress};
 use ton_macros::FromTVMStack;
 
@@ -9,8 +10,14 @@ pub struct GetJettonDataResult {
     pub total_supply: Coins,
     pub mintable: bool,
     pub admin: TonAddress,
-    pub content: MetadataContent,
+    pub content: TonCell,
     pub wallet_code: TonCell,
+}
+
+impl GetJettonDataResult {
+    pub fn content_parsed(&self) -> Result<MetadataContent, ton_core::errors::TonCoreError> {
+        MetadataContent::from_cell(&self.content)
+    }
 }
 
 #[cfg(test)]
