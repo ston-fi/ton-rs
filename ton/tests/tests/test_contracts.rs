@@ -78,7 +78,7 @@ async fn assert_jetton_master(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let unaligned_meta_master = TonAddress::from_str("EQDr9oR_vr9zsMv1vrN3V6Ob47Rw1fX7NTaUgDP0I85rs6-h")?;
     let contract = JettonMasterContract::new(ctr_cli, &unaligned_meta_master, None).await?;
     let res = assert_ok!(contract.get_jetton_data().await);
-    assert!(matches!(res.content()?, MetadataContent::Internal(_)));
+    assert!(matches!(res.content_parsed()?, MetadataContent::Internal(_)));
 
     // admin stack value is Null instead of Slice
     let broken_admin_master = TonAddress::from_str("EQBc2QDlG4ey7fgM6hlJVu9q9kIWDmryuIYuKPmwpe4Bzymf")?;
