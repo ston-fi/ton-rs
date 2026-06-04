@@ -2,7 +2,7 @@ use std::error::Error;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
 
-use crate::errors::TonError;
+use crate::errors::TonResult;
 use crate::net_config::LiteEndpoint;
 use adnl::AdnlPeer;
 use base64::Engine;
@@ -27,7 +27,7 @@ pub(crate) struct Connection {
 }
 
 impl Connection {
-    pub(crate) fn new(endpoint: LiteEndpoint, conn_timeout: Duration) -> Result<Self, TonError> {
+    pub(crate) fn new(endpoint: LiteEndpoint, conn_timeout: Duration) -> TonResult<Self> {
         let LiteEndpoint { ip, port, id } = endpoint;
         let ip_addr = Ipv4Addr::from(ip as u32);
         let public = BASE64_STANDARD.decode(id.key)?;
@@ -41,12 +41,26 @@ impl Connection {
         Ok(conn)
     }
 
-    pub(crate) async fn exec(&mut self, req: WrappedRequest, req_timeout: Duration) -> Result<Response, TonError> {
-        let ready_service = self.connect().await?.ready().await?;
-        Ok(timeout(req_timeout, ready_service.call(req)).await??)
+    pub(crate) async fn exec(&mut self, req: WrappedRequest, req_timeout: Duration) -> TonResult<Response> {
+        let res = {
+            let ready_service = match self.connect().await?.ready().await {
+                Ok(service) => service,
+                Err(err) => {
+                    self.service = None;
+                    return Err(err.into());
+                }
+            };
+            timeout(req_timeout, ready_service.call(req)).await
+        };
+
+        match &res {
+            Ok(Ok(_)) => {}
+            _ => self.service = None, // reset connection on any error
+        }
+        Ok(res??)
     }
 
-    pub(crate) async fn connect(&mut self) -> Result<&mut ConnService, TonError> {
+    async fn connect(&mut self) -> TonResult<&mut ConnService> {
         if self.service.is_none() {
             let adnl = timeout(self.conn_timeout, AdnlPeer::connect(&self.public, self.addr)).await??;
 

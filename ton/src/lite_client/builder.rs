@@ -86,11 +86,11 @@ impl Builder {
 
         let metrics = LiteClientMetrics::new(nodes_count as u32, conn_per_node)?;
 
-        let connection_pool = AutoPool::new_with_config(ap_config, connections);
+        let conn_pool = AutoPool::new_with_config(ap_config, connections);
         let inner = Inner {
             mainnet: self.mainnet,
             default_req_params: self.default_req_params,
-            conn_pool: connection_pool,
+            conn_pool,
             global_req_id: AtomicU64::new(0),
             metrics,
         };
