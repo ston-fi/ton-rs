@@ -1,5 +1,6 @@
 /target
 /benchmarks/target
+.worktrees/
 ton_macros/target
 Cargo.lock
 .idea
