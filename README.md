@@ -11,6 +11,8 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 
 - `TLB` Derive macros: Automatically derive TLB trait for your types based on it's members
 - Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [enum.rs](examples/enum.rs) example). Provides powerful enums, but use them carefully; read the [Enum with TLB macros](#enum-with-tlb-macros) chapter.
+- `ton_contract!`: Generate a `TonContract` wrapper type and optionally implement method traits for it.
+- `#[ton_methods]`: Generate async get-method implementations for contract traits or impl blocks, with optional `name_format` conversion for emulated method names.
 
 ## ton_core
 - `serde` feature: provides few mods to ser/de core types, check [ton_core/src/serde.rs](ton_core/src/serde.rs). Disabled by default.
