@@ -27,10 +27,46 @@ pub struct StateInit {
 }
 ```
 
-## TonContract
+## TonContract and ton_methods
 
 ```rust
-#[ton_contract]
-pub struct JettonMaster;
-impl JettonMasterMethods for JettonMaster {}
+use ton::contracts::TonContract;
+use ton::errors::TonResult;
+use ton::ton_contract;
+use ton_macros::ton_methods;
+
+#[async_trait::async_trait]
+#[ton_methods]
+pub trait JettonMasterMethods: TonContract {
+    async fn get_jetton_data(&self) -> TonResult<u32>;
+}
+
+ton_contract!(JettonMaster: JettonMasterMethods);
 ```
+
+`#[ton_methods]` generates default get-method implementations for traits or
+inherent impl blocks. By default, it passes the Rust function name to
+`emulate_get_method` unchanged.
+
+Use `name_format` to convert Rust method names before emulation:
+
+```rust
+use ton::contracts::TonContract;
+use ton::errors::TonResult;
+use ton::ton_contract;
+use ton_macros::ton_methods;
+
+#[async_trait::async_trait]
+#[ton_methods(name_format = "camelCase")]
+pub trait OrderContractMethods: TonContract {
+    // Emulates getOrderData.
+    async fn get_order_data(&self) -> TonResult<u32>;
+}
+
+ton_contract!(OrderContract: OrderContractMethods);
+```
+
+Supported format names are based on
+[`convert_case::Case`](https://docs.rs/convert_case/0.11.0/convert_case/enum.Case.html).
+Common values include `snake_case`, `camelCase`, `PascalCase`, `CamelCase`,
+`kebab-case`, and `CONSTANT_CASE`.
