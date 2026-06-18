@@ -6,12 +6,13 @@ use std::str::FromStr;
 use tokio_test::assert_ok;
 use ton::block_tlb::FromTVMStack;
 use ton::tep::jetton::JettonMetadata;
-use ton::tep::metadata::MetaLoader;
+use ton::tep::metadata::{MetaLoader, MetadataContent};
 use ton::tep::nft::NFTItemMetadata;
 use ton::tep::snake_data::SnakeData;
 use ton::tep::tvm_result::GetJettonDataResult;
 use ton::tep::tvm_result::GetWalletAddressResult;
 use ton_core::cell::TonHash;
+use ton_core::traits::tlb::TLB;
 
 #[tokio::test]
 async fn test_get_jetton_metadata_complex() -> anyhow::Result<()> {
@@ -25,6 +26,7 @@ async fn test_get_jetton_metadata_complex() -> anyhow::Result<()> {
     assert_get_wallet_address().await?;
     assert_get_jetton_data_invalid_utf8_sequence().await?;
     assert_jetton_image_data().await?;
+    assert_get_jetton_content_tnt().await?;
 
     Ok(())
 }
@@ -193,5 +195,16 @@ async fn test_meta_data_load_ordinal_https() -> anyhow::Result<()> {
         attributes: Some(serde_json::Value::Array(vec![])),
     };
     assert_eq!(expected_meta, serde_json::from_str(&metadata)?);
+    Ok(())
+}
+
+async fn assert_get_jetton_content_tnt() -> anyhow::Result<()> {
+    // https://tonviewer.com/EQB2Vubu0fyGCvhUM88kxfMVFJ8Nr9QuqH40mG4sKbhg_TNT
+    let content = MetadataContent::from_boc_hex(
+        "b5ee9c7201010701008a00010300c00102012002030143bff872ebdb514d9c97c283b7f0ae5179029e2b6119c39462719e4f46ed8f7413e640040143bff7407e978f01a40711411b1acb773a96bdd93fa83bb5ca8435013c8c4b3ac91f400601020005005868747470733a2f2f63646e2e74616c656e74732e7774662f6a6574746f6e2f6d657461646174612e6a736f6e00040039",
+    )?;
+    let meta_loader = MetaLoader::builder().build()?;
+    let content_res: JettonMetadata = assert_ok!(meta_loader.load(&content).await);
+    assert_eq!(content_res.symbol.as_ref().unwrap(), &String::from("TNT"));
     Ok(())
 }
