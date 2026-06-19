@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 
+- *(ton)* release v0.2.2 ([#199](https://github.com/ston-fi/ton-rs/pull/199))
+- reset connection on error ([#200](https://github.com/ston-fi/ton-rs/pull/200))
+
+## [0.2.2](https://github.com/ston-fi/ton-rs/compare/ton-v0.2.1...ton-v0.2.2) - 2026-06-04
+
+### Other
+
 - reset connection on error ([#200](https://github.com/ston-fi/ton-rs/pull/200))
 
 ## [0.2.1](https://github.com/ston-fi/ton-rs/compare/ton-v0.2.0...ton-v0.2.1) - 2026-06-03
