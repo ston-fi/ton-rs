@@ -10,8 +10,8 @@ tonunstable=["ton/unstable"]
 
 
 [dev-dependencies]
-ton = { path = "../ton", version = "0" }
-ton_core = { path = "../ton_core", version = "0" }
+ton = { path = "../crates/ton", version = "0" }
+ton_core = { path = "../crates/ton_core", version = "0" }
 
 base64 = "0.22"
 fastnum.workspace = true

@@ -153,7 +153,8 @@ mod tests {
     use ton_core::types::TonAddress;
 
     static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
-        EmulBCConfig::from_boc_hex(include_str!("../../../resources/tests/bc_config_key_block_42123611.hex")).unwrap()
+        EmulBCConfig::from_boc_hex(include_str!("../../../../resources/tests/bc_config_key_block_42123611.hex"))
+            .unwrap()
     });
 
     #[test]
@@ -341,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_multiplier_contract() -> anyhow::Result<()> {
-        let code = hex::decode(include_str!("../../../resources/tests/test_multiplier_code.hex"))?;
+        let code = hex::decode(include_str!("../../../../resources/tests/test_multiplier_code.hex"))?;
         let c7 = TVMEmulatorC7::new(
             TonAddress::from_str("Ef8CmPZLxWB-9ypeGdGhEqA6ZNLBFUwnqXPH2eUQd_MzbGh_")?,
             BC_CONFIG.clone(),

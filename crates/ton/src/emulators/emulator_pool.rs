@@ -102,7 +102,7 @@ mod tests {
                     balance: 0,
                     rand_seed: Default::default(),
                     config: EmulBCConfig::from_boc_hex(include_str!(
-                        "../../../resources/tests/bc_config_key_block_42123611.hex"
+                        "../../../../resources/tests/bc_config_key_block_42123611.hex"
                     ))?,
                 },
                 libs_boc: None,
@@ -130,7 +130,7 @@ mod tests {
         let emul_args = TXEmulArgs {
             shard_account_boc: Arc::new(shard_account.to_boc()?),
             bc_config: EmulBCConfig::from_boc_hex(include_str!(
-                "../../../resources/tests/bc_config_key_block_42123611.hex"
+                "../../../../resources/tests/bc_config_key_block_42123611.hex"
             ))?,
             rand_seed: TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?,
             utime: 1738323935,

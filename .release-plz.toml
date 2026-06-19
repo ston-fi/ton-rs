@@ -1,11 +1,11 @@
 [[package]] # the double square brackets define a TOML table array
 name = "ton_macros"
-changelog_path = "ton_macros/CHANGELOG.md"
+changelog_path = "crates/ton_macros/CHANGELOG.md"
 
 [[package]] # the double square brackets define a TOML table array
 name = "ton_core"
-changelog_path = "ton_core/CHANGELOG.md"
+changelog_path = "crates/ton_core/CHANGELOG.md"
 
 [[package]] # the double square brackets define a TOML table array
 name = "ton"
-changelog_path = "ton/CHANGELOG.md"
+changelog_path = "crates/ton/CHANGELOG.md"

@@ -1,7 +1,7 @@
 /target
 /benchmarks/target
 .worktrees/
-ton_macros/target
+crates/ton_macros/target
 Cargo.lock
 .idea
 .vscode

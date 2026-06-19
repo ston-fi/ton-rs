@@ -5,7 +5,7 @@ Set of general-purpose rust libraries to interact with [TON](https://ton.org/) b
 [![CI](https://github.com/ston-fi/ton-rs/actions/workflows/build.yml/badge.svg)](https://github.com/ston-fi/ton-rs/actions/workflows/build.yml)
 [![Crates.io](https://img.shields.io/crates/v/ton.svg)](https://crates.io/crates/ton)
 
-This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib-rs) repository and also uses [tonlib-sys](https://github.com/ston-fi/tonlib-sys) underneath for the [tonlibjson_client](ton/src/clients/tonlibjson) implementation.
+This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib-rs) repository and also uses [tonlib-sys](https://github.com/ston-fi/tonlib-sys) underneath for the [tonlibjson_client](crates/ton/src/clients/tonlibjson) implementation.
 
 ## ton_macros
 
@@ -15,20 +15,20 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - `#[ton_methods]`: Generate async get-method implementations for contract traits or impl blocks, with optional `name_format` conversion for emulated method names.
 
 ## ton_core
-- `serde` feature: provides few mods to ser/de core types, check [ton_core/src/serde.rs](ton_core/src/serde.rs). Disabled by default.
-- [TonCell](ton_core/src/cell/ton_cell.rs)
-- [TonAddress](ton_core/src/types/ton_address.rs)
-- [TLB](ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
-- [Types](ton_core/src/types) - Few basic types, common and stable enough to be in core
+- `serde` feature: provides few mods to ser/de core types, check [ton_core/src/serde.rs](crates/ton_core/src/serde.rs). Disabled by default.
+- [TonCell](crates/ton_core/src/cell/ton_cell.rs)
+- [TonAddress](crates/ton_core/src/types/ton_address.rs)
+- [TLB](crates/ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
+- [Types](crates/ton_core/src/types) - Few basic types, common and stable enough to be in core
 
 ## ton
 - `tonlibjson` feature: Disabled by default. Enable it if you need `TLClient`, `Emulator` or `TonContract` functionality.
 - Use `TON_NET_CONF_MAINNET_PATH` or `TON_NET_CONF_TESTNET_PATH` env variables to override `netconfig.json` and use your own TON nodes.
-- [TLBAdapters](ton/src/tlb_adapters.rs) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
-- [BlockTLB](ton/src/block_tlb.rs) - Bunch of types to interact with raw blockchain data (However it's not fully covered)
-- [TonWallet](ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
-- [TLClient](ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
-- [TonContract](ton/src/contracts/ton_contract.rs) - Use it to get data or execute methods on TON contracts
+- [TLBAdapters](crates/ton/src/tlb_adapters.rs) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
+- [BlockTLB](crates/ton/src/block_tlb.rs) - Bunch of types to interact with raw blockchain data (However it's not fully covered)
+- [TonWallet](crates/ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
+- [TLClient](crates/ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
+- [TonContract](crates/ton/src/contracts/ton_contract.rs) - Use it to get data or execute methods on TON contracts
 
 
 ## Getting started
@@ -106,7 +106,7 @@ enum OuterEnum {
     Variant2(u16),      // Prefix overall = 0b1011
 }
 ```
-Be careful with null (zero-length) prefixes. A null prefix acts like a wildcard; during parsing, variants are tried in declaration order, so a null-prefix variant placed earlier can consume the input before later variants are considered. See tests in [ton_core/src/traits/tlb/test_tlb_enum.rs](ton_core/src/traits/tlb/test_tlb_enum.rs) for the shadowing and the safe-prefix example.
+Be careful with null (zero-length) prefixes. A null prefix acts like a wildcard; during parsing, variants are tried in declaration order, so a null-prefix variant placed earlier can consume the input before later variants are considered. See tests in [ton_core/src/traits/tlb/test_tlb_enum.rs](crates/ton_core/src/traits/tlb/test_tlb_enum.rs) for the shadowing and the safe-prefix example.
 
 ## Contribution
 
