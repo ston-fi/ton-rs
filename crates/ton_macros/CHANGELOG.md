@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.1.0...ton_macros-v0.1.1) - 2026-06-19
+
+### Other
+
+- move crates to /crates
+
 ## [0.0.9](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.0.8...ton_macros-v0.0.9) - 2026-01-14
 
 ### Other
