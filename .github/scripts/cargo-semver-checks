@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+real_bin="${CARGO_SEMVER_CHECKS_BIN:-$HOME/.cargo/bin/cargo-semver-checks}"
+
+if [[ ! -x "$real_bin" ]]; then
+    echo "cargo-semver-checks binary not found at $real_bin" >&2
+    exit 127
+fi
+
+has_feature_mode=false
+for arg in "$@"; do
+    case "$arg" in
+        --default-features|--only-explicit-features|--all-features|--features|--current-features|--baseline-features)
+            has_feature_mode=true
+            ;;
+    esac
+done
+
+if [[ "$#" -ge 2 && "$1" == "semver-checks" && "$2" == "check-release" && "$has_feature_mode" == false ]]; then
+    exec "$real_bin" "$@" --default-features
+fi
+
+exec "$real_bin" "$@"
