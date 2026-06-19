@@ -1,3 +1,7 @@
+[workspace]
+release_always = false
+publish_timeout = "20m"
+
 [[package]] # the double square brackets define a TOML table array
 name = "ton_macros"
 changelog_path = "crates/ton_macros/CHANGELOG.md"
