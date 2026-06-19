@@ -33,6 +33,8 @@ jobs:
           tool: cargo-semver-checks@0.48.0,release-plz@0.3.159
       - name: Configure git user
         uses: release-plz/git-config@59144859caf016f8b817a2ac9b051578729173c4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run release-plz
         run: |
           export CARGO_SEMVER_CHECKS_BIN="$(command -v cargo-semver-checks)"
