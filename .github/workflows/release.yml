@@ -27,11 +27,22 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Configure release semver checks
-        run: echo "$GITHUB_WORKSPACE/.github/scripts" >> "$GITHUB_PATH"
+      - name: Install release tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-semver-checks@0.48.0,release-plz@0.3.159
+      - name: Configure git user
+        uses: release-plz/git-config@59144859caf016f8b817a2ac9b051578729173c4
       - name: Run release-plz
-        uses: MarcoIeni/release-plz-action@v0.5
+        run: |
+          export CARGO_SEMVER_CHECKS_BIN="$(command -v cargo-semver-checks)"
+          export PATH="$GITHUB_WORKSPACE/.github/scripts:$PATH"
+          release-plz release-pr \
+            --git-token "$GITHUB_TOKEN" \
+            --repo-url "https://github.com/${GITHUB_REPOSITORY}"
+          release-plz release \
+            --git-token "$GITHUB_TOKEN" \
+            --token "$CARGO_REGISTRY_TOKEN"
         env:
-          CARGO_SEMVER_CHECKS_BIN: ${{ env.HOME }}/.cargo/bin/cargo-semver-checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_REGISTRY_TOKEN }}
