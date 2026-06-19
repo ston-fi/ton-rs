@@ -101,9 +101,10 @@ mod tests {
                     unix_time: 0,
                     balance: 0,
                     rand_seed: Default::default(),
-                    config: EmulBCConfig::from_boc_hex(include_str!(
-                        "../../../../resources/tests/bc_config_key_block_42123611.hex"
-                    ))?,
+                    config: EmulBCConfig::from_boc_hex(include_str!(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/resources/tests/bc_config_key_block_42123611.hex"
+                    )))?,
                 },
                 libs_boc: None,
                 debug_enabled: None,
@@ -129,9 +130,10 @@ mod tests {
 
         let emul_args = TXEmulArgs {
             shard_account_boc: Arc::new(shard_account.to_boc()?),
-            bc_config: EmulBCConfig::from_boc_hex(include_str!(
-                "../../../../resources/tests/bc_config_key_block_42123611.hex"
-            ))?,
+            bc_config: EmulBCConfig::from_boc_hex(include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/resources/tests/bc_config_key_block_42123611.hex"
+            )))?,
             rand_seed: TonHash::from_str("14857b338a5bf80a4c87e726846672173bb780f694c96c15084a3cbcc719ebf0")?,
             utime: 1738323935,
             lt: 53483578000001,
