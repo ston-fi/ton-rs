@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs::exists;
 
-pub const TON_NET_CONF_MAINNET_PUBLIC: &str = include_str!("../../../resources/net_config/mainnet_public.json");
-pub const TON_NET_CONF_TESTNET_PUBLIC: &str = include_str!("../../../resources/net_config/testnet_public.json");
+pub const TON_NET_CONF_MAINNET_PUBLIC: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/net_config/mainnet_public.json"));
+pub const TON_NET_CONF_TESTNET_PUBLIC: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/net_config/testnet_public.json"));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TonNetConfig {

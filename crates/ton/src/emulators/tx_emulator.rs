@@ -219,8 +219,11 @@ mod tests {
     });
 
     pub static BC_CONFIG: LazyLock<EmulBCConfig> = LazyLock::new(|| {
-        EmulBCConfig::from_boc_hex(include_str!("../../../../resources/tests/bc_config_key_block_42123611.hex"))
-            .unwrap()
+        EmulBCConfig::from_boc_hex(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/resources/tests/bc_config_key_block_42123611.hex"
+        )))
+        .unwrap()
     });
 
     pub static TEST_SHARD_ACCOUNT: LazyLock<ShardAccount> = LazyLock::new(|| {
@@ -272,7 +275,7 @@ mod tests {
         // no vm_code in result, remove should_panic when it will be fixed
         sys_tonlib_set_verbosity_level(1);
 
-        let args_json = include_str!("../../../../resources/tests/txemulord_with_libs.json");
+        let args_json = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tests/txemulord_with_libs.json"));
         let mut emulator = TXEmulator::new(0, false)?;
         let mut emul_ord_args: TXEmulOrdArgs = serde_json::from_str(args_json)?;
 
@@ -289,9 +292,10 @@ mod tests {
     #[test]
     fn test_tx_emulator_prev_blocks_info_required() -> anyhow::Result<()> {
         // https://tonviewer.com/transaction/3b464a32195b556407a922e3bbfea138550b5cc038551adcdc28d4cf73291daf
-        let args_json = include_str!(
-            "../../../../resources/tests/txemulord_EQAQAUqxkIId2T0l1v0CBjczoPW7pS-5pQ0-J2Ap1pvac9XY_64826315000001.json"
-        );
+        let args_json = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/resources/tests/txemulord_EQAQAUqxkIId2T0l1v0CBjczoPW7pS-5pQ0-J2Ap1pvac9XY_64826315000001.json"
+        ));
 
         let emul_args: TXEmulOrdArgs = serde_json::from_str(args_json)?;
         let mut emulator = TXEmulator::new(0, false)?;

@@ -130,7 +130,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_load_cached_tx() -> anyhow::Result<()> {
-        let cache_dir = "../../resources/tests";
+        let cache_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tests");
         let address = TonAddress::from_str("EQCGScrZe1xbyWqWDvdI6mzP-GAcAWFv6ZXuaJOuSqemxku4")?;
         let lt = 64954068000009;
         let hash = TonHash::from_str("16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7")?;
@@ -142,7 +142,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_load_cached_contract_state() -> anyhow::Result<()> {
-        let cache_dir = "../../resources/tests";
+        let cache_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/resources/tests");
         let address = TonAddress::from_str("EQCGScrZe1xbyWqWDvdI6mzP-GAcAWFv6ZXuaJOuSqemxku4")?;
         let lt = 64954068000009;
         let hash = TonHash::from_str("16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7")?;
