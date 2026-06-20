@@ -4,6 +4,7 @@ use ton_core::types::TonAddress;
 use ton_macros::FromTVMStack;
 
 #[derive(Debug, Clone, PartialEq, Eq, FromTVMStack)]
+#[from_tvm_stack(allow_extra = true)]
 pub struct GetWalletDataResult {
     pub balance: I512,
     pub owner: TonAddress,
@@ -14,8 +15,31 @@ pub struct GetWalletDataResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block_tlb::FromTVMStack;
+    use crate::block_tlb::{FromTVMStack, TVMStack};
     use std::str::FromStr;
+    use ton_core::traits::tlb::TLB;
+
+    #[test]
+    fn test_get_wallet_data_result_allows_extra_top_stack_values() -> anyhow::Result<()> {
+        let owner = TonAddress::from_str("UQAj-peZGPH-cC25EAv4Q-h8cBXszTmkch6ba6wXC8BM40qt")?;
+        let master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
+        let wallet_code = TonCell::empty().clone();
+
+        let mut stack = TVMStack::default();
+        stack.push_tiny_int(42);
+        stack.push_cell(owner.to_cell()?);
+        stack.push_cell(master.to_cell()?);
+        stack.push_cell(wallet_code.clone());
+        stack.push_tiny_int(777);
+
+        let result = GetWalletDataResult::from_stack(&mut stack)?;
+
+        assert_eq!(result.balance, 42.into());
+        assert_eq!(result.owner, owner);
+        assert_eq!(result.master, master);
+        assert_eq!(result.wallet_code, wallet_code);
+        Ok(())
+    }
 
     #[test]
     fn test_get_wallet_data_result_from_stack_balance_tiny_int() -> anyhow::Result<()> {

@@ -6,6 +6,7 @@ use quote::quote;
 #[deluxe(attributes(from_tvm_stack))]
 struct HeaderAttributes {
     ensure_empty: Option<bool>, // use false as default
+    allow_extra: Option<bool>,  // use false as default
 }
 
 pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
@@ -29,6 +30,7 @@ pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream
         unimplemented!("Now it is implemented only for ordinary structs with named fields")
     };
 
+    let members_count = fields.len();
     let names = fields.clone().into_iter().map(|f| {
         let name = &f.ident;
         quote! {#name}
@@ -45,10 +47,21 @@ pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream
     } else {
         quote! {}
     };
+    let drop_extra = if header_attrs.allow_extra.unwrap_or(false) {
+        quote! {
+            while stack.len() > #members_count {
+                let _ = stack.pop_checked()?;
+            }
+        }
+    } else {
+        quote! {}
+    };
 
     let expanded = quote! {
         impl #crate_path::block_tlb::FromTVMStack for #name  {
             fn from_stack(stack: &mut #crate_path::block_tlb::TVMStack) -> #crate_path::errors::TonResult<Self> {
+                #drop_extra
+
                 #(#assigns)*
 
                 #ensure_empty

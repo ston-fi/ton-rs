@@ -5,6 +5,7 @@ use ton_core::types::{Coins, TonAddress};
 use ton_macros::FromTVMStack;
 
 #[derive(Debug, Clone, PartialEq, FromTVMStack)]
+#[from_tvm_stack(allow_extra = true)]
 pub struct GetJettonDataResult {
     pub total_supply: Coins,
     pub mintable: bool,
