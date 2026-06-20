@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/ston-fi/ton-rs/compare/ton-v0.2.3...ton-v0.2.4) - 2026-06-20
+
+### Other
+
+- From tvm stack update ([#207](https://github.com/ston-fi/ton-rs/pull/207))
+
 ## [0.2.3](https://github.com/ston-fi/ton-rs/compare/ton-v0.2.2...ton-v0.2.3) - 2026-06-19
 
 ### Other
