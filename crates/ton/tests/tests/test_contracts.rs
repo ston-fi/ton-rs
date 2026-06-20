@@ -29,6 +29,7 @@ async fn test_contracts() -> anyhow::Result<()> {
 
     let res = try_join!(
         assert_jetton_wallet_get_wallet(&ctr_cli),
+        assert_jetton_wallet_get_wallet_extra_fields(&ctr_cli),
         assert_jetton_wallet_custom_impl(&ctr_cli),
         assert_jetton_master(&ctr_cli),
         assert_jetton_scaled_ui_master_contract(&ctr_cli),
@@ -49,6 +50,14 @@ async fn test_contracts() -> anyhow::Result<()> {
 async fn assert_jetton_wallet_get_wallet(ctr_cli: &ContractClient) -> anyhow::Result<()> {
     let usdt_wallet = TonAddress::from_str("EQAmJs8wtwK93thF78iD76RQKf9Z3v2sxM57iwpZZtdQAiVM")?;
     let contract = JettonWalletContract::new(ctr_cli, &usdt_wallet, None).await?;
+    assert_ok!(contract.get_wallet_data().await);
+    Ok(())
+}
+
+// get_wallet_data return 5 elements on stack, first one is extra and must be dropped by derive macro
+async fn assert_jetton_wallet_get_wallet_extra_fields(ctr_cli: &ContractClient) -> anyhow::Result<()> {
+    let mat_wallet = TonAddress::from_str("EQCMi4954j1vlHpt3u8fDGqbsyxskocrE_sUL9YejYcIfmLN")?;
+    let contract = JettonWalletContract::new(ctr_cli, &mat_wallet, None).await?;
     assert_ok!(contract.get_wallet_data().await);
     Ok(())
 }
