@@ -25,7 +25,10 @@ impl Metadata for JettonMetadata {
 
         let decimals = match external_meta.as_mut().and_then(|x| x.decimals.take()) {
             Some(dec) => Some(dec),
-            None => META_DECIMALS.use_string_or(None, dict).map(|v| v.as_str().parse::<u8>().unwrap()),
+            None => META_DECIMALS
+                .use_string_or(None, dict)
+                .map(|v| v.parse::<u8>().map_err(|_| TonError::MetadataParseError))
+                .transpose()?,
         };
 
         Ok(JettonMetadata {
