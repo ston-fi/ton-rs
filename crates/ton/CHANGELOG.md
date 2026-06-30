@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5](https://github.com/ston-fi/ton-rs/compare/ton-v0.2.4...ton-v0.2.5) - 2026-06-30
+
+### Other
+
+- return error instead of unwrap
+
 ## [0.2.4](https://github.com/ston-fi/ton-rs/compare/ton-v0.2.3...ton-v0.2.4) - 2026-06-20
 
 ### Other
