@@ -30,6 +30,8 @@ impl TonAddress {
     // Is used to identify TON address
     pub const ZERO: Self = TonAddress::new(0, TonHash::ZERO);
     pub const NATIVE: Self = TonAddress::new(0, TonHash::ZERO);
+    #[rustfmt::skip]
+    pub const USDT: Self = TonAddress::new(0, TonHash::from_slice_sized(&[0xb1, 0x13, 0xa9, 0x94, 0xb5, 0x02, 0x4a, 0x16, 0x71, 0x9f, 0x69, 0x13, 0x93, 0x28, 0xeb, 0x75, 0x95, 0x96, 0xc3, 0x8a, 0x25, 0xf5, 0x90, 0x28, 0xb1, 0x46, 0xfe, 0xcd, 0xc3, 0x62, 0x1d, 0xfe, ]), );
 
     pub fn is_zero(&self) -> bool { self == &TonAddress::ZERO }
     pub fn is_native(&self) -> bool { self == &TonAddress::NATIVE }
@@ -336,6 +338,8 @@ mod tests {
     #[test]
     fn test_ton_address_zero_to_string() -> anyhow::Result<()> {
         assert_eq!(TonAddress::ZERO.to_string(), "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
+        assert_eq!(TonAddress::NATIVE.to_string(), "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c");
+        assert_eq!(TonAddress::USDT.to_string(), "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs");
         Ok(())
     }
 }

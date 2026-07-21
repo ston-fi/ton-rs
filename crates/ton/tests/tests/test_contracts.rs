@@ -8,8 +8,7 @@ use ton::contracts::NFTItemContract;
 use ton::contracts::tl_provider::TLProvider;
 use ton::contracts::*;
 use ton::errors::TonResult;
-use ton::tep::metadata::{MetaLoader, MetadataContent, MetadataInternal};
-use ton::tep::nft::NFTItemMetadata;
+use ton::tep::metadata::{MetadataContent, MetadataInternal};
 use ton::tep::snake_data::SnakeData;
 use ton::tep::tvm_result::GetWalletDataResult;
 use ton::ton_contract;
@@ -128,22 +127,12 @@ async fn assert_nft_item_load_full_nft_data(ctr_cli: &ContractClient) -> anyhow:
     let contract = NFTItemContract::new(ctr_cli, &semichain, None).await?;
 
     let data = contract.ext_load_full_nft_data().await?;
-    let meta_loader = MetaLoader::builder().build()?;
-    let content_res: NFTItemMetadata = meta_loader.load(&data.individual_content).await?;
-    let expected = NFTItemMetadata {
-        name: Some(String::from("Season 2 Airdrop Member")),
-        description: Some(String::from(
-            "This SBT confirms that you have completed the Season 2 checklist and claimed the official airdrop, verifying your daily logins, partner game plays, and event participation. Holders earn community recognition and gain early access to benefits from future drops.",
-        )),
-        image: Some(String::from(
-            "https://static.sidusheroes.com/prod/tonstation/nft/Season%202%20Airdrop%20Participant.png",
-        )),
-        content_url: Some(String::from(
-            "https://static.sidusheroes.com/prod/tonstation/nft/Season%202%20Airdrop%20Participant.png",
-        )),
-        attributes: None,
+    // The item has empty individual content, so the collection must resolve it to the external metadata URI.
+    // Do not fetch the URI here: the off-chain endpoint can change independently of the contract behavior.
+    let MetadataContent::External(metadata) = data.individual_content else {
+        anyhow::bail!("Expected external metadata after loading full NFT data");
     };
-    assert_eq!(expected, content_res);
+    assert_eq!(metadata.uri.as_str(), "https://tonstation.app/nft-api/api/v1/nfts/TON%20station%20sbt/411");
 
     Ok(())
 }
