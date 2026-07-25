@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.1.4...ton_core-v0.2.0) - 2026-07-25
+
+### Other
+
+- Refactor #NI: Make hashes and addresses copyable ([#213](https://github.com/ston-fi/ton-rs/pull/213))
+
 ## [0.1.4](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.1.3...ton_core-v0.1.4) - 2026-07-21
 
 ### Other
