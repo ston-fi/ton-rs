@@ -155,7 +155,7 @@ mod tests {
             crate::emulators::tx_emulator::tests::TEST_MSG_IN_EXT.clone(),
             &test_shard_acc,
             &crate::emulators::tx_emulator::tests::BC_CONFIG,
-            crate::emulators::tx_emulator::tests::TEST_RAND_SEED.clone(),
+            *crate::emulators::tx_emulator::tests::TEST_RAND_SEED,
             1738323935,
             53483578000001,
         )?;

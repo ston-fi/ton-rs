@@ -52,7 +52,7 @@ pub trait TLB: Sized {
     }
 
     // Utilities
-    fn cell_hash(&self) -> TonCoreResult<TonHash> { Ok(self.to_cell()?.hash()?.clone()) }
+    fn cell_hash(&self) -> TonCoreResult<TonHash> { Ok(*self.to_cell()?.hash()?) }
 
     /// Reading
     fn from_cell(cell: &TonCell) -> TonCoreResult<Self> { Self::read(&mut cell.parser()) }

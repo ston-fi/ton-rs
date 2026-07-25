@@ -52,7 +52,7 @@ impl ContractClient {
             Some(boc) => boc,
             None => {
                 return Err(TonError::TonContractNotFull {
-                    address: state.address.clone(),
+                    address: state.address,
                     tx_id: Some(state.last_tx_id.clone()),
                     missing_field: "code".to_string(),
                 });
@@ -64,11 +64,11 @@ impl ContractClient {
             Some(boc) => TonCell::from_boc(boc.to_owned())?,
             None => TonCell::empty().to_owned(),
         };
-        let code_hash = TonCell::from_boc(code_boc.to_owned())?.hash()?.clone();
+        let code_hash = *TonCell::from_boc(code_boc.to_owned())?.hash()?;
         let static_lib_ids = TonCellUtils::extract_lib_ids([&code_cell, &data_cell])?;
 
         let c7 = TVMEmulatorC7 {
-            address: state.address.clone(),
+            address: state.address,
             unix_time: SystemTime::now().duration_since(UNIX_EPOCH).map_err(TonCoreError::from)?.as_secs() as u32,
             balance: state.balance as u64,
             rand_seed: TonHash::ZERO,
@@ -90,7 +90,7 @@ impl ContractClient {
 
         let (mut emulation_libs, dyn_libs) = try_join!(
             self.inner.cache.get_or_load_libs(static_lib_ids),
-            self.inner.cache.get_or_load_code_dyn_libs(code_hash.clone()),
+            self.inner.cache.get_or_load_code_dyn_libs(code_hash),
         )?;
         emulation_libs.extend(dyn_libs);
 
@@ -110,10 +110,10 @@ impl ContractClient {
             if iteration > self.inner.max_dyn_libs_per_contract {
                 return Err(TonError::EmulatorTooManyLibraries(self.inner.max_dyn_libs_per_contract));
             }
-            let Some(lib) = self.inner.cache.get_or_load_lib(missing_lib_hash.clone()).await? else {
+            let Some(lib) = self.inner.cache.get_or_load_lib(missing_lib_hash).await? else {
                 return Err(TonError::EmulatorMissingLibrary(missing_lib_hash));
             };
-            self.inner.cache.add_code_dyn_lib(code_hash.to_owned(), missing_lib_hash.clone());
+            self.inner.cache.add_code_dyn_lib(code_hash, missing_lib_hash);
 
             libs_dict.insert(missing_lib_hash, lib.into());
             emul_task.state.libs_boc = Some(Arc::new(libs_dict.to_boc()?));

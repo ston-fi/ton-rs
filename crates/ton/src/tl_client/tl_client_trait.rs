@@ -154,7 +154,7 @@ pub trait TLClientTrait: Send + Sync {
             }
             let last = &response.txs.last().unwrap();
             after = TLAccountTxId {
-                address_hash: last.address_hash.clone(),
+                address_hash: last.address_hash,
                 lt: last.lt,
             };
             txs.extend(response.txs);

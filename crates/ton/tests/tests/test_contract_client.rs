@@ -32,17 +32,17 @@ async fn assert_tl_provider_works(tl_client: TLClient) -> anyhow::Result<()> {
     let last_seqno = tl_provider.last_mc_seqno().await?;
     assert_ne!(last_seqno, 0);
 
-    let latest_state = tl_provider.load_state(usdt_master.clone(), None).await?;
+    let latest_state = tl_provider.load_state(usdt_master, None).await?;
     assert_eq!(latest_state.address, usdt_master);
 
-    let state_by_tx = tl_provider.load_state(usdt_master.clone(), Some(latest_state.last_tx_id.clone())).await?;
+    let state_by_tx = tl_provider.load_state(usdt_master, Some(latest_state.last_tx_id.clone())).await?;
     assert_eq!(state_by_tx, latest_state);
 
     let bc_config = tl_provider.load_bc_config(None).await?;
     assert!(!bc_config.is_empty());
 
     let lib_id = TonHash::from_str("A9338ECD624CA15D37E4A8D9BF677DDC9B84F0E98F05F2FB84C7AFE332A281B4")?;
-    let libs = tl_provider.load_libs(vec![lib_id.clone()], None).await?;
+    let libs = tl_provider.load_libs(vec![lib_id], None).await?;
     assert_eq!(libs.len(), 1);
     assert_eq!(libs[0].0, lib_id);
 

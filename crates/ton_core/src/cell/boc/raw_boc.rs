@@ -221,7 +221,7 @@ fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedC
                 cell,
                 index: RefCell::new(new_hash_index),
             };
-            cells_by_hash.insert(hash.clone(), indexed_cell);
+            cells_by_hash.insert(*hash, indexed_cell);
 
             new_hash_index += 1;
             next_cells.extend(cell.refs());

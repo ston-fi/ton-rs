@@ -262,9 +262,9 @@ mod tests {
         let hash = TonHash::from_str("16befdc4512ca3ffaa2919e1f0d7635588edcb9fa7d3990fe83e89275c291cc7")?;
 
         let val = TestStruct {
-            address: address.clone(),
-            hash: hash.clone(),
-            hash_opt: Some(hash.clone()),
+            address,
+            hash,
+            hash_opt: Some(hash),
         };
 
         let val_json_str = serde_json::to_string(&val)?;

@@ -66,7 +66,7 @@ async fn assert_tl_client_get_config(client: &TLClient) -> anyhow::Result<()> {
 async fn assert_tl_client_get_libs(client: &TLClient) -> anyhow::Result<()> {
     // https://tonviewer.com/EQCGScrZe1xbyWqWDvdI6mzP-GAcAWFv6ZXuaJOuSqemxku4
     let lib_id = TonHash::from_str("A9338ECD624CA15D37E4A8D9BF677DDC9B84F0E98F05F2FB84C7AFE332A281B4")?;
-    let libs = client.get_libs(vec![lib_id.clone()]).await?;
+    let libs = client.get_libs(vec![lib_id]).await?;
     assert_eq!(libs.len(), 1);
     assert_eq!(libs[0].hash, lib_id.to_vec());
     Ok(())
@@ -78,17 +78,16 @@ async fn assert_tl_client_get_account_state(client: &TLClient) -> anyhow::Result
     )?;
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
 
-    let usdt_state = client.get_account_state(usdt_master.clone()).await?;
+    let usdt_state = client.get_account_state(usdt_master).await?;
     let TLAccountState::Raw { code, .. } = usdt_state.account_state else {
         panic!("Expected Raw account state");
     };
     assert_eq!(TonCell::from_boc(code)?, expected_code);
 
-    let usdt_state_raw = client.get_account_state_raw(usdt_master.clone()).await?;
+    let usdt_state_raw = client.get_account_state_raw(usdt_master).await?;
     assert_eq!(TonCell::from_boc(usdt_state_raw.code.clone())?, expected_code);
 
-    let mut usdt_by_tx =
-        client.get_account_state_raw_by_tx(usdt_master.clone(), usdt_state_raw.last_tx_id.clone()).await?;
+    let mut usdt_by_tx = client.get_account_state_raw_by_tx(usdt_master, usdt_state_raw.last_tx_id.clone()).await?;
     // these field doesn't relate to the state
     usdt_by_tx.sync_utime = usdt_state_raw.sync_utime;
     usdt_by_tx.block_id = usdt_state_raw.block_id.clone();
@@ -98,9 +97,9 @@ async fn assert_tl_client_get_account_state(client: &TLClient) -> anyhow::Result
 
 async fn assert_tl_client_get_account_txs(client: &TLClient) -> anyhow::Result<()> {
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
-    let usdt_state_raw = client.get_account_state_raw(usdt_master.clone()).await?;
+    let usdt_state_raw = client.get_account_state_raw(usdt_master).await?;
 
-    let raw_txs = client.get_account_txs(usdt_master.clone(), usdt_state_raw.last_tx_id.clone()).await?;
+    let raw_txs = client.get_account_txs(usdt_master, usdt_state_raw.last_tx_id.clone()).await?;
     assert!(!raw_txs.txs.is_empty());
     assert_eq!(raw_txs.txs[0].tx_id, usdt_state_raw.last_tx_id);
 
@@ -141,7 +140,7 @@ async fn assert_tl_client_get_block_txs(client: &TLClient) -> anyhow::Result<()>
     assert_eq!(tx_ids.len(), 16);
     assert_eq!(tx_ids[0].lt, 58424288000001);
     assert_eq!(
-        TonAddress::new(0, tx_ids[0].address_hash.clone()),
+        TonAddress::new(0, tx_ids[0].address_hash),
         TonAddress::from_str("EQAJkSJl2NMvTBiXW9Yyq5yjLZxs1mS06sbNycl9MMGekmk_")?
     );
     assert_eq!(tx_ids[0].tx_hash, TonHash::from_str("g+UtOuTdzlYXuAVndQ0UMV3jA5amwovuJ/ovGV4ykzg=")?);
@@ -149,7 +148,7 @@ async fn assert_tl_client_get_block_txs(client: &TLClient) -> anyhow::Result<()>
     // order doesn't match with ton.cx view ¯\_(ツ)_/¯
     assert_eq!(tx_ids[15].lt, 58424288000001);
     assert_eq!(
-        TonAddress::new(0, tx_ids[15].address_hash.clone()),
+        TonAddress::new(0, tx_ids[15].address_hash),
         TonAddress::from_str("EQA4xAXkdxtX6dG3E7EAG704jm_2tK8dOTit-6e0WwEKdo6X")?
     );
     assert_eq!(tx_ids[15].tx_hash, TonHash::from_str("zer/c8RprjxJ80pQkEeQHBEAW+qr9dDSilEkGTTZ8iI=")?);

@@ -56,11 +56,11 @@ mod tests {
         )?;
         let cells = vec![&code];
         let lib_ids = TonCellUtils::extract_lib_ids(cells)?;
-        assert_eq!(lib_ids, HashSet::from([expected_lib_id.clone()]));
+        assert_eq!(lib_ids, HashSet::from([expected_lib_id]));
 
         let cells = vec![&code];
         let lib_ids = TonCellUtils::extract_lib_ids(cells)?;
-        assert_eq!(lib_ids, HashSet::from([expected_lib_id.clone()]));
+        assert_eq!(lib_ids, HashSet::from([expected_lib_id]));
         Ok(())
     }
 
