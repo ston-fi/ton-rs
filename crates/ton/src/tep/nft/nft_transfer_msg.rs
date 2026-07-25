@@ -31,7 +31,7 @@ impl NFTTransferMsg {
     pub fn new(new_owner: &TonAddress) -> Self {
         NFTTransferMsg {
             query_id: 0,
-            new_owner: new_owner.clone(),
+            new_owner: *new_owner,
             response_dst: TonAddress::ZERO,
             custom_payload: None,
             forward_ton_amount: TLBCoins::ZERO,

@@ -292,12 +292,12 @@ impl<'a> CellMetaBuilder<'a> {
                     let this_hash_index = level_mask.hash_index();
                     if hash_index != this_hash_index {
                         let pruned = self.calc_pruned_hash_depth(level_mask)?;
-                        (pruned[hash_index].hash.clone(), pruned[hash_index].depth)
+                        (pruned[hash_index].hash, pruned[hash_index].depth)
                     } else {
-                        (hashes[0].clone(), depths[0])
+                        (hashes[0], depths[0])
                     }
                 }
-                _ => (hashes[hash_index].clone(), depths[hash_index]),
+                _ => (hashes[hash_index], depths[hash_index]),
             };
 
             resolved_hashes[i as usize] = hash;

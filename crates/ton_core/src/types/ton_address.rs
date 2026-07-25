@@ -20,7 +20,7 @@ const CRC_16_XMODEM: Crc<u16> = Crc::<u16>::new(&crc::CRC_16_XMODEM);
 ///
 /// Can be converted to/from TLB MsgAddress (can represent MsgAddressInt and MsgAddressNone)
 /// Default string representation is URL-safe base64 with bounceable mainnet tag
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TonAddress {
     pub workchain: i32,
     pub hash: TonHash,
@@ -83,7 +83,7 @@ impl TonAddress {
         MsgAddressIntStd {
             anycast: None,
             workchain: self.workchain as i8,
-            address: self.hash.clone(),
+            address: self.hash,
         }
         .into()
     }

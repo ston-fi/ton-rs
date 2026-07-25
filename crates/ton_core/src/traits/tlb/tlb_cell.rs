@@ -12,7 +12,7 @@ impl TLB for TonCell {
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> { builder.write_cell(self) }
 
-    fn cell_hash(&self) -> Result<TonHash, TonCoreError> { Ok(self.hash()?.clone()) }
+    fn cell_hash(&self) -> Result<TonHash, TonCoreError> { Ok(*self.hash()?) }
 
     fn from_boc<T: Into<Arc<Vec<u8>>>>(boc: T) -> Result<Self, TonCoreError> { BoC::from_bytes(boc)?.single_root() }
 

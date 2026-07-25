@@ -23,7 +23,7 @@ pub async fn load_cached_tx(
 ) -> TonResult<Tx> {
     fs::create_dir_all(cache_dir)?;
     let cache_path = format!("{cache_dir}/tx_{hash}_{lt}.hex");
-    let tx_id = TxLTHash::new(lt, hash.clone());
+    let tx_id = TxLTHash::new(lt, *hash);
     if fs::metadata(&cache_path).is_err() {
         log::debug!("tx {tx_id} not found in cache, loading from network...");
         let tx = load_tx(address, &tx_id, mainnet).await?;
@@ -44,7 +44,7 @@ pub async fn load_cached_contract_state(
 ) -> TonResult<Arc<TonContractState>> {
     fs::create_dir_all(cache_dir)?;
     let cache_path = format!("{cache_dir}/contract_state_{address}_{hash}_{lt}.json");
-    let tx_id = TxLTHash::new(lt, hash.clone());
+    let tx_id = TxLTHash::new(lt, *hash);
     if fs::metadata(cache_path.clone()).is_err() {
         log::debug!("state for {tx_id} not found in cache, loading from network...");
         let state = load_contract_state(address, &tx_id, mainnet).await?;
@@ -57,7 +57,7 @@ pub async fn load_cached_contract_state(
 
 async fn load_tx(address: &TonAddress, tx_id: &TxLTHash, mainnet: bool) -> TonResult<Tx> {
     let client = TLClient::builder()?.with_mainnet(mainnet).build().await?;
-    let mut rsp = client.get_account_txs_v2(address.clone(), tx_id.clone(), 1, false).await?;
+    let mut rsp = client.get_account_txs_v2(*address, tx_id.clone(), 1, false).await?;
     if rsp.txs.is_empty() {
         bail_ton!("tx {tx_id} not found for account {address} with mainnet={mainnet}");
     }
@@ -96,11 +96,11 @@ impl From<&TonContractState> for TonContractStateSerial {
     fn from(state: &TonContractState) -> Self {
         TonContractStateSerial {
             mc_seqno: state.mc_seqno,
-            address: state.address.clone(),
+            address: state.address,
             last_tx_id: state.last_tx_id.clone(),
             code_boc: state.code_boc.clone(),
             data_boc: state.data_boc.clone(),
-            frozen_hash: state.frozen_hash.clone(),
+            frozen_hash: state.frozen_hash,
             balance: state.balance,
         }
     }

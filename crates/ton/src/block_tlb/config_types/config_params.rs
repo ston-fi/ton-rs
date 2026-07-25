@@ -50,7 +50,7 @@ impl PartialEq for ConfigParams {
 impl Clone for ConfigParams {
     fn clone(&self) -> Self {
         Self {
-            config_addr: self.config_addr.clone(),
+            config_addr: self.config_addr,
             config: self.config.clone(),
             storage_prices: RwLock::new(None),
             global_version: RwLock::new(None),

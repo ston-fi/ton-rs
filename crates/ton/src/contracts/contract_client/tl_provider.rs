@@ -41,8 +41,8 @@ impl TonProvider for TLProvider {
 
     async fn load_state(&self, address: TonAddress, tx_id: Option<TxLTHash>) -> Result<TonContractState, TonCoreError> {
         let raw_state = match tx_id {
-            Some(id) => self.client.get_account_state_raw_by_tx(address.clone(), id).await,
-            None => self.client.get_account_state_raw(address.clone()).await,
+            Some(id) => self.client.get_account_state_raw_by_tx(address, id).await,
+            None => self.client.get_account_state_raw(address).await,
         }?;
 
         let code_boc = Some(raw_state.code).filter(|x| !x.is_empty()).map(Arc::new);

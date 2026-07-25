@@ -40,7 +40,7 @@ pub trait TonContract: Send + Sync + Sized {
         match state.data_boc.as_ref() {
             Some(data_boc) => Ok(TLB::from_boc(data_boc.to_owned())?),
             None => Err(TonError::TonContractNotFull {
-                address: state.address.clone(),
+                address: state.address,
                 tx_id: Some(state.last_tx_id.clone()),
                 missing_field: "data".to_string(),
             }),

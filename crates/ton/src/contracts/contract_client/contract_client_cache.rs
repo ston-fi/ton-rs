@@ -91,7 +91,7 @@ impl ContractClientCache {
 
     pub(super) async fn get_or_load_libs(&self, lib_ids: HashSet<TonHash>) -> TonResult<HashMap<TonHash, TonCell>> {
         let futs = lib_ids.into_iter().map(|lib_id| async move {
-            let lib = self.get_or_load_lib(lib_id.clone()).await?;
+            let lib = self.get_or_load_lib(lib_id).await?;
             Ok::<_, TonError>(lib.map(|x| (lib_id, x)))
         });
         let libs = try_join_all(futs).await?.into_iter().flatten().collect();
@@ -106,7 +106,7 @@ impl ContractClientCache {
             return Ok(Some(lib.clone()));
         };
 
-        if let Some(lib) = self.load_lib(lib_id.clone()).await? {
+        if let Some(lib) = self.load_lib(lib_id).await? {
             self.libs_cache.insert(lib_id, lib.clone());
             return Ok(Some(lib.clone()));
         }
@@ -125,13 +125,13 @@ impl ContractClientCache {
             Some(_) => self.cache_stats.state_by_tx_miss.fetch_add(1, Relaxed),
             None => self.cache_stats.state_latest_miss.fetch_add(1, Relaxed),
         };
-        let state = self.provider.load_state(address.clone(), tx_id).await?;
+        let state = self.provider.load_state(*address, tx_id).await?;
         Ok(Arc::new(state))
     }
 
     // TODO think about providing mc_seqno
     async fn load_lib(&self, lib_id: TonHash) -> TonResult<Option<TonCell>> {
-        let mut response = self.provider.load_libs(vec![lib_id.clone()], None).await?;
+        let mut response = self.provider.load_libs(vec![lib_id], None).await?;
         let Some(entry) = response.pop() else {
             return Ok(None);
         };
@@ -183,7 +183,7 @@ async fn recent_tx_loop(weak_cache: Weak<ContractClientCache>, idle_on_error: Du
         );
 
         let update_cache_futs = latest_tx_per_addr.into_iter().map(|(address, tx_id)| async move {
-            client_cache_ref.latest_tx_cache.insert(address.clone(), tx_id).await;
+            client_cache_ref.latest_tx_cache.insert(address, tx_id).await;
             client_cache_ref.state_latest_cache.invalidate(&address).await;
         });
         join_all(update_cache_futs).await;

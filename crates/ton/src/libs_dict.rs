@@ -18,7 +18,7 @@ impl LibsDict {
     pub fn new<I: IntoIterator<Item = TonCell>>(libs: I) -> Result<Self, TonCoreError> {
         let mut data = HashMap::new();
         for lib in libs {
-            data.insert(lib.hash()?.clone(), lib.into());
+            data.insert(*lib.hash()?, lib.into());
         }
         Ok(Self { data })
     }

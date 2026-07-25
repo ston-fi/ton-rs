@@ -254,7 +254,7 @@ mod tests {
             TEST_MSG_IN_EXT.clone(),
             &shard_account,
             &BC_CONFIG,
-            TEST_RAND_SEED.clone(),
+            *TEST_RAND_SEED,
             1738323935,
             53483578000001,
         )?;
