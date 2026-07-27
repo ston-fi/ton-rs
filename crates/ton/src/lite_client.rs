@@ -242,7 +242,7 @@ impl Inner {
             let is_retry = attempts.fetch_add(1, Relaxed) > 0;
             self.exec_impl(req_id, &wrap_req, req_params.query_timeout, is_retry).await
         };
-        RetryIf::spawn(strategy, exec_request, retry_condition).await
+        RetryIf::start(strategy, exec_request, retry_condition).await
     }
 
     async fn exec_impl(
