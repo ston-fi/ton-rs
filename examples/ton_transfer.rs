@@ -23,6 +23,7 @@ mod example {
     use ton_core::traits::tlb::TLB;
     use ton_core::types::tlb_core::TLBCoins;
     use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
+    use zeroize::Zeroizing;
 
     // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
     // How external and internal messages work: https://docs.ton.org/v3/guidelines/smart-contracts/howto/wallet#-external-and-internal-messages
@@ -71,7 +72,7 @@ mod example {
 
     pub async fn real_main() -> anyhow::Result<()> {
         // ---------- Wallet initialization ----------
-        let mnemonic = std::env::var("MNEMONIC_STR")?;
+        let mnemonic = Zeroizing::new(std::env::var("MNEMONIC_STR")?);
         // To create w5 ton_wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
         let wallet = TonWallet::new_with_creds(WalletVersion::V4R2, &mnemonic, None)?;
 
