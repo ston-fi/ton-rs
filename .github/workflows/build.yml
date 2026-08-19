@@ -35,6 +35,7 @@ jobs:
       - run: cargo +nightly fmt --check
       - run: cargo clippy
       - run: cargo test --lib --all --verbose --exclude examples
+      - run: cargo test -p ton --lib --no-default-features --features lite-client
   build_all_features:
     runs-on: ubuntu-latest
     steps:

@@ -20,7 +20,17 @@ include = [
 ]
 
 [features]
-tonlibjson = ["dep:tonlib-sys"]
+lite-client = [
+    "dep:adnl",
+    "dep:auto_pool",
+    "dep:dashmap",
+    "dep:everscale-types",
+    "dep:tokio-retry",
+    "dep:tokio-tower",
+    "dep:ton_liteapi",
+    "dep:tower",
+]
+tonlibjson = ["dep:tonlib-sys", "lite-client"]
 unstable = []
 
 
@@ -32,6 +42,10 @@ tonlib-sys = { workspace = true, optional = true }
 
 
 # External
+adnl = { workspace = true, optional = true }
+auto_pool = { workspace = true, optional = true }
+dashmap = { workspace = true, optional = true }
+everscale-types = { workspace = true, optional = true }
 moka.workspace = true
 async-recursion.workspace = true
 parking_lot.workspace = true
@@ -45,15 +59,14 @@ hex.workspace = true
 base64.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
-ton_liteapi.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
-auto_pool.workspace = true
-adnl.workspace = true
-tokio-tower.workspace = true
-tower.workspace = true
+tokio-retry = { workspace = true, optional = true }
+tokio-tower = { workspace = true, optional = true }
+ton_liteapi = { workspace = true, optional = true }
+tower = { workspace = true, optional = true }
 rand.workspace = true
 strum.workspace = true
 serde-aux.workspace = true
@@ -61,13 +74,10 @@ base64-serde.workspace = true
 async-trait.workspace = true
 futures-util.workspace = true
 libc.workspace = true
-tokio-retry.workspace = true
 sha2.workspace = true
 reqwest.workspace = true
 derive_setters.workspace = true
 fastnum.workspace = true
-everscale-types.workspace = true
-dashmap.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]

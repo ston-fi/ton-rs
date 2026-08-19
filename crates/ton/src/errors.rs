@@ -9,7 +9,9 @@ use tokio::time::error::Elapsed;
 use ton_core::cell::TonHash;
 use ton_core::errors::TonCoreError;
 use ton_core::types::{TonAddress, TxLTHash};
+#[cfg(feature = "lite-client")]
 use ton_liteapi::tl::request::Request;
+#[cfg(feature = "lite-client")]
 use ton_liteapi::types::LiteError;
 
 #[macro_export]
@@ -36,16 +38,22 @@ pub enum TonError {
     NetRequestTimeout { msg: String, timeout: Duration },
 
     // LiteClient
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientErrorResponse: {0:?}")]
     LiteClientErrorResponse(ton_liteapi::tl::response::Error),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientWrongResponse: expected {0}, got {1}")]
     LiteClientWrongResponse(String, String),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientLiteError: {0}")]
     LiteClientLiteError(#[from] LiteError),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientConnTimeout: {0:?}")]
     LiteClientConnTimeout(Duration),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientReqTimeout: {0:?}")]
     LiteClientReqTimeout(Box<(Request, Duration)>),
+    #[cfg(feature = "lite-client")]
     #[error("EverscaleError: {0:?}")]
     EverscaleError(String),
 
@@ -136,6 +144,7 @@ pub enum TonError {
     FromHexError(#[from] hex::FromHexError),
     #[error("{0}")]
     ElapsedError(#[from] Elapsed),
+    #[cfg(feature = "lite-client")]
     #[error("{0}")]
     AdnlError(#[from] adnl::AdnlError),
 
@@ -165,10 +174,12 @@ pub enum MetaLoaderError {
     },
 }
 
+#[cfg(feature = "lite-client")]
 impl From<everscale_types::error::Error> for TonError {
     fn from(err: everscale_types::error::Error) -> Self { TonError::EverscaleError(err.to_string()) }
 }
 
+#[cfg(feature = "lite-client")]
 impl From<everscale_types::boc::de::Error> for TonError {
     fn from(err: everscale_types::boc::de::Error) -> Self { TonError::EverscaleError(err.to_string()) }
 }

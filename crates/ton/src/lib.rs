@@ -3,6 +3,7 @@ pub mod block_tlb;
 pub mod contracts;
 pub mod errors;
 pub mod libs_dict;
+#[cfg(feature = "lite-client")]
 pub mod lite_client;
 pub mod net_config;
 pub mod tlb_adapters;

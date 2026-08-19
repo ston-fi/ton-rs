@@ -3,8 +3,11 @@ use log4rs::Config;
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::config::{Appender, Root};
 use std::sync::Once;
+#[cfg(feature = "lite-client")]
 use std::time::Duration;
+#[cfg(feature = "lite-client")]
 use ton::lite_client::*;
+#[cfg(feature = "lite-client")]
 use ton::net_config::TonNetConfig;
 
 static LOG: Once = Once::new();
@@ -52,6 +55,7 @@ pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow:
     Ok(client)
 }
 
+#[cfg(feature = "lite-client")]
 pub async fn make_lite_client(mainnet: bool) -> anyhow::Result<LiteClient> {
     init_logging();
     log::info!("initializing lite_client with mainnet={mainnet}...");

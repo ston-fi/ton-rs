@@ -23,7 +23,9 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [Types](crates/ton_core/src/types) - Few basic types, common and stable enough to be in core
 
 ## ton
+- `lite-client` feature: Disabled by default. Enable it for the ADNL-based `LiteClient`; it also enables the networking dependencies required by that client.
 - `tonlibjson` feature: Disabled by default. Enable it for the native `TLClient`, emulator implementations, `TLStateProvider`, and `ton::emulators::tl_emulation_provider::TLEmulationProvider`. `ContractClient` and `TonContract` can be used without it by supplying custom providers.
+  This feature includes `lite-client` because `TLClient` uses it to refresh the network configuration's init block.
 - `WalletVersion` and `LiteNodeFilter` serialize using their Rust variant names; `TVMGetMethodID` serializes as an integer or string according to its variant.
 - Use `TON_NET_CONF_MAINNET_PATH` or `TON_NET_CONF_TESTNET_PATH` env variables to override `netconfig.json` and use your own TON nodes.
 - [TLBAdapters](crates/ton/src/tlb_adapters.rs) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
