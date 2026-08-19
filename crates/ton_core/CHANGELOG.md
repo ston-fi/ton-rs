@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Replaced `TonProvider` with separate `StateProvider` and `EmulatorProvider` extension points and provider-neutral emulator request and result types.
+- **Breaking:** Renamed `TonContractState` to `ContractState`.
+- **Breaking:** Renamed `EmulatorGetMethodRequest::by_address` to `new_with_address` and `with_custom_state` to `new_with_state`.
+
 ## [0.2.1](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.2.0...ton_core-v0.2.1) - 2026-08-27
 
 ### Other

@@ -65,14 +65,14 @@ impl Display for TXEmulOrdArgs {
         f.write_fmt(format_args!(
             "in_msg_boc : {}, emul_args: {}",
             hex::encode(self.in_msg_boc.deref()),
-            &self.emul_args
+            self.emul_args
         ))
     }
 }
 
 impl Display for TXEmulTickTockArgs {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("is_tock: {}, emul_args: {}", self.is_tock, &self.emul_args))
+        f.write_fmt(format_args!("is_tock: {}, emul_args: {}", self.is_tock, self.emul_args))
     }
 }
 

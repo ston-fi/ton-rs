@@ -5,4 +5,3 @@ pub mod mintless_airdrop;
 pub mod nft;
 pub mod sbt;
 pub mod snake_data;
-pub mod tvm_result;

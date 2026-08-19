@@ -11,11 +11,11 @@ mod example {
     use ton::block_tlb::{CommonMsgInfo, CurrencyCollection};
     use ton::block_tlb::{CommonMsgInfoInt, Msg};
     use ton::contracts::TonWalletMethods;
-    use ton::contracts::tl_provider::TLProvider;
     use ton::contracts::{ContractClient, TonContract, TonWalletContract};
+    use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
     use ton::net_config::TonNetConfig;
     use ton::sys_utils::sys_tonlib_set_verbosity_level;
-    use ton::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};
+    use ton::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait, TLStateProvider};
     use ton::ton_wallet::TonWallet;
     use ton::ton_wallet::WalletVersion;
     use ton_core::cell::TonCell;
@@ -76,8 +76,9 @@ mod example {
 
         // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
-        let provider = TLProvider::new(tl_client.clone());
-        let ctr_cli = ContractClient::builder(provider)?.build()?;
+        let state_provider = TLStateProvider::new(tl_client.clone());
+        let emulator_provider = TLEmulatorProvider::new(tl_client.clone(), EmulatorPool::builder()?.build()?);
+        let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.build()?;
 
         // ---------- Building transfer_msg ----------
         let transfer_msg = Msg {
@@ -101,7 +102,7 @@ mod example {
         let expire_at = expired_at_time.duration_since(std::time::UNIX_EPOCH)?.as_secs() as u32;
 
         // Get current ton_wallet seqno
-        let wallet_ctr = TonWalletContract::new(&ctr_cli, &wallet.address, None).await?;
+        let wallet_ctr = TonWalletContract::new(&ctr_cli, &wallet.address, None);
         let seqno = wallet_ctr.seqno().await?;
 
         let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell()?], seqno, expire_at, false)?;

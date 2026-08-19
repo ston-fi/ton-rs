@@ -2,13 +2,13 @@ use crate::tests::utils::make_tl_client;
 use futures_util::try_join;
 use std::str::FromStr;
 use tokio_test::assert_ok;
-use ton::contracts::tl_provider::TLProvider;
 use ton::contracts::{
     ContractClient, JettonMasterContract, JettonMasterMethods, JettonWalletContract, JettonWalletMethods, TonContract,
 };
-use ton::tl_client::TLClient;
+use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
+use ton::tl_client::{TLClient, TLStateProvider};
 use ton_core::cell::TonHash;
-use ton_core::traits::contract_provider::TonProvider;
+use ton_core::traits::state_provider::StateProvider;
 use ton_core::types::{TonAddress, TxLTHash};
 
 #[tokio::test]
@@ -17,15 +17,15 @@ async fn test_contract_client() -> anyhow::Result<()> {
 
     #[rustfmt::skip]
     let res = try_join!(
-        assert_tl_provider_works(tl_client.clone()),
-        assert_contract_client_tl_provider(tl_client.clone()),
+        assert_tl_state_provider_works(tl_client.clone()),
+        assert_contract_client_tl_providers(tl_client.clone()),
     );
     assert_ok!(res);
     Ok(())
 }
 
-async fn assert_tl_provider_works(tl_client: TLClient) -> anyhow::Result<()> {
-    let tl_provider = TLProvider::new(tl_client);
+async fn assert_tl_state_provider_works(tl_client: TLClient) -> anyhow::Result<()> {
+    let tl_provider = TLStateProvider::new(tl_client);
 
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
 
@@ -37,14 +37,6 @@ async fn assert_tl_provider_works(tl_client: TLClient) -> anyhow::Result<()> {
 
     let state_by_tx = tl_provider.load_state(usdt_master, Some(latest_state.last_tx_id.clone())).await?;
     assert_eq!(state_by_tx, latest_state);
-
-    let bc_config = tl_provider.load_bc_config(None).await?;
-    assert!(!bc_config.is_empty());
-
-    let lib_id = TonHash::from_str("A9338ECD624CA15D37E4A8D9BF677DDC9B84F0E98F05F2FB84C7AFE332A281B4")?;
-    let libs = tl_provider.load_libs(vec![lib_id], None).await?;
-    assert_eq!(libs.len(), 1);
-    assert_eq!(libs[0].0, lib_id);
 
     let latest_txs_per_address = tl_provider.load_latest_tx_per_address(50140309).await?;
     assert_eq!(latest_txs_per_address.len(), 87);
@@ -82,14 +74,22 @@ async fn assert_tl_provider_works(tl_client: TLClient) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn assert_contract_client_tl_provider(tl_client: TLClient) -> anyhow::Result<()> {
-    let ctr_cli = ContractClient::builder(TLProvider::new(tl_client))?.with_default_caches().build()?;
+async fn assert_contract_client_tl_providers(tl_client: TLClient) -> anyhow::Result<()> {
+    let state_provider = TLStateProvider::new(tl_client.clone());
+    let emulator_provider = TLEmulatorProvider::new(tl_client, EmulatorPool::builder()?.build()?).with_default_caches();
+    let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.with_default_caches().build()?;
 
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
 
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(0));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(0));
-    let _contract = JettonMasterContract::new(&ctr_cli, &usdt_master, None).await?;
+    let contract = JettonMasterContract::new(&ctr_cli, &usdt_master, None);
+    assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(0));
+    assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(0));
+    let _ = contract.load_parsed_data().await?;
+    assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
+    assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
+    let _ = contract.get_jetton_data().await?;
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
 
@@ -97,31 +97,39 @@ async fn assert_contract_client_tl_provider(tl_client: TLClient) -> anyhow::Resu
         59663842000027,
         TonHash::from_str("7d90294122887b3ee8c3ee534eaf2d62533445dff4646ad9c9dbd05ab404baaf")?,
     );
-    let _contract = JettonMasterContract::new(&ctr_cli, &usdt_master, Some(tx_id.clone())).await?;
+    let contract = JettonMasterContract::new(&ctr_cli, &usdt_master, Some(tx_id.clone()));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
+    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(0));
+    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_miss").copied(), Some(0));
+    let _ = contract.load_state().await?;
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_miss").copied(), Some(1));
 
-    let _contract = JettonMasterContract::new(&ctr_cli, &usdt_master, Some(tx_id.clone())).await?;
+    let contract = JettonMasterContract::new(&ctr_cli, &usdt_master, Some(tx_id.clone()));
+    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(1));
+    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_miss").copied(), Some(1));
+    let _ = contract.get_jetton_data().await?;
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
-    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(2));
+    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_miss").copied(), Some(1));
     Ok(())
 }
 
 #[tokio::test]
 #[ignore = "testnet"]
-async fn test_contract_client_tl_provider_dynamic_libs_testnet() -> anyhow::Result<()> {
+async fn test_contract_client_tl_providers_dynamic_libs_testnet() -> anyhow::Result<()> {
     let tl_client = make_tl_client(false, true).await?;
 
-    let ctr_cli = ContractClient::builder(TLProvider::new(tl_client))?.with_default_caches().build()?;
+    let state_provider = TLStateProvider::new(tl_client.clone());
+    let emulator_provider = TLEmulatorProvider::new(tl_client, EmulatorPool::builder()?.build()?).with_default_caches();
+    let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.with_default_caches().build()?;
     let dyn_lib_master_addr = TonAddress::from_str("kQAjmiNekXMED_a-Ps7whmYgfdT32Z9_kIEzk5F_Bnh-jTFb")?;
     let dyn_lib_wallet_addr = TonAddress::from_str("kQAsm4uCgpdK5B7msqcd4Pe27C6IakdFsxGwygkgkX-kC56Q")?;
 
     // test master
-    let master_ctr = JettonMasterContract::new(&ctr_cli, &dyn_lib_master_addr, None).await?;
+    let master_ctr = JettonMasterContract::new(&ctr_cli, &dyn_lib_master_addr, None);
     log::info!("master contract loaded"); // to make sure it's testnet issue, not emulation
     let jetton_data = master_ctr.get_jetton_data().await?;
     assert_eq!(
@@ -130,7 +138,7 @@ async fn test_contract_client_tl_provider_dynamic_libs_testnet() -> anyhow::Resu
     );
 
     // test wallet
-    let wallet_ctr = JettonWalletContract::new(&ctr_cli, &dyn_lib_wallet_addr, None).await?;
+    let wallet_ctr = JettonWalletContract::new(&ctr_cli, &dyn_lib_wallet_addr, None);
     let wallet_data = wallet_ctr.get_wallet_data().await?;
     assert_eq!(
         wallet_data.owner,

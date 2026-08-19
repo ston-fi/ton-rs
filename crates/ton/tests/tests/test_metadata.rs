@@ -5,12 +5,11 @@ use sha2::Sha256;
 use std::str::FromStr;
 use tokio_test::assert_ok;
 use ton::block_tlb::FromTVMStack;
+use ton::contracts::{GetJettonDataResult, GetWalletAddressResult};
 use ton::tep::jetton::JettonMetadata;
 use ton::tep::metadata::{MetaLoader, MetadataContent};
 use ton::tep::nft::NFTItemMetadata;
 use ton::tep::snake_data::SnakeData;
-use ton::tep::tvm_result::GetJettonDataResult;
-use ton::tep::tvm_result::GetWalletAddressResult;
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 
@@ -95,7 +94,7 @@ async fn assert_get_jetton_content_empty_external_meta() -> anyhow::Result<()> {
 //async fn assert_get_jetton_content_ipfs_uri() -> anyhow::Result<()> {
 //    init_logging();
 //    let bolt_jetton = TonAddress::from_str("EQD0vdSA_NedR9uvbgN9EikRX-suesDxGeFg69XQMavfLqIw")?;
-//    let contract = JettonMaster::new(&ctr_cli, bolt_jetton, None).await?;
+//    let contract = JettonMaster::new(&ctr_cli, bolt_jetton, None);
 //
 //    let res = assert_ok!(contract.get_jetton_data().await);
 //    let meta_loader = MetaLoader::builder().build()?;

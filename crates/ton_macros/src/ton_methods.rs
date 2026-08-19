@@ -192,7 +192,7 @@ fn build_body(signature: &Signature, name_format: Option<Case<'static>>) -> proc
     let args = collect_args_info(signature);
 
     if args.is_empty() {
-        return quote! { self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY, None) };
+        return quote! { self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY) };
     }
     let push_args = args.into_iter().map(|info| {
         let ident = info.ident;
@@ -206,7 +206,7 @@ fn build_body(signature: &Signature, name_format: Option<Case<'static>>) -> proc
     quote! {
         let mut stack = #crate_path::block_tlb::TVMStack::default();
         #( #push_args )*
-        self.emulate_get_method(#method_name_str, &stack, None)
+        self.emulate_get_method(#method_name_str, &stack)
     }
 }
 

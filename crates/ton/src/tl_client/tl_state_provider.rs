@@ -11,20 +11,20 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Duration;
 use ton_core::cell::TonHash;
-use ton_core::errors::TonCoreError;
-use ton_core::traits::contract_provider::{TonContractState, TonProvider};
+use ton_core::errors::{TonCoreError, TonCoreResult};
+use ton_core::traits::state_provider::{ContractState, StateProvider};
 use ton_core::types::{TonAddress, TxLTHash};
 
 static BLOCK_IDS_CACHE_SIZE: u64 = 200;
 
-pub struct TLProvider {
+pub struct TLStateProvider {
     client: TLClient,
     mc_block_cache: Cache<u32, BlockIdExt>, // mc_seqno -> block_id
     block_shards_cache: Cache<u32, Arc<HashSet<BlockIdExt>>>, // mc_seqno -> shards, must keep it separately from unseen_cache for proper checks
     unseen_cache: Cache<u32, Arc<HashSet<BlockIdExt>>>,
 }
 
-impl TLProvider {
+impl TLStateProvider {
     pub fn new(client: TLClient) -> Self {
         Self {
             client,
@@ -35,51 +35,42 @@ impl TLProvider {
     }
 }
 
+pub(crate) async fn load_tl_state(
+    client: &TLClient,
+    address: TonAddress,
+    tx_id: Option<TxLTHash>,
+) -> TonCoreResult<ContractState> {
+    let raw_state = match tx_id {
+        Some(id) => client.get_account_state_raw_by_tx(address, id).await,
+        None => client.get_account_state_raw(address).await,
+    }?;
+
+    let code_boc = Some(raw_state.code).filter(|x| !x.is_empty()).map(Arc::new);
+    let data_boc = Some(raw_state.data).filter(|x| !x.is_empty()).map(Arc::new);
+    let frozen_hash = match raw_state.frozen_hash.is_empty() {
+        true => None,
+        false => Some(TonHash::from_vec(raw_state.frozen_hash)?),
+    };
+    Ok(ContractState {
+        mc_seqno: None,
+        address,
+        last_tx_id: raw_state.last_tx_id,
+        code_boc,
+        data_boc,
+        frozen_hash,
+        balance: raw_state.balance,
+    })
+}
+
 #[async_trait]
-impl TonProvider for TLProvider {
-    async fn last_mc_seqno(&self) -> Result<u32, TonCoreError> { Ok(self.client.get_mc_info().await?.last.seqno) }
+impl StateProvider for TLStateProvider {
+    async fn last_mc_seqno(&self) -> TonCoreResult<u32> { Ok(self.client.get_mc_info().await?.last.seqno) }
 
-    async fn load_state(&self, address: TonAddress, tx_id: Option<TxLTHash>) -> Result<TonContractState, TonCoreError> {
-        let raw_state = match tx_id {
-            Some(id) => self.client.get_account_state_raw_by_tx(address, id).await,
-            None => self.client.get_account_state_raw(address).await,
-        }?;
-
-        let code_boc = Some(raw_state.code).filter(|x| !x.is_empty()).map(Arc::new);
-        let data_boc = Some(raw_state.data).filter(|x| !x.is_empty()).map(Arc::new);
-        let frozen_hash = match raw_state.frozen_hash.is_empty() {
-            true => None,
-            false => Some(TonHash::from_vec(raw_state.frozen_hash)?),
-        };
-        Ok(TonContractState {
-            mc_seqno: None,
-            address,
-            last_tx_id: raw_state.last_tx_id,
-            code_boc,
-            data_boc,
-            frozen_hash,
-            balance: raw_state.balance,
-        })
+    async fn load_state(&self, address: TonAddress, tx_id: Option<TxLTHash>) -> TonCoreResult<ContractState> {
+        load_tl_state(&self.client, address, tx_id).await
     }
 
-    async fn load_bc_config(&self, _mc_seqno: Option<u32>) -> Result<Vec<u8>, TonCoreError> {
-        Ok(self.client.get_config_boc_all(0).await?)
-    }
-
-    async fn load_libs(
-        &self,
-        lib_ids: Vec<TonHash>,
-        _mc_seqno: Option<u32>,
-    ) -> Result<Vec<(TonHash, Vec<u8>)>, TonCoreError> {
-        let libs_raw = self.client.get_libs(lib_ids).await?;
-        let mut libs = Vec::with_capacity(libs_raw.len());
-        for lib in libs_raw {
-            libs.push((TonHash::from_vec(lib.hash)?, lib.data));
-        }
-        Ok(libs)
-    }
-
-    async fn load_latest_tx_per_address(&self, mc_seqno: u32) -> Result<Vec<(TonAddress, TxLTHash)>, TonCoreError> {
+    async fn load_latest_tx_per_address(&self, mc_seqno: u32) -> TonCoreResult<Vec<(TonAddress, TxLTHash)>> {
         let conn = self.find_connection(mc_seqno).await?;
         let prev_mc_block = self.get_or_load_master(conn, mc_seqno - 1).await?;
         let prev_shards = self.get_or_load_shards(conn, &prev_mc_block).await?;
@@ -120,7 +111,7 @@ impl TonProvider for TLProvider {
     }
 }
 
-impl TLProvider {
+impl TLStateProvider {
     async fn find_connection(&self, mc_seqno: u32) -> Result<&TLConnection, TonError> {
         let mut iter_start = tokio::time::Instant::now();
         loop {
@@ -130,7 +121,10 @@ impl TLProvider {
                 return Ok(conn);
             }
             if iter_start.elapsed() > Duration::from_secs(10) {
-                log::warn!("[TLProvider][find_connection] Waiting for mc_seqno {mc_seqno}, got {}", mc_info.last.seqno);
+                log::warn!(
+                    "[TLStateProvider][find_connection] Waiting for mc_seqno {mc_seqno}, got {}",
+                    mc_info.last.seqno
+                );
                 iter_start = tokio::time::Instant::now();
             }
             tokio::time::sleep(Duration::from_millis(100)).await;

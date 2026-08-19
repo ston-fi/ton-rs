@@ -79,6 +79,8 @@ pub enum TonError {
         vm_exit_code: Option<i32>,
         response_raw: String,
     },
+    #[error("EmulatorTimeout: timeout {0:.2?} reached")]
+    EmulatorTimeout(Duration),
     #[error("EmulatorPoolTimeout: timeout {0:.2?} reached")]
     EmulatorPoolTimeout(Duration),
     #[error("EmulatorMissingLibrary: missing library with hash {0}")]

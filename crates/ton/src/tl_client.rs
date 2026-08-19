@@ -1,6 +1,7 @@
 mod builder;
 mod callback;
 mod connection;
+mod tl_state_provider;
 
 pub mod tl;
 mod tl_client_trait;
@@ -8,6 +9,7 @@ mod tl_client_trait;
 pub use callback::*;
 pub use connection::*;
 pub use tl_client_trait::*;
+pub use tl_state_provider::*;
 
 use crate::errors::TonResult;
 use crate::tl_client::builder::Builder;
