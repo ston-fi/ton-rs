@@ -12,7 +12,8 @@ mod example {
     use ton::block_tlb::{CommonMsgInfoInt, Msg};
     use ton::contracts::tep::ton_wallet::{TonWalletContract, TonWalletMethods};
     use ton::contracts::{ContractClient, TonContract};
-    use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
+    use ton::emulators::emulator_pool::EmulatorPool;
+    use ton::emulators::tl_emulation_provider::TLEmulationProvider;
     use ton::net_config::TonNetConfig;
     use ton::sys_utils::sys_tonlib_set_verbosity_level;
     use ton::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait, TLStateProvider};
@@ -77,8 +78,8 @@ mod example {
         // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
         let state_provider = TLStateProvider::new(tl_client.clone());
-        let emulator_provider = TLEmulatorProvider::new(tl_client.clone(), EmulatorPool::builder()?.build()?);
-        let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.build()?;
+        let emulation_provider = TLEmulationProvider::new(tl_client.clone(), EmulatorPool::builder()?.build()?);
+        let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.build()?;
 
         // ---------- Building transfer_msg ----------
         let transfer_msg = Msg {

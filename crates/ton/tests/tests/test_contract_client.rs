@@ -5,7 +5,8 @@ use tokio_test::assert_ok;
 use ton::contracts::tep::jetton::jetton_master_contract::{JettonMasterContract, JettonMasterMethods};
 use ton::contracts::tep::jetton::jetton_wallet_contract::{JettonWalletContract, JettonWalletMethods};
 use ton::contracts::{ContractClient, TonContract};
-use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
+use ton::emulators::emulator_pool::EmulatorPool;
+use ton::emulators::tl_emulation_provider::TLEmulationProvider;
 use ton::tl_client::{TLClient, TLStateProvider};
 use ton_core::cell::TonHash;
 use ton_core::traits::state_provider::StateProvider;
@@ -76,8 +77,9 @@ async fn assert_tl_state_provider_works(tl_client: TLClient) -> anyhow::Result<(
 
 async fn assert_contract_client_tl_providers(tl_client: TLClient) -> anyhow::Result<()> {
     let state_provider = TLStateProvider::new(tl_client.clone());
-    let emulator_provider = TLEmulatorProvider::new(tl_client, EmulatorPool::builder()?.build()?).with_default_caches();
-    let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.with_default_caches().build()?;
+    let emulation_provider =
+        TLEmulationProvider::new(tl_client, EmulatorPool::builder()?.build()?).with_default_caches();
+    let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.with_default_caches().build()?;
 
     let usdt_master = TonAddress::from_str("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs")?;
 
@@ -123,8 +125,9 @@ async fn test_contract_client_tl_providers_dynamic_libs_testnet() -> anyhow::Res
     let tl_client = make_tl_client(false, true).await?;
 
     let state_provider = TLStateProvider::new(tl_client.clone());
-    let emulator_provider = TLEmulatorProvider::new(tl_client, EmulatorPool::builder()?.build()?).with_default_caches();
-    let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.with_default_caches().build()?;
+    let emulation_provider =
+        TLEmulationProvider::new(tl_client, EmulatorPool::builder()?.build()?).with_default_caches();
+    let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.with_default_caches().build()?;
     let dyn_lib_master_addr = TonAddress::from_str("kQAjmiNekXMED_a-Ps7whmYgfdT32Z9_kIEzk5F_Bnh-jTFb")?;
     let dyn_lib_wallet_addr = TonAddress::from_str("kQAsm4uCgpdK5B7msqcd4Pe27C6IakdFsxGwygkgkX-kC56Q")?;
 

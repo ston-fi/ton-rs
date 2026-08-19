@@ -100,8 +100,8 @@ impl TVMGetMethodSuccess {
     pub fn exit_success(&self) -> bool { self.vm_exit_code == 0 || self.vm_exit_code == 1 }
 }
 
-impl From<ton_core::traits::emulator_provider::EmulatorGetMethodSuccess> for TVMGetMethodSuccess {
-    fn from(value: ton_core::traits::emulator_provider::EmulatorGetMethodSuccess) -> Self {
+impl From<ton_core::traits::emulation_provider::EmulatorGetMethodSuccess> for TVMGetMethodSuccess {
+    fn from(value: ton_core::traits::emulation_provider::EmulatorGetMethodSuccess) -> Self {
         Self {
             vm_exit_code: value.vm_exit_code,
             vm_log: value.vm_log,

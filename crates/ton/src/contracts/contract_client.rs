@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use ton_core::errors::TonCoreError;
-use ton_core::traits::emulator_provider::{EmulatorGetMethodRequest, EmulatorGetMethodSuccess, EmulatorProvider};
+use ton_core::traits::emulation_provider::{EmulationProvider, EmulatorGetMethodRequest, EmulatorGetMethodSuccess};
 use ton_core::traits::state_provider::{ContractState, StateProvider};
 use ton_core::types::{TonAddress, TxLTHash};
 
@@ -22,8 +22,11 @@ impl ContractClient {
     /// Creates a builder using the providers for blockchain state and TVM emulation.
     ///
     /// The result wrapper is retained for compatibility with the previous builder API.
-    pub fn builder(state_provider: impl StateProvider, emulator_provider: impl EmulatorProvider) -> TonResult<Builder> {
-        Builder::new(state_provider, emulator_provider)
+    pub fn builder(
+        state_provider: impl StateProvider,
+        emulation_provider: impl EmulationProvider,
+    ) -> TonResult<Builder> {
+        Builder::new(state_provider, emulation_provider)
     }
 
     pub(super) async fn load_state(
@@ -40,7 +43,7 @@ impl ContractClient {
     ) -> TonResult<EmulatorGetMethodSuccess> {
         let success = self
             .inner
-            .emulator_provider
+            .emulation_provider
             .emulate_get_method(request, Some(self.inner.emulation_timeout))
             .await
             .map_err(restore_emulator_error)?;
@@ -71,7 +74,7 @@ fn restore_emulator_error(error: TonCoreError) -> TonError {
 }
 
 struct Inner {
-    emulator_provider: Arc<dyn EmulatorProvider>,
+    emulation_provider: Arc<dyn EmulationProvider>,
     emulation_timeout: Duration,
     cache: Arc<ContractClientCache>,
 }

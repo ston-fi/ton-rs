@@ -17,7 +17,8 @@ use ton::contracts::tep::sbt::sbt_contract::{SBTContract, SBTMethods};
 use ton::contracts::tep::snake_data::SnakeData;
 use ton::contracts::tep::ton_wallet::{TonWalletContract, TonWalletMethods};
 use ton::contracts::{ContractClient, TonContract};
-use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
+use ton::emulators::emulator_pool::EmulatorPool;
+use ton::emulators::tl_emulation_provider::TLEmulationProvider;
 use ton::errors::TonResult;
 use ton::tl_client::TLStateProvider;
 use ton::ton_contract;
@@ -31,8 +32,8 @@ use ton_macros::ton_methods;
 async fn test_contracts() -> anyhow::Result<()> {
     let tl_client = make_tl_client(true, true).await?;
     let state_provider = TLStateProvider::new(tl_client.clone());
-    let emulator_provider = TLEmulatorProvider::new(tl_client, EmulatorPool::builder()?.build()?);
-    let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?
+    let emulation_provider = TLEmulationProvider::new(tl_client, EmulatorPool::builder()?.build()?);
+    let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?
         .with_contract_cache_capacity(0) // manually disable cache
         .build()?;
 

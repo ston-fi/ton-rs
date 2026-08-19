@@ -3,7 +3,8 @@ mod example {
     use std::str::FromStr;
     use ton::contracts::tep::jetton::jetton_master_contract::GetJettonDataResult;
     use ton::contracts::{ContractClient, TonContract};
-    use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
+    use ton::emulators::emulator_pool::EmulatorPool;
+    use ton::emulators::tl_emulation_provider::TLEmulationProvider;
     use ton::errors::TonResult;
     use ton::net_config::TonNetConfig;
     use ton::tl_client::{TLClient, TLStateProvider};
@@ -28,7 +29,7 @@ mod example {
     //     fn load_state(&self) -> impl std::future::Future<Output = ::ton::errors::TonResult<&std::sync::Arc<::ton::ton_core::traits::state_provider::ContractState>>> + Send {
     //         self.state.get_or_load(&self.client)
     //     }
-    //     fn get_emulator_contract_state(&self) -> ::ton::ton_core::traits::emulator_provider::EmulatorContractState {
+    //     fn get_emulator_contract_state(&self) -> ::ton::ton_core::traits::emulation_provider::EmulatorContractState {
     //         self.state.get_emulator_contract_state()
     //     }
     //     fn get_client(&self) -> &::ton::contracts::ContractClient { &self.client }
@@ -48,8 +49,8 @@ mod example {
         let tl_client = TLClient::builder()?.with_net_config(&TonNetConfig::new_default(false)?)?.build().await?;
 
         let state_provider = TLStateProvider::new(tl_client.clone());
-        let emulator_provider = TLEmulatorProvider::new(tl_client, EmulatorPool::builder()?.build()?);
-        let ctr_cli = ContractClient::builder(state_provider, emulator_provider)?.build()?;
+        let emulation_provider = TLEmulationProvider::new(tl_client, EmulatorPool::builder()?.build()?);
+        let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.build()?;
 
         let address = TonAddress::from_str("EQBSUY4UWGJFAps0KwHY4tpOGqzU41DZhyrT8OuyAWWtnezy")?;
 

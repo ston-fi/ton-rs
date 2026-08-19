@@ -56,7 +56,7 @@ impl EmulatorGetMethodRequest {
     }
 }
 
-/// Successful get-method execution returned by an [`EmulatorProvider`].
+/// Successful get-method execution returned by an [`EmulationProvider`].
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct EmulatorGetMethodSuccess {
@@ -84,21 +84,12 @@ impl EmulatorGetMethodSuccess {
         }
     }
 
-    /// Creates a response with native emulator diagnostics.
-    pub fn with_diagnostics(
-        vm_exit_code: i32,
-        stack_boc: Vec<u8>,
-        vm_log: Option<String>,
-        gas_used: i32,
-        raw_response: String,
-    ) -> Self {
-        Self {
-            vm_exit_code,
-            stack_boc,
-            vm_log,
-            gas_used: Some(gas_used),
-            raw_response: Some(raw_response),
-        }
+    /// Adds native emulator diagnostics to a provider-neutral response.
+    pub fn with_diagnostic(mut self, vm_log: Option<String>, gas_used: i32, raw_response: String) -> Self {
+        self.vm_log = vm_log;
+        self.gas_used = Some(gas_used);
+        self.raw_response = Some(raw_response);
+        self
     }
 }
 
@@ -107,7 +98,7 @@ impl EmulatorGetMethodSuccess {
 /// Implementations own state resolution, blockchain configuration, library
 /// loading, missing-library retries, and native or remote emulator execution.
 #[async_trait]
-pub trait EmulatorProvider: Send + Sync + 'static {
+pub trait EmulationProvider: Send + Sync + 'static {
     /// Executes the complete request within the requested timeout, including
     /// state resolution, configuration and library loading, and emulation.
     async fn emulate_get_method(

@@ -5,7 +5,7 @@ use crate::errors::TonResult;
 use derive_setters::Setters;
 use std::sync::Arc;
 use std::time::Duration;
-use ton_core::traits::emulator_provider::EmulatorProvider;
+use ton_core::traits::emulation_provider::EmulationProvider;
 use ton_core::traits::state_provider::StateProvider;
 
 #[derive(Setters)]
@@ -14,7 +14,7 @@ pub struct Builder {
     #[setters(skip)]
     pub(super) state_provider: Arc<dyn StateProvider>,
     #[setters(skip)]
-    pub(super) emulator_provider: Arc<dyn EmulatorProvider>,
+    pub(super) emulation_provider: Arc<dyn EmulationProvider>,
     pub(super) tvm_emulation_timeout: Duration,
     pub(super) refresh_loop_idle_on_error: Duration,
     pub(super) contract_cache_capacity: u64,
@@ -22,13 +22,16 @@ pub struct Builder {
 }
 
 impl Builder {
-    /// Use `ContractClient::builder(state_provider, emulator_provider)` for creation.
+    /// Use `ContractClient::builder(state_provider, emulation_provider)` for creation.
     /// No cache by default
     /// Use `with_default_caches()` for meaningful defaults
-    pub(super) fn new(state_provider: impl StateProvider, emulator_provider: impl EmulatorProvider) -> TonResult<Self> {
+    pub(super) fn new(
+        state_provider: impl StateProvider,
+        emulation_provider: impl EmulationProvider,
+    ) -> TonResult<Self> {
         let builder = Self {
             state_provider: Arc::new(state_provider),
-            emulator_provider: Arc::new(emulator_provider),
+            emulation_provider: Arc::new(emulation_provider),
             tvm_emulation_timeout: Duration::from_secs(1),
             refresh_loop_idle_on_error: Duration::from_millis(100),
             contract_cache_capacity: 0,
@@ -49,7 +52,7 @@ impl Builder {
     pub fn build(self) -> TonResult<ContractClient> {
         let cache = ContractClientCache::new(&self)?;
         let inner = Inner {
-            emulator_provider: self.emulator_provider,
+            emulation_provider: self.emulation_provider,
             emulation_timeout: self.tvm_emulation_timeout,
             cache,
         };
@@ -59,7 +62,7 @@ impl Builder {
     /// Enables the standard contract-state caches and background refresh task.
     ///
     /// Native emulator library caches are configured separately on
-    /// `TLEmulatorProvider`.
+    /// [`TLEmulationProvider`](crate::emulators::tl_emulation_provider::TLEmulationProvider).
     pub fn with_default_caches(mut self) -> Self {
         self.contract_cache_capacity = 5_000;
         self.contract_cache_ttl = Duration::from_secs(300);

@@ -5,7 +5,7 @@ use crate::errors::{TonError, TonResult};
 use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::OnceCell;
-use ton_core::traits::emulator_provider::{EmulatorContractState, EmulatorGetMethodRequest};
+use ton_core::traits::emulation_provider::{EmulatorContractState, EmulatorGetMethodRequest};
 use ton_core::traits::state_provider::ContractState;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::{TonAddress, TxLTHash};
@@ -141,7 +141,7 @@ macro_rules! ton_contract {
             fn load_state(&self) -> impl std::future::Future<Output = $crate::errors::TonResult<&std::sync::Arc<$crate::ton_core::traits::state_provider::ContractState>>> + Send {
                 self.state.get_or_load(&self.client)
             }
-            fn get_emulator_contract_state(&self) -> $crate::ton_core::traits::emulator_provider::EmulatorContractState {
+            fn get_emulator_contract_state(&self) -> $crate::ton_core::traits::emulation_provider::EmulatorContractState {
                 self.state.get_emulator_contract_state()
             }
             fn get_client(&self) -> &$crate::contracts::ContractClient { &self.client }

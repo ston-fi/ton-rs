@@ -13,18 +13,18 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::OnceCell;
 use ton_core::cell::{TonCell, TonCellUtils, TonHash};
 use ton_core::errors::{TonCoreError, TonCoreResult};
-use ton_core::traits::emulator_provider::{
-    EmulatorContractState, EmulatorGetMethodRequest, EmulatorGetMethodSuccess, EmulatorProvider,
+use ton_core::traits::emulation_provider::{
+    EmulationProvider, EmulatorContractState, EmulatorGetMethodRequest, EmulatorGetMethodSuccess,
 };
 use ton_core::traits::tlb::TLB;
 
-/// Native tonlib implementation of [`EmulatorProvider`].
+/// Native tonlib implementation of [`EmulationProvider`].
 #[derive(Clone)]
-pub struct TLEmulatorProvider {
+pub struct TLEmulationProvider {
     client: TLClient,
     emulator_pool: EmulatorPool,
     bc_config: Arc<OnceCell<EmulBCConfig>>,
-    cache: Arc<TLEmulatorProviderCache>,
+    cache: Arc<TLEmulationProviderCache>,
     libs_cache_capacity: u64,
     libs_cache_ttl: Duration,
     libs_not_found_cache_capacity: u64,
@@ -34,14 +34,14 @@ pub struct TLEmulatorProvider {
     max_dyn_libs_per_contract: usize,
 }
 
-impl TLEmulatorProvider {
+impl TLEmulationProvider {
     /// Creates a native provider with library caches disabled.
     pub fn new(client: TLClient, emulator_pool: EmulatorPool) -> Self {
         let mut provider = Self {
             client,
             emulator_pool,
             bc_config: Arc::new(OnceCell::new()),
-            cache: Arc::new(TLEmulatorProviderCache::default()),
+            cache: Arc::new(TLEmulationProviderCache::default()),
             libs_cache_capacity: 0,
             libs_cache_ttl: Duration::ZERO,
             libs_not_found_cache_capacity: 0,
@@ -115,7 +115,7 @@ impl TLEmulatorProvider {
     }
 
     fn rebuild_cache(&mut self) {
-        self.cache = Arc::new(TLEmulatorProviderCache {
+        self.cache = Arc::new(TLEmulationProviderCache {
             libs_cache: init_cache(self.libs_cache_capacity, self.libs_cache_ttl),
             libs_cache_not_found: init_cache(self.libs_not_found_cache_capacity, self.libs_not_found_cache_ttl),
             code_extra_libs_cache: moka::sync::Cache::builder()
@@ -194,9 +194,7 @@ impl TLEmulatorProvider {
             let Some(missing_lib_hash) = response.missing_lib()? else {
                 let success = response.into_success()?;
                 let stack_boc = success.stack_boc()?;
-                return Ok(EmulatorGetMethodSuccess::with_diagnostics(
-                    success.vm_exit_code,
-                    stack_boc,
+                return Ok(EmulatorGetMethodSuccess::new(success.vm_exit_code, stack_boc).with_diagnostic(
                     success.vm_log,
                     success.gas_used,
                     success.raw_response,
@@ -251,13 +249,13 @@ impl TLEmulatorProvider {
     }
 }
 
-struct TLEmulatorProviderCache {
+struct TLEmulationProviderCache {
     libs_cache: moka::sync::Cache<TonHash, TonCell>,
     libs_cache_not_found: moka::sync::Cache<TonHash, ()>,
     code_extra_libs_cache: moka::sync::Cache<TonHash, Arc<RwLock<HashSet<TonHash>>>>,
 }
 
-impl Default for TLEmulatorProviderCache {
+impl Default for TLEmulationProviderCache {
     fn default() -> Self {
         Self {
             libs_cache: init_cache(0, Duration::ZERO),
@@ -267,7 +265,7 @@ impl Default for TLEmulatorProviderCache {
     }
 }
 
-impl TLEmulatorProviderCache {
+impl TLEmulationProviderCache {
     fn add_code_dyn_lib(&self, code_hash: TonHash, lib_id: TonHash) {
         self.code_extra_libs_cache.entry(code_hash).or_default().value().write().insert(lib_id);
     }
@@ -282,7 +280,7 @@ where
 }
 
 #[async_trait]
-impl EmulatorProvider for TLEmulatorProvider {
+impl EmulationProvider for TLEmulationProvider {
     async fn emulate_get_method(
         &self,
         request: EmulatorGetMethodRequest,

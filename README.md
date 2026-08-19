@@ -16,26 +16,26 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 
 ## ton_core
 - `serde` feature: provides few mods to ser/de core types, check [ton_core/src/serde.rs](crates/ton_core/src/serde.rs). Disabled by default.
-- [EmulatorProvider](crates/ton_core/src/traits/emulator_provider.rs) - Provider-neutral interface used to execute TVM get methods
+- [EmulationProvider](crates/ton_core/src/traits/emulation_provider.rs) - Provider-neutral interface used to execute TVM get methods
 - [TonCell](crates/ton_core/src/cell/ton_cell.rs)
 - [TonAddress](crates/ton_core/src/types/ton_address.rs)
 - [TLB](crates/ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
 - [Types](crates/ton_core/src/types) - Few basic types, common and stable enough to be in core
 
 ## ton
-- `tonlibjson` feature: Disabled by default. Enable it for the native `TLClient`, emulator implementations, `TLStateProvider`, and `TLEmulatorProvider`. `ContractClient` and `TonContract` can be used without it by supplying custom providers.
+- `tonlibjson` feature: Disabled by default. Enable it for the native `TLClient`, emulator implementations, `TLStateProvider`, and `ton::emulators::tl_emulation_provider::TLEmulationProvider`. `ContractClient` and `TonContract` can be used without it by supplying custom providers.
 - `WalletVersion` and `LiteNodeFilter` serialize using their Rust variant names; `TVMGetMethodID` serializes as an integer or string according to its variant.
 - Use `TON_NET_CONF_MAINNET_PATH` or `TON_NET_CONF_TESTNET_PATH` env variables to override `netconfig.json` and use your own TON nodes.
 - [TLBAdapters](crates/ton/src/tlb_adapters.rs) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
 - [BlockTLB](crates/ton/src/block_tlb.rs) - Bunch of types to interact with raw blockchain data (However it's not fully covered)
 - [TonWallet](crates/ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
 - [TLClient](crates/ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
-- [TonContract](crates/ton/src/contracts/ton_contract.rs) - Use it with `ContractClient::builder(state_provider, emulator_provider)` to get data or execute methods on TON contracts
+- [TonContract](crates/ton/src/contracts/ton_contract.rs) - Use it with `ContractClient::builder(state_provider, emulation_provider)` to get data or execute methods on TON contracts
 - Standard Jetton, NFT, SBT, and TON wallet contract wrappers live under `contracts::tep`, grouped into public modules by standard and implementation. For example, use `contracts::tep::jetton::jetton_master_contract::JettonMasterContract` or `contracts::tep::ton_wallet::TonWalletContract`.
 
-`ContractClient::builder(...).with_default_caches()` configures state caches. When using the native adapter, configure emulator library caches independently with `TLEmulatorProvider::with_default_caches()`.
+`ContractClient::builder(...).with_default_caches()` configures state caches. When using the native adapter, configure emulator library caches independently with `ton::emulators::tl_emulation_provider::TLEmulationProvider::with_default_caches()`.
 State caches require an active Tokio runtime when the client is built and start a background refresh task. Dropping the client does not cancel an in-flight provider call; initial sequence discovery also keeps retrying provider errors until it succeeds.
-`TonContract::new()` synchronously stores the contract address and optional transaction ID. `load_state()` and `load_parsed_data()` load and retain state; emulation uses retained state when available and otherwise lets the emulator provider resolve the address and transaction ID.
+`TonContract::new()` synchronously stores the contract address and optional transaction ID. `load_state()` and `load_parsed_data()` load and retain state; emulation uses retained state when available and otherwise lets the emulation provider resolve the address and transaction ID.
 
 
 ## Getting started
