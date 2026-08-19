@@ -5,7 +5,6 @@ pub mod errors;
 pub mod libs_dict;
 pub mod lite_client;
 pub mod net_config;
-pub mod tep;
 pub mod tlb_adapters;
 pub mod ton_wallet;
 

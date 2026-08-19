@@ -1,7 +1,8 @@
 #[cfg(feature = "tonlibjson")]
 mod example {
     use std::str::FromStr;
-    use ton::contracts::{ContractClient, GetJettonDataResult, TonContract};
+    use ton::contracts::tep::jetton::jetton_master_contract::GetJettonDataResult;
+    use ton::contracts::{ContractClient, TonContract};
     use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
     use ton::errors::TonResult;
     use ton::net_config::TonNetConfig;

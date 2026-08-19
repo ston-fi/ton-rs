@@ -10,8 +10,8 @@ mod example {
     use std::time::Duration;
     use ton::block_tlb::{CommonMsgInfo, CurrencyCollection};
     use ton::block_tlb::{CommonMsgInfoInt, Msg};
-    use ton::contracts::TonWalletMethods;
-    use ton::contracts::{ContractClient, TonContract, TonWalletContract};
+    use ton::contracts::tep::ton_wallet::{TonWalletContract, TonWalletMethods};
+    use ton::contracts::{ContractClient, TonContract};
     use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
     use ton::net_config::TonNetConfig;
     use ton::sys_utils::sys_tonlib_set_verbosity_level;

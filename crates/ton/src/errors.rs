@@ -1,4 +1,4 @@
-use crate::tep::metadata::MetadataContent;
+use crate::contracts::tep::metadata::metadata_content::MetadataContent;
 use hmac::digest::crypto_common;
 use reqwest::StatusCode;
 use std::io;

@@ -5,11 +5,12 @@ use sha2::Sha256;
 use std::str::FromStr;
 use tokio_test::assert_ok;
 use ton::block_tlb::FromTVMStack;
-use ton::contracts::{GetJettonDataResult, GetWalletAddressResult};
-use ton::tep::jetton::JettonMetadata;
-use ton::tep::metadata::{MetaLoader, MetadataContent};
-use ton::tep::nft::NFTItemMetadata;
-use ton::tep::snake_data::SnakeData;
+use ton::contracts::tep::jetton::jetton_master_contract::{GetJettonDataResult, GetWalletAddressResult};
+use ton::contracts::tep::jetton::jetton_metadata::JettonMetadata;
+use ton::contracts::tep::metadata::meta_loader::MetaLoader;
+use ton::contracts::tep::metadata::metadata_content::MetadataContent;
+use ton::contracts::tep::nft::nft_item_metadata::NFTItemMetadata;
+use ton::contracts::tep::snake_data::SnakeData;
 use ton_core::cell::TonHash;
 use ton_core::traits::tlb::TLB;
 

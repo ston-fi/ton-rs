@@ -4,12 +4,21 @@ use futures_util::try_join;
 use sha2::{Digest, Sha256};
 use std::str::FromStr;
 use tokio_test::assert_ok;
-use ton::contracts::NFTItemContract;
-use ton::contracts::*;
+use ton::contracts::tep::jetton::jetton_master_contract::{
+    JettonMasterContract, JettonMasterMethods, JettonScaledUIMasterContract, ScaledUIMethods,
+};
+use ton::contracts::tep::jetton::jetton_wallet_contract::{
+    GetWalletDataResult, JettonWalletContract, JettonWalletMethods,
+};
+use ton::contracts::tep::metadata::metadata_content::{MetadataContent, MetadataInternal};
+use ton::contracts::tep::nft::nft_collection_contract::{NFTCollectionContract, NFTCollectionMethods};
+use ton::contracts::tep::nft::nft_item_contract::{NFTItemContract, NFTItemMethods};
+use ton::contracts::tep::sbt::sbt_contract::{SBTContract, SBTMethods};
+use ton::contracts::tep::snake_data::SnakeData;
+use ton::contracts::tep::ton_wallet::{TonWalletContract, TonWalletMethods};
+use ton::contracts::{ContractClient, TonContract};
 use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
 use ton::errors::TonResult;
-use ton::tep::metadata::{MetadataContent, MetadataInternal};
-use ton::tep::snake_data::SnakeData;
 use ton::tl_client::TLStateProvider;
 use ton::ton_contract;
 use ton_core::cell::TonCell;

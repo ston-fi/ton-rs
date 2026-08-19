@@ -138,12 +138,12 @@ unsafe impl Sync for TVMEmulator {}
 mod tests {
     use super::*;
     use crate::block_tlb::TVMStack;
+    use crate::contracts::tep::jetton::jetton_transfer_msg::JettonTransferMsg;
     use crate::emulators::emul_bc_config::EmulBCConfig;
     use crate::emulators::tvm_emulator::TVMEmulator;
     use crate::errors::TonError;
     use crate::libs_dict::LibsDict;
     use crate::sys_utils::sys_tonlib_set_verbosity_level;
-    use crate::tep::jetton::JettonTransferMsg;
     use fastnum::I512;
     use std::str::FromStr;
     use std::sync::LazyLock;

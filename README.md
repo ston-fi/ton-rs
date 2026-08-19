@@ -31,6 +31,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [TonWallet](crates/ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
 - [TLClient](crates/ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
 - [TonContract](crates/ton/src/contracts/ton_contract.rs) - Use it with `ContractClient::builder(state_provider, emulator_provider)` to get data or execute methods on TON contracts
+- Standard Jetton, NFT, SBT, and TON wallet contract wrappers live under `contracts::tep`, grouped into public modules by standard and implementation. For example, use `contracts::tep::jetton::jetton_master_contract::JettonMasterContract` or `contracts::tep::ton_wallet::TonWalletContract`.
 
 `ContractClient::builder(...).with_default_caches()` configures state caches. When using the native adapter, configure emulator library caches independently with `TLEmulatorProvider::with_default_caches()`.
 State caches require an active Tokio runtime when the client is built and start a background refresh task. Dropping the client does not cancel an in-flight provider call; initial sequence discovery also keeps retrying provider errors until it succeeds.

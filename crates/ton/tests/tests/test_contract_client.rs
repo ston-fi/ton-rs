@@ -2,9 +2,9 @@ use crate::tests::utils::make_tl_client;
 use futures_util::try_join;
 use std::str::FromStr;
 use tokio_test::assert_ok;
-use ton::contracts::{
-    ContractClient, JettonMasterContract, JettonMasterMethods, JettonWalletContract, JettonWalletMethods, TonContract,
-};
+use ton::contracts::tep::jetton::jetton_master_contract::{JettonMasterContract, JettonMasterMethods};
+use ton::contracts::tep::jetton::jetton_wallet_contract::{JettonWalletContract, JettonWalletMethods};
+use ton::contracts::{ContractClient, TonContract};
 use ton::emulators::{TLEmulatorProvider, emulator_pool::EmulatorPool};
 use ton::tl_client::{TLClient, TLStateProvider};
 use ton_core::cell::TonHash;
