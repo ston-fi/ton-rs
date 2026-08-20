@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** Direct contract state loading and get-method emulation on `ContractClient` are now private to the contracts module; consumers should use `TonContract`.
 - **Breaking:** `LiteClient`, its error variants, and its transport dependencies now require the `lite-client` feature. The `tonlibjson` feature enables `lite-client` automatically.
 - Contract APIs are now available without `tonlibjson`; the feature only supplies native tonlib clients and provider implementations.
+- The default get-method emulation timeout is now 10 seconds because it covers provider-owned state, configuration, and library loading in addition to TVM execution.
 
 ## [0.3.1](https://github.com/ston-fi/ton-rs/compare/ton-v0.3.0...ton-v0.3.1) - 2026-08-27
 

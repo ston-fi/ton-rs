@@ -32,7 +32,7 @@ impl Builder {
         let builder = Self {
             state_provider: Arc::new(state_provider),
             emulation_provider: Arc::new(emulation_provider),
-            tvm_emulation_timeout: Duration::from_secs(1),
+            tvm_emulation_timeout: Duration::from_secs(10),
             refresh_loop_idle_on_error: Duration::from_millis(100),
             contract_cache_capacity: 0,
             contract_cache_ttl: Duration::from_millis(0),
