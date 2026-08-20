@@ -66,49 +66,42 @@ impl TLEmulationProvider {
         self
     }
 
-    /// Sets the resolved-library cache capacity.
     pub fn with_libs_cache_capacity(mut self, capacity: u64) -> Self {
         self.libs_cache_capacity = capacity;
         self.rebuild_cache();
         self
     }
 
-    /// Sets the resolved-library cache time to live.
     pub fn with_libs_cache_ttl(mut self, ttl: Duration) -> Self {
         self.libs_cache_ttl = ttl;
         self.rebuild_cache();
         self
     }
 
-    /// Sets the missing-library cache capacity.
     pub fn with_libs_not_found_cache_capacity(mut self, capacity: u64) -> Self {
         self.libs_not_found_cache_capacity = capacity;
         self.rebuild_cache();
         self
     }
 
-    /// Sets the missing-library cache time to live.
     pub fn with_libs_not_found_cache_ttl(mut self, ttl: Duration) -> Self {
         self.libs_not_found_cache_ttl = ttl;
         self.rebuild_cache();
         self
     }
 
-    /// Sets the code-to-dynamic-library cache capacity.
     pub fn with_code_libs_cache_capacity(mut self, capacity: u64) -> Self {
         self.code_libs_cache_capacity = capacity;
         self.rebuild_cache();
         self
     }
 
-    /// Sets the code-to-dynamic-library cache idle timeout.
     pub fn with_code_libs_cache_idle(mut self, idle: Duration) -> Self {
         self.code_libs_cache_idle = idle;
         self.rebuild_cache();
         self
     }
 
-    /// Sets the maximum number of missing libraries loaded for one request.
     pub fn with_max_dyn_libs_per_contract(mut self, max_dyn_libs_per_contract: usize) -> Self {
         self.max_dyn_libs_per_contract = max_dyn_libs_per_contract;
         self

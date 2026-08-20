@@ -22,9 +22,6 @@ pub struct Builder {
 }
 
 impl Builder {
-    /// Use `ContractClient::builder(state_provider, emulation_provider)` for creation.
-    /// No cache by default
-    /// Use `with_default_caches()` for meaningful defaults
     pub(super) fn new(
         state_provider: impl StateProvider,
         emulation_provider: impl EmulationProvider,
@@ -40,15 +37,11 @@ impl Builder {
         Ok(builder)
     }
 
-    /// Builds the contract client and starts state-cache refresh when enabled.
-    ///
-    /// The refresh task keeps a provider call alive until it completes. During
-    /// initial sequence discovery, provider errors are retried until discovery
-    /// succeeds, even if all client handles have been dropped.
+    /// Builds the client, starting state-cache refresh when enabled.
     ///
     /// # Panics
     ///
-    /// Panics when state caches are enabled and no Tokio runtime is active.
+    /// Panics if state caches are enabled outside a Tokio runtime.
     pub fn build(self) -> TonResult<ContractClient> {
         let cache = ContractClientCache::new(&self)?;
         let inner = Inner {
@@ -59,10 +52,7 @@ impl Builder {
         Ok(ContractClient { inner: Arc::new(inner) })
     }
 
-    /// Enables the standard contract-state caches and background refresh task.
-    ///
-    /// Native emulator library caches are configured separately on
-    /// [`TLEmulationProvider`](crate::emulators::tl_emulation_provider::TLEmulationProvider).
+    /// Enables default contract-state caching and refresh; emulator caches are unchanged.
     pub fn with_default_caches(mut self) -> Self {
         self.contract_cache_capacity = 5_000;
         self.contract_cache_ttl = Duration::from_secs(300);

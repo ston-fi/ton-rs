@@ -53,8 +53,7 @@ pub trait TLClientTrait: Send + Sync {
         unwrap_tl_rsp!(self.exec(&req).await?, TLBlocksHeader)
     }
 
-    /// May return less libraries when requested
-    /// Check it on user side if you need it
+    /// May return fewer libraries than requested.
     async fn get_libs(&self, lib_ids: Vec<TonHash>) -> Result<Vec<TLSmcLibraryEntry>, TonError> {
         let req = TLRequest::SmcGetLibraries { library_list: lib_ids };
         let result = unwrap_tl_rsp!(self.exec(&req).await?, TLSmcLibraryResult)?;

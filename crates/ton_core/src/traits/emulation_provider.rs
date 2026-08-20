@@ -5,34 +5,31 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// Contract state used for get-method emulation.
+/// State source for get-method emulation.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum EmulatorContractState {
-    /// Resolve state by address and optional exact transaction reference.
-    ///
-    /// When `tx_id` is `None`, the provider must use the latest state.
+    /// Resolve the latest state or the state at the exact `tx_id`.
     Address {
         address: TonAddress,
         tx_id: Option<TxLTHash>,
     },
-    /// Emulate against state supplied by the caller.
+    /// Use caller-supplied state.
     Custom(ContractState),
 }
 
-/// Inputs required to execute a TVM get method.
+/// Complete TVM get-method request.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct EmulatorGetMethodRequest {
     pub contract_state: EmulatorContractState,
-    /// Numeric TVM method identifier.
     pub method_id: i32,
     /// Input stack serialized as BOC.
     pub stack_boc: Arc<Vec<u8>>,
 }
 
 impl EmulatorGetMethodRequest {
-    /// Creates a request that resolves state by address and optional transaction.
+    /// Uses provider-resolved contract state.
     pub fn new_with_address(
         address: TonAddress,
         tx_id: Option<TxLTHash>,
@@ -46,7 +43,7 @@ impl EmulatorGetMethodRequest {
         }
     }
 
-    /// Creates a request using caller-supplied contract state.
+    /// Uses caller-supplied contract state.
     pub fn new_with_state(state: ContractState, method_id: i32, stack_boc: Arc<Vec<u8>>) -> Self {
         Self {
             contract_state: EmulatorContractState::Custom(state),
@@ -56,7 +53,7 @@ impl EmulatorGetMethodRequest {
     }
 }
 
-/// Successful get-method execution returned by an [`EmulationProvider`].
+/// Successful get-method execution.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct EmulatorGetMethodSuccess {
@@ -64,16 +61,14 @@ pub struct EmulatorGetMethodSuccess {
     pub vm_exit_code: i32,
     /// Result stack serialized as BOC.
     pub stack_boc: Vec<u8>,
-    /// Emulator log, when provided by the implementation.
     pub vm_log: Option<String>,
-    /// Gas units consumed by execution, when provided by the implementation.
     pub gas_used: Option<i32>,
-    /// Unprocessed provider response retained for diagnostics, when available.
+    /// Original provider response, when retained for diagnostics.
     pub raw_response: Option<String>,
 }
 
 impl EmulatorGetMethodSuccess {
-    /// Creates a provider-neutral successful response.
+    /// Creates a result without provider-specific diagnostics.
     pub fn new(vm_exit_code: i32, stack_boc: Vec<u8>) -> Self {
         Self {
             vm_exit_code,
@@ -84,7 +79,7 @@ impl EmulatorGetMethodSuccess {
         }
     }
 
-    /// Adds native emulator diagnostics to a provider-neutral response.
+    /// Attaches provider diagnostics.
     pub fn with_diagnostic(mut self, vm_log: Option<String>, gas_used: i32, raw_response: String) -> Self {
         self.vm_log = vm_log;
         self.gas_used = Some(gas_used);
@@ -93,14 +88,10 @@ impl EmulatorGetMethodSuccess {
     }
 }
 
-/// Executes complete TVM get-method requests.
-///
-/// Implementations own state resolution, blockchain configuration, library
-/// loading, missing-library retries, and native or remote emulator execution.
+/// Resolves state and executes complete TVM get-method requests.
 #[async_trait]
 pub trait EmulationProvider: Send + Sync + 'static {
-    /// Executes the complete request within the requested timeout, including
-    /// state resolution, configuration and library loading, and emulation.
+    /// Applies `timeout` to the complete provider operation.
     async fn emulate_get_method(
         &self,
         request: EmulatorGetMethodRequest,

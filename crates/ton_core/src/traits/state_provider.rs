@@ -4,30 +4,20 @@ use crate::types::{TonAddress, TxLTHash};
 use async_trait::async_trait;
 use std::sync::Arc;
 
-/// Loads contract state and the per-masterchain transaction deltas used to
-/// invalidate state caches.
-///
-/// Implementations must support repeated calls for the same sequence number.
+/// Supplies contract state and cache-invalidation deltas.
 #[async_trait]
 #[rustfmt::skip]
 pub trait StateProvider: Send + Sync + 'static {
-    /// Returns the latest masterchain sequence number whose transaction delta
-    /// is ready to be loaded.
     async fn last_mc_seqno(&self) -> TonCoreResult<u32>;
-    /// Loads the state at the exact transaction when `tx_id` is specified, or
-    /// the latest state otherwise.
-    ///
-    /// For an exact transaction, the returned state's `last_tx_id` must equal
-    /// `tx_id`.
+
+    /// Loads the latest state or the state at the exact `tx_id`.
+    /// Exact loads must return that ID in `ContractState::last_tx_id`.
     async fn load_state(&self, address: TonAddress, tx_id: Option<TxLTHash>) -> TonCoreResult<ContractState>;
-    /// Returns one latest transaction per address changed between masterchain
-    /// states `mc_seqno - 1` and `mc_seqno`.
+
+    /// Loads the cache-invalidation delta from `mc_seqno - 1` to `mc_seqno`.
     ///
-    /// The result is the invalidation delta for this sequence number, not a
-    /// snapshot of all known addresses. `mc_seqno` must be greater than zero,
-    /// and each address must occur at most once. Implementations may wait until
-    /// the block is available or return an error; the contract client retries
-    /// every error. Repeated successful calls must return an equivalent delta.
+    /// `mc_seqno` must be nonzero. Each address occurs at most once, and
+    /// repeated calls for the same sequence number return an equivalent delta.
     async fn load_latest_tx_per_address(&self, mc_seqno: u32) -> TonCoreResult<Vec<(TonAddress, TxLTHash)>>;
 }
 

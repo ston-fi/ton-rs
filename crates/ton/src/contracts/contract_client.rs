@@ -19,9 +19,7 @@ pub struct ContractClient {
 }
 
 impl ContractClient {
-    /// Creates a builder using the providers for blockchain state and TVM emulation.
-    ///
-    /// The result wrapper is retained for compatibility with the previous builder API.
+    /// Configures a client with separate state and emulation providers.
     pub fn builder(
         state_provider: impl StateProvider,
         emulation_provider: impl EmulationProvider,
