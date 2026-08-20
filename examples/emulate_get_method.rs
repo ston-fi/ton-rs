@@ -18,6 +18,7 @@ mod example {
     //     client: ::ton::contracts::ContractClient,
     //     state: ::ton::contracts::LazyTonContractState,
     // }
+    // #[::ton::__async_trait]
     // impl ::ton::contracts::TonContract for StonfiPool {
     //     type ContractDataT = StonFiPoolData;
     //     fn new(client: &::ton::contracts::ContractClient, address: &TonAddress, tx_id: Option<TxLTHash>) -> Self {
@@ -26,8 +27,8 @@ mod example {
     //     fn from_state(client: ::ton::contracts::ContractClient, state: std::sync::Arc<::ton::ton_core::traits::state_provider::ContractState>) -> Self {
     //         Self { client, state: ::ton::contracts::LazyTonContractState::from_state(state) }
     //     }
-    //     fn load_state(&self) -> impl std::future::Future<Output = ::ton::errors::TonResult<&std::sync::Arc<::ton::ton_core::traits::state_provider::ContractState>>> + Send {
-    //         self.state.get_or_load(&self.client)
+    //     async fn load_state(&self) -> ::ton::errors::TonResult<&std::sync::Arc<::ton::ton_core::traits::state_provider::ContractState>> {
+    //         self.state.get_or_load(&self.client).await
     //     }
     //     fn get_emulator_contract_state(&self) -> ::ton::ton_core::traits::emulation_provider::EmulatorContractState {
     //         self.state.get_emulator_contract_state()

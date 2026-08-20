@@ -1,3 +1,5 @@
+#[doc(hidden)]
+pub use async_trait::async_trait as __async_trait;
 pub use ton_core; // re-export
 pub mod block_tlb;
 pub mod contracts;

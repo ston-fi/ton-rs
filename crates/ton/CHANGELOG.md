@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** Renamed `ton_core::traits::state_provider::TonContractState` to `ContractState`.
 - **Breaking:** Renamed `TonContract::get_state` to `load_state` and `get_parsed_data` to `load_parsed_data`.
 - **Breaking:** `TonContract::new` is now synchronous. State loads lazily for direct access, while emulation delegates unresolved addresses to `EmulationProvider`; `load_state` is now async and fallible. Manual implementations must also implement `get_emulator_contract_state` to return loaded custom state or the unresolved address and transaction ID.
+- **Breaking:** `TonContract` now uses `async_trait`; manual implementations must apply `#[async_trait::async_trait]` and implement `load_state` as an `async fn`.
 - **Breaking:** Direct contract state loading and get-method emulation on `ContractClient` are now private to the contracts module; consumers should use `TonContract`.
 - **Breaking:** `LiteClient`, its error variants, and its transport dependencies now require the `lite-client` feature. The `tonlibjson` feature enables `lite-client` automatically.
 - Contract APIs are now available without `tonlibjson`; the feature only supplies native tonlib clients and provider implementations.

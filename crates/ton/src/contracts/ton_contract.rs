@@ -2,7 +2,7 @@ use crate::block_tlb::{FromTVMStack, TVMStack};
 use crate::contracts::TVMGetMethodID;
 use crate::contracts::contract_client::ContractClient;
 use crate::errors::{TonError, TonResult};
-use std::future::Future;
+use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 use ton_core::traits::emulation_provider::{EmulatorContractState, EmulatorGetMethodRequest};
@@ -10,6 +10,12 @@ use ton_core::traits::state_provider::ContractState;
 use ton_core::traits::tlb::TLB;
 use ton_core::types::{TonAddress, TxLTHash};
 
+/// Contract wrapper with lazy state loading and provider-backed get-method emulation.
+///
+/// Prefer [`ton_contract!`](macro@crate::ton_contract) for generated wrappers and implementations.
+///
+/// Manual implementations must apply `#[async_trait::async_trait]` to the implementation block.
+#[async_trait]
 pub trait TonContract: Send + Sync + Sized {
     // derive implementation automatically using ton_contract! macro (see below)
     type ContractDataT: TLB;
@@ -18,51 +24,43 @@ pub trait TonContract: Send + Sync + Sized {
     /// Creates a contract wrapper with an already loaded state.
     fn from_state(client: ContractClient, state: Arc<ContractState>) -> Self;
     /// Returns the contract state, loading it on the first call when necessary.
-    fn load_state(&self) -> impl Future<Output = TonResult<&Arc<ContractState>>> + Send;
+    async fn load_state(&self) -> TonResult<&Arc<ContractState>>;
     /// Returns custom state when loaded, or the address and transaction for provider-side resolution.
     fn get_emulator_contract_state(&self) -> EmulatorContractState;
     fn get_client(&self) -> &ContractClient;
 
-    fn emulate_get_method<'a, M, T: FromTVMStack>(
-        &'a self,
-        method: M,
-        stack: &'a TVMStack,
-    ) -> impl Future<Output = TonResult<T>> + Send + 'a
+    async fn emulate_get_method<M, T: FromTVMStack>(&self, method: M, stack: &TVMStack) -> TonResult<T>
     where
-        M: Into<TVMGetMethodID> + Send + 'a,
+        M: Into<TVMGetMethodID> + Send,
     {
-        async move {
-            let method_id = method.into().to_id();
-            let stack_boc = Arc::new(stack.to_boc()?);
-            let request = match self.get_emulator_contract_state() {
-                EmulatorContractState::Address { address, tx_id } => {
-                    EmulatorGetMethodRequest::new_with_address(address, tx_id, method_id, stack_boc)
-                }
-                EmulatorContractState::Custom(state) => {
-                    EmulatorGetMethodRequest::new_with_state(state, method_id, stack_boc)
-                }
-                _ => {
-                    return Err(TonError::EmulatorUnexpectedResponse(
-                        "unsupported EmulatorContractState variant".to_string(),
-                    ));
-                }
-            };
-            let response = self.get_client().emulate_get_method(request).await?;
-            T::from_stack_boc(response.stack_boc)
-        }
+        let method_id = method.into().to_id();
+        let stack_boc = Arc::new(stack.to_boc()?);
+        let request = match self.get_emulator_contract_state() {
+            EmulatorContractState::Address { address, tx_id } => {
+                EmulatorGetMethodRequest::new_with_address(address, tx_id, method_id, stack_boc)
+            }
+            EmulatorContractState::Custom(state) => {
+                EmulatorGetMethodRequest::new_with_state(state, method_id, stack_boc)
+            }
+            _ => {
+                return Err(TonError::EmulatorUnexpectedResponse(
+                    "unsupported EmulatorContractState variant".to_string(),
+                ));
+            }
+        };
+        let response = self.get_client().emulate_get_method(request).await?;
+        T::from_stack_boc(response.stack_boc)
     }
 
-    fn load_parsed_data(&self) -> impl Future<Output = TonResult<Self::ContractDataT>> + Send {
-        async move {
-            let state = self.load_state().await?;
-            match state.data_boc.as_ref() {
-                Some(data_boc) => Ok(TLB::from_boc(data_boc.to_owned())?),
-                None => Err(TonError::TonContractNotFull {
-                    address: state.address,
-                    tx_id: Some(state.last_tx_id.clone()),
-                    missing_field: "data".to_string(),
-                }),
-            }
+    async fn load_parsed_data(&self) -> TonResult<Self::ContractDataT> {
+        let state = self.load_state().await?;
+        match state.data_boc.as_ref() {
+            Some(data_boc) => Ok(TLB::from_boc(data_boc.to_owned())?),
+            None => Err(TonError::TonContractNotFull {
+                address: state.address,
+                tx_id: Some(state.last_tx_id.clone()),
+                missing_field: "data".to_string(),
+            }),
         }
     }
 }
@@ -126,6 +124,7 @@ macro_rules! ton_contract {
             state: $crate::contracts::LazyTonContractState,
         }
 
+        #[$crate::__async_trait]
         impl $crate::contracts::TonContract for $name {
             type ContractDataT = $DATATYPE;
             fn new(
@@ -138,8 +137,8 @@ macro_rules! ton_contract {
             fn from_state(client: $crate::contracts::ContractClient, state: std::sync::Arc<$crate::ton_core::traits::state_provider::ContractState>) -> Self {
                 Self { client, state: $crate::contracts::LazyTonContractState::from_state(state) }
             }
-            fn load_state(&self) -> impl std::future::Future<Output = $crate::errors::TonResult<&std::sync::Arc<$crate::ton_core::traits::state_provider::ContractState>>> + Send {
-                self.state.get_or_load(&self.client)
+            async fn load_state(&self) -> $crate::errors::TonResult<&std::sync::Arc<$crate::ton_core::traits::state_provider::ContractState>> {
+                self.state.get_or_load(&self.client).await
             }
             fn get_emulator_contract_state(&self) -> $crate::ton_core::traits::emulation_provider::EmulatorContractState {
                 self.state.get_emulator_contract_state()
