@@ -2,7 +2,7 @@ use ton_core::TLB;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBRef;
 
-/// WalletVersion::HighloadV2R2, not tested
+/// Highload v2r2 wallet data.
 #[derive(Clone, Debug, TLB)]
 pub struct WalletHLV2R2Data {
     pub wallet_id: i32,
@@ -12,6 +12,7 @@ pub struct WalletHLV2R2Data {
 }
 
 impl WalletHLV2R2Data {
+    /// Creates initial data with zero cleanup time and no processed queries.
     pub fn new(wallet_id: i32, public_key: TonHash) -> Self {
         Self {
             wallet_id,

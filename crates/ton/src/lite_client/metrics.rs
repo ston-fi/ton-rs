@@ -18,7 +18,9 @@ pub(super) struct LiteClientMetrics {
     pub(super) retries_count_total: DashMap<String, AtomicU64>,  // req_type -> req_count
 }
 
+/// Point-in-time lite-client metrics.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct LiteClientMetricsSnapshot {
     pub known_nodes_count: u32,
     pub connections_per_node: u32,

@@ -26,6 +26,7 @@ pub struct JettonTransferMsg<CustomPayloadT: TLB = TonCell, ForwardPayloadT: TLB
 }
 
 impl<CustomPayload: TLB, ForwardPayloadT: TLB> JettonTransferMsg<CustomPayload, ForwardPayloadT> {
+    /// Creates a transfer with query ID zero, no response/custom payload, and zero forwarded TON.
     pub fn new<C: Into<TLBCoins>>(dst: MsgAddressInt, amount: C, payload: ForwardPayloadT) -> Self {
         JettonTransferMsg {
             query_id: 0,

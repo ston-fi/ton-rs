@@ -11,8 +11,10 @@ use strum::IntoStaticStr;
 use ton_core::cell::TonHash;
 use ton_core::types::TxLTHash;
 
+/// Request accepted by tonlib.
 #[derive(IntoStaticStr, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type", rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum TLRequest {
     // tonlib_api.tl, line 216
     LiteServerInfo {

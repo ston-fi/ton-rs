@@ -4,7 +4,7 @@ use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 
-/// WalletVersion::V3R1 | WalletVersion::V3R2
+/// Wallet v3 data.
 #[derive(Debug, PartialEq, Clone, TLB)]
 pub struct WalletV3Data {
     pub seqno: u32,
@@ -13,6 +13,7 @@ pub struct WalletV3Data {
 }
 
 impl WalletV3Data {
+    /// Creates wallet data with sequence number zero.
     pub fn new(wallet_id: i32, public_key: TonHash) -> Self {
         Self {
             seqno: 0,
@@ -22,9 +23,9 @@ impl WalletV3Data {
     }
 }
 
-/// https://docs.ton.org/participate/wallets/contracts#wallet-v3
-/// signature is not considered as part of msg body
-/// documentation is not correct about body layout
+/// Unsigned wallet v3 external-message body.
+///
+/// Schema: <https://docs.ton.org/participate/wallets/contracts#wallet-v3>
 #[derive(Debug, PartialEq, Clone)]
 pub struct WalletV3ExtMsgBody {
     pub subwallet_id: i32,
@@ -59,6 +60,7 @@ impl TLB for WalletV3ExtMsgBody {
 }
 
 impl WalletV3ExtMsgBody {
+    /// Reads a signature followed by the message body.
     pub fn read_signed(parser: &mut CellParser) -> Result<(Self, Vec<u8>), TonCoreError> {
         let signature = parser.read_bits(512)?;
         Ok((Self::read(parser)?, signature))

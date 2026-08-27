@@ -23,21 +23,27 @@ pub trait NFTCollectionMethods: TonContract {
     async fn get_nft_address_by_index<T: Into<I512> + Send>(&self, index: T) -> TonResult<GetNFTAddressByIndexResult>;
 }
 
+/// Result of `get_collection_data`.
 #[derive(Debug, Clone, PartialEq, FromTVMStack)]
 #[from_tvm_stack(ensure_empty = true)]
+#[non_exhaustive]
 pub struct GetCollectionDataResult {
     pub next_item_index: i64,
     pub collection_content: MetadataContent,
     pub owner_address: TonAddress,
 }
 
+/// Result of `get_nft_address_by_index`.
 #[derive(Debug, Clone, PartialEq, Eq, FromTVMStack)]
+#[non_exhaustive]
 pub struct GetNFTAddressByIndexResult {
     pub nft_address: TonAddress,
 }
 
+/// Result of `get_nft_content`.
 #[derive(Debug, Clone, PartialEq, FromTVMStack)]
 #[from_tvm_stack(ensure_empty = true)]
+#[non_exhaustive]
 pub struct GetNFTContentResult {
     pub full_content: MetadataContent,
 }

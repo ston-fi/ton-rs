@@ -15,6 +15,7 @@ pub struct LibsDict {
 }
 
 impl LibsDict {
+    /// Creates a dictionary keyed by each supplied library cell's hash.
     pub fn new<I: IntoIterator<Item = TonCell>>(libs: I) -> Result<Self, TonCoreError> {
         let mut data = HashMap::new();
         for lib in libs {

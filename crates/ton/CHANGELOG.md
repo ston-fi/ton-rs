@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** Open public enums, errors, decoded responses, get-method results, wallet types, and snapshots are now `#[non_exhaustive]`; downstream matches need a wildcard and non-exhaustive structs must use their construction APIs.
 - **Breaking:** `ContractClient::builder` now requires separate `StateProvider` and `EmulationProvider` implementations. Native tonlib users should pass `TLStateProvider` and `ton::emulators::tl_emulation_provider::TLEmulationProvider`; `TLProvider` has been removed.
 - **Breaking:** Replace `ContractClient::Builder::with_emulator_pool(pool)` with `ton::emulators::tl_emulation_provider::TLEmulationProvider::new(client, pool)`, and replace `with_emulator_pool_size` with `EmulatorPool::builder().with_threads_count(...)`.
 - **Breaking:** The former `with_libs_cache_*`, `with_libs_not_found_cache_*`, `with_code_libs_cache_*`, and `with_max_dyn_libs_per_contract` settings move to the matching `ton::emulators::tl_emulation_provider::TLEmulationProvider` methods. Call `with_default_caches` on both the contract-client builder and `ton::emulators::tl_emulation_provider::TLEmulationProvider` to retain both cache groups.

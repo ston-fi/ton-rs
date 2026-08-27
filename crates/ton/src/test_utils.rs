@@ -2,10 +2,7 @@ use crate::bail_ton;
 use crate::block_tlb::Tx;
 use crate::errors::TonResult;
 use crate::tl_client::{TLClient, TLClientTrait, TLStateProvider};
-use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use std::fs;
-use std::ops::Deref;
 use std::sync::Arc;
 use ton_core::cell::TonHash;
 use ton_core::traits::state_provider::{ContractState, StateProvider};
@@ -46,11 +43,10 @@ pub async fn load_cached_contract_state(
     if fs::metadata(cache_path.clone()).is_err() {
         log::debug!("state for {tx_id} not found in cache, loading from network...");
         let state = load_contract_state(address, &tx_id, mainnet).await?;
-        fs::write(&cache_path, serde_json::to_string_pretty(&ContractStateSerial::from(state.deref()))?)?;
+        fs::write(&cache_path, serde_json::to_string_pretty(state.as_ref())?)?;
     }
     let json = fs::read_to_string(cache_path.clone())?;
-    let state: ContractStateSerial = serde_json::from_str(&json)?;
-    Ok(Arc::new(state.into()))
+    Ok(Arc::new(serde_json::from_str(&json)?))
 }
 
 async fn load_tx(address: &TonAddress, tx_id: &TxLTHash, mainnet: bool) -> TonResult<Tx> {
@@ -66,51 +62,6 @@ async fn load_contract_state(address: &TonAddress, tx_id: &TxLTHash, mainnet: bo
     let client = TLClient::builder()?.with_mainnet(mainnet).build().await?;
     let state_provider = TLStateProvider::new(client);
     Ok(Arc::new(state_provider.load_state(*address, Some(tx_id.clone())).await?))
-}
-
-#[serde_as]
-#[derive(Serialize, Deserialize)]
-struct ContractStateSerial {
-    pub mc_seqno: Option<u32>,
-    #[serde(with = "crate::ton_core::serde::serde_ton_address_base64_url")]
-    pub address: TonAddress,
-    #[serde(with = "crate::ton_core::serde::serde_tx_lt_hash_json")]
-    pub last_tx_id: TxLTHash,
-    #[serde_as(as = "Option<Arc<_>>")]
-    pub code_boc: Option<Arc<Vec<u8>>>,
-    #[serde_as(as = "Option<Arc<_>>")]
-    pub data_boc: Option<Arc<Vec<u8>>>,
-    #[serde(with = "crate::ton_core::serde::serde_ton_hash_hex_opt")]
-    pub frozen_hash: Option<TonHash>,
-    pub balance: i64,
-}
-
-impl From<&ContractState> for ContractStateSerial {
-    fn from(state: &ContractState) -> Self {
-        ContractStateSerial {
-            mc_seqno: state.mc_seqno,
-            address: state.address,
-            last_tx_id: state.last_tx_id.clone(),
-            code_boc: state.code_boc.clone(),
-            data_boc: state.data_boc.clone(),
-            frozen_hash: state.frozen_hash,
-            balance: state.balance,
-        }
-    }
-}
-
-impl From<ContractStateSerial> for ContractState {
-    fn from(serial: ContractStateSerial) -> Self {
-        ContractState {
-            mc_seqno: serial.mc_seqno,
-            address: serial.address,
-            last_tx_id: serial.last_tx_id,
-            code_boc: serial.code_boc,
-            data_boc: serial.data_boc,
-            frozen_hash: serial.frozen_hash,
-            balance: serial.balance,
-        }
-    }
 }
 
 #[cfg(test)]

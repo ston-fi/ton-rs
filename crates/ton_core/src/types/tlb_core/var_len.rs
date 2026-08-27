@@ -20,6 +20,7 @@ pub struct VarLen<T, const LEN_BITS_LEN: usize, const LEN_IN_BYTES: bool> {
 }
 
 impl<T, const LEN_BITS_LEN: usize, const LEN_IN_BYTES: bool> VarLen<T, LEN_BITS_LEN, LEN_IN_BYTES> {
+    /// Creates a value with the exact payload bit length; no length is inferred from `data`.
     pub fn new<D: Into<T>>(data: D, bits_len: usize) -> Self { Self::from_value(data.into(), bits_len) }
 
     pub const fn from_value(data: T, bits_len: usize) -> Self { Self { data, bits_len } }

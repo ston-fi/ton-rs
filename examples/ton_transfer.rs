@@ -60,10 +60,7 @@ mod example {
             .with_net_config(&TonNetConfig::new_default(mainnet)?)?
             .with_connection_check(LiteNodeFilter::Archive)
             .with_connections_count(10)
-            .with_retry_strategy(RetryStrategy {
-                retry_count: 10,
-                retry_waiting: Duration::from_millis(200),
-            })
+            .with_retry_strategy(RetryStrategy::new(10, Duration::from_millis(200)))
             .build()
             .await?;
         sys_tonlib_set_verbosity_level(0);

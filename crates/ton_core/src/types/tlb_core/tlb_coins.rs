@@ -6,7 +6,7 @@ use num_traits::ToPrimitive;
 use std::fmt::Debug;
 use ton_macros::TLB;
 
-/// https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L116
+/// <https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L116>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TLB)]
 pub struct TLBCoins(VarLenBytes<u128, 4>);
 
@@ -20,6 +20,7 @@ impl TLBCoins {
         bits_len: 8,
     });
 
+    /// Creates coins using the shortest whole-byte encoding; zero uses no payload bytes.
     pub const fn new(amount: u128) -> Self {
         let bits_len = (128 - amount.leading_zeros()).div_ceil(8) * 8;
         Self(VarLenBytes::from_value(amount, bits_len as usize))

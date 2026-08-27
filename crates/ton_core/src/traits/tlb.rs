@@ -23,7 +23,7 @@ pub trait TLB: Sized {
     const PREFIX: TLBPrefix = TLBPrefix::NULL;
 
     /// read-write definition
-    /// https://docs.ton.org/v3/documentation/data-formats/tlb/tl-b-language#overview
+    /// <https://docs.ton.org/v3/documentation/data-formats/tlb/tl-b-language#overview>
     ///
     /// must be implemented by all TLB objects
     ///
@@ -153,6 +153,7 @@ pub struct TLBPrefix {
 
 impl TLBPrefix {
     pub const NULL: TLBPrefix = TLBPrefix::new(0, 0);
+    /// Creates a prefix that encodes `value` using exactly `bits_len` bits.
     pub const fn new(value: usize, bits_len: usize) -> Self { TLBPrefix { value, bits_len } }
 }
 

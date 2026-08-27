@@ -5,8 +5,10 @@ use std::fmt::Debug;
 use crate::errors::{MetaLoaderError, TonResult};
 use serde::{Deserialize, Serialize};
 
+/// IPFS transport used by the metadata loader.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum IpfsConnectionType {
     HttpGateway,
     IpfsNode,

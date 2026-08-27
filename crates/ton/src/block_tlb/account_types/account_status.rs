@@ -1,7 +1,9 @@
 use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L271
+/// TON account status.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum AccountStatus {
     Uninit(AccountStatusUninit),
     Frozen(AccountStatusFrozen),

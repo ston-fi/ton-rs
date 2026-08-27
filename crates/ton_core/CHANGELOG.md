@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ContractState` implements Serde serialization when the `serde` feature is enabled.
+
 ### Changed
 
+- **Breaking:** Open errors, cell/address enums, provider requests/results, and returned contract state are now `#[non_exhaustive]`; construct `ContractState` through `ContractState::new` and its strip-option `with_*` setters.
 - **Breaking:** Replaced `TonProvider` with separate `StateProvider` and `EmulationProvider` extension points and provider-neutral emulator request and result types.
 - **Breaking:** Renamed `TonContractState` to `ContractState`.
 - **Breaking:** Renamed `EmulatorGetMethodRequest::by_address` to `new_with_address` and `with_custom_state` to `new_with_state`.

@@ -2,7 +2,9 @@ use crate::block_tlb::block_types::block_info::ExtBlockRef;
 use ton_core::TLB;
 use ton_core::types::tlb_core::TLBRef;
 
+/// Previous-block reference layout.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum PrevBlockInfo {
     Regular(ExtBlockRef),
     AfterMerge(BlockPrevInfoAfterMerge), // is not tested

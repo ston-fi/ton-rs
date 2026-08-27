@@ -14,6 +14,7 @@ const CRC_16_XMODEM: Crc<u16> = Crc::<u16>::new(&crc::CRC_16_XMODEM);
 /// Serde represents [`Number`](Self::Number) as an integer and [`Name`](Self::Name) as a string.
 #[derive(Clone, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum TVMGetMethodID {
     /// Numeric method identifier.
     Number(i32),
@@ -22,8 +23,10 @@ pub enum TVMGetMethodID {
 }
 
 impl TVMGetMethodID {
+    /// Creates a numeric ID from a method prototype.
     pub fn from_prototype(prototype: &str) -> TVMGetMethodID { Self::Number(calc_opcode(prototype)) }
 
+    /// Returns the numeric ID or method name as text.
     pub fn as_str(&self) -> Cow<'static, str> {
         match self {
             TVMGetMethodID::Number(num) => Cow::Owned(num.to_string()),
@@ -34,6 +37,7 @@ impl TVMGetMethodID {
         }
     }
 
+    /// Resolves this identifier to its numeric TVM ID.
     pub fn to_id(&self) -> i32 {
         match self {
             TVMGetMethodID::Name(name) => CRC_16_XMODEM.checksum(name.as_bytes()) as i32 | 0x10000,
@@ -79,6 +83,7 @@ fn calc_opcode(command: &str) -> i32 {
 
 /// Successful TVM get-method execution.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct TVMGetMethodSuccess {
     /// TVM exit code. Codes `0` and `1` indicate success.
     pub vm_exit_code: i32,
@@ -93,10 +98,13 @@ pub struct TVMGetMethodSuccess {
 }
 
 impl TVMGetMethodSuccess {
+    /// Parses the returned TVM stack.
     pub fn stack_parsed(&self) -> TonResult<TVMStack> { Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?) }
 
+    /// Decodes the returned stack BOC.
     pub fn stack_boc(&self) -> TonResult<Vec<u8>> { Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?) }
 
+    /// Returns whether the VM exit code indicates success.
     pub fn exit_success(&self) -> bool { self.vm_exit_code == 0 || self.vm_exit_code == 1 }
 }
 

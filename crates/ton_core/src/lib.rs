@@ -1,4 +1,7 @@
+//! Core TON cells, addresses, TLB serialization, and provider traits.
+
 pub use ton_macros::*; // re-export
+
 pub mod bits_utils;
 pub mod cell;
 pub mod constants;

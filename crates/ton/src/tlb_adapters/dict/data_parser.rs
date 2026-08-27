@@ -15,6 +15,7 @@ pub struct DictDataParser {
 }
 
 impl DictDataParser {
+    /// Creates a parser with an empty key prefix and the specified fixed key length.
     pub fn new(key_len_bits: usize) -> DictDataParser {
         DictDataParser {
             key_bits_len: key_len_bits,

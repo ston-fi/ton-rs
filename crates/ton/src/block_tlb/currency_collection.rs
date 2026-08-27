@@ -13,7 +13,7 @@ use ton_core::types::TonExtraCurrencyId;
 use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::VarLenBytes;
 
-/// https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L124
+/// <https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L124>
 #[derive(Default, Clone, Debug, PartialEq, TLB)]
 pub struct CurrencyCollection {
     pub coins: TLBCoins,
@@ -22,6 +22,7 @@ pub struct CurrencyCollection {
 }
 
 impl CurrencyCollection {
+    /// Creates a collection with no extra currencies.
     pub fn new(coins: TLBCoins) -> Self {
         Self {
             coins,

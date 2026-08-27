@@ -22,6 +22,7 @@ pub struct JettonTransferNotificationMsg<ForwardPayloadT: TLB = TonCell> {
 }
 
 impl<T: TLB> JettonTransferNotificationMsg<T> {
+    /// Creates a notification with query ID zero and an automatically laid-out payload.
     pub fn new<C: Into<TLBCoins>>(amount: C, sender: TonAddress, forward_payload: T) -> Self {
         JettonTransferNotificationMsg {
             query_id: 0,

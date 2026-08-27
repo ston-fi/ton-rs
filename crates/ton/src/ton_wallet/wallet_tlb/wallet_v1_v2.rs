@@ -4,8 +4,7 @@ use ton_core::cell::{CellBuilder, CellParser, TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 
-/// Is not covered by tests and basically unsupported
-/// WalletVersion::V1R1 | WalletVersion::V1R2 | WalletVersion::V1R3 | WalletVersion::V2R1 | WalletVersion::V2R2
+/// Wallet v1/v2 data.
 #[derive(Debug, PartialEq, Clone, TLB)]
 pub struct WalletV1V2Data {
     pub seqno: u32,
@@ -13,11 +12,13 @@ pub struct WalletV1V2Data {
 }
 
 impl WalletV1V2Data {
+    /// Creates wallet data with sequence number zero.
     pub fn new(public_key: TonHash) -> Self { Self { seqno: 0, public_key } }
 }
 
-/// https://docs.ton.org/participate/wallets/contracts#wallet-v2
-/// TLB parser doesn't expect signature in cell, check `read_signed()` instead
+/// Unsigned wallet v2 external-message body.
+///
+/// Schema: <https://docs.ton.org/participate/wallets/contracts#wallet-v2>
 #[derive(Debug, PartialEq, Clone)]
 pub struct WalletV2ExtMsgBody {
     pub msg_seqno: u32,
@@ -48,6 +49,7 @@ impl TLB for WalletV2ExtMsgBody {
 }
 
 impl WalletV2ExtMsgBody {
+    /// Reads a signature followed by the message body.
     pub fn read_signed(parser: &mut CellParser) -> Result<(Self, Vec<u8>), TonCoreError> {
         let signature = parser.read_bits(512)?;
         Ok((Self::read(parser)?, signature))

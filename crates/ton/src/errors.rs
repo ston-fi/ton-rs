@@ -23,7 +23,9 @@ macro_rules! bail_ton {
 
 pub type TonResult<T> = Result<T, TonError>;
 
+/// Errors produced by `ton` operations.
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum TonError {
     // handling system errors such as mutex.lock(), system_time, etc.
     #[error("SystemError: {0}")]
@@ -158,7 +160,9 @@ pub enum TonError {
     TransportError(#[from] reqwest::Error),
 }
 
+/// Metadata loading errors.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum MetaLoaderError {
     #[error("Unsupported content layout (Metadata content: {0:?})")]
     ContentLayoutUnsupported(Box<MetadataContent>),
@@ -185,6 +189,7 @@ impl From<everscale_types::boc::de::Error> for TonError {
 }
 
 impl TonError {
+    /// Creates a system error from a displayable value.
     pub fn system<T: ToString>(msg: T) -> Self { TonError::SystemError(msg.to_string()) }
 }
 

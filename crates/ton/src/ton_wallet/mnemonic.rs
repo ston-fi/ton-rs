@@ -157,7 +157,7 @@ fn pbkdf2_sha512(
     Ok(output)
 }
 
-///Based on https://github.com/tonwhales/ton-crypto/blob/master/src/mnemonic/mnemonic.spec.ts
+/// Based on <https://github.com/tonwhales/ton-crypto/blob/master/src/mnemonic/mnemonic.spec.ts>.
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -13,7 +13,9 @@ pub struct ShardAccount {
 
 // https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L259
 // intentionally implemented as enum - Account can't be used directly
+/// Optional account value in a shard state.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum MaybeAccount {
     None(AccountNone),
     Account(Box<Account>),

@@ -35,6 +35,7 @@ impl TVMStack {
     pub const EMPTY_BOC: &'static [u8] = &[181, 238, 156, 114, 1, 1, 1, 1, 0, 5, 0, 0, 6, 0, 0, 0];
     pub const EMPTY: Self = Self(Vec::new());
 
+    /// Creates a stack preserving the supplied bottom-to-top item order.
     pub fn new(items: Vec<TVMStackValue>) -> Self { Self(items) }
 
     pub fn ensure_empty(&self) -> TonResult<()> {

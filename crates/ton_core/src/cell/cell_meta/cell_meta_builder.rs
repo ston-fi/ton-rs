@@ -168,7 +168,7 @@ impl<'a> CellMetaBuilder<'a> {
     }
 
     /// This function replicates unknown logic of resolving cell data
-    /// https://github.com/ton-blockchain/ton/blob/24dc184a2ea67f9c47042b4104bbb4d82289fac1/crypto/vm/cells/DataCell.cpp#L214
+    /// <https://github.com/ton-blockchain/ton/blob/24dc184a2ea67f9c47042b4104bbb4d82289fac1/crypto/vm/cells/DataCell.cpp#L214>
     pub fn calc_hashes_and_depths(&self, level_mask: LevelMask) -> Result<HashesDepthsStorage, TonCoreError> {
         let hash_count = match self.cell_type {
             CellType::PrunedBranch => 1,
@@ -251,7 +251,7 @@ impl<'a> CellMetaBuilder<'a> {
     }
 
     /// Calculates d1 descriptor for cell
-    /// See https://docs.ton.org/tvm.pdf 3.1.4 for details
+    /// See <https://docs.ton.org/tvm.pdf>, section 3.1.4.
     fn get_refs_descriptor<L: Into<u8>>(&self, level_mask: L) -> u8 {
         let cell_type_var = self.cell_type.is_exotic() as u8;
         self.refs.len() as u8 + 8 * cell_type_var + level_mask.into() * 32
@@ -346,7 +346,7 @@ impl<'a> CellMetaBuilder<'a> {
 }
 
 /// Calculates d2 descriptor for cell
-/// See https://docs.ton.org/tvm.pdf 3.1.4 for details
+/// See <https://docs.ton.org/tvm.pdf>, section 3.1.4.
 fn get_bits_descriptor(data_bits_len: usize) -> u8 { (data_bits_len / 8 + data_bits_len.div_ceil(8)) as u8 }
 
 fn write_data(writer: &mut CellBitWriter, data: &[u8], bit_len: usize) -> Result<(), TonCoreError> {

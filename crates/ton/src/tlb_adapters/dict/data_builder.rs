@@ -20,6 +20,7 @@ pub struct DictDataBuilder<'a, VA: DictValAdapter> {
 }
 
 impl<'a, VA: DictValAdapter> DictDataBuilder<'a, VA> {
+    /// Creates a builder after validating and normalizing the sorted keys.
     pub fn new(
         key_bits_len: usize,
         mut keys_sorted: Vec<BigUint>,

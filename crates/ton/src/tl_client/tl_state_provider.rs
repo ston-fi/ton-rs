@@ -51,15 +51,17 @@ impl StateProvider for TLStateProvider {
             true => None,
             false => Some(TonHash::from_vec(raw_state.frozen_hash)?),
         };
-        Ok(ContractState {
-            mc_seqno: None,
-            address,
-            last_tx_id: raw_state.last_tx_id,
-            code_boc,
-            data_boc,
-            frozen_hash,
-            balance: raw_state.balance,
-        })
+        let mut state = ContractState::new(address, raw_state.last_tx_id, raw_state.balance);
+        if let Some(code_boc) = code_boc {
+            state = state.with_code_boc(code_boc);
+        }
+        if let Some(data_boc) = data_boc {
+            state = state.with_data_boc(data_boc);
+        }
+        if let Some(frozen_hash) = frozen_hash {
+            state = state.with_frozen_hash(frozen_hash);
+        }
+        Ok(state)
     }
 
     async fn load_latest_tx_per_address(&self, mc_seqno: u32) -> TonCoreResult<Vec<(TonAddress, TxLTHash)>> {

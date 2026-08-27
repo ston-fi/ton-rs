@@ -18,5 +18,6 @@ impl Default for NFTGetStaticDataMsg {
 }
 
 impl NFTGetStaticDataMsg {
+    /// Creates a request with the supplied query ID; [`Default`] uses zero.
     pub fn new(query_id: u64) -> Self { NFTGetStaticDataMsg { query_id } }
 }

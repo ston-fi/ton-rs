@@ -123,6 +123,12 @@ Be careful with null (zero-length) prefixes. A null prefix acts like a wildcard;
 
 ## Contribution
 
+Repository and crate-specific guidance lives in [`AGENTS.md`](AGENTS.md).
+Public API changes must preserve wire formats, document compatibility impact,
+and keep one supported construction path. Open enums and returned records use
+`#[non_exhaustive]`; fixed TLB records remain exhaustive when their fields are
+the serialization contract.
+
 If you face with some unclear parts or bugs, your can add a new example or improve documentation.
 
 If you implemented some general feature, please make sure it's covered by tests (unit tests if possible)

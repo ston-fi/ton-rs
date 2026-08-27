@@ -22,6 +22,7 @@ pub struct JettonBurnMsg<CustomPayloadT: TLB = TonCell> {
 }
 
 impl JettonBurnMsg {
+    /// Creates a burn request with query ID zero, no response address, and no custom payload.
     pub fn new<T: Into<TLBCoins>>(amount: T) -> Self {
         JettonBurnMsg {
             query_id: 0,

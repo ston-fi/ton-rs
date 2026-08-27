@@ -13,6 +13,7 @@ use ton_macros::{FromTVMStack, ton_methods};
 ton_contract!(NFTItemContract: NFTItemMethods);
 
 impl NFTItemContract {
+    /// Loads NFT data and resolves collection-relative content.
     pub async fn ext_load_full_nft_data(&self) -> TonResult<GetNFTDataResult> {
         let mut data = self.get_nft_data().await?;
         let MetadataContent::Unsupported(meta) = data.individual_content else {
@@ -33,8 +34,10 @@ pub trait NFTItemMethods: TonContract {
     async fn get_nft_data(&self) -> TonResult<GetNFTDataResult>;
 }
 
+/// Result of `get_nft_data`.
 #[derive(Debug, Clone, PartialEq, FromTVMStack)]
 #[from_tvm_stack(ensure_empty = true)]
+#[non_exhaustive]
 pub struct GetNFTDataResult {
     pub init: bool,
     pub index: I512,

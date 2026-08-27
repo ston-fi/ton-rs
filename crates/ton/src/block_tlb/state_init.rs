@@ -35,6 +35,7 @@ pub struct TickTock {
 }
 
 impl StateInit {
+    /// Creates state with code and data, without split depth, tick-tock handlers, or libraries.
     pub fn new<C, D>(code: C, data: D) -> Self
     where
         C: Into<TLBRef<TonCell>>,

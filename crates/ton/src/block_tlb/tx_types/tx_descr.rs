@@ -6,7 +6,9 @@ use ton_core::cell::TonHash;
 use ton_core::types::tlb_core::TLBRef;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L353
+/// TON transaction description.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum TxDescr {
     Ord(TxDescrOrd),
     Storage(TxDescrStorage),

@@ -22,6 +22,7 @@ pub struct NFTReportStaticDataMsg {
 }
 
 impl NFTReportStaticDataMsg {
+    /// Creates a response with query ID zero.
     pub fn new(index: BigUint, collection: TonAddress) -> Self {
         NFTReportStaticDataMsg {
             query_id: 0,

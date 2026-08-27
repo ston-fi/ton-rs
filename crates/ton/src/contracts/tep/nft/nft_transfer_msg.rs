@@ -30,6 +30,7 @@ pub struct NFTTransferMsg {
 }
 
 impl NFTTransferMsg {
+    /// Creates a transfer with query ID zero, zero response address/amount, and empty payloads.
     pub fn new(new_owner: &TonAddress) -> Self {
         NFTTransferMsg {
             query_id: 0,

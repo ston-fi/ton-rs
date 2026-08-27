@@ -5,8 +5,9 @@ use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::{TLB, TLBPrefix};
 use ton_core::types::tlb_core::TLBRef;
 
-/// WalletVersion::V5R1
-/// https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb#L29
+/// Wallet v5r1 data.
+///
+/// Schema: <https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb#L29>
 #[derive(Debug, PartialEq, Clone, TLB)]
 pub struct WalletV5Data {
     pub sign_allowed: bool,
@@ -17,6 +18,7 @@ pub struct WalletV5Data {
 }
 
 impl WalletV5Data {
+    /// Creates wallet data with signing enabled, sequence number zero, and no extensions.
     pub fn new(wallet_id: i32, public_key: TonHash) -> Self {
         Self {
             sign_allowed: true,
@@ -28,10 +30,9 @@ impl WalletV5Data {
     }
 }
 
-/// https://docs.ton.org/participate/wallets/contracts#wallet-v5
-/// signature is not considered as part of msg body
-/// https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb
-/// This implementation support only jetton transfer messages
+/// Unsigned wallet v5r1 external-message body.
+///
+/// Schema: <https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb>
 #[derive(Debug, PartialEq, Clone)]
 pub struct WalletV5ExtMsgBody {
     pub wallet_id: i32,
@@ -69,6 +70,7 @@ impl TLB for WalletV5ExtMsgBody {
 }
 
 impl WalletV5ExtMsgBody {
+    /// Reads the message body followed by its signature.
     pub fn read_signed(parser: &mut CellParser) -> Result<(Self, Vec<u8>), TonCoreError> {
         let body = Self::read(parser)?;
         let signature = parser.read_bits(512)?;

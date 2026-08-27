@@ -12,7 +12,9 @@ use ton_core::TLB;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBRef;
 
+/// Value stored on the TVM stack.
 #[derive(Clone, TLB, PartialEq)]
+#[non_exhaustive]
 pub enum TVMStackValue {
     Null(TVMNull),
     TinyInt(TVMTinyInt),
@@ -25,6 +27,7 @@ pub enum TVMStackValue {
     Tuple(TVMTuple),
 }
 
+/// TVM continuation value.
 #[derive(Debug, Clone, TLB, PartialEq)]
 #[tlb(prefix = 0x00, bits_len = 8)]
 pub struct TVMNull;
@@ -61,6 +64,7 @@ pub struct TVMBuilder {
 
 #[derive(Debug, Clone, TLB, PartialEq)]
 #[tlb(prefix = 0x06, bits_len = 8)]
+#[non_exhaustive]
 pub enum TVMCont {
     Std(VMContStd),
     Envelope(TVMContEnvelope),

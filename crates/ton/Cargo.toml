@@ -13,6 +13,7 @@ publish = true
 
 
 include = [
+    "AGENTS.md",
     "Cargo.toml",
     "src/*",
     "tests/*",
@@ -62,7 +63,6 @@ num-traits.workspace = true
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-serde_with.workspace = true
 tokio-retry = { workspace = true, optional = true }
 tokio-tower = { workspace = true, optional = true }
 ton_liteapi = { workspace = true, optional = true }

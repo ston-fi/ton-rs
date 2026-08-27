@@ -1,3 +1,8 @@
+//! TON clients, contract wrappers, wallet support, and protocol types.
+//!
+//! Provider-neutral contract APIs are available by default. Enable
+//! `lite-client` for ADNL access or `tonlibjson` for native clients and emulators.
+
 #[doc(hidden)]
 pub use async_trait::async_trait as __async_trait;
 pub use ton_core; // re-export

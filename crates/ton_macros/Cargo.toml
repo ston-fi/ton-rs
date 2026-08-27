@@ -12,6 +12,7 @@ readme = "README.md"
 publish = true
 
 include = [
+    "AGENTS.md",
     "Cargo.toml",
     "src/*",
 ]

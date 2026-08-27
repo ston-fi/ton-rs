@@ -18,8 +18,10 @@ pub trait JettonWalletMethods: TonContract {
     async fn get_wallet_data(&self) -> TonResult<GetWalletDataResult>;
 }
 
+/// Result of `get_wallet_data`.
 #[derive(Debug, Clone, PartialEq, Eq, FromTVMStack)]
 #[from_tvm_stack(allow_extra = true)]
+#[non_exhaustive]
 pub struct GetWalletDataResult {
     pub balance: I512,
     pub owner: TonAddress,

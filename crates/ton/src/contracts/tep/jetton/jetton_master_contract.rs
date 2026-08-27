@@ -30,8 +30,10 @@ pub trait ScaledUIMethods: TonContract {
     async fn get_display_multiplier(&self) -> TonResult<GetDisplayMultiplierResult>;
 }
 
+/// Result of `get_jetton_data`.
 #[derive(Debug, Clone, PartialEq, FromTVMStack)]
 #[from_tvm_stack(allow_extra = true)]
+#[non_exhaustive]
 pub struct GetJettonDataResult {
     pub total_supply: Coins,
     pub mintable: bool,
@@ -41,18 +43,23 @@ pub struct GetJettonDataResult {
 }
 
 impl GetJettonDataResult {
+    /// Parses the metadata content cell.
     pub fn content_parsed(&self) -> Result<MetadataContent, ton_core::errors::TonCoreError> {
         MetadataContent::from_cell(&self.content)
     }
 }
 
+/// Result of `get_wallet_address`.
 #[derive(Debug, Clone, PartialEq, Eq, FromTVMStack)]
+#[non_exhaustive]
 pub struct GetWalletAddressResult {
     pub address: TonAddress,
 }
 
+/// Result of `get_display_multiplier`.
 #[derive(Debug, Clone, PartialEq, FromTVMStack)]
 #[from_tvm_stack(ensure_empty = true)]
+#[non_exhaustive]
 pub struct GetDisplayMultiplierResult {
     pub numerator: I512,
     pub denominator: I512,

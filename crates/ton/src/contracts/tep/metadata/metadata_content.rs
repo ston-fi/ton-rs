@@ -16,7 +16,9 @@ use ton_core::types::tlb_core::TLBRef;
 
 pub type MetadataDict = HashMap<TonHash, TLBRef<SnakeData>>;
 
+/// Parsed TEP-64 metadata content.
 #[derive(PartialEq, Debug, Clone)]
+#[non_exhaustive]
 pub enum MetadataContent {
     Internal(MetadataInternal),
     External(MetadataExternal),
@@ -85,54 +87,63 @@ impl TLB for MetadataContent {
 }
 
 impl MetadataContent {
+    /// Returns internal metadata, if present.
     pub fn as_internal(&self) -> Option<&MetadataInternal> {
         match self {
             MetadataContent::Internal(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Returns mutable internal metadata, if present.
     pub fn as_internal_mut(&mut self) -> Option<&mut MetadataInternal> {
         match self {
             MetadataContent::Internal(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Extracts internal metadata, if present.
     pub fn into_internal(self) -> Option<MetadataInternal> {
         match self {
             MetadataContent::Internal(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Returns external metadata, if present.
     pub fn as_external(&self) -> Option<&MetadataExternal> {
         match self {
             MetadataContent::External(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Returns mutable external metadata, if present.
     pub fn as_external_mut(&mut self) -> Option<&mut MetadataExternal> {
         match self {
             MetadataContent::External(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Extracts external metadata, if present.
     pub fn into_external(self) -> Option<MetadataExternal> {
         match self {
             MetadataContent::External(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Returns unsupported metadata, if present.
     pub fn as_unsupported(&self) -> Option<&MetadataUnsupported> {
         match self {
             MetadataContent::Unsupported(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Returns mutable unsupported metadata, if present.
     pub fn as_unsupported_mut(&mut self) -> Option<&mut MetadataUnsupported> {
         match self {
             MetadataContent::Unsupported(inner) => Some(inner),
             _ => None,
         }
     }
+    /// Extracts unsupported metadata, if present.
     pub fn into_unsupported(self) -> Option<MetadataUnsupported> {
         match self {
             MetadataContent::Unsupported(inner) => Some(inner),

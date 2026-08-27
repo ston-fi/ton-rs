@@ -7,7 +7,9 @@ use crate::contracts::tep::nft::nft_report_static_data_msg::NFTReportStaticDataM
 use crate::contracts::tep::nft::nft_transfer_msg::NFTTransferMsg;
 use ton_core::TLB;
 
+/// Supported NFT message body.
 #[derive(Clone, Debug, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum NFTMsgBody {
     Excesses(ExcessesMsg),
     GetStaticData(NFTGetStaticDataMsg),

@@ -22,7 +22,9 @@ pub enum EmulatorContractState {
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct EmulatorGetMethodRequest {
+    /// Contract state used for execution.
     pub contract_state: EmulatorContractState,
+    /// Numeric TVM method identifier.
     pub method_id: i32,
     /// Input stack serialized as BOC.
     pub stack_boc: Arc<Vec<u8>>,
@@ -61,7 +63,9 @@ pub struct EmulatorGetMethodSuccess {
     pub vm_exit_code: i32,
     /// Result stack serialized as BOC.
     pub stack_boc: Vec<u8>,
+    /// Emulator log, when available.
     pub vm_log: Option<String>,
+    /// Gas units consumed by execution.
     pub gas_used: Option<i32>,
     /// Original provider response, when retained for diagnostics.
     pub raw_response: Option<String>,

@@ -49,15 +49,28 @@ struct Inner {
 ///
 /// Serde represents the variants as `"Healthy"` and `"Archive"`.
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub enum LiteNodeFilter {
     Healthy, // connect to any healthy node
     Archive, // connect to archive node only
 }
 
+/// Retry settings for tonlib requests.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct RetryStrategy {
     pub retry_count: usize,
     pub retry_waiting: Duration,
+}
+
+impl RetryStrategy {
+    /// Creates a retry strategy.
+    pub const fn new(retry_count: usize, retry_waiting: Duration) -> Self {
+        Self {
+            retry_count,
+            retry_waiting,
+        }
+    }
 }
 
 #[cfg(test)]

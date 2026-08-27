@@ -11,6 +11,7 @@ use std::sync::Arc;
 pub struct TLBRef<T>(T);
 
 impl<T: TLB> TLBRef<T> {
+    /// Wraps a value so enclosing TL-B fields store it in a referenced cell.
     pub const fn new(val: T) -> Self { Self(val) }
     pub fn into_inner(self) -> T { self.0 }
 }

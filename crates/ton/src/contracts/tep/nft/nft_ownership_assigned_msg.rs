@@ -21,6 +21,7 @@ pub struct NFTOwnershipAssignedMsg {
 }
 
 impl NFTOwnershipAssignedMsg {
+    /// Creates a notification with query ID zero and an empty forward payload.
     pub fn new(prev_owner: &TonAddress) -> Self {
         Self {
             query_id: 0,

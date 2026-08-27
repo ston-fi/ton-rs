@@ -12,6 +12,7 @@ pub struct ConstLen<T> {
 }
 
 impl<T> ConstLen<T> {
+    /// Creates an adapter that reads and writes exactly `bits_len` value bits.
     pub fn new(bits_len: usize) -> Self {
         Self {
             bits_len,

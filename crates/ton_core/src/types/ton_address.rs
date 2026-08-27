@@ -36,6 +36,7 @@ impl TonAddress {
     pub fn is_zero(&self) -> bool { self == &TonAddress::ZERO }
     pub fn is_native(&self) -> bool { self == &TonAddress::NATIVE }
 
+    /// Creates an address preserving the supplied workchain and account hash.
     pub const fn new(workchain: i32, hash: TonHash) -> Self { Self { workchain, hash } }
 
     pub fn from_msg_address<T: Into<MsgAddress>>(msg_address: T) -> Result<Self, TonCoreError> {

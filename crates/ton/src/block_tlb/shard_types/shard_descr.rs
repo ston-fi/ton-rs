@@ -4,7 +4,9 @@ use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 use ton_core::{TLB, bail_ton_core_data};
 
+/// Shard descriptor encoding version.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum ShardDescrTag {
     Old,
     New,
@@ -135,7 +137,9 @@ impl TLB for ShardDescr {
     fn write(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> { self.write_definition(builder) }
 }
 
+/// Planned shard split or merge.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum FutureSplitMerge {
     None(FutureSplitMergeNone),
     Split(FutureSplitMergeSplit),

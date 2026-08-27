@@ -25,7 +25,9 @@ pub struct AccountStorage {
     pub state: AccountState,
 }
 
+/// Optional account storage extension.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum MaybeStorageExtraInfo {
     None(StorageExtraInfoNone),
     Info(StorageExtraInfo),

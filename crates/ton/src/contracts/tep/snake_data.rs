@@ -19,6 +19,7 @@ pub struct SnakeData {
 
 #[rustfmt::skip]
 impl SnakeData {
+    /// Creates byte-aligned snake data with chunk boundaries chosen during serialization.
     pub fn new(data: Vec<u8>) -> Self { Self { data, chunks_bits_len: vec![] } }
     pub fn as_str(&self) -> Cow<'_, str> {
         if self.data.is_empty() {

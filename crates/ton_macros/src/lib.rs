@@ -1,3 +1,5 @@
+//! Procedural macros for TON TLB types and contract get methods.
+
 mod from_tvm_stack_derive;
 mod tlb_derive;
 mod tlb_derive_enum;
@@ -25,4 +27,5 @@ pub fn tlb_derive(input: TokenStream) -> TokenStream { tlb_derive_impl(input).in
 pub fn from_tvm_stack_derive(input: TokenStream) -> TokenStream { from_tvm_stack_derive_impl(input).into() }
 
 #[proc_macro_attribute]
+/// Generates get-method implementations for an async contract trait or impl.
 pub fn ton_methods(attr: TokenStream, item: TokenStream) -> TokenStream { ton_methods_impl(attr, item) }

@@ -34,10 +34,7 @@ impl TLClientTrait for TLConnection {
     fn get_connection(&self) -> &TLConnection { self }
 
     fn get_retry_strategy(&self) -> &RetryStrategy {
-        static NO_RETRY: RetryStrategy = RetryStrategy {
-            retry_count: 0,
-            retry_waiting: Duration::from_millis(0),
-        };
+        static NO_RETRY: RetryStrategy = RetryStrategy::new(0, Duration::from_millis(0));
         &NO_RETRY
     }
 }
