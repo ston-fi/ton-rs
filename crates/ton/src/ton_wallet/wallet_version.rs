@@ -6,7 +6,10 @@ use ton_core::cell::{TonCell, TonHash};
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+/// A TON wallet contract version.
+///
+/// Serde represents versions using their Rust variant names, such as `"V4R2"` and `"HLV2R2"`.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
 pub enum WalletVersion {
     V1R1,
     V1R2,
@@ -118,5 +121,21 @@ impl WalletVersion {
                 Ok(builder.build()?)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WalletVersion;
+
+    #[test]
+    fn test_wallet_version_serde_contract() -> anyhow::Result<()> {
+        let version = WalletVersion::V4R2;
+        let serialized = "\"V4R2\"";
+
+        assert_eq!(serde_json::to_string(&version)?, serialized);
+        assert_eq!(serde_json::from_str::<WalletVersion>(serialized)?, version);
+
+        Ok(())
     }
 }

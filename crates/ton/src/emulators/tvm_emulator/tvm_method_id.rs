@@ -4,7 +4,11 @@ use std::fmt::{Debug, Display, Formatter};
 
 const CRC_16_XMODEM: Crc<u16> = Crc::<u16>::new(&crc::CRC_16_XMODEM);
 
-#[derive(Clone, Eq, PartialEq, Hash)]
+/// Identifies a TVM get method by numeric ID or name.
+///
+/// Serde represents [`Number`](Self::Number) as an integer and [`Name`](Self::Name) as a string.
+#[derive(Clone, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(untagged)]
 pub enum TVMGetMethodID {
     Number(i32),
     Name(Cow<'static, str>),
@@ -85,6 +89,19 @@ mod tests {
         forward_payload:Either Cell ^Cell = InternalMsgBody";
         let method_id: TVMGetMethodID = TVMGetMethodID::from_prototype(p);
         assert_eq!(method_id, TVMGetMethodID::Number(0x0f8a7ea5));
+        Ok(())
+    }
+
+    #[test]
+    fn test_serde_contract() -> anyhow::Result<()> {
+        let number = TVMGetMethodID::Number(0x1234);
+        assert_eq!(serde_json::to_string(&number)?, "4660");
+        assert_eq!(serde_json::from_str::<TVMGetMethodID>("4660")?, number);
+
+        let name = TVMGetMethodID::from("get_wallet_data");
+        assert_eq!(serde_json::to_string(&name)?, "\"get_wallet_data\"");
+        assert_eq!(serde_json::from_str::<TVMGetMethodID>("\"get_wallet_data\"")?, name);
+
         Ok(())
     }
 }

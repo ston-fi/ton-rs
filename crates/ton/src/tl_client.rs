@@ -43,7 +43,10 @@ struct Inner {
     retry_strategy: RetryStrategy,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+/// Selects which healthy lite-server connections may be used.
+///
+/// Serde represents the variants as `"Healthy"` and `"Archive"`.
+#[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum LiteNodeFilter {
     Healthy, // connect to any healthy node
     Archive, // connect to archive node only
@@ -53,4 +56,24 @@ pub enum LiteNodeFilter {
 pub struct RetryStrategy {
     pub retry_count: usize,
     pub retry_waiting: Duration,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LiteNodeFilter;
+
+    #[test]
+    fn test_lite_node_filter_serde_contract() -> anyhow::Result<()> {
+        let cases = [
+            (LiteNodeFilter::Healthy, "Healthy"),
+            (LiteNodeFilter::Archive, "Archive"),
+        ];
+
+        for (filter, serialized) in cases {
+            assert_eq!(serde_json::to_string(&filter)?, format!("\"{serialized}\""));
+            assert_eq!(serde_json::from_str::<LiteNodeFilter>(&format!("\"{serialized}\""))?, filter);
+        }
+
+        Ok(())
+    }
 }
