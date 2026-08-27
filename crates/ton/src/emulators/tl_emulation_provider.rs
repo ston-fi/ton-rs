@@ -3,7 +3,7 @@ use crate::emulators::emulator_pool::{EmulatorPool, TVMGetMethodTask};
 use crate::emulators::tvm_emulator::{TVMEmulatorC7, TVMState};
 use crate::errors::{TonError, TonResult};
 use crate::libs_dict::LibsDict;
-use crate::tl_client::{TLClient, TLClientTrait, load_tl_state};
+use crate::tl_client::{TLClient, TLClientTrait};
 use async_trait::async_trait;
 use futures_util::future::try_join_all;
 use parking_lot::RwLock;
@@ -124,7 +124,11 @@ impl TLEmulationProvider {
         timeout: Option<Duration>,
     ) -> TonResult<EmulatorGetMethodSuccess> {
         let state = match request.contract_state {
-            EmulatorContractState::Address { address, tx_id } => load_tl_state(&self.client, address, tx_id).await?,
+            EmulatorContractState::Address { .. } => {
+                return Err(TonError::EmulatorUnexpectedResponse(
+                    "TLEmulationProvider requires resolved contract state".to_string(),
+                ));
+            }
             EmulatorContractState::Custom(state) => state,
             _ => {
                 return Err(TonError::EmulatorUnexpectedResponse(
@@ -143,7 +147,7 @@ impl TLEmulationProvider {
             Some(data_boc) => TonCell::from_boc(data_boc.clone())?,
             None => TonCell::empty().clone(),
         };
-        let data_boc = state.data_boc.unwrap_or_else(|| Arc::new(Vec::new()));
+        let data_boc = state.data_boc.clone().unwrap_or_else(|| Arc::new(Vec::new()));
         let code_hash = *code_cell.hash()?;
         let static_lib_ids = TonCellUtils::extract_lib_ids([&code_cell, &data_cell])?;
         let mut emulation_libs = self.get_or_load_libs(static_lib_ids).await?;
@@ -274,6 +278,8 @@ where
 
 #[async_trait]
 impl EmulationProvider for TLEmulationProvider {
+    fn requires_resolved_state(&self) -> bool { true }
+
     async fn emulate_get_method(
         &self,
         request: EmulatorGetMethodRequest,

@@ -35,39 +35,31 @@ impl TLStateProvider {
     }
 }
 
-pub(crate) async fn load_tl_state(
-    client: &TLClient,
-    address: TonAddress,
-    tx_id: Option<TxLTHash>,
-) -> TonCoreResult<ContractState> {
-    let raw_state = match tx_id {
-        Some(id) => client.get_account_state_raw_by_tx(address, id).await,
-        None => client.get_account_state_raw(address).await,
-    }?;
-
-    let code_boc = Some(raw_state.code).filter(|x| !x.is_empty()).map(Arc::new);
-    let data_boc = Some(raw_state.data).filter(|x| !x.is_empty()).map(Arc::new);
-    let frozen_hash = match raw_state.frozen_hash.is_empty() {
-        true => None,
-        false => Some(TonHash::from_vec(raw_state.frozen_hash)?),
-    };
-    Ok(ContractState {
-        mc_seqno: None,
-        address,
-        last_tx_id: raw_state.last_tx_id,
-        code_boc,
-        data_boc,
-        frozen_hash,
-        balance: raw_state.balance,
-    })
-}
-
 #[async_trait]
 impl StateProvider for TLStateProvider {
     async fn last_mc_seqno(&self) -> TonCoreResult<u32> { Ok(self.client.get_mc_info().await?.last.seqno) }
 
     async fn load_state(&self, address: TonAddress, tx_id: Option<TxLTHash>) -> TonCoreResult<ContractState> {
-        load_tl_state(&self.client, address, tx_id).await
+        let raw_state = match tx_id {
+            Some(id) => self.client.get_account_state_raw_by_tx(address, id).await,
+            None => self.client.get_account_state_raw(address).await,
+        }?;
+
+        let code_boc = Some(raw_state.code).filter(|x| !x.is_empty()).map(Arc::new);
+        let data_boc = Some(raw_state.data).filter(|x| !x.is_empty()).map(Arc::new);
+        let frozen_hash = match raw_state.frozen_hash.is_empty() {
+            true => None,
+            false => Some(TonHash::from_vec(raw_state.frozen_hash)?),
+        };
+        Ok(ContractState {
+            mc_seqno: None,
+            address,
+            last_tx_id: raw_state.last_tx_id,
+            code_boc,
+            data_boc,
+            frozen_hash,
+            balance: raw_state.balance,
+        })
     }
 
     async fn load_latest_tx_per_address(&self, mc_seqno: u32) -> TonCoreResult<Vec<(TonAddress, TxLTHash)>> {

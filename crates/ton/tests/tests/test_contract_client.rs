@@ -114,7 +114,7 @@ async fn assert_contract_client_tl_providers(tl_client: TLClient) -> anyhow::Res
     let _ = contract.get_jetton_data().await?;
     assert_eq!(ctr_cli.cache_stats().get("state_latest_req").copied(), Some(1));
     assert_eq!(ctr_cli.cache_stats().get("state_latest_miss").copied(), Some(1));
-    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(1));
+    assert_eq!(ctr_cli.cache_stats().get("state_by_tx_req").copied(), Some(2));
     assert_eq!(ctr_cli.cache_stats().get("state_by_tx_miss").copied(), Some(1));
     Ok(())
 }

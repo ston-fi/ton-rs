@@ -9,7 +9,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use ton_core::errors::TonCoreError;
-use ton_core::traits::emulation_provider::{EmulationProvider, EmulatorGetMethodRequest, EmulatorGetMethodSuccess};
+use ton_core::traits::emulation_provider::{
+    EmulationProvider, EmulatorContractState, EmulatorGetMethodRequest, EmulatorGetMethodSuccess,
+};
 use ton_core::traits::state_provider::{ContractState, StateProvider};
 use ton_core::types::{TonAddress, TxLTHash};
 
@@ -37,8 +39,17 @@ impl ContractClient {
 
     pub(super) async fn emulate_get_method(
         &self,
-        request: EmulatorGetMethodRequest,
+        mut request: EmulatorGetMethodRequest,
     ) -> TonResult<EmulatorGetMethodSuccess> {
+        if self.inner.emulation_provider.requires_resolved_state() {
+            request.contract_state = match request.contract_state {
+                EmulatorContractState::Address { address, tx_id } => {
+                    EmulatorContractState::Custom(self.load_state(&address, tx_id.as_ref()).await?)
+                }
+                state => state,
+            };
+        }
+
         let success = self
             .inner
             .emulation_provider

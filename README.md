@@ -37,7 +37,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 
 `ContractClient::builder(...).with_default_caches()` configures state caches. When using the native adapter, configure emulator library caches independently with `ton::emulators::tl_emulation_provider::TLEmulationProvider::with_default_caches()`.
 State caches require an active Tokio runtime when the client is built and start a background refresh task. Dropping the client does not cancel an in-flight provider call; initial sequence discovery also keeps retrying provider errors until it succeeds.
-`TonContract::new()` synchronously stores the contract address and optional transaction ID. `load_state()` and `load_parsed_data()` load and retain state; emulation uses retained state when available and otherwise lets the emulation provider resolve the address and transaction ID.
+`TonContract::new()` synchronously stores the contract address and optional transaction ID. `load_state()` and `load_parsed_data()` load and retain state; emulation uses retained state when available. Otherwise, it lets the emulation provider resolve the address and transaction ID unless `EmulationProvider::requires_resolved_state()` returns `true`, in which case the configured state provider loads it first.
 
 `Mnemonic` clears its owned words and password on drop, and `KeyPair` clears its
 secret key bytes. Caller-owned mnemonic strings and copies read from the public

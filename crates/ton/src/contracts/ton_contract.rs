@@ -97,7 +97,7 @@ impl LazyTonContractState {
 
     pub fn get_emulator_contract_state(&self) -> EmulatorContractState {
         match self.state.get() {
-            Some(state) => EmulatorContractState::Custom(state.as_ref().clone()),
+            Some(state) => EmulatorContractState::Custom(Arc::clone(state)),
             None => EmulatorContractState::Address {
                 address: self.address,
                 tx_id: self.tx_id.clone(),

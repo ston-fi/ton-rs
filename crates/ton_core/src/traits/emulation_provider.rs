@@ -14,8 +14,8 @@ pub enum EmulatorContractState {
         address: TonAddress,
         tx_id: Option<TxLTHash>,
     },
-    /// Use caller-supplied state.
-    Custom(ContractState),
+    /// Use caller-supplied state without copying the snapshot.
+    Custom(Arc<ContractState>),
 }
 
 /// Complete TVM get-method request.
@@ -44,7 +44,7 @@ impl EmulatorGetMethodRequest {
     }
 
     /// Uses caller-supplied contract state.
-    pub fn new_with_state(state: ContractState, method_id: i32, stack_boc: Arc<Vec<u8>>) -> Self {
+    pub fn new_with_state(state: Arc<ContractState>, method_id: i32, stack_boc: Arc<Vec<u8>>) -> Self {
         Self {
             contract_state: EmulatorContractState::Custom(state),
             method_id,
@@ -88,7 +88,7 @@ impl EmulatorGetMethodSuccess {
     }
 }
 
-/// Resolves state and executes complete TVM get-method requests.
+/// Executes complete TVM get-method requests and may resolve address-based state.
 #[async_trait]
 pub trait EmulationProvider: Send + Sync + 'static {
     /// Applies `timeout` to the complete provider operation.
@@ -97,4 +97,12 @@ pub trait EmulationProvider: Send + Sync + 'static {
         request: EmulatorGetMethodRequest,
         timeout: Option<Duration>,
     ) -> TonCoreResult<EmulatorGetMethodSuccess>;
+
+    /// Returns whether address-based requests must be resolved through the client's
+    /// [`StateProvider`](crate::traits::state_provider::StateProvider) before emulation.
+    ///
+    /// Defaults to `false` for providers that resolve [`EmulatorContractState::Address`]
+    /// themselves. Direct callers must supply [`EmulatorContractState::Custom`] when this
+    /// returns `true`; the `ton` crate's `ContractClient` performs that conversion automatically.
+    fn requires_resolved_state(&self) -> bool { false }
 }
