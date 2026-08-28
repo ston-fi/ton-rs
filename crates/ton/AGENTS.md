@@ -34,7 +34,7 @@ Downstream setup:
 
 ```toml
 [dependencies]
-ton = "0.3"
+ton = "0.4"
 ```
 
 Enable `lite-client` for native ADNL access or `tonlibjson` for tonlib clients

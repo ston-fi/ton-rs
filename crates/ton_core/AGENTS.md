@@ -23,7 +23,7 @@ Downstream setup:
 
 ```toml
 [dependencies]
-ton_core = "0.2"
+ton_core = "0.3"
 ```
 
 Enable `serde` only when serialization support is needed. Start validation with
