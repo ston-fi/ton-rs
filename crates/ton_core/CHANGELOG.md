@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.2.1...ton_core-v0.2.2) - 2026-08-28
+
+### Other
+
+- Emulator provider ([#216](https://github.com/ston-fi/ton-rs/pull/216))
+
 ### Added
 
 - `ContractState` implements Serde serialization when the `serde` feature is enabled.

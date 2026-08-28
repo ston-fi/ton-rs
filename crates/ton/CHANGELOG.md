@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/ston-fi/ton-rs/compare/ton-v0.3.1...ton-v0.3.2) - 2026-08-28
+
+### Other
+
+- Emulator provider ([#216](https://github.com/ston-fi/ton-rs/pull/216))
+
 ### Changed
 
 - **Breaking:** Open public enums, errors, decoded responses, get-method results, wallet types, and snapshots are now `#[non_exhaustive]`; downstream matches need a wildcard and non-exhaustive structs must use their construction APIs.
