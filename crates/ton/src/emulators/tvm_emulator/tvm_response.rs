@@ -1,21 +1,9 @@
-use crate::block_tlb::TVMStack;
+pub use crate::contracts::TVMGetMethodSuccess;
 use crate::emulators::emul_utils::require_field;
 use crate::errors::{TonError, TonResult};
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use ton_core::cell::TonHash;
-use ton_core::traits::tlb::TLB;
-
-#[derive(Debug, Clone)]
-pub struct TVMGetMethodSuccess {
-    pub vm_exit_code: i32,
-    pub vm_log: Option<String>,
-    pub stack_boc_base64: String,
-    pub gas_used: i32,
-    pub raw_response: String,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -72,14 +60,6 @@ impl TVMGetMethodResponse {
         };
         Ok(Some(TonHash::from_str(missing_lib)?))
     }
-}
-
-impl TVMGetMethodSuccess {
-    pub fn stack_parsed(&self) -> TonResult<TVMStack> { Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?) }
-
-    pub fn stack_boc(&self) -> TonResult<Vec<u8>> { Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?) }
-
-    pub fn exit_success(&self) -> bool { self.vm_exit_code == 0 || self.vm_exit_code == 1 }
 }
 
 #[derive(Debug)]

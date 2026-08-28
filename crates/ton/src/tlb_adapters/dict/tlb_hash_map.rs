@@ -25,6 +25,7 @@ where
     VA: DictValAdapter,
     KA::KeyType: Eq + Hash,
 {
+    /// Creates an adapter for keys encoded with exactly `key_bits_len` bits.
     pub fn new(key_bits_len: u32) -> Self {
         Self {
             key_bits_len,

@@ -14,6 +14,7 @@ const EXTRA_CURRENCY_BASE_HASH: TonHash = {
 pub struct TonExtraCurrencyId(u32);
 
 impl TonExtraCurrencyId {
+    /// Creates an ID containing the exact 32-bit currency identifier.
     pub fn new(id: u32) -> TonExtraCurrencyId { TonExtraCurrencyId(id) }
 
     pub fn to_address(&self) -> TonAddress {

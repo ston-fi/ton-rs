@@ -2,7 +2,9 @@ use crate::emulators::tvm_emulator::{TVMGetMethodResponse, TVMSendMsgResponse};
 use crate::emulators::tx_emulator::TXEmulationResponse;
 use crate::errors::TonError;
 
+/// Response emitted by an emulator worker.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum PoolEmulationResponse {
     EmulGetMethod(TVMGetMethodResponse),
     EmulSendExtMsg(TVMSendMsgResponse),

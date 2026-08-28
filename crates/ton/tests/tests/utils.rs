@@ -3,8 +3,11 @@ use log4rs::Config;
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::config::{Appender, Root};
 use std::sync::Once;
+#[cfg(feature = "lite-client")]
 use std::time::Duration;
+#[cfg(feature = "lite-client")]
 use ton::lite_client::*;
+#[cfg(feature = "lite-client")]
 use ton::net_config::TonNetConfig;
 
 static LOG: Once = Once::new();
@@ -42,24 +45,18 @@ pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow:
         .with_net_config(&TonNetConfig::new_default(mainnet)?)?
         .with_connection_check(node_filter)
         .with_connections_count(2)
-        .with_retry_strategy(ton::tl_client::RetryStrategy {
-            retry_count: 10,
-            retry_waiting: Duration::from_millis(100),
-        })
+        .with_retry_strategy(ton::tl_client::RetryStrategy::new(10, Duration::from_millis(100)))
         .build()
         .await?;
     ton::sys_utils::sys_tonlib_set_verbosity_level(0);
     Ok(client)
 }
 
+#[cfg(feature = "lite-client")]
 pub async fn make_lite_client(mainnet: bool) -> anyhow::Result<LiteClient> {
     init_logging();
     log::info!("initializing lite_client with mainnet={mainnet}...");
-    let req_params = LiteReqParams {
-        retries_count: 20,
-        retry_waiting: Duration::from_millis(200),
-        ..Default::default()
-    };
+    let req_params = LiteReqParams::new(20, 200, 5000);
     let lite_client = LiteClient::builder()?
         .with_net_config(TonNetConfig::new_default(mainnet)?)
         .with_default_req_params(req_params)

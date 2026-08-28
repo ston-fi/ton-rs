@@ -47,10 +47,7 @@ impl Builder {
             connection_check: LiteNodeFilter::Healthy,
             connections_count: 5,
             max_parallel_requests: 10,
-            retry_strategy: RetryStrategy {
-                retry_count: 5,
-                retry_waiting: Duration::from_millis(200),
-            },
+            retry_strategy: RetryStrategy::new(5, Duration::from_millis(200)),
             update_init_block: true,
             update_init_block_timeout_sec: 10,
             sleep_on_connection_error_ms: Duration::from_millis(100),

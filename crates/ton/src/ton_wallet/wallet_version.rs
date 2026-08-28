@@ -10,6 +10,7 @@ use ton_core::traits::tlb::TLB;
 ///
 /// Serde represents versions using their Rust variant names, such as `"V4R2"` and `"HLV2R2"`.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub enum WalletVersion {
     V1R1,
     V1R2,
@@ -29,6 +30,7 @@ pub enum WalletVersion {
 }
 
 impl WalletVersion {
+    /// Builds the initial data cell for a wallet version.
     pub fn get_default_data(
         version: WalletVersion,
         key_pair: &KeyPair,
@@ -47,12 +49,14 @@ impl WalletVersion {
         }
     }
 
+    /// Returns the code cell for a wallet version.
     pub fn get_code(version: WalletVersion) -> Result<&'static TonCell, TonCoreError> {
         TON_WALLET_CODE_BY_VERSION
             .get(&version)
             .ok_or_else(|| TonCoreError::Custom(format!("No code found for {version:?}")))
     }
 
+    /// Detects a wallet version from its code hash.
     pub fn get_version_by_code(code_hash: TonHash) -> Result<WalletVersion, TonCoreError> {
         TON_WALLET_VERSION_BY_CODE
             .get(&code_hash)
@@ -60,6 +64,7 @@ impl WalletVersion {
             .ok_or_else(|| TonCoreError::Custom(format!("No version found for code_hash: {code_hash}")))
     }
 
+    /// Builds an unsigned external-message body.
     pub fn build_ext_in_body(
         version: WalletVersion,
         valid_until: u32,

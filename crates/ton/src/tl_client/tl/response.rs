@@ -8,8 +8,10 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use strum::IntoStaticStr;
 
+/// Response returned by tonlib.
 #[derive(IntoStaticStr, Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type", rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum TLResponse {
     // tonlib_api.tl_api, line 20
     Error {
@@ -83,7 +85,7 @@ pub enum TLResponse {
 impl TLResponse {
     /// # Safety
     ///
-    /// Safe to call if there is a string underline
+    /// `c_str` must point to valid, NUL-terminated JSON for the duration of this call.
     pub unsafe fn from_c_str_json(c_str: *const c_char) -> Result<(TLResponse, Option<String>), TonError> {
         if c_str.is_null() {
             return Err(TonError::TLWrongUsage("null pointer passed to TLResponse".to_string()));

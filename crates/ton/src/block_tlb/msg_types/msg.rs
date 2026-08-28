@@ -16,6 +16,7 @@ pub struct Msg<Body: TLB = TonCell> {
 }
 
 impl<Body: TLB> Msg<Body> {
+    /// Creates a message without state init and stores the body in a reference.
     pub fn new<T: Into<CommonMsgInfo>>(info: T, body: Body) -> Self {
         Self {
             info: info.into(),
@@ -73,6 +74,7 @@ impl<Body: TLB> Msg<Body> {
                 match &mut info.dst {
                     MsgAddressInt::Std(addr) => addr.anycast = None,
                     MsgAddressInt::Var(addr) => addr.anycast = None,
+                    _ => return Err(TonCoreError::Custom("unsupported internal address layout".to_string())),
                 }
                 info.import_fee = TLBCoins::ZERO;
                 msg_normalized.init = None;

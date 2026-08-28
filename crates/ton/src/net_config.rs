@@ -10,7 +10,9 @@ pub const TON_NET_CONF_MAINNET_PUBLIC: &str =
 pub const TON_NET_CONF_TESTNET_PUBLIC: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/net_config/testnet_public.json"));
 
+/// TON network configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[non_exhaustive]
 pub struct TonNetConfig {
     #[serde(rename = "@type")]
     pub conf_type: Value,
@@ -44,12 +46,15 @@ pub struct Validator {
 }
 
 impl TonNetConfig {
+    /// Parses a network configuration from JSON.
     pub fn new(json: &str) -> TonResult<Self> { Ok(serde_json::from_str(json)?) }
 
+    /// Loads a network configuration from a file.
     pub fn from_path(path: &str) -> TonResult<Self> {
         TonNetConfig::new(&std::fs::read_to_string(path).map_err(TonError::system)?)
     }
 
+    /// Loads a network configuration from a path environment variable.
     pub fn from_env_path(env_var: &str) -> TonResult<Self> {
         if let Ok(path) = std::env::var(env_var) {
             return TonNetConfig::from_path(&path);
@@ -57,14 +62,16 @@ impl TonNetConfig {
         bail_ton!("environment variable \"{env_var}\" is not set")
     }
 
-    /// Takes `TON_NET_CONF_MAINNET_PATH` or `TON_NET_CONF_TESTNET_PATH` from env if set,
-    /// Otherwise uses built-in default config for mainnet or testnet
+    /// Loads the configured or built-in mainnet/testnet configuration.
     pub fn new_default(mainnet: bool) -> TonResult<Self> { Self::new(&get_default_net_conf(mainnet)?) }
 
+    /// Serializes this configuration as JSON.
     pub fn to_json(&self) -> TonResult<String> { Ok(serde_json::to_string(self)?) }
 
+    /// Returns the initial block sequence number.
     pub fn get_init_block_seqno(&self) -> u64 { self.validator.init_block["seqno"].as_u64().unwrap_or(0) }
 
+    /// Replaces the initial block fields.
     pub fn set_init_block(&mut self, block_id: &BlockIdExt) {
         self.validator.init_block["workchain"] = serde_json::json!(block_id.shard_ident.workchain);
         self.validator.init_block["shard"] = serde_json::json!(block_id.shard_ident.shard as i64);

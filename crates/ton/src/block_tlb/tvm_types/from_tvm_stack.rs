@@ -1,7 +1,7 @@
 use crate::bail_ton;
 use crate::block_tlb::{TVMStack, TVMStackValue};
+use crate::contracts::tep::snake_data::SnakeData;
 use crate::errors::{TonError, TonResult};
-use crate::tep::snake_data::SnakeData;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use fastnum::*;
@@ -139,7 +139,7 @@ impl<T: FromTVMStack> FromTVMStack for Option<T> {
 #[cfg(test)]
 mod tests {
     use crate::block_tlb::{FromTVMStack, TVMInt, TVMNull, TVMStack};
-    use crate::tep::snake_data::SnakeData;
+    use crate::contracts::tep::snake_data::SnakeData;
     use fastnum::I256;
     use std::str::FromStr;
     use tokio_test::assert_err;

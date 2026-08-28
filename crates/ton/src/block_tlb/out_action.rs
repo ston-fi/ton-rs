@@ -13,7 +13,9 @@ pub struct OutList {
 }
 
 // https://github.com/ton-blockchain/ton/blob/2a68c8610bf28b43b2019a479a70d0606c2a0aa1/crypto/block/block.tlb#L408
+/// Outbound action produced by a contract.
 #[derive(Debug, PartialEq, Clone, TLB)]
+#[non_exhaustive]
 pub enum OutAction {
     SendMsg(OutActionSendMsg),
     SetCode(OutActionSetCode),
@@ -50,6 +52,7 @@ pub struct OutActionChangeLibrary {
 }
 
 impl OutList {
+    /// Creates a list containing `actions` in execution order.
     pub fn new(actions: Vec<OutAction>) -> Self { Self { actions } }
 }
 

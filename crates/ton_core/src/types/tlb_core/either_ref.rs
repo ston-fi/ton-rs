@@ -5,7 +5,7 @@ use crate::traits::tlb::TLB;
 
 /// Either X ^X
 ///
-/// https://github.com/ton-blockchain/ton/blame/cac968f77dfa5a14e63db40190bda549f0eaf746/crypto/block/block.tlb#L10
+/// <https://github.com/ton-blockchain/ton/blame/cac968f77dfa5a14e63db40190bda549f0eaf746/crypto/block/block.tlb#L10>
 #[derive(Clone, Debug)]
 pub struct TLBEitherRef<T> {
     pub value: T,
@@ -20,6 +20,7 @@ pub enum EitherRefLayout {
 }
 
 impl<T> TLBEitherRef<T> {
+    /// Creates a value whose inline/reference layout is chosen during serialization.
     pub fn new(value: T) -> Self {
         Self {
             value,
@@ -27,12 +28,14 @@ impl<T> TLBEitherRef<T> {
         }
     }
 
+    /// Creates a value that is always serialized by reference.
     pub fn new_ref(value: T) -> Self {
         Self {
             value,
             layout: EitherRefLayout::ToRef,
         }
     }
+    /// Creates a value with an explicit serialization layout.
     pub fn new_with_layout(value: T, layout: EitherRefLayout) -> Self { Self { value, layout } }
     pub fn into_inner(self) -> T { self.value }
 }

@@ -4,7 +4,9 @@ use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{MsgAddress, MsgAddressExt, MsgAddressInt};
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L155
+/// Common TON message information.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum CommonMsgInfo {
     Int(CommonMsgInfoInt),
     ExtIn(CommonMsgInfoExtIn),
@@ -44,6 +46,7 @@ pub struct CommonMsgInfoExtOut {
 }
 
 impl CommonMsgInfoInt {
+    /// Creates a bounceable message with IHR disabled, no source, zero fees, and zero timestamps.
     pub fn new(dst: MsgAddress, value: TLBCoins) -> Self {
         Self {
             dst,

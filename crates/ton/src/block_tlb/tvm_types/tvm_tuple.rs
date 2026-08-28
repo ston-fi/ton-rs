@@ -33,6 +33,7 @@ impl DerefMut for TVMTuple {
 
 #[rustfmt::skip]
 impl TVMTuple {
+    /// Creates a tuple preserving the supplied item order.
     pub fn new(items: Vec<TVMStackValue>) -> Self { Self(items) }
 
     pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }

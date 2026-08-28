@@ -1,4 +1,4 @@
-use crate::tep::metadata::MetadataContent;
+use crate::contracts::tep::metadata::metadata_content::MetadataContent;
 use hmac::digest::crypto_common;
 use reqwest::StatusCode;
 use std::io;
@@ -9,7 +9,9 @@ use tokio::time::error::Elapsed;
 use ton_core::cell::TonHash;
 use ton_core::errors::TonCoreError;
 use ton_core::types::{TonAddress, TxLTHash};
+#[cfg(feature = "lite-client")]
 use ton_liteapi::tl::request::Request;
+#[cfg(feature = "lite-client")]
 use ton_liteapi::types::LiteError;
 
 #[macro_export]
@@ -21,7 +23,9 @@ macro_rules! bail_ton {
 
 pub type TonResult<T> = Result<T, TonError>;
 
+/// Errors produced by `ton` operations.
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum TonError {
     // handling system errors such as mutex.lock(), system_time, etc.
     #[error("SystemError: {0}")]
@@ -36,16 +40,22 @@ pub enum TonError {
     NetRequestTimeout { msg: String, timeout: Duration },
 
     // LiteClient
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientErrorResponse: {0:?}")]
     LiteClientErrorResponse(ton_liteapi::tl::response::Error),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientWrongResponse: expected {0}, got {1}")]
     LiteClientWrongResponse(String, String),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientLiteError: {0}")]
     LiteClientLiteError(#[from] LiteError),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientConnTimeout: {0:?}")]
     LiteClientConnTimeout(Duration),
+    #[cfg(feature = "lite-client")]
     #[error("LiteClientReqTimeout: {0:?}")]
     LiteClientReqTimeout(Box<(Request, Duration)>),
+    #[cfg(feature = "lite-client")]
     #[error("EverscaleError: {0:?}")]
     EverscaleError(String),
 
@@ -79,6 +89,8 @@ pub enum TonError {
         vm_exit_code: Option<i32>,
         response_raw: String,
     },
+    #[error("EmulatorTimeout: timeout {0:.2?} reached")]
+    EmulatorTimeout(Duration),
     #[error("EmulatorPoolTimeout: timeout {0:.2?} reached")]
     EmulatorPoolTimeout(Duration),
     #[error("EmulatorMissingLibrary: missing library with hash {0}")]
@@ -134,6 +146,7 @@ pub enum TonError {
     FromHexError(#[from] hex::FromHexError),
     #[error("{0}")]
     ElapsedError(#[from] Elapsed),
+    #[cfg(feature = "lite-client")]
     #[error("{0}")]
     AdnlError(#[from] adnl::AdnlError),
 
@@ -147,7 +160,9 @@ pub enum TonError {
     TransportError(#[from] reqwest::Error),
 }
 
+/// Metadata loading errors.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum MetaLoaderError {
     #[error("Unsupported content layout (Metadata content: {0:?})")]
     ContentLayoutUnsupported(Box<MetadataContent>),
@@ -163,15 +178,18 @@ pub enum MetaLoaderError {
     },
 }
 
+#[cfg(feature = "lite-client")]
 impl From<everscale_types::error::Error> for TonError {
     fn from(err: everscale_types::error::Error) -> Self { TonError::EverscaleError(err.to_string()) }
 }
 
+#[cfg(feature = "lite-client")]
 impl From<everscale_types::boc::de::Error> for TonError {
     fn from(err: everscale_types::boc::de::Error) -> Self { TonError::EverscaleError(err.to_string()) }
 }
 
 impl TonError {
+    /// Creates a system error from a displayable value.
     pub fn system<T: ToString>(msg: T) -> Self { TonError::SystemError(msg.to_string()) }
 }
 

@@ -2,7 +2,9 @@ use crate::block_tlb::StateInit;
 use ton_core::TLB;
 use ton_core::cell::TonHash;
 
+/// TON account state.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum AccountState {
     Uninit(AccountStateUninit),
     Frozen(AccountStateFrozen),

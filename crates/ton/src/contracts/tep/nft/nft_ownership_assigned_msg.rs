@@ -1,0 +1,32 @@
+//! NFT ownership-assigned notification message.
+
+use ton_core::TLB;
+use ton_core::cell::TonCell;
+use ton_core::types::TonAddress;
+use ton_core::types::tlb_core::TLBEitherRef;
+
+/// ```raw
+/// ownership_assigned#0x05138d91
+///   query_id:uint64
+///   prev_owner:MsgAddress
+///   forward_payload:(Either Cell ^Cell)
+/// = InternalMsgBody;
+/// ```
+#[derive(Clone, Debug, PartialEq, TLB)]
+#[tlb(prefix = 0x05138d91, bits_len = 32, ensure_empty = true)]
+pub struct NFTOwnershipAssignedMsg {
+    pub query_id: u64,
+    pub prev_owner: TonAddress,
+    pub forward_payload: TLBEitherRef<TonCell>,
+}
+
+impl NFTOwnershipAssignedMsg {
+    /// Creates a notification with query ID zero and an empty forward payload.
+    pub fn new(prev_owner: &TonAddress) -> Self {
+        Self {
+            query_id: 0,
+            prev_owner: *prev_owner,
+            forward_payload: TLBEitherRef::new(TonCell::empty().to_owned()),
+        }
+    }
+}

@@ -7,16 +7,19 @@ use crate::types::tlb_core::VarLenBits;
 use std::convert::Into;
 use ton_macros::TLB;
 
-/// https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L100
-/// Implemented in _core because TonAddress depends on it
+/// TON message address.
+///
+/// Schema: <https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L100>
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum MsgAddress {
     Int(MsgAddressInt),
     Ext(MsgAddressExt),
 }
 
-// Ext
+/// External TON message address.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum MsgAddressExt {
     None(MsgAddressNone),
     Extern(MsgAddressExtern),
@@ -32,8 +35,9 @@ pub struct MsgAddressExtern {
     pub address: VarLenBits<Vec<u8>, 9>,
 }
 
-// Int
+/// Internal TON message address.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, TLB)]
+#[non_exhaustive]
 pub enum MsgAddressInt {
     Std(MsgAddressIntStd),
     Var(MsgAddressIntVar),
@@ -89,6 +93,7 @@ impl MsgAddress {
 impl MsgAddressExt {
     pub const NONE: MsgAddressExt = MsgAddressExt::None(MsgAddressNone);
 
+    /// Creates an external address using exactly `bits_len` bits from `address`.
     pub fn new<T: Into<Vec<u8>>>(address: T, bits_len: usize) -> Self {
         MsgAddressExt::Extern(MsgAddressExtern {
             address: VarLenBits::new(address, bits_len),
@@ -97,12 +102,14 @@ impl MsgAddressExt {
 }
 
 impl MsgAddressInt {
+    /// Returns the workchain ID.
     pub fn wc(&self) -> i32 {
         match self {
             MsgAddressInt::Std(addr) => addr.workchain as i32,
             MsgAddressInt::Var(addr) => addr.workchain,
         }
     }
+    /// Returns the address bytes.
     pub fn address_hash(&self) -> &[u8] {
         match self {
             MsgAddressInt::Std(addr) => addr.address.as_slice(),
@@ -127,6 +134,7 @@ pub struct Anycast {
 }
 
 impl Anycast {
+    /// Creates an anycast prefix using `depth` bits from `rewrite_pfx`.
     pub fn new(depth: u32, rewrite_pfx: Vec<u8>) -> Self {
         Self {
             rewrite_pfx: VarLenBits::new(rewrite_pfx, depth as usize),

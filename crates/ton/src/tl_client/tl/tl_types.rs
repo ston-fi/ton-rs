@@ -10,9 +10,10 @@ use serde_aux::prelude::*;
 use ton_core::cell::TonHash;
 use ton_core::types::{TonAddress, TxLTHash};
 
-// tonlib_api.tl_api, line 23
+/// Tonlib key-store configuration.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type")]
+#[non_exhaustive]
 pub enum TLKeyStoreType {
     #[serde(rename = "keyStoreTypeDirectory")]
     Directory { directory: String },
@@ -37,16 +38,18 @@ pub struct TLOptions {
     pub keystore_type: TLKeyStoreType,
 }
 
-// tonlib_api.tl_api, line 29
+/// Tonlib configuration defaults.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type", rename = "options.configInfo")]
+#[non_exhaustive]
 pub struct TLOptionsConfigInfo {
     pub default_wallet_id: String,
     pub default_rwallet_init_public_key: String,
 }
 
-// tonlib_api.tl_api, line 30
+/// Tonlib initialization information.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLOptionsInfo {
     pub config_info: TLOptionsConfigInfo,
 }
@@ -75,8 +78,9 @@ pub struct TLBlockId {
     pub seqno: i32,
 }
 
-// tonlib_api.tl_api, line 53
+/// Raw account state returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLRawFullAccountState {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub balance: i64,
@@ -95,8 +99,9 @@ pub struct TLRawFullAccountState {
     pub sync_utime: i64,
 }
 
-// tonlib_api.tl_api, line 54
+/// Raw message returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLRawMsg {
     pub source: TLAccountAddress,
     pub destination: TLAccountAddress,
@@ -113,8 +118,9 @@ pub struct TLRawMsg {
     pub msg_data: TLMsgData,
 }
 
-// tonlib_api.tl_api, line 55
+/// Raw transaction returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLRawTx {
     pub address: TLAccountAddress,
     #[serde(deserialize_with = "deserialize_number_from_string")]
@@ -135,8 +141,9 @@ pub struct TLRawTx {
     pub out_msgs: Vec<TLRawMsg>,
 }
 
-// tonlib_api.tl_api, line 56
+/// Page of raw transactions returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLRawTxs {
     #[serde(rename = "transactions")]
     pub txs: Vec<TLRawTx>,
@@ -144,8 +151,9 @@ pub struct TLRawTxs {
     #[serde(with = "serde_tx_lt_hash_json")]
     pub last_tx_id: TxLTHash,
 }
-// tonlib_api.tl_api, line 58
+/// Information about a submitted external message.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLRawExtMessageInfo {
     #[serde(with = "Base64Standard")]
     pub hash: Vec<u8>,
@@ -179,9 +187,10 @@ pub struct TLRWalletConfig {
     pub limits: Vec<TLRWalletLimit>,
 }
 
-// tonlib_api.tl_api, line 75-81
+/// Account state decoded by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type")]
+#[non_exhaustive]
 pub enum TLAccountState {
     #[serde(rename = "raw.accountState")]
     Raw {
@@ -242,9 +251,10 @@ pub enum TLAccountState {
     },
 }
 
-// tonlib_api.tl_api, line 83-85
+/// Payment-channel state decoded by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type")]
+#[non_exhaustive]
 pub enum TLPChanState {
     #[serde(rename = "pchan.stateInit")]
     Init {
@@ -287,8 +297,9 @@ pub enum TLPChanState {
     },
 }
 
-// tonlib_api.tl_api, line 90
+/// Full account state returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLFullAccountState {
     pub address: TLAccountAddress,
     #[serde(deserialize_with = "deserialize_number_from_string")]
@@ -304,9 +315,10 @@ pub struct TLFullAccountState {
     pub revision: i32,
 }
 
-// tonlib_api.tl_api, line 95-96
+/// Tonlib synchronization state.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type")]
+#[non_exhaustive]
 pub enum TLSyncState {
     #[serde(rename = "syncStateDone")]
     Done,
@@ -318,9 +330,10 @@ pub enum TLSyncState {
     },
 }
 
-// tonlib_api.tl_api, line 102-111
+/// Message data decoded by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type")]
+#[non_exhaustive]
 pub enum TLMsgData {
     #[serde(rename = "msg.dataRaw")]
     Raw {
@@ -346,16 +359,18 @@ pub enum TLMsgData {
     },
 }
 
-// tonlib_api.tl_api, line 179
+/// Loaded smart-contract handle.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLSmcInfo {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub id: i64,
 }
 
-// tonlib_api.tl_api, line 181-182
+/// Tonlib get-method identifier.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type")]
+#[non_exhaustive]
 pub enum TLSmcMethodId {
     #[serde(rename = "smc.methodIdNumber")]
     Number { number: i32 },
@@ -367,8 +382,9 @@ pub enum TLSmcMethodId {
 // #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 // pub struct TLSmcRunResult {}
 
-// tonlib_api.tl_api, line 186
+/// Smart-contract library returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLSmcLibraryEntry {
     #[serde(with = "Base64Standard")]
     pub hash: Vec<u8>,
@@ -376,14 +392,16 @@ pub struct TLSmcLibraryEntry {
     pub data: Vec<u8>,
 }
 
-// tonlib_api.tl_api, line 187
+/// Smart-contract library lookup result.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLSmcLibraryResult {
     pub result: Vec<TLSmcLibraryEntry>,
 }
-// tonlib_api.tl_api, line 189
+/// Extended smart-contract library query.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[serde(tag = "@type", rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum TLSmcLibraryQueryExt {
     #[serde(rename = "smc.libraryQueryExt.one")]
     One {
@@ -399,8 +417,9 @@ pub enum TLSmcLibraryQueryExt {
         max_libs: i32,
     },
 }
-// tonlib_api.tl_api, line 191
+/// Extended smart-contract library result.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLSmcLibraryResultExt {
     #[serde(with = "Base64Standard")]
     pub dict_boc: Vec<u8>,
@@ -410,8 +429,9 @@ pub struct TLSmcLibraryResultExt {
     pub libs_not_found: Vec<TonHash>,
 }
 
-// tonlib_api.tl_api, line 194
+/// Tonlib synchronization update.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLUpdateSyncState {
     pub sync_state: TLSyncState,
 }
@@ -422,8 +442,9 @@ pub struct TLLogVerbosityLevel {
     pub verbosity_level: u32,
 }
 
-// tonlib_api.tl_api, line 216
+/// Connected lite-server information.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLLiteServerInfo {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub now: i64,
@@ -433,8 +454,9 @@ pub struct TLLiteServerInfo {
     pub capabilities: i64,
 }
 
-// tonlib_api.tl_api, line 219
+/// Masterchain information returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLBlocksMCInfo {
     #[serde(with = "serde_block_id_ext")]
     pub last: BlockIdExt,
@@ -444,8 +466,9 @@ pub struct TLBlocksMCInfo {
     pub init: BlockIdExt,
 }
 
-// tonlib_api.tl_api, line 220
+/// Shard block IDs returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLBlocksShards {
     #[serde(with = "serde_block_id_ext_vec")]
     pub shards: Vec<BlockIdExt>,
@@ -461,8 +484,9 @@ pub struct TLAccountTxId {
     pub lt: i64,
 }
 
-// tonlib_api.tl_api, line 222
+/// Compact transaction identifier returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLShortTxId {
     pub mode: u32,
     #[serde(with = "serde_ton_hash_base64")]
@@ -475,8 +499,9 @@ pub struct TLShortTxId {
     pub tx_hash: TonHash,
 }
 
-// tonlib_api.tl_api, line 223
+/// Block transaction page returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLBlocksTxs {
     #[serde(with = "serde_block_id_ext")]
     pub id: BlockIdExt,
@@ -486,8 +511,9 @@ pub struct TLBlocksTxs {
     pub txs: Vec<TLShortTxId>,
 }
 
-// tonlib_api.tl_api, line 224
+/// Extended block transaction page returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLBlocksTransactionsExt {
     #[serde(with = "serde_block_id_ext")]
     pub id: BlockIdExt,
@@ -497,19 +523,24 @@ pub struct TLBlocksTransactionsExt {
     pub txs: Vec<TLRawTx>,
 }
 
+/// Blockchain configuration returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, Eq, PartialEq)]
+#[non_exhaustive]
 pub struct TLConfigInfo {
     pub config: TLTvmCell,
 }
 
+/// TVM cell returned by tonlib.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
+#[non_exhaustive]
 pub struct TLTvmCell {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
 }
 
-// tonlib_api.tl_api, line 225
+/// Block header returned by tonlib.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct TLBlocksHeader {
     #[serde(with = "serde_block_id_ext")]
     pub id: BlockIdExt,
@@ -537,7 +568,9 @@ pub struct TLBlocksHeader {
     pub prev_blocks: Option<Vec<BlockIdExt>>,
 }
 
+/// Asynchronous tonlib update.
 #[derive(Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum TLUpdate {
     SyncState(TLUpdateSyncState),
 }

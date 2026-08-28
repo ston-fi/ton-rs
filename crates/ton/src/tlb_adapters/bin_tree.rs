@@ -15,6 +15,7 @@ impl<VA: DictValAdapter> Default for BinTree<VA> {
 }
 
 impl<VA: DictValAdapter> BinTree<VA> {
+    /// Creates a stateless binary-tree adapter.
     pub fn new() -> Self { Self(PhantomData) }
 
     pub fn read(parser: &mut CellParser) -> Result<HashMap<ShardPfx, VA::ValType>, TonCoreError> {

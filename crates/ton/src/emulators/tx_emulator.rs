@@ -47,7 +47,7 @@ impl TXEmulator {
         Ok(emulator)
     }
 
-    /// shard_account: https://github.com/ton-blockchain/ton/blob/cee4c674ea999fecc072968677a34a7545ac9c4d/crypto/block/block.tlb#L275 (NOT Account!!)
+    /// Shard-account schema: <https://github.com/ton-blockchain/ton/blob/cee4c674ea999fecc072968677a34a7545ac9c4d/crypto/block/block.tlb#L275>.
     /// You can't emulate tick-tock tx using this method
     pub fn emulate_ord(&mut self, args: &TXEmulOrdArgs) -> TonResult<TXEmulationResponse> {
         self.prepare_emulator(&args.emul_args)?;

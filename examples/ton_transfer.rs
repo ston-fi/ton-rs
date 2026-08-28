@@ -10,18 +10,20 @@ mod example {
     use std::time::Duration;
     use ton::block_tlb::{CommonMsgInfo, CurrencyCollection};
     use ton::block_tlb::{CommonMsgInfoInt, Msg};
-    use ton::contracts::TonWalletMethods;
-    use ton::contracts::tl_provider::TLProvider;
-    use ton::contracts::{ContractClient, TonContract, TonWalletContract};
+    use ton::contracts::tep::ton_wallet::{TonWalletContract, TonWalletMethods};
+    use ton::contracts::{ContractClient, TonContract};
+    use ton::emulators::emulator_pool::EmulatorPool;
+    use ton::emulators::tl_emulation_provider::TLEmulationProvider;
     use ton::net_config::TonNetConfig;
     use ton::sys_utils::sys_tonlib_set_verbosity_level;
-    use ton::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait};
+    use ton::tl_client::{LiteNodeFilter, RetryStrategy, TLClient, TLClientTrait, TLStateProvider};
     use ton::ton_wallet::TonWallet;
     use ton::ton_wallet::WalletVersion;
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::tlb_core::TLBCoins;
     use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
+    use zeroize::Zeroizing;
 
     // Transaction: https://testnet.tonviewer.com/transaction/3771a86dd5c5238ac93e7f125817379c7a9d1321c79b27ac5e6b2b2d34749af1
     // How external and internal messages work: https://docs.ton.org/v3/guidelines/smart-contracts/howto/wallet#-external-and-internal-messages
@@ -58,10 +60,7 @@ mod example {
             .with_net_config(&TonNetConfig::new_default(mainnet)?)?
             .with_connection_check(LiteNodeFilter::Archive)
             .with_connections_count(10)
-            .with_retry_strategy(RetryStrategy {
-                retry_count: 10,
-                retry_waiting: Duration::from_millis(200),
-            })
+            .with_retry_strategy(RetryStrategy::new(10, Duration::from_millis(200)))
             .build()
             .await?;
         sys_tonlib_set_verbosity_level(0);
@@ -70,14 +69,15 @@ mod example {
 
     pub async fn real_main() -> anyhow::Result<()> {
         // ---------- Wallet initialization ----------
-        let mnemonic = std::env::var("MNEMONIC_STR")?;
+        let mnemonic = Zeroizing::new(std::env::var("MNEMONIC_STR")?);
         // To create w5 ton_wallet for testnet, use TonWallet::new_with_params with WALLET_V5R1_DEFAULT_ID_TESTNET wallet_id
         let wallet = TonWallet::new_with_creds(WalletVersion::V4R2, &mnemonic, None)?;
 
         // Make testnet contract_client
         let tl_client = make_tl_client(false, false).await?;
-        let provider = TLProvider::new(tl_client.clone());
-        let ctr_cli = ContractClient::builder(provider)?.build()?;
+        let state_provider = TLStateProvider::new(tl_client.clone());
+        let emulation_provider = TLEmulationProvider::new(tl_client.clone(), EmulatorPool::builder()?.build()?);
+        let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.build()?;
 
         // ---------- Building transfer_msg ----------
         let transfer_msg = Msg {
@@ -101,7 +101,7 @@ mod example {
         let expire_at = expired_at_time.duration_since(std::time::UNIX_EPOCH)?.as_secs() as u32;
 
         // Get current ton_wallet seqno
-        let wallet_ctr = TonWalletContract::new(&ctr_cli, &wallet.address, None).await?;
+        let wallet_ctr = TonWalletContract::new(&ctr_cli, &wallet.address, None);
         let seqno = wallet_ctr.seqno().await?;
 
         let ext_in_msg = wallet.create_ext_in_msg(vec![transfer_msg.to_cell()?], seqno, expire_at, false)?;

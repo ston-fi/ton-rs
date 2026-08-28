@@ -5,7 +5,9 @@ use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L474-L497
+/// Block value-flow layout.
 #[derive(Debug, Clone, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum ValueFlow {
     V1(ValueFlowV1),
     V2(ValueFlowV2),

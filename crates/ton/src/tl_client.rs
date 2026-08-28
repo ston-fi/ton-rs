@@ -1,6 +1,7 @@
 mod builder;
 mod callback;
 mod connection;
+mod tl_state_provider;
 
 pub mod tl;
 mod tl_client_trait;
@@ -8,6 +9,7 @@ mod tl_client_trait;
 pub use callback::*;
 pub use connection::*;
 pub use tl_client_trait::*;
+pub use tl_state_provider::*;
 
 use crate::errors::TonResult;
 use crate::tl_client::builder::Builder;
@@ -47,15 +49,28 @@ struct Inner {
 ///
 /// Serde represents the variants as `"Healthy"` and `"Archive"`.
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub enum LiteNodeFilter {
     Healthy, // connect to any healthy node
     Archive, // connect to archive node only
 }
 
+/// Retry settings for tonlib requests.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct RetryStrategy {
     pub retry_count: usize,
     pub retry_waiting: Duration,
+}
+
+impl RetryStrategy {
+    /// Creates a retry strategy.
+    pub const fn new(retry_count: usize, retry_waiting: Duration) -> Self {
+        Self {
+            retry_count,
+            retry_waiting,
+        }
+    }
 }
 
 #[cfg(test)]

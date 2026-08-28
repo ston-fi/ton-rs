@@ -17,7 +17,9 @@ macro_rules! bail_ton_core_data {
     };
 }
 
+/// Errors produced by `ton_core` operations.
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum TonCoreError {
     #[error("DataError: [{producer}] {msg}")]
     DataError { producer: String, msg: String },
@@ -68,6 +70,7 @@ pub enum TonCoreError {
 }
 
 impl TonCoreError {
+    /// Creates a data error attributed to `producer`.
     pub fn data<P: Into<String>, M: Into<String>>(producer: P, msg: M) -> Self {
         Self::DataError {
             producer: producer.into(),

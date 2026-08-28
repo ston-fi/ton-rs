@@ -34,6 +34,7 @@ impl Debug for ShardPfx {
 }
 
 impl ShardIdent {
+    /// Creates an identifier from the exact workchain and tagged shard values.
     pub fn new(workchain: i32, shard: u64) -> Self { Self { workchain, shard } }
     pub fn from_pfx(workchain: i32, shard_pfx: &ShardPfx) -> Self {
         Self {

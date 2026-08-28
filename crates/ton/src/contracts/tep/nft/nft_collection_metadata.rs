@@ -1,0 +1,39 @@
+//! Structured NFT collection metadata.
+
+use crate::contracts::tep::metadata::metadata_content::MetadataDict;
+use crate::contracts::tep::metadata::metadata_fields::{
+    META_DESCRIPTION, META_IMAGE, META_MARKETPLACE, META_NAME, META_SOCIAL_LINKS,
+};
+use crate::contracts::tep::metadata::traits::Metadata;
+use crate::errors::TonError;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_json::Value;
+use std::fmt::Debug;
+
+#[derive(Serialize, PartialEq, Eq, Deserialize, Debug, Clone)]
+pub struct NFTCollectionMetadata {
+    pub image: Option<String>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub social_links: Option<Value>,
+    pub marketplace: Option<String>,
+}
+
+impl Metadata for NFTCollectionMetadata {
+    fn from_data(dict: &MetadataDict, json: Option<&str>) -> Result<Self, TonError> {
+        let mut external_meta: Option<NFTCollectionMetadata> =
+            json.map(serde_json::from_str).transpose().map_err(|_| TonError::MetadataParseError)?;
+
+        Ok(NFTCollectionMetadata {
+            image: META_IMAGE.use_string_or(external_meta.as_mut().and_then(|x| x.image.take()), dict),
+            name: META_NAME.use_string_or(external_meta.as_mut().and_then(|x| x.name.take()), dict),
+            description: META_DESCRIPTION
+                .use_string_or(external_meta.as_mut().and_then(|x| x.description.take()), dict),
+            social_links: META_SOCIAL_LINKS
+                .use_value_or(external_meta.as_mut().and_then(|x| x.social_links.take()), dict),
+            marketplace: META_MARKETPLACE
+                .use_string_or(external_meta.as_mut().and_then(|x| x.marketplace.take()), dict),
+        })
+    }
+}

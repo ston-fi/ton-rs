@@ -11,7 +11,9 @@ pub struct TrStoragePhase {
     pub status_change: AccStatusChange,
 }
 
+/// Transaction compute phase.
 #[derive(Clone, Debug, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum TrComputePhase {
     Skipped(TrComputePhaseSkipped),
     VM(Box<TrComputePhaseVM>),
@@ -43,7 +45,9 @@ pub struct TrActionPhase {
     pub tot_msg_size: StorageUsedShort,
 }
 
+/// Transaction bounce phase.
 #[derive(Clone, Debug, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum TrBouncePhase {
     NegFunds(TrBouncePhaseNegFunds),
     NoFunds(TrBouncePhaseNoFunds),
@@ -85,7 +89,9 @@ pub struct ComputePhaseVMInfo {
     pub vm_final_state_hash: TonHash,
 }
 
+/// Account status change caused by a transaction.
 #[derive(Clone, Debug, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum AccStatusChange {
     Unchanged(AccStatusChangeUnchanged), // x -> x
     Frozen(AccStatusChangeFrozen),       // init -> frozen
@@ -129,7 +135,9 @@ pub struct TrBouncePhaseOk {
     pub fws_fees: TLBCoins,
 }
 
+/// Reason the TVM compute phase was skipped.
 #[derive(Clone, Debug, PartialEq, TLB)]
+#[non_exhaustive]
 pub enum TxComputeSkipReason {
     NoState(TxComputeSkipReasonNoState),
     BadState(TxComputeSkipReasonBadState),

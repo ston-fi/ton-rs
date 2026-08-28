@@ -1,7 +1,9 @@
 use crate::bail_ton_core_data;
 use crate::errors::TonCoreError;
 
+/// TON cell kind.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub enum CellType {
     Ordinary,
     PrunedBranch,
@@ -11,7 +13,7 @@ pub enum CellType {
 }
 
 impl CellType {
-    // https://docs.ton.org/v3/documentation/data-formats/tlb/exotic-cells
+    /// Parses an exotic cell tag.
     pub fn new_exotic(byte: u8) -> Result<CellType, TonCoreError> {
         let cell_type = match byte {
             0x01 => Self::PrunedBranch,
@@ -23,5 +25,6 @@ impl CellType {
         Ok(cell_type)
     }
 
+    /// Returns whether this is an exotic cell kind.
     pub fn is_exotic(&self) -> bool { self != &CellType::Ordinary }
 }

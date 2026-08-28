@@ -2,6 +2,8 @@ use crate::emulators::tvm_emulator::{TVMGetMethodID, TVMState};
 use crate::emulators::tx_emulator::{TXEmulOrdArgs, TXEmulTickTockArgs};
 use std::sync::Arc;
 
+/// Task accepted by an emulator worker.
+#[non_exhaustive]
 pub enum PoolEmulationTask {
     EmulGetMethod(TVMGetMethodTask),
     EmulSendExtMsg(TVMSendExtMsgTask),
