@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.0...ton-v0.4.1) - 2026-08-29
+
+### Other
+
+- Ton ni update msrv ci ([#221](https://github.com/ston-fi/ton-rs/pull/221))
+
 ### Changed
 
 - **Breaking:** Open public enums, errors, decoded responses, get-method results, wallet types, and snapshots are now `#[non_exhaustive]`; downstream matches need a wildcard and non-exhaustive structs must use their construction APIs.

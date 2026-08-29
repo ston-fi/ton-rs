@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.0...ton_core-v0.3.1) - 2026-08-29
+
+### Other
+
+- Ton ni update msrv ci ([#221](https://github.com/ston-fi/ton-rs/pull/221))
+
 ### Added
 
 - `ContractState` implements Serde serialization when the `serde` feature is enabled.
