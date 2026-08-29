@@ -180,21 +180,29 @@ pub enum MetaLoaderError {
 
 #[cfg(feature = "lite-client")]
 impl From<everscale_types::error::Error> for TonError {
-    fn from(err: everscale_types::error::Error) -> Self { TonError::EverscaleError(err.to_string()) }
+    fn from(err: everscale_types::error::Error) -> Self {
+        TonError::EverscaleError(err.to_string())
+    }
 }
 
 #[cfg(feature = "lite-client")]
 impl From<everscale_types::boc::de::Error> for TonError {
-    fn from(err: everscale_types::boc::de::Error) -> Self { TonError::EverscaleError(err.to_string()) }
+    fn from(err: everscale_types::boc::de::Error) -> Self {
+        TonError::EverscaleError(err.to_string())
+    }
 }
 
 impl TonError {
     /// Creates a system error from a displayable value.
-    pub fn system<T: ToString>(msg: T) -> Self { TonError::SystemError(msg.to_string()) }
+    pub fn system<T: ToString>(msg: T) -> Self {
+        TonError::SystemError(msg.to_string())
+    }
 }
 
 impl From<io::Error> for TonError {
-    fn from(err: io::Error) -> Self { TonError::system(err) }
+    fn from(err: io::Error) -> Self {
+        TonError::system(err)
+    }
 }
 
 impl From<TonError> for TonCoreError {
@@ -207,9 +215,13 @@ impl From<TonError> for TonCoreError {
 }
 
 impl From<&TonError> for TonCoreError {
-    fn from(err: &TonError) -> Self { TonCoreError::Custom(err.to_string()) }
+    fn from(err: &TonError) -> Self {
+        TonCoreError::Custom(err.to_string())
+    }
 }
 
 impl From<Arc<TonError>> for TonError {
-    fn from(err: Arc<TonError>) -> Self { Self::ArcSelf(err) }
+    fn from(err: Arc<TonError>) -> Self {
+        Self::ArcSelf(err)
+    }
 }

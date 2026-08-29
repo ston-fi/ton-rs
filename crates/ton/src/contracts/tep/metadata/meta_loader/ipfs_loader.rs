@@ -26,11 +26,11 @@ impl IpfsLoader {
             IpfsConnectionType::HttpGateway => {
                 let full_url = format!("{}/{}", self.base_url, path);
                 self.client.get(full_url).send().await?
-            }
+            },
             IpfsConnectionType::IpfsNode => {
                 let full_url = format!("{}/api/v0/cat?arg={}", self.base_url, path);
                 self.client.post(full_url).send().await?
-            }
+            },
         };
         let status = response.status();
         if status.is_success() {

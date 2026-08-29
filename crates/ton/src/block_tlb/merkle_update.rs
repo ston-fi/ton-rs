@@ -37,7 +37,9 @@ impl<T: TLB> TLB for MerkleUpdate<T> {
         Ok(())
     }
 
-    fn ton_cell_type(&self) -> CellType { CellType::MerkleUpdate }
+    fn ton_cell_type(&self) -> CellType {
+        CellType::MerkleUpdate
+    }
 }
 
 #[cfg(test)]

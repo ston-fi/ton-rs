@@ -108,5 +108,7 @@ pub trait EmulationProvider: Send + Sync + 'static {
     /// Defaults to `false` for providers that resolve [`EmulatorContractState::Address`]
     /// themselves. Direct callers must supply [`EmulatorContractState::Custom`] when this
     /// returns `true`; the `ton` crate's `ContractClient` performs that conversion automatically.
-    fn requires_resolved_state(&self) -> bool { false }
+    fn requires_resolved_state(&self) -> bool {
+        false
+    }
 }

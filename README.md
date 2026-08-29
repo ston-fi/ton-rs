@@ -43,6 +43,13 @@ State caches require an active Tokio runtime when the client is built and start 
 secret key bytes. Caller-owned mnemonic strings and copies read from the public
 `KeyPair::secret_key` field remain the caller's responsibility.
 
+## Rust version
+
+The minimum supported Rust version (MSRV) is 1.94. CI verifies every published
+crate, target, and feature against the declared MSRV and checks weekly whether
+the latest dependency releases still support it. MSRV increases are released
+as minor compatibility changes.
+
 
 ## Getting started
 Examples can be found in [examples](examples) folder (feel free to add your own)

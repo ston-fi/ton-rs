@@ -13,7 +13,9 @@ pub struct WalletV1V2Data {
 
 impl WalletV1V2Data {
     /// Creates wallet data with sequence number zero.
-    pub fn new(public_key: TonHash) -> Self { Self { seqno: 0, public_key } }
+    pub fn new(public_key: TonHash) -> Self {
+        Self { seqno: 0, public_key }
+    }
 }
 
 /// Unsigned wallet v2 external-message body.

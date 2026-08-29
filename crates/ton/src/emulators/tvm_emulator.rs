@@ -129,7 +129,9 @@ impl TVMEmulator {
 }
 
 impl Drop for TVMEmulator {
-    fn drop(&mut self) { unsafe { tvm_emulator_destroy(self.ptr) }; }
+    fn drop(&mut self) {
+        unsafe { tvm_emulator_destroy(self.ptr) };
+    }
 }
 unsafe impl Send for TVMEmulator {}
 unsafe impl Sync for TVMEmulator {}

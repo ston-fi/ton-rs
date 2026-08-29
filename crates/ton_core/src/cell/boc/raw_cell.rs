@@ -25,8 +25,12 @@ pub(crate) struct RawCell {
 pub(crate) type RefPosStorage = SmallVec<[usize; TonCell::MAX_REFS_COUNT]>;
 
 impl RawCell {
-    pub(crate) fn data_len_bits(&self) -> usize { self.end_bit - self.start_bit }
-    pub(crate) fn data_len_bytes(&self) -> usize { self.data_len_bits().div_ceil(8) }
+    pub(crate) fn data_len_bits(&self) -> usize {
+        self.end_bit - self.start_bit
+    }
+    pub(crate) fn data_len_bytes(&self) -> usize {
+        self.data_len_bits().div_ceil(8)
+    }
     pub(crate) fn size_in_boc_bytes(&self, ref_size_bytes: u32) -> u32 {
         2 + self.data_len_bytes() as u32 + self.refs_pos.len() as u32 * ref_size_bytes
     }
@@ -40,7 +44,7 @@ impl RawCell {
 
         let d1 = num_refs + is_exotic * 8 + level.mask() as u32 * 32;
 
-        let is_bytes_aligned = (data_len_bits % 8) == 0;
+        let is_bytes_aligned = data_len_bits.is_multiple_of(8);
         // data_len_bytes <= 128 by spec (128*2 <= 256), but d2 must be u8 (0-255) by spec as well ¯\_(ツ)_/¯
         let d2 = (data_len_bytes * 2 - if is_bytes_aligned { 0 } else { 1 }) as u8; // subtract 1 if the last byte is not full
 

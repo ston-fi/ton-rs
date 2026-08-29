@@ -8,9 +8,13 @@ pub struct TaskCounter {
 }
 
 impl TaskCounter {
-    pub(crate) fn new() -> Self { Self::default() }
+    pub(crate) fn new() -> Self {
+        Self::default()
+    }
 
-    pub(crate) fn task_added(&'_ self) -> TaskCounterUpdater<'_> { TaskCounterUpdater::new(self) }
+    pub(crate) fn task_added(&'_ self) -> TaskCounterUpdater<'_> {
+        TaskCounterUpdater::new(self)
+    }
 }
 
 /// mark_done() must be called to mark task as successfully completed

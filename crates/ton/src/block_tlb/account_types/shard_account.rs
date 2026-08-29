@@ -42,7 +42,9 @@ impl ShardAccount {
 }
 
 impl Default for MaybeAccount {
-    fn default() -> Self { MaybeAccount::None(AccountNone) }
+    fn default() -> Self {
+        MaybeAccount::None(AccountNone)
+    }
 }
 
 #[rustfmt::skip]

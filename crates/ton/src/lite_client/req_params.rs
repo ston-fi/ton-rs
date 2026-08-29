@@ -21,5 +21,7 @@ impl LiteReqParams {
 }
 
 impl Default for LiteReqParams {
-    fn default() -> Self { Self::new(10, 100, 5000) }
+    fn default() -> Self {
+        Self::new(10, 100, 5000)
+    }
 }

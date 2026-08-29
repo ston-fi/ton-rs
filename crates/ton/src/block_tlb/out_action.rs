@@ -53,7 +53,9 @@ pub struct OutActionChangeLibrary {
 
 impl OutList {
     /// Creates a list containing `actions` in execution order.
-    pub fn new(actions: Vec<OutAction>) -> Self { Self { actions } }
+    pub fn new(actions: Vec<OutAction>) -> Self {
+        Self { actions }
+    }
 }
 
 impl TLB for OutList {

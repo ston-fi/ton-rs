@@ -19,7 +19,9 @@ use std::time::Duration;
 pub struct EmulatorPool(ThreadPool<PoolEmulationWorker>);
 
 impl EmulatorPool {
-    pub fn builder() -> TonResult<Builder> { Builder::new() }
+    pub fn builder() -> TonResult<Builder> {
+        Builder::new()
+    }
     /// timeout == None means default timeout will be used
     pub async fn emul_get_method(
         &self,
@@ -52,9 +54,15 @@ impl EmulatorPool {
     ) -> TonResult<TXEmulationResponse> {
         self.0.exec(task, timeout).await?.try_into()
     }
-    pub fn get_counters(&self) -> &Vec<TaskCounter> { self.0.get_counters() }
-    pub fn get_counters_aggregated(&self) -> TaskCounter { self.0.get_counters_aggregated() }
-    pub fn display_stats(&self) -> String { self.0.display_stats() }
+    pub fn get_counters(&self) -> &Vec<TaskCounter> {
+        self.0.get_counters()
+    }
+    pub fn get_counters_aggregated(&self) -> TaskCounter {
+        self.0.get_counters_aggregated()
+    }
+    pub fn display_stats(&self) -> String {
+        self.0.display_stats()
+    }
 }
 
 #[cfg(test)]

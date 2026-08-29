@@ -44,7 +44,9 @@ pub struct LiteClient(Arc<Inner>);
 
 // converts ton_block -> ton_liteapi objects under the hood
 impl LiteClient {
-    pub fn builder() -> TonResult<Builder> { Builder::new() }
+    pub fn builder() -> TonResult<Builder> {
+        Builder::new()
+    }
 
     pub async fn get_mc_info(&self) -> TonResult<MasterchainInfo> {
         let rsp = self.exec(Request::GetMasterchainInfo, None, None).await?;
@@ -110,17 +112,11 @@ impl LiteClient {
         if mc_seqno == 0 {
             // zero state can't be received from lite-node directly
             // but we can extract it from zero state
-            let block_id = if self.0.mainnet {
-                BlockIdExt::ZERO_BLOCK_ID
-            } else {
-                BlockIdExt::ZERO_BLOCK_ID_TESTNET
-            };
+            let block_id = if self.0.mainnet { BlockIdExt::ZERO_BLOCK_ID } else { BlockIdExt::ZERO_BLOCK_ID_TESTNET };
             let state = self.get_block_state(block_id, params).await?;
             let cell = Boc::decode(&state.data)?;
             let shard_state: ShardState = cell.parse()?;
-            let ShardState::Unsplit(unsplit) = shard_state else {
-                bail_ton!("zero state must be unsplit")
-            };
+            let ShardState::Unsplit(unsplit) = shard_state else { bail_ton!("zero state must be unsplit") };
             let Some((_, account)) = unsplit.load_accounts()?.get(HashBytes(*address.hash.as_slice_sized()))? else {
                 bail_ton!("Account with address {} not found in zero block", address)
             };
@@ -171,7 +167,9 @@ impl LiteClient {
         self.0.exec_with_retries(request, wait_mc_seqno, params).await
     }
 
-    pub fn metrics(&self) -> LiteClientMetricsSnapshot { self.0.metrics.snapshot() }
+    pub fn metrics(&self) -> LiteClientMetricsSnapshot {
+        self.0.metrics.snapshot()
+    }
 }
 
 struct Inner {
@@ -283,7 +281,7 @@ impl Inner {
                     let result = Ok(response);
                     metric_guard.record_result(&result);
                     return result;
-                }
+                },
                 Err(err) => last_err = Some(err),
             }
         }
@@ -294,4 +292,6 @@ impl Inner {
     }
 }
 
-fn retry_condition(error: &TonError) -> bool { !matches!(error, TonError::LiteClientWrongResponse(..)) }
+fn retry_condition(error: &TonError) -> bool {
+    !matches!(error, TonError::LiteClientWrongResponse(..))
+}

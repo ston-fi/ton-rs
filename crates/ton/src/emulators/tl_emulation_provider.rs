@@ -128,13 +128,13 @@ impl TLEmulationProvider {
                 return Err(TonError::EmulatorUnexpectedResponse(
                     "TLEmulationProvider requires resolved contract state".to_string(),
                 ));
-            }
+            },
             EmulatorContractState::Custom(state) => state,
             _ => {
                 return Err(TonError::EmulatorUnexpectedResponse(
                     "unsupported EmulatorContractState variant".to_string(),
                 ));
-            }
+            },
         };
 
         let code_boc = state.code_boc.as_ref().ok_or_else(|| TonError::TonContractNotFull {
@@ -278,7 +278,9 @@ where
 
 #[async_trait]
 impl EmulationProvider for TLEmulationProvider {
-    fn requires_resolved_state(&self) -> bool { true }
+    fn requires_resolved_state(&self) -> bool {
+        true
+    }
 
     async fn emulate_get_method(
         &self,
@@ -291,11 +293,13 @@ impl EmulationProvider for TLEmulationProvider {
                     Ok(result) => result,
                     Err(_) => Err(TonError::EmulatorTimeout(timeout)),
                 }
-            }
+            },
             None => self.emulate_get_method_impl(request, None).await,
         };
         result.map_err(preserve_ton_error)
     }
 }
 
-fn preserve_ton_error(error: TonError) -> TonCoreError { TonCoreError::BoxedError(Box::new(error)) }
+fn preserve_ton_error(error: TonError) -> TonCoreError {
+    TonCoreError::BoxedError(Box::new(error))
+}

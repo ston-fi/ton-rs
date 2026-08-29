@@ -66,10 +66,10 @@ impl Builder {
             self.init_opts.config.net_config_json = TonNetConfig::new_default(self.mainnet)?.to_json()?;
         }
 
-        if self.update_init_block {
-            if let Some(net_config) = update_net_config(&self).await? {
-                self.init_opts.config.net_config_json = net_config.to_json()?;
-            }
+        if self.update_init_block
+            && let Some(net_config) = update_net_config(&self).await?
+        {
+            self.init_opts.config.net_config_json = net_config.to_json()?;
         }
         if let TLKeyStoreType::Directory { directory } = &self.init_opts.keystore_type {
             std::fs::create_dir_all(directory).map_err(TonError::system)?
@@ -81,7 +81,7 @@ impl Builder {
             Ok(conns) => {
                 log::info!("[TLClient] {} connections initialized", conns.len());
                 conns
-            }
+            },
             Err(err) => bail_ton!("[TLClient] Failed to initialize TLConnection: {:?}", err),
         };
 
@@ -135,7 +135,7 @@ async fn update_net_config(builder: &Builder) -> TonResult<Option<TonNetConfig>>
                 if max_block.is_none() || max_block.as_ref().unwrap().seqno < block_id.seqno {
                     max_block = Some(block_id.clone());
                 }
-            }
+            },
             Err(err) => log::warn!("Failed to get recent_init_block from node: {err:?}"),
         }
     }

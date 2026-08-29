@@ -12,6 +12,6 @@ pub(crate) fn crate_name_or_panic(orig_name: &'static str) -> TokenStream {
         FoundCrate::Name(name) => {
             let ident = format_ident!("{name}");
             quote! { #ident }
-        }
+        },
     }
 }

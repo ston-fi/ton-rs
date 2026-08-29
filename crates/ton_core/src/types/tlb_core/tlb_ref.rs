@@ -12,8 +12,12 @@ pub struct TLBRef<T>(T);
 
 impl<T: TLB> TLBRef<T> {
     /// Wraps a value so enclosing TL-B fields store it in a referenced cell.
-    pub const fn new(val: T) -> Self { Self(val) }
-    pub fn into_inner(self) -> T { self.0 }
+    pub const fn new(val: T) -> Self {
+        Self(val)
+    }
+    pub fn into_inner(self) -> T {
+        self.0
+    }
 }
 
 impl<T: TLB> TLB for TLBRef<T> {
@@ -23,11 +27,21 @@ impl<T: TLB> TLB for TLBRef<T> {
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
         builder.write_ref(self.0.to_cell()?)
     }
-    fn cell_hash(&self) -> Result<TonHash, TonCoreError> { self.0.cell_hash() }
-    fn from_boc<B: Into<Arc<Vec<u8>>>>(boc: B) -> Result<Self, TonCoreError> { Ok(Self::new(T::from_boc(boc)?)) }
-    fn to_cell(&self) -> Result<TonCell, TonCoreError> { self.0.to_cell() }
-    fn to_boc_extra(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> { self.0.to_boc_extra(add_crc32) }
-    fn ton_cell_type(&self) -> CellType { self.0.ton_cell_type() }
+    fn cell_hash(&self) -> Result<TonHash, TonCoreError> {
+        self.0.cell_hash()
+    }
+    fn from_boc<B: Into<Arc<Vec<u8>>>>(boc: B) -> Result<Self, TonCoreError> {
+        Ok(Self::new(T::from_boc(boc)?))
+    }
+    fn to_cell(&self) -> Result<TonCell, TonCoreError> {
+        self.0.to_cell()
+    }
+    fn to_boc_extra(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
+        self.0.to_boc_extra(add_crc32)
+    }
+    fn ton_cell_type(&self) -> CellType {
+        self.0.ton_cell_type()
+    }
 }
 
 #[rustfmt::skip]

@@ -19,7 +19,9 @@ impl TonCellNum for BigUint {
         biguint_from_u1024(U1024::tcn_read_bits(reader, bits_len)?)
     }
 
-    fn tcn_min_bits_len(&self) -> usize { self.bits() as usize }
+    fn tcn_min_bits_len(&self) -> usize {
+        self.bits() as usize
+    }
 }
 
 impl TonCellNum for BigInt {
@@ -72,11 +74,7 @@ fn bigint_to_i1024(value: &BigInt) -> TonCoreResult<I1024> {
     let Some(res) = U1024::from_le_slice(&bytes_le).map(|x| x.cast_signed()) else {
         bail_ton_core_data!("Can't convert {value} (unsigned part) to U1024");
     };
-    if sign == Sign::Minus && res != I1024::MIN {
-        Ok(res.neg())
-    } else {
-        Ok(res)
-    }
+    if sign == Sign::Minus && res != I1024::MIN { Ok(res.neg()) } else { Ok(res) }
 }
 
 // We don't test cell read/write here, because it's already tested for U1024/I1024

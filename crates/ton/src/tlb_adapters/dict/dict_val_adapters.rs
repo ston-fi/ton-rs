@@ -15,12 +15,20 @@ pub struct DictValAdapterNum<T, const BITS_LEN: usize>(std::marker::PhantomData<
 
 impl<T: TLB> DictValAdapter for DictValAdapterTLB<T> {
     type ValType = T;
-    fn write(builder: &mut CellBuilder, val: &T) -> Result<(), TonCoreError> { val.write(builder) }
-    fn read(parser: &mut CellParser) -> Result<T, TonCoreError> { T::read(parser) }
+    fn write(builder: &mut CellBuilder, val: &T) -> Result<(), TonCoreError> {
+        val.write(builder)
+    }
+    fn read(parser: &mut CellParser) -> Result<T, TonCoreError> {
+        T::read(parser)
+    }
 }
 
 impl<T: TonCellNum, const BITS_LEN: usize> DictValAdapter for DictValAdapterNum<T, BITS_LEN> {
     type ValType = T;
-    fn write(builder: &mut CellBuilder, val: &T) -> Result<(), TonCoreError> { builder.write_num(val, BITS_LEN) }
-    fn read(parser: &mut CellParser) -> Result<T, TonCoreError> { parser.read_num(BITS_LEN) }
+    fn write(builder: &mut CellBuilder, val: &T) -> Result<(), TonCoreError> {
+        builder.write_num(val, BITS_LEN)
+    }
+    fn read(parser: &mut CellParser) -> Result<T, TonCoreError> {
+        parser.read_num(BITS_LEN)
+    }
 }

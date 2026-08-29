@@ -47,7 +47,9 @@ impl TLBCoins {
         }
     }
 
-    pub fn to_u128(&self) -> u128 { self.0.data }
+    pub fn to_u128(&self) -> u128 {
+        self.0.data
+    }
 }
 
 mod traits_impl {
@@ -58,23 +60,33 @@ mod traits_impl {
 
     impl Deref for TLBCoins {
         type Target = u128;
-        fn deref(&self) -> &Self::Target { &self.0 }
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
     }
 
     impl DerefMut for TLBCoins {
-        fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
     }
 
     impl<T: Into<u128>> From<T> for TLBCoins {
-        fn from(value: T) -> Self { TLBCoins::new(value.into()) }
+        fn from(value: T) -> Self {
+            TLBCoins::new(value.into())
+        }
     }
 
     impl FromStr for TLBCoins {
         type Err = TonCoreError;
-        fn from_str(coins: &str) -> Result<Self, Self::Err> { Ok(Self::new(u128::from_str(coins)?)) }
+        fn from_str(coins: &str) -> Result<Self, Self::Err> {
+            Ok(Self::new(u128::from_str(coins)?))
+        }
     }
 
     impl Default for TLBCoins {
-        fn default() -> Self { TLBCoins::ZERO }
+        fn default() -> Self {
+            TLBCoins::ZERO
+        }
     }
 }

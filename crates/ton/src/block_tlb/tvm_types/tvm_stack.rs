@@ -24,11 +24,15 @@ pub struct TVMStack(Vec<TVMStackValue>);
 
 impl Deref for TVMStack {
     type Target = Vec<TVMStackValue>;
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl DerefMut for TVMStack {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl TVMStack {
@@ -36,7 +40,9 @@ impl TVMStack {
     pub const EMPTY: Self = Self(Vec::new());
 
     /// Creates a stack preserving the supplied bottom-to-top item order.
-    pub fn new(items: Vec<TVMStackValue>) -> Self { Self(items) }
+    pub fn new(items: Vec<TVMStackValue>) -> Self {
+        Self(items)
+    }
 
     pub fn ensure_empty(&self) -> TonResult<()> {
         if !self.is_empty() {
@@ -46,13 +52,21 @@ impl TVMStack {
         Ok(())
     }
 
-    pub fn push_tiny_int(&mut self, value: i64) { self.push(TVMStackValue::TinyInt(TVMTinyInt { value })); }
-    pub fn push_int(&mut self, value: I512) { self.push(TVMStackValue::Int(TVMInt { value })); }
-    pub fn push_cell(&mut self, value: TonCell) { self.push(TVMStackValue::Cell(TVMCell { value: value.into() })); }
+    pub fn push_tiny_int(&mut self, value: i64) {
+        self.push(TVMStackValue::TinyInt(TVMTinyInt { value }));
+    }
+    pub fn push_int(&mut self, value: I512) {
+        self.push(TVMStackValue::Int(TVMInt { value }));
+    }
+    pub fn push_cell(&mut self, value: TonCell) {
+        self.push(TVMStackValue::Cell(TVMCell { value: value.into() }));
+    }
     pub fn push_cell_slice(&mut self, cell: TonCell) {
         self.push(TVMStackValue::CellSlice(TVMCellSlice::from_cell(cell)));
     }
-    pub fn push_tuple(&mut self, value: TVMTuple) { self.push(TVMStackValue::Tuple(value)); }
+    pub fn push_tuple(&mut self, value: TVMTuple) {
+        self.push(TVMStackValue::Tuple(value));
+    }
 
     pub fn pop_checked(&mut self) -> TonResult<TVMStackValue> {
         match self.pop() {
@@ -61,8 +75,12 @@ impl TVMStack {
         }
     }
 
-    pub fn pop_tiny_int(&mut self) -> TonResult<i64> { extract_stack_val!(self.pop(), TinyInt) }
-    pub fn pop_int(&mut self) -> TonResult<I512> { extract_stack_val!(self.pop(), Int) }
+    pub fn pop_tiny_int(&mut self) -> TonResult<i64> {
+        extract_stack_val!(self.pop(), TinyInt)
+    }
+    pub fn pop_int(&mut self) -> TonResult<I512> {
+        extract_stack_val!(self.pop(), Int)
+    }
     /// Pops Int or TinyInt as I512
     pub fn pop_num(&mut self) -> TonResult<I512> {
         match self.pop_checked()? {

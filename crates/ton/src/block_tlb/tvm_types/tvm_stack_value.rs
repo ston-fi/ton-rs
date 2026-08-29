@@ -163,7 +163,9 @@ pub struct VMContPushInt {
 }
 
 impl Debug for TVMStackValue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result { write!(f, "{self}") }
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{self}")
+    }
 }
 
 impl Display for TVMStackValue {

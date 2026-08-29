@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
     "crates/ton",
     "crates/ton_core",
@@ -15,7 +15,7 @@ edition = "2024"
 authors = ["Sild <silddev@pm.com"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ston-fi/ton-rs"
-rust-version = "1.85"
+rust-version = "1.94"
 readme = "README.md"
 publish = false
 

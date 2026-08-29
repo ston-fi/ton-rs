@@ -16,7 +16,9 @@ impl Coins {
     pub const ZERO: Coins = Coins(0);
     pub const ONE: Coins = Coins(1);
 
-    pub const fn new(amount: u128) -> Self { Self(amount) }
+    pub const fn new(amount: u128) -> Self {
+        Self(amount)
+    }
 
     pub fn from_num<T: ToPrimitive + Debug>(amount: T) -> TonCoreResult<Self> {
         let Some(amount_u128) = amount.to_u128() else {
@@ -25,7 +27,9 @@ impl Coins {
         Ok(Coins(amount_u128))
     }
 
-    pub fn inner(&self) -> u128 { self.0 }
+    pub fn inner(&self) -> u128 {
+        self.0
+    }
 
     pub fn checked_add<T: IntoCoins>(&self, other: T) -> TonCoreResult<Coins> {
         let other_coins = other.into_coins()?;

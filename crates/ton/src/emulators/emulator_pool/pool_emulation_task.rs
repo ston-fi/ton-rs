@@ -13,19 +13,29 @@ pub enum PoolEmulationTask {
 }
 
 impl From<TVMGetMethodTask> for PoolEmulationTask {
-    fn from(task: TVMGetMethodTask) -> Self { PoolEmulationTask::EmulGetMethod(task) }
+    fn from(task: TVMGetMethodTask) -> Self {
+        PoolEmulationTask::EmulGetMethod(task)
+    }
 }
 impl From<TVMSendExtMsgTask> for PoolEmulationTask {
-    fn from(task: TVMSendExtMsgTask) -> Self { PoolEmulationTask::EmulSendExtMsg(task) }
+    fn from(task: TVMSendExtMsgTask) -> Self {
+        PoolEmulationTask::EmulSendExtMsg(task)
+    }
 }
 impl From<TVMSendIntMsgTask> for PoolEmulationTask {
-    fn from(task: TVMSendIntMsgTask) -> Self { PoolEmulationTask::EmulSendIntMsg(task) }
+    fn from(task: TVMSendIntMsgTask) -> Self {
+        PoolEmulationTask::EmulSendIntMsg(task)
+    }
 }
 impl From<TXEmulOrdArgs> for PoolEmulationTask {
-    fn from(args: TXEmulOrdArgs) -> Self { PoolEmulationTask::EmulOrdTx(args) }
+    fn from(args: TXEmulOrdArgs) -> Self {
+        PoolEmulationTask::EmulOrdTx(args)
+    }
 }
 impl From<TXEmulTickTockArgs> for PoolEmulationTask {
-    fn from(args: TXEmulTickTockArgs) -> Self { PoolEmulationTask::EmulTickTockTx(args) }
+    fn from(args: TXEmulTickTockArgs) -> Self {
+        PoolEmulationTask::EmulTickTockTx(args)
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -25,11 +25,11 @@ impl<L: TLB, R: TLB> TLB for TLBEither<L, R> {
             TLBEither::Left(left) => {
                 builder.write_bit(false)?;
                 left.write(builder)
-            }
+            },
             TLBEither::Right(right) => {
                 builder.write_bit(true)?;
                 right.write(builder)
-            }
+            },
         }
     }
 }

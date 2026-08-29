@@ -48,13 +48,13 @@ impl Connection {
                 Err(err) => {
                     self.service = None;
                     return Err(err.into());
-                }
+                },
             };
             timeout(req_timeout, ready_service.call(req)).await
         };
 
         match &res {
-            Ok(Ok(_)) => {}
+            Ok(Ok(_)) => {},
             _ => self.service = None, // reset connection on any error
         }
         Ok(res??)

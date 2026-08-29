@@ -16,7 +16,9 @@ use proc_macro::TokenStream;
 
 /// Automatic `TLB` implementation
 #[proc_macro_derive(TLB, attributes(tlb))]
-pub fn tlb_derive(input: TokenStream) -> TokenStream { tlb_derive_impl(input).into() }
+pub fn tlb_derive(input: TokenStream) -> TokenStream {
+    tlb_derive_impl(input).into()
+}
 
 /// Automatic `FromTVMStack` implementation for POD types.
 ///
@@ -24,8 +26,12 @@ pub fn tlb_derive(input: TokenStream) -> TokenStream { tlb_derive_impl(input).in
 /// values after parsing and `#[from_tvm_stack(allow_extra = true)]` to discard
 /// top stack values above the derived struct fields before parsing.
 #[proc_macro_derive(FromTVMStack, attributes(from_tvm_stack))]
-pub fn from_tvm_stack_derive(input: TokenStream) -> TokenStream { from_tvm_stack_derive_impl(input).into() }
+pub fn from_tvm_stack_derive(input: TokenStream) -> TokenStream {
+    from_tvm_stack_derive_impl(input).into()
+}
 
 #[proc_macro_attribute]
 /// Generates get-method implementations for an async contract trait or impl.
-pub fn ton_methods(attr: TokenStream, item: TokenStream) -> TokenStream { ton_methods_impl(attr, item) }
+pub fn ton_methods(attr: TokenStream, item: TokenStream) -> TokenStream {
+    ton_methods_impl(attr, item)
+}

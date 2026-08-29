@@ -31,7 +31,9 @@ struct Inner {
 
 #[async_trait]
 impl TLClientTrait for TLConnection {
-    fn get_connection(&self) -> &TLConnection { self }
+    fn get_connection(&self) -> &TLConnection {
+        self
+    }
 
     fn get_retry_strategy(&self) -> &RetryStrategy {
         static NO_RETRY: RetryStrategy = RetryStrategy::new(0, Duration::from_millis(0));
@@ -47,7 +49,7 @@ impl TLConnection {
                 Err(err) => {
                     log::warn!("[TLConnection] Failed to establish connection: {err:?}, retrying...");
                     tokio::time::sleep(builder.sleep_on_connection_error_ms).await;
-                }
+                },
             };
         };
         log::debug!("Connection {} established", checked_connection.inner.tonlibjson_wrapper.tag());
@@ -55,7 +57,9 @@ impl TLConnection {
         Ok(checked_connection)
     }
 
-    pub async fn exec_impl(&self, req: &TLRequest) -> Result<TLResponse, TonError> { self.inner.exec_impl(req).await }
+    pub async fn exec_impl(&self, req: &TLRequest) -> Result<TLResponse, TonError> {
+        self.inner.exec_impl(req).await
+    }
 
     async fn init(&self, options: TLOptions) -> Result<TLOptionsInfo, TonError> {
         let req = TLRequest::Init { options };
@@ -100,7 +104,7 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
             None => {
                 callbacks.on_idle(tag);
                 continue;
-            }
+            },
         };
         callbacks.on_result(tag, &result);
         let (response, maybe_extra) = match result {
@@ -108,7 +112,7 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
             Err(err) => {
                 log::warn!("[{}] error received: {:?}", tag, err);
                 continue;
-            }
+            },
         };
 
         let maybe_req_ctx = maybe_extra
@@ -117,10 +121,10 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
 
         callbacks.on_response(tag, &response, maybe_req_ctx.as_ref());
 
-        if let Some(req_ctx) = maybe_req_ctx {
-            if let Err(val) = req_ctx.sender.send(Ok(response)) {
-                callbacks.on_notify_error(tag, &val);
-            }
+        if let Some(req_ctx) = maybe_req_ctx
+            && let Err(val) = req_ctx.sender.send(Ok(response))
+        {
+            callbacks.on_notify_error(tag, &val);
         }
     }
     callbacks.on_loop_exit(&tag);
@@ -140,7 +144,7 @@ async fn new_checked_connection(builder: &Builder, semaphore: Arc<Semaphore>) ->
                 .await
                 .map_err(|err| TonError::Custom(format!(".get_block_header() failed with error: {err:?}")))?;
             Ok(new_conn)
-        }
+        },
         LiteNodeFilter::Archive => {
             let block_id = TLBlockId {
                 workchain: TON_MASTERCHAIN,
@@ -154,7 +158,7 @@ async fn new_checked_connection(builder: &Builder, semaphore: Arc<Semaphore>) ->
                 .await
                 .map_err(|err| TonError::Custom(format!(".lookup_block() failed with error: {err:?}")))?;
             Ok(new_conn)
-        }
+        },
     }
 }
 

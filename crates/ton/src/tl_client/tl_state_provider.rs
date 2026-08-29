@@ -37,7 +37,9 @@ impl TLStateProvider {
 
 #[async_trait]
 impl StateProvider for TLStateProvider {
-    async fn last_mc_seqno(&self) -> TonCoreResult<u32> { Ok(self.client.get_mc_info().await?.last.seqno) }
+    async fn last_mc_seqno(&self) -> TonCoreResult<u32> {
+        Ok(self.client.get_mc_info().await?.last.seqno)
+    }
 
     async fn load_state(&self, address: TonAddress, tx_id: Option<TxLTHash>) -> TonCoreResult<ContractState> {
         let raw_state = match tx_id {
@@ -94,10 +96,10 @@ impl StateProvider for TLStateProvider {
                         if cur_id.lt < tx_id.lt {
                             *cur_id = tx_id;
                         };
-                    }
+                    },
                     None => {
                         latest_by_address.insert(address, tx_id);
-                    }
+                    },
                 }
             }
         }

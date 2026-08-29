@@ -238,12 +238,12 @@ fn build_and_verify_index(roots: &[TonCell]) -> Result<HashMap<TonHash, IndexedC
         for index_cell in cells_by_hash.values() {
             for ref_cell in index_cell.cell.refs() {
                 let ref_hash = ref_cell.hash()?;
-                if let Some(indexed) = cells_by_hash.get(ref_hash) {
-                    if indexed.index < index_cell.index {
-                        *indexed.index.borrow_mut() = new_hash_index;
-                        new_hash_index += 1;
-                        verify_order = true; // Verify if an index was updated.
-                    }
+                if let Some(indexed) = cells_by_hash.get(ref_hash)
+                    && indexed.index < index_cell.index
+                {
+                    *indexed.index.borrow_mut() = new_hash_index;
+                    new_hash_index += 1;
+                    verify_order = true; // Verify if an index was updated.
                 }
             }
         }
@@ -265,11 +265,7 @@ fn raw_from_indexed(
         end_bit: cell.borders.end_bit,
         refs_pos: refs_positions,
         level_mask: cell.level_mask(),
-        hashes_depths: if preserve_hash {
-            cell.meta.hashes_depths.get().cloned()
-        } else {
-            None
-        },
+        hashes_depths: if preserve_hash { cell.meta.hashes_depths.get().cloned() } else { None },
     })
 }
 

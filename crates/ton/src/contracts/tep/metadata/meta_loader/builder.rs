@@ -34,7 +34,7 @@ impl Builder {
                     (header::ACCEPT, HeaderValue::from_static("*/*")),
                 ]);
                 reqwest::Client::builder().default_headers(headers).build()?
-            }
+            },
         };
 
         let ipfs_loader = IpfsLoader {

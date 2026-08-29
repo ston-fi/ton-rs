@@ -35,7 +35,7 @@ impl<'a> CellMetaBuilder<'a> {
             cell_type: cell.cell_type(),
             data: &cell.cell_data.data_storage,
             start_bit,
-            is_byte_aligned: start_bit % 8 == 0,
+            is_byte_aligned: start_bit.is_multiple_of(8),
             data_len_bits: data_bits_len,
             refs: cell.refs(),
         }
@@ -296,7 +296,7 @@ impl<'a> CellMetaBuilder<'a> {
                     } else {
                         (hashes[0], depths[0])
                     }
-                }
+                },
                 _ => (hashes[hash_index], depths[hash_index]),
             };
 
@@ -347,7 +347,9 @@ impl<'a> CellMetaBuilder<'a> {
 
 /// Calculates d2 descriptor for cell
 /// See <https://docs.ton.org/tvm.pdf>, section 3.1.4.
-fn get_bits_descriptor(data_bits_len: usize) -> u8 { (data_bits_len / 8 + data_bits_len.div_ceil(8)) as u8 }
+fn get_bits_descriptor(data_bits_len: usize) -> u8 {
+    (data_bits_len / 8 + data_bits_len.div_ceil(8)) as u8
+}
 
 fn write_data(writer: &mut CellBitWriter, data: &[u8], bit_len: usize) -> Result<(), TonCoreError> {
     let data_len = data.len();
@@ -385,7 +387,9 @@ mod test {
     use crate::cell::ton_cell::{CellBorders, CellData, RefStorage};
     use std::sync::Arc;
 
-    fn empty_cell_ref() -> TonCell { TonCell::empty().to_owned() }
+    fn empty_cell_ref() -> TonCell {
+        TonCell::empty().to_owned()
+    }
 
     #[test]
     fn test_refs_descriptor_d1() {

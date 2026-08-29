@@ -47,7 +47,9 @@ pub struct Validator {
 
 impl TonNetConfig {
     /// Parses a network configuration from JSON.
-    pub fn new(json: &str) -> TonResult<Self> { Ok(serde_json::from_str(json)?) }
+    pub fn new(json: &str) -> TonResult<Self> {
+        Ok(serde_json::from_str(json)?)
+    }
 
     /// Loads a network configuration from a file.
     pub fn from_path(path: &str) -> TonResult<Self> {
@@ -63,13 +65,19 @@ impl TonNetConfig {
     }
 
     /// Loads the configured or built-in mainnet/testnet configuration.
-    pub fn new_default(mainnet: bool) -> TonResult<Self> { Self::new(&get_default_net_conf(mainnet)?) }
+    pub fn new_default(mainnet: bool) -> TonResult<Self> {
+        Self::new(&get_default_net_conf(mainnet)?)
+    }
 
     /// Serializes this configuration as JSON.
-    pub fn to_json(&self) -> TonResult<String> { Ok(serde_json::to_string(self)?) }
+    pub fn to_json(&self) -> TonResult<String> {
+        Ok(serde_json::to_string(self)?)
+    }
 
     /// Returns the initial block sequence number.
-    pub fn get_init_block_seqno(&self) -> u64 { self.validator.init_block["seqno"].as_u64().unwrap_or(0) }
+    pub fn get_init_block_seqno(&self) -> u64 {
+        self.validator.init_block["seqno"].as_u64().unwrap_or(0)
+    }
 
     /// Replaces the initial block fields.
     pub fn set_init_block(&mut self, block_id: &BlockIdExt) {

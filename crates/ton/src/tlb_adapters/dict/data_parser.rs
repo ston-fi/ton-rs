@@ -56,7 +56,7 @@ impl DictDataParser {
                 } else {
                     self.cur_key_prefix <<= prefix_len;
                 }
-            }
+            },
             DictLabelType::Short => {
                 let prefix_len = UnaryLen::read(parser)?;
                 if *prefix_len != 0 {
@@ -64,7 +64,7 @@ impl DictDataParser {
                     self.cur_key_prefix <<= *prefix_len;
                     self.cur_key_prefix |= val;
                 }
-            }
+            },
             DictLabelType::Long => {
                 let prefix_len_len = self.remain_suffix_bit_len();
                 let prefix_len: usize = parser.read_num(prefix_len_len)?;
@@ -73,7 +73,7 @@ impl DictDataParser {
                     self.cur_key_prefix <<= prefix_len;
                     self.cur_key_prefix |= val;
                 }
-            }
+            },
         }
         if self.cur_key_prefix.bits() as usize == (self.key_bits_len + 1) {
             let mut key = BigUint::one() << self.key_bits_len;
@@ -94,11 +94,7 @@ impl DictDataParser {
 
     fn detect_label_type(&self, parser: &mut CellParser) -> Result<DictLabelType, TonCoreError> {
         let label = if parser.read_bit()? {
-            if parser.read_bit()? {
-                DictLabelType::Same
-            } else {
-                DictLabelType::Long
-            }
+            if parser.read_bit()? { DictLabelType::Same } else { DictLabelType::Long }
         } else {
             DictLabelType::Short
         };

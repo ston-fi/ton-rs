@@ -26,7 +26,9 @@ pub struct TLClient {
 }
 
 impl TLClient {
-    pub fn builder() -> TonResult<Builder> { Builder::new() }
+    pub fn builder() -> TonResult<Builder> {
+        Builder::new()
+    }
 }
 
 #[async_trait]
@@ -36,7 +38,9 @@ impl TLClientTrait for TLClient {
         self.inner.connections.choose(&mut rng_lock.deref_mut()).unwrap()
     }
 
-    fn get_retry_strategy(&self) -> &RetryStrategy { &self.inner.retry_strategy }
+    fn get_retry_strategy(&self) -> &RetryStrategy {
+        &self.inner.retry_strategy
+    }
 }
 
 struct Inner {

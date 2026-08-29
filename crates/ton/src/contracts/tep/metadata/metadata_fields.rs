@@ -22,7 +22,9 @@ pub static META_MARKETPLACE: LazyLock<MetadataField> = LazyLock::new(|| Metadata
 
 impl Deref for MetadataField {
     type Target = TonHash;
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl MetadataField {
@@ -50,7 +52,7 @@ impl MetadataField {
             Some(attr_str) => {
                 let json_val = Value::String(attr_str.as_str().to_string());
                 Some(Value::Array(vec![json_val]))
-            }
+            },
             None => None,
         }
     }

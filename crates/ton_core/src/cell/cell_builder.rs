@@ -151,11 +151,17 @@ impl CellBuilder {
         data.tcn_write_bits(self, bits_len)
     }
 
-    pub fn data_bits_left(&self) -> usize { TonCell::MAX_DATA_LEN_BITS - self.data_len_bits }
+    pub fn data_bits_left(&self) -> usize {
+        TonCell::MAX_DATA_LEN_BITS - self.data_len_bits
+    }
 
-    pub fn refs_left(&self) -> usize { TonCell::MAX_REFS_COUNT - self.refs.len() }
+    pub fn refs_left(&self) -> usize {
+        TonCell::MAX_REFS_COUNT - self.refs.len()
+    }
 
-    pub fn set_type(&mut self, cell_type: CellType) { self.cell_type = cell_type; }
+    pub fn set_type(&mut self, cell_type: CellType) {
+        self.cell_type = cell_type;
+    }
 
     #[inline(always)]
     fn ensure_capacity(&mut self, bits_len: usize) -> Result<(), TonCoreError> {

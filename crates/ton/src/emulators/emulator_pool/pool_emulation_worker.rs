@@ -43,5 +43,7 @@ impl PoolObject for PoolEmulationWorker {
             },
         }
     }
-    fn descriptor(&self) -> &str { &self.description }
+    fn descriptor(&self) -> &str {
+        &self.description
+    }
 }

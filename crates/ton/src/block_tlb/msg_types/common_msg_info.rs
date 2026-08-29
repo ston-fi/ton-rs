@@ -74,7 +74,9 @@ impl Default for CommonMsgInfoInt {
 }
 
 impl Default for CommonMsgInfo {
-    fn default() -> Self { CommonMsgInfoInt::default().into() }
+    fn default() -> Self {
+        CommonMsgInfoInt::default().into()
+    }
 }
 
 #[cfg(test)]

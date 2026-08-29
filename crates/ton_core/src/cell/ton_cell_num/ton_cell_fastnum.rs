@@ -37,7 +37,9 @@ macro_rules! ton_cell_num_fastnum_unsigned_impl {
                 Ok(value >> (type_size_bits - bits_to_read))
             }
 
-            fn tcn_min_bits_len(&self) -> usize { size_of::<Self>() * 8 - self.leading_zeros() as usize }
+            fn tcn_min_bits_len(&self) -> usize {
+                size_of::<Self>() * 8 - self.leading_zeros() as usize
+            }
         }
     };
 }

@@ -22,6 +22,10 @@ pub(super) fn require_field<T>(val: Option<T>, field: &'static str, raw_response
     })
 }
 
-pub(super) fn set_param_failed(param: &'static str) -> TonResult<()> { Err(TonError::EmulatorSetParamFailed(param)) }
+pub(super) fn set_param_failed(param: &'static str) -> TonResult<()> {
+    Err(TonError::EmulatorSetParamFailed(param))
+}
 
-pub(super) fn make_base64_c_str(data: &[u8]) -> TonResult<CString> { Ok(CString::new(BASE64_STANDARD.encode(data))?) }
+pub(super) fn make_base64_c_str(data: &[u8]) -> TonResult<CString> {
+    Ok(CString::new(BASE64_STANDARD.encode(data))?)
+}

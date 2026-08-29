@@ -26,5 +26,7 @@ impl CellType {
     }
 
     /// Returns whether this is an exotic cell kind.
-    pub fn is_exotic(&self) -> bool { self != &CellType::Ordinary }
+    pub fn is_exotic(&self) -> bool {
+        self != &CellType::Ordinary
+    }
 }

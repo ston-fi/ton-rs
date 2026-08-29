@@ -35,11 +35,15 @@ impl SnakeData {
 
 impl FromStr for SnakeData {
     type Err = TonCoreError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> { Ok(Self::from(s)) }
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::from(s))
+    }
 }
 
 impl From<&str> for SnakeData {
-    fn from(s: &str) -> Self { SnakeData::new(s.as_bytes().to_vec()) }
+    fn from(s: &str) -> Self {
+        SnakeData::new(s.as_bytes().to_vec())
+    }
 }
 
 impl TLB for SnakeData {
@@ -61,11 +65,8 @@ impl TLB for SnakeData {
     }
 
     fn write_definition(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
-        let data_bits_len = if self.chunks_bits_len.is_empty() {
-            self.data.len() * 8
-        } else {
-            self.chunks_bits_len.iter().sum()
-        };
+        let data_bits_len =
+            if self.chunks_bits_len.is_empty() { self.data.len() * 8 } else { self.chunks_bits_len.iter().sum() };
         if data_bits_len > self.data.len() * 8 {
             bail_ton_core_data!(
                 "SnakeData chunks contain {data_bits_len} bits, but data contains only {} bits",
@@ -140,11 +141,7 @@ impl SnakeData {
             return Ok(());
         }
 
-        let chunks_bits_len_rest = if chunks_bits_len.len() > 1 {
-            &chunks_bits_len[1..]
-        } else {
-            &[]
-        };
+        let chunks_bits_len_rest = if chunks_bits_len.len() > 1 { &chunks_bits_len[1..] } else { &[] };
         let mut child_builder = TonCell::builder();
         self.write_chunk(&mut child_builder, bits_offset + bits_to_write, data_bits_len, chunks_bits_len_rest)?;
         builder.write_ref(child_builder.build()?)

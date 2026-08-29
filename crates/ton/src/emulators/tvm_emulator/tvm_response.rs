@@ -76,7 +76,9 @@ pub struct TVMSendMsgSuccess {
 }
 
 impl TVMSendMsgSuccess {
-    pub fn exit_success(&self) -> bool { self.vm_exit_code == 0 || self.vm_exit_code == 1 }
+    pub fn exit_success(&self) -> bool {
+        self.vm_exit_code == 0 || self.vm_exit_code == 1
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

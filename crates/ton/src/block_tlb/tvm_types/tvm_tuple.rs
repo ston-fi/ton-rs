@@ -24,11 +24,15 @@ pub struct TVMTuple(Vec<TVMStackValue>);
 
 impl Deref for TVMTuple {
     type Target = Vec<TVMStackValue>;
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl DerefMut for TVMTuple {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 #[rustfmt::skip]
