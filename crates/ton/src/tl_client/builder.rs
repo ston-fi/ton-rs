@@ -66,10 +66,10 @@ impl Builder {
             self.init_opts.config.net_config_json = TonNetConfig::new_default(self.mainnet)?.to_json()?;
         }
 
-        if self.update_init_block {
-            if let Some(net_config) = update_net_config(&self).await? {
-                self.init_opts.config.net_config_json = net_config.to_json()?;
-            }
+        if self.update_init_block
+            && let Some(net_config) = update_net_config(&self).await?
+        {
+            self.init_opts.config.net_config_json = net_config.to_json()?;
         }
         if let TLKeyStoreType::Directory { directory } = &self.init_opts.keystore_type {
             std::fs::create_dir_all(directory).map_err(TonError::system)?

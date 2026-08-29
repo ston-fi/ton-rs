@@ -1,0 +1,66 @@
+name: MSRV
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  msrv:
+    name: Verify declared MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
+          CLANG_BIN="$(command -v clang)"
+          CLANGXX_BIN="$(command -v clang++)"
+          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
+          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack@0.6.44
+      - name: Resolve latest dependency releases
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
+        run: cargo update --verbose
+      - name: Check published crates on their declared MSRV
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        run: >-
+          cargo hack check
+          --rust-version
+          --workspace
+          --all-targets
+          --all-features
+          --ignore-private
+      - name: Check latest dependencies on the declared MSRV
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
+        run: >-
+          cargo hack check
+          --rust-version
+          --workspace
+          --all-targets
+          --all-features
+          --ignore-private

@@ -13,7 +13,7 @@ impl LevelMask {
     pub const fn mask(&self) -> u8 { self.0 }
     pub const fn hash_index(&self) -> usize { self.0.count_ones() as usize }
     pub const fn hash_count(&self) -> usize { self.hash_index() + 1 }
-    pub const fn is_significant(&self, level: u8) -> bool { level == 0 || ((self.0 >> (level - 1)) % 2 != 0) }
+    pub const fn is_significant(&self, level: u8) -> bool { level == 0 || !(self.0 >> (level - 1)).is_multiple_of(2) }
     pub const fn apply(&self, level: u8) -> Self { LevelMask(self.0 & ((1u8 << level) - 1)) }
 }
 

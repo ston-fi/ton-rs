@@ -40,7 +40,7 @@ impl RawCell {
 
         let d1 = num_refs + is_exotic * 8 + level.mask() as u32 * 32;
 
-        let is_bytes_aligned = (data_len_bits % 8) == 0;
+        let is_bytes_aligned = data_len_bits.is_multiple_of(8);
         // data_len_bytes <= 128 by spec (128*2 <= 256), but d2 must be u8 (0-255) by spec as well ¯\_(ツ)_/¯
         let d2 = (data_len_bytes * 2 - if is_bytes_aligned { 0 } else { 1 }) as u8; // subtract 1 if the last byte is not full
 

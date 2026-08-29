@@ -35,7 +35,7 @@ impl<'a> CellMetaBuilder<'a> {
             cell_type: cell.cell_type(),
             data: &cell.cell_data.data_storage,
             start_bit,
-            is_byte_aligned: start_bit % 8 == 0,
+            is_byte_aligned: start_bit.is_multiple_of(8),
             data_len_bits: data_bits_len,
             refs: cell.refs(),
         }

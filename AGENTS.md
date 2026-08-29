@@ -77,6 +77,7 @@ Full public-library checks:
 cargo test --workspace --all-features
 cargo test -p ton --doc --all-features
 cargo test -p ton --examples --all-features
+cargo hack check --rust-version --workspace --all-targets --all-features --ignore-private
 cargo +nightly fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features

@@ -117,10 +117,10 @@ fn run_loop(tag: String, weak_inner: Weak<Inner>, callbacks: TLCallbacksStore) {
 
         callbacks.on_response(tag, &response, maybe_req_ctx.as_ref());
 
-        if let Some(req_ctx) = maybe_req_ctx {
-            if let Err(val) = req_ctx.sender.send(Ok(response)) {
-                callbacks.on_notify_error(tag, &val);
-            }
+        if let Some(req_ctx) = maybe_req_ctx
+            && let Err(val) = req_ctx.sender.send(Ok(response))
+        {
+            callbacks.on_notify_error(tag, &val);
         }
     }
     callbacks.on_loop_exit(&tag);

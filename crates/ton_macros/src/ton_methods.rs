@@ -229,26 +229,26 @@ fn collect_args_info(signature: &Signature) -> Vec<ArgInfo> {
 
     let mut args: Vec<ArgInfo> = Vec::new();
     for input in signature.inputs.iter() {
-        if let FnArg::Typed(pat_ty) = input {
-            if let Pat::Ident(pat_ident) = &*pat_ty.pat {
-                let ty = *pat_ty.ty.clone();
-                let type_ident_opt = match &ty {
+        if let FnArg::Typed(pat_ty) = input
+            && let Pat::Ident(pat_ident) = &*pat_ty.pat
+        {
+            let ty = *pat_ty.ty.clone();
+            let type_ident_opt = match &ty {
+                Type::Path(tp) => tp.path.get_ident().cloned(),
+                Type::Reference(tr) => match &*tr.elem {
                     Type::Path(tp) => tp.path.get_ident().cloned(),
-                    Type::Reference(tr) => match &*tr.elem {
-                        Type::Path(tp) => tp.path.get_ident().cloned(),
-                        _ => None,
-                    },
                     _ => None,
-                };
-                let is_ref = matches!(&ty, Type::Reference(_));
-                let is_generic = type_ident_opt.as_ref().map(|id| generic_idents.contains(id)).unwrap_or(false);
-                let arg_info = ArgInfo {
-                    ident: pat_ident.ident.clone(),
-                    is_ref,
-                    is_generic,
-                };
-                args.push(arg_info);
-            }
+                },
+                _ => None,
+            };
+            let is_ref = matches!(&ty, Type::Reference(_));
+            let is_generic = type_ident_opt.as_ref().map(|id| generic_idents.contains(id)).unwrap_or(false);
+            let arg_info = ArgInfo {
+                ident: pat_ident.ident.clone(),
+                is_ref,
+                is_generic,
+            };
+            args.push(arg_info);
         }
     }
     args
