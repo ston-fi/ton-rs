@@ -23,7 +23,9 @@ macro_rules! ton_cell_num_primitive_unsigned_impl {
                 reader.read_unsigned_primitive(bits_len - padding_bits)
             }
 
-            fn tcn_min_bits_len(&self) -> usize { (Self::BITS - self.leading_zeros()) as usize }
+            fn tcn_min_bits_len(&self) -> usize {
+                (Self::BITS - self.leading_zeros()) as usize
+            }
         }
     };
 }

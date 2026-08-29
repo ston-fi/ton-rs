@@ -1,5 +1,6 @@
+match_block_trailing_comma=true
 max_width=120
-chain_width=110
-fn_call_width=110
-attr_fn_like_width=110
-fn_single_line=true
+chain_width=120
+fn_call_width=120
+single_line_if_else_max_width = 120
+single_line_let_else_max_width = 120

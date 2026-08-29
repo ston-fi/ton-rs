@@ -23,15 +23,21 @@ pub trait FromTVMStack: Sized {
 }
 
 impl FromTVMStack for TVMStack {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(stack.clone()) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(stack.clone())
+    }
 }
 
 impl FromTVMStack for bool {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(stack.pop_num()? != I512::ZERO) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(stack.pop_num()? != I512::ZERO)
+    }
 }
 
 impl FromTVMStack for I512 {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_num() }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        stack.pop_num()
+    }
 }
 
 macro_rules! from_tvm_stack_primitives_impl {
@@ -72,7 +78,9 @@ macro_rules! from_tvm_stack_fastnum_impl {
 from_tvm_stack_fastnum_impl!(U128, U256, U512, U1024, I128, I256, I1024);
 
 impl FromTVMStack for TonCell {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { stack.pop_cell() }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        stack.pop_cell()
+    }
 }
 
 impl FromTVMStack for TonAddress {
@@ -83,7 +91,7 @@ impl FromTVMStack for TonAddress {
             TVMStackValue::CellSlice(slice) => slice.to_cell()?,
             rest => {
                 bail_ton!("Can't parse TonAddress from TVMStack: Expecting Cell, CellSlice or Null. Got {:?}", rest)
-            }
+            },
         };
         Ok(TonAddress::from_cell(&cell)?)
     }
@@ -101,26 +109,34 @@ impl FromTVMStack for TonHash {
                     expected: "TonHash as Int or Cell".to_string(),
                     actual: format!("{rest:?}"),
                 });
-            }
+            },
         };
         Ok(hash)
     }
 }
 
 impl FromTVMStack for Coins {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(Coins::try_from(stack.pop_num()?)?) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(Coins::try_from(stack.pop_num()?)?)
+    }
 }
 
 impl FromTVMStack for TLBCoins {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(TLBCoins::from_cell(&stack.pop_cell()?)?) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(TLBCoins::from_cell(&stack.pop_cell()?)?)
+    }
 }
 
 impl FromTVMStack for SnakeData {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_cell(&stack.pop_cell()?)?) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(SnakeData::from_cell(&stack.pop_cell()?)?)
+    }
 }
 
 impl FromTVMStack for String {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(SnakeData::from_stack(stack)?.as_str().to_string()) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(SnakeData::from_stack(stack)?.as_str().to_string())
+    }
 }
 
 impl<T: FromTVMStack> FromTVMStack for Option<T> {

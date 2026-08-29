@@ -15,7 +15,9 @@ pub struct TonExtraCurrencyId(u32);
 
 impl TonExtraCurrencyId {
     /// Creates an ID containing the exact 32-bit currency identifier.
-    pub fn new(id: u32) -> TonExtraCurrencyId { TonExtraCurrencyId(id) }
+    pub fn new(id: u32) -> TonExtraCurrencyId {
+        TonExtraCurrencyId(id)
+    }
 
     pub fn to_address(&self) -> TonAddress {
         let mut hash_part = EXTRA_CURRENCY_BASE_HASH;
@@ -57,25 +59,37 @@ mod traits_impl {
     use std::str::FromStr;
 
     impl Display for TonExtraCurrencyId {
-        fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.0.fmt(formatter) }
+        fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            self.0.fmt(formatter)
+        }
     }
     impl Deref for TonExtraCurrencyId {
         type Target = u32;
-        fn deref(&self) -> &Self::Target { &self.0 }
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
     }
     impl From<u32> for TonExtraCurrencyId {
-        fn from(id: u32) -> Self { TonExtraCurrencyId::new(id) }
+        fn from(id: u32) -> Self {
+            TonExtraCurrencyId::new(id)
+        }
     }
     impl From<TonExtraCurrencyId> for u32 {
-        fn from(value: TonExtraCurrencyId) -> Self { value.0 }
+        fn from(value: TonExtraCurrencyId) -> Self {
+            value.0
+        }
     }
     impl FromStr for TonExtraCurrencyId {
         type Err = TonCoreError;
-        fn from_str(string: &str) -> Result<Self, Self::Err> { Ok(u32::from_str(string)?.into()) }
+        fn from_str(string: &str) -> Result<Self, Self::Err> {
+            Ok(u32::from_str(string)?.into())
+        }
     }
 
     impl From<TonExtraCurrencyId> for BigUint {
-        fn from(val: TonExtraCurrencyId) -> Self { BigUint::from(val.0) }
+        fn from(val: TonExtraCurrencyId) -> Self {
+            BigUint::from(val.0)
+        }
     }
 
     impl TryFrom<BigUint> for TonExtraCurrencyId {

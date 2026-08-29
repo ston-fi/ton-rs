@@ -25,8 +25,12 @@ pub(crate) struct RawCell {
 pub(crate) type RefPosStorage = SmallVec<[usize; TonCell::MAX_REFS_COUNT]>;
 
 impl RawCell {
-    pub(crate) fn data_len_bits(&self) -> usize { self.end_bit - self.start_bit }
-    pub(crate) fn data_len_bytes(&self) -> usize { self.data_len_bits().div_ceil(8) }
+    pub(crate) fn data_len_bits(&self) -> usize {
+        self.end_bit - self.start_bit
+    }
+    pub(crate) fn data_len_bytes(&self) -> usize {
+        self.data_len_bits().div_ceil(8)
+    }
     pub(crate) fn size_in_boc_bytes(&self, ref_size_bytes: u32) -> u32 {
         2 + self.data_len_bytes() as u32 + self.refs_pos.len() as u32 * ref_size_bytes
     }

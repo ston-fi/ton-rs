@@ -140,19 +140,19 @@ impl<'a, VA: DictValAdapter> DictDataBuilder<'a, VA> {
                 builder.write_bit(true)?;
                 builder.write_bit(!fair_label.is_zero())?;
                 builder.write_num(&label_len, label_len_len)?;
-            }
+            },
             DictLabelType::Short => {
                 builder.write_bit(false)?;
                 let unary_len = UnaryLen(label_len);
                 unary_len.write(builder)?;
                 builder.write_num(&fair_label, label_len)?;
-            }
+            },
             DictLabelType::Long => {
                 builder.write_bit(true)?;
                 builder.write_bit(false)?;
                 builder.write_num(&label_len, label_len_len)?;
                 builder.write_num(&fair_label, label_len)?;
-            }
+            },
         }
         Ok(())
     }

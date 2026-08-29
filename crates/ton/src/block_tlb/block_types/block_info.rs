@@ -69,7 +69,7 @@ impl BlockInfo {
                     false => self.shard.clone(),
                 };
                 vec![make_block_id(ext_ref.clone(), shard)]
-            }
+            },
             PrevBlockInfo::AfterMerge(ext_refs) => {
                 if self.after_split {
                     bail_ton_core!("shardchains cannot be simultaneously split and merged at the same block");
@@ -82,7 +82,7 @@ impl BlockInfo {
                     make_block_id(ext_refs.prev1.deref().clone(), shard1),
                     make_block_id(ext_refs.prev2.deref().clone(), shard2),
                 ]
-            }
+            },
         };
         Ok(prev_ids)
     }
@@ -113,16 +113,10 @@ impl TLB for BlockInfo {
         let min_ref_mc_seqno: u32 = parser.read_num(32)?;
         let prev_key_block_seqno: u32 = parser.read_num(32)?;
 
-        let gen_software = if (flags & GEN_SOFTWARE_EXISTS_FLAG) != 0 {
-            Some(GlobalVersion::read(parser)?)
-        } else {
-            None
-        };
-        let master_ref = if not_master {
-            Some(ExtBlockRef::read(&mut parser.read_next_ref()?.parser())?)
-        } else {
-            None
-        };
+        let gen_software =
+            if (flags & GEN_SOFTWARE_EXISTS_FLAG) != 0 { Some(GlobalVersion::read(parser)?) } else { None };
+        let master_ref =
+            if not_master { Some(ExtBlockRef::read(&mut parser.read_next_ref()?.parser())?) } else { None };
 
         let mut pref_ref_parser = parser.read_next_ref()?.parser();
         let prev_ref = if after_merge {
@@ -131,11 +125,8 @@ impl TLB for BlockInfo {
             PrevBlockInfo::Regular(ExtBlockRef::read(&mut pref_ref_parser)?)
         };
 
-        let prev_vert_ref = if vert_seqno_incr {
-            Some(ExtBlockRef::read(&mut parser.read_next_ref()?.parser())?)
-        } else {
-            None
-        };
+        let prev_vert_ref =
+            if vert_seqno_incr { Some(ExtBlockRef::read(&mut parser.read_next_ref()?.parser())?) } else { None };
 
         Ok(Self {
             version,

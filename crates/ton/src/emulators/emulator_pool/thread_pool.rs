@@ -21,7 +21,9 @@ pub(super) trait PoolObject: Send + Sync + 'static {
     type Retval: Send + Sync;
     fn process<T: Into<Self::Task>>(&mut self, task: T) -> TonResult<Self::Retval>;
     /// any human-readable value for logging purposes
-    fn descriptor(&self) -> &str { "undefined" }
+    fn descriptor(&self) -> &str {
+        "undefined"
+    }
 }
 
 /// Run one thread per provider object
@@ -29,7 +31,9 @@ pub(super) trait PoolObject: Send + Sync + 'static {
 pub(super) struct ThreadPool<T: PoolObject>(Arc<Inner<T>>);
 
 impl<Obj: PoolObject> ThreadPool<Obj> {
-    pub fn builder(objects: Vec<Obj>) -> TonResult<Builder<Obj>> { Builder::new(objects) }
+    pub fn builder(objects: Vec<Obj>) -> TonResult<Builder<Obj>> {
+        Builder::new(objects)
+    }
 
     pub async fn exec<T: Into<Obj::Task>>(&self, task: T, timeout: Option<Duration>) -> TonResult<Obj::Retval> {
         let exec_timeout = timeout.unwrap_or(self.0.default_exec_timeout);
@@ -40,7 +44,9 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
         }
     }
 
-    pub fn get_counters(&self) -> &Vec<TaskCounter> { &self.0.counters }
+    pub fn get_counters(&self) -> &Vec<TaskCounter> {
+        &self.0.counters
+    }
 
     pub fn get_counters_aggregated(&self) -> TaskCounter {
         let in_progress = self.0.counters.iter().map(|c| c.in_progress.load(Ordering::Relaxed)).sum();
@@ -100,7 +106,9 @@ impl<Obj: PoolObject> ThreadPool<Obj> {
 }
 
 impl<T: PoolObject> Clone for ThreadPool<T> {
-    fn clone(&self) -> Self { ThreadPool(self.0.clone()) }
+    fn clone(&self) -> Self {
+        ThreadPool(self.0.clone())
+    }
 }
 
 struct PoolTask<Obj: PoolObject> {
@@ -171,7 +179,9 @@ mod tests {
         fn process<T: Into<Self::Task>>(&mut self, task: T) -> Result<usize, TonError> {
             Ok(self.0 * 1000 + task.into())
         }
-        fn descriptor(&self) -> &str { "TestObject" }
+        fn descriptor(&self) -> &str {
+            "TestObject"
+        }
     }
 
     #[tokio::test]

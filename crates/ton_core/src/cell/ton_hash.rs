@@ -12,7 +12,9 @@ impl TonHash {
     pub const BITS_LEN: usize = 256;
     pub const ZERO: TonHash = TonHash::from_slice_sized(&[0u8; 32]);
 
-    pub const fn from_slice_sized(data: &[u8; 32]) -> Self { Self(*data) }
+    pub const fn from_slice_sized(data: &[u8; 32]) -> Self {
+        Self(*data)
+    }
 
     pub fn from_slice(data: &[u8]) -> Result<Self, TonCoreError> {
         let data = <[u8; 32]>::try_from(data).map_err(|_| bytes_len_error(data.len()))?;
@@ -51,19 +53,35 @@ impl TonHash {
         I512::from_radix_le(self.as_slice(), 256).unwrap()
     }
 
-    pub fn as_slice(&self) -> &[u8] { self.0.as_slice() }
+    pub fn as_slice(&self) -> &[u8] {
+        self.0.as_slice()
+    }
 
-    pub fn as_slice_sized(&self) -> &[u8; 32] { &self.0 }
+    pub fn as_slice_sized(&self) -> &[u8; 32] {
+        &self.0
+    }
 
-    pub fn as_slice_sized_mut(&mut self) -> &mut [u8; 32] { &mut self.0 }
+    pub fn as_slice_sized_mut(&mut self) -> &mut [u8; 32] {
+        &mut self.0
+    }
 
-    pub fn as_slice_mut(&mut self) -> &mut [u8] { self.0.as_mut_slice() }
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
+        self.0.as_mut_slice()
+    }
 
-    pub fn to_vec(&self) -> Vec<u8> { self.as_slice().to_vec() }
-    pub fn to_hex(&self) -> String { hex::encode(self.as_slice()) }
-    pub fn to_base64(&self) -> String { BASE64_STANDARD.encode(self.as_slice()) }
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.as_slice().to_vec()
+    }
+    pub fn to_hex(&self) -> String {
+        hex::encode(self.as_slice())
+    }
+    pub fn to_base64(&self) -> String {
+        BASE64_STANDARD.encode(self.as_slice())
+    }
 
-    pub fn into_vec(self) -> Vec<u8> { self.0.to_vec() }
+    pub fn into_vec(self) -> Vec<u8> {
+        self.0.to_vec()
+    }
 
     pub fn rewrite_first_bits<T: Into<u128>>(&mut self, value: T, bits_len: usize) -> Result<(), TonCoreError> {
         if bits_len == 0 {

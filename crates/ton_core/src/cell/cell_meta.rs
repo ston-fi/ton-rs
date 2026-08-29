@@ -22,7 +22,9 @@ pub struct CellMeta {
 
 impl CellMeta {
     pub(crate) const DEPTH_BYTES: usize = 2;
-    pub(crate) fn validate(&self, cell: &TonCell) -> Result<(), TonCoreError> { CellMetaBuilder::new(cell).validate() }
+    pub(crate) fn validate(&self, cell: &TonCell) -> Result<(), TonCoreError> {
+        CellMetaBuilder::new(cell).validate()
+    }
 
     pub(crate) fn level_mask(&self, cell: &TonCell) -> LevelMask {
         *cell.meta.level_mask.get_or_init(|| {
@@ -80,9 +82,13 @@ impl CellMeta {
         data.map(|(hashes, depths)| (hashes.as_slice(), depths.as_slice()))
     }
 
-    fn level_initialized(&self) -> bool { self.level_mask.get().is_some() }
+    fn level_initialized(&self) -> bool {
+        self.level_mask.get().is_some()
+    }
 
-    fn hash_initialized(&self) -> bool { self.hashes_depths.get().is_some() }
+    fn hash_initialized(&self) -> bool {
+        self.hashes_depths.get().is_some()
+    }
 }
 
 impl Default for CellMeta {

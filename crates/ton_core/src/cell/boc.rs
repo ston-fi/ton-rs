@@ -15,7 +15,9 @@ pub struct BoC {
 }
 
 impl BoC {
-    pub fn new(root: TonCell) -> Self { Self { roots: vec![root] } }
+    pub fn new(root: TonCell) -> Self {
+        Self { roots: vec![root] }
+    }
     pub fn from_roots<I>(roots: I) -> Self
     where
         I: IntoIterator<Item = TonCell>,
@@ -45,13 +47,17 @@ impl BoC {
     pub fn to_bytes(&self, add_crc32: bool) -> Result<Vec<u8>, TonCoreError> {
         RawBoC::from_ton_cells(self.roots.as_slice(), false)?.to_bytes(add_crc32)
     }
-    pub fn to_hex(&self, add_crc32: bool) -> Result<String, TonCoreError> { Ok(hex::encode(self.to_bytes(add_crc32)?)) }
+    pub fn to_hex(&self, add_crc32: bool) -> Result<String, TonCoreError> {
+        Ok(hex::encode(self.to_bytes(add_crc32)?))
+    }
     pub fn to_base64(&self, add_crc32: bool) -> Result<String, TonCoreError> {
         Ok(BASE64_STANDARD.encode(self.to_bytes(add_crc32)?))
     }
 
     // zero-based index
-    pub fn get_root(&self, index: usize) -> Option<&TonCell> { self.roots.get(index) }
+    pub fn get_root(&self, index: usize) -> Option<&TonCell> {
+        self.roots.get(index)
+    }
 
     pub fn single_root(mut self) -> Result<TonCell, TonCoreError> {
         if self.roots.len() != 1 {

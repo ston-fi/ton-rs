@@ -12,11 +12,11 @@ pub fn ton_methods_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         Item::Trait(mut item_impl) => {
             rewrite_trait(&mut item_impl, &attrs);
             item_impl.into_token_stream()
-        }
+        },
         Item::Impl(mut item_impl) => {
             rewrite_struct_impl(&mut item_impl, &attrs);
             item_impl.into_token_stream()
-        }
+        },
         other => panic!("#[ton_methods]: unsupported item: {other:?}"),
     };
     TokenStream::from(new_item)

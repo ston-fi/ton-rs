@@ -40,9 +40,13 @@ impl TonCell {
     ]);
     pub const EMPTY_BOC: &'static [u8] = &[181, 238, 156, 114, 1, 1, 1, 1, 0, 2, 0, 0, 0];
 
-    pub fn empty() -> &'static Self { EMPTY_CELL.deref() }
+    pub fn empty() -> &'static Self {
+        EMPTY_CELL.deref()
+    }
 
-    pub fn builder() -> CellBuilder { CellBuilder::new(CellType::Ordinary, INITIAL_STORAGE_CAPACITY) }
+    pub fn builder() -> CellBuilder {
+        CellBuilder::new(CellType::Ordinary, INITIAL_STORAGE_CAPACITY)
+    }
     pub fn builder_extra(cell_type: CellType, initial_capacity: usize) -> CellBuilder {
         CellBuilder::new(cell_type, initial_capacity)
     }
@@ -117,16 +121,28 @@ impl TonCell {
         })
     }
 
-    pub fn parser(&'_ self) -> CellParser<'_> { CellParser::new(self) }
+    pub fn parser(&'_ self) -> CellParser<'_> {
+        CellParser::new(self)
+    }
 
-    pub fn cell_type(&self) -> CellType { self.cell_type }
-    pub fn level_mask(&self) -> LevelMask { self.meta.level_mask(self) }
-    pub fn hash(&self) -> Result<&TonHash, TonCoreError> { self.hash_for_level(LevelMask::MAX_LEVEL) }
-    pub fn depth(&self) -> Result<u16, TonCoreError> { self.depth_for_level(LevelMask::MAX_LEVEL) }
+    pub fn cell_type(&self) -> CellType {
+        self.cell_type
+    }
+    pub fn level_mask(&self) -> LevelMask {
+        self.meta.level_mask(self)
+    }
+    pub fn hash(&self) -> Result<&TonHash, TonCoreError> {
+        self.hash_for_level(LevelMask::MAX_LEVEL)
+    }
+    pub fn depth(&self) -> Result<u16, TonCoreError> {
+        self.depth_for_level(LevelMask::MAX_LEVEL)
+    }
     pub fn refs(&self) -> &[TonCell] {
         &self.cell_data.refs[self.borders.start_ref as usize..self.borders.end_ref as usize]
     }
-    pub fn data_len_bits(&self) -> usize { self.borders.end_bit - self.borders.start_bit }
+    pub fn data_len_bits(&self) -> usize {
+        self.borders.end_bit - self.borders.start_bit
+    }
 
     pub fn hash_for_level(&self, level: LevelMask) -> Result<&TonHash, TonCoreError> {
         self.meta.hash_for_level(self, level)
@@ -174,7 +190,9 @@ impl TonCell {
     }
 
     #[cfg(test)]
-    pub(crate) fn underlying_storage(&self) -> &[u8] { &self.cell_data.data_storage }
+    pub(crate) fn underlying_storage(&self) -> &[u8] {
+        &self.cell_data.data_storage
+    }
 }
 
 pub(super) type RefStorage = SmallVec<[TonCell; TonCell::MAX_REFS_COUNT]>;

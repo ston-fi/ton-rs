@@ -114,7 +114,7 @@ mod serde_opt_arc_vec_u8_base64 {
             Some(s) => {
                 let bytes = STANDARD.decode(&s).map_err(Error::custom)?;
                 Ok(Some(Arc::new(bytes)))
-            }
+            },
             None => Ok(None),
         }
     }

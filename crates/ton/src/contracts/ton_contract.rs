@@ -38,15 +38,15 @@ pub trait TonContract: Send + Sync + Sized {
         let request = match self.get_emulator_contract_state() {
             EmulatorContractState::Address { address, tx_id } => {
                 EmulatorGetMethodRequest::new_with_address(address, tx_id, method_id, stack_boc)
-            }
+            },
             EmulatorContractState::Custom(state) => {
                 EmulatorGetMethodRequest::new_with_state(state, method_id, stack_boc)
-            }
+            },
             _ => {
                 return Err(TonError::EmulatorUnexpectedResponse(
                     "unsupported EmulatorContractState variant".to_string(),
                 ));
-            }
+            },
         };
         let response = self.get_client().emulate_get_method(request).await?;
         T::from_stack_boc(response.stack_boc)

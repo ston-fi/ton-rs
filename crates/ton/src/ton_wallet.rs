@@ -278,12 +278,12 @@ mod tests {
                         builder.write_ref(cell_ref.clone())?;
                     }
                     assert_eq!(body, builder.build()?)
-                }
+                },
                 _ => {
                     // sign in first 512 bits
                     parser.read_bits(512)?;
                     assert_eq!(body, TonCell::read(&mut parser)?);
-                }
+                },
             }
         }
         Ok(())

@@ -11,12 +11,16 @@ use ton_core::errors::TonCoreError;
 pub struct BinTree<VA: DictValAdapter>(PhantomData<VA>);
 
 impl<VA: DictValAdapter> Default for BinTree<VA> {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<VA: DictValAdapter> BinTree<VA> {
     /// Creates a stateless binary-tree adapter.
-    pub fn new() -> Self { Self(PhantomData) }
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
 
     pub fn read(parser: &mut CellParser) -> Result<HashMap<ShardPfx, VA::ValType>, TonCoreError> {
         let mut val = HashMap::new();

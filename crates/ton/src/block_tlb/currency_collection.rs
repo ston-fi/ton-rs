@@ -43,7 +43,9 @@ mod traits_impl {
 
     impl FromStr for CurrencyCollection {
         type Err = TonError;
-        fn from_str(coins: &str) -> Result<Self, Self::Err> { Self::from_num(&u128::from_str(coins)?) }
+        fn from_str(coins: &str) -> Result<Self, Self::Err> {
+            Self::from_num(&u128::from_str(coins)?)
+        }
     }
 }
 

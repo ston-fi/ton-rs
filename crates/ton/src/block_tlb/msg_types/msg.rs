@@ -57,7 +57,9 @@ impl<Body: TLB> Msg<Body> {
         }
     }
 
-    pub fn state_init(&self) -> Option<&StateInit> { self.init.as_ref().map(|init| &init.value) }
+    pub fn state_init(&self) -> Option<&StateInit> {
+        self.init.as_ref().map(|init| &init.value)
+    }
 
     pub fn cell_hash_normalized(&self) -> Result<TonHash, TonCoreError> {
         match &self.info {
@@ -67,9 +69,7 @@ impl<Body: TLB> Msg<Body> {
                     init: self.init.clone(),
                     body: TLBEitherRef::new_with_layout(self.body.value.to_cell()?, self.body.layout),
                 };
-                let CommonMsgInfo::ExtIn(info) = &mut msg_normalized.info else {
-                    unreachable!()
-                };
+                let CommonMsgInfo::ExtIn(info) = &mut msg_normalized.info else { unreachable!() };
                 info.src = MsgAddressExt::NONE;
                 match &mut info.dst {
                     MsgAddressInt::Std(addr) => addr.anycast = None,
@@ -80,7 +80,7 @@ impl<Body: TLB> Msg<Body> {
                 msg_normalized.init = None;
                 msg_normalized.body.layout = EitherRefLayout::ToRef;
                 msg_normalized.cell_hash()
-            }
+            },
             _ => self.cell_hash(),
         }
     }

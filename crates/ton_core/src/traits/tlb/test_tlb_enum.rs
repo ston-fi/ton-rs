@@ -138,7 +138,7 @@ fn test_tlb_enum_out_of_option() -> anyhow::Result<()> {
         } => {
             assert_eq!(message, "OutOfOptionEnum: got prefix: 4");
             assert_eq!(boc_hex, e1_boc);
-        }
+        },
         _ => panic!("Unexpected error type: {err}"),
     }
     Ok(())

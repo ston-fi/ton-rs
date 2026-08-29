@@ -31,7 +31,9 @@ impl<'a> CellParser<'a> {
         }
     }
 
-    pub fn original_cell(&self) -> &'a TonCell { self.cell }
+    pub fn original_cell(&self) -> &'a TonCell {
+        self.cell
+    }
 
     pub fn lookup_bits(&mut self, bits_len: usize) -> Result<u128, TonCoreError> {
         let value = self.read_num(bits_len)?;
@@ -116,7 +118,9 @@ impl<'a> CellParser<'a> {
         Ok(self.cell.borders.end_bit - reader_pos)
     }
 
-    pub fn refs_left(&mut self) -> usize { self.cell.borders.end_ref as usize - self.next_ref_pos }
+    pub fn refs_left(&mut self) -> usize {
+        self.cell.borders.end_ref as usize - self.next_ref_pos
+    }
 
     pub fn seek_bits(&mut self, offset: i32) -> Result<(), TonCoreError> {
         let new_pos = self.data_reader.position_in_bits()? as i32 + offset;

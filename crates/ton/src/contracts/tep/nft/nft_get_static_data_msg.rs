@@ -14,10 +14,14 @@ pub struct NFTGetStaticDataMsg {
 }
 
 impl Default for NFTGetStaticDataMsg {
-    fn default() -> Self { Self::new(0) }
+    fn default() -> Self {
+        Self::new(0)
+    }
 }
 
 impl NFTGetStaticDataMsg {
     /// Creates a request with the supplied query ID; [`Default`] uses zero.
-    pub fn new(query_id: u64) -> Self { NFTGetStaticDataMsg { query_id } }
+    pub fn new(query_id: u64) -> Self {
+        NFTGetStaticDataMsg { query_id }
+    }
 }

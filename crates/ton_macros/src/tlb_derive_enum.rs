@@ -204,7 +204,7 @@ fn variants_into_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Generi
                 } else {
                     quote! { #base_from }
                 }
-            }
+            },
             _ => panic!("variants_into_impl supports only tuple-like enums "),
         }
     });
@@ -249,7 +249,7 @@ fn variants_access_impl(ident: &Ident, data: &mut DataEnum, generics: &syn::Gene
                         }
                     }
                 }
-            }
+            },
             _ => panic!("variants_access_impl supports only tuple-like enums "),
         }
     });

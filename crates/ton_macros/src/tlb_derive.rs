@@ -61,7 +61,7 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
             FoundCrate::Name(name) => {
                 let ident = format_ident!("{name}");
                 quote! { #ident }
-            }
+            },
         }
     } else if let Ok(ton_crate) = crate_name("ton") {
         match ton_crate {
@@ -69,7 +69,7 @@ pub(crate) fn tlb_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
             FoundCrate::Name(name) => {
                 let ident = format_ident!("{name}");
                 quote! { #ident::ton_core }
-            }
+            },
         }
     } else {
         panic!("Can't find ton_core or ton crate");

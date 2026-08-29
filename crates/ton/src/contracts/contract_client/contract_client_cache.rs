@@ -109,7 +109,7 @@ async fn recent_tx_loop(weak_cache: Weak<ContractClientCache>, idle_on_error: Du
                     log::warn!("[recent_tx_loop] fail to get last mc seqno: {err}");
                     tokio::time::sleep(idle_on_error).await;
                     continue;
-                }
+                },
             }
         }
     } else {
@@ -124,7 +124,7 @@ async fn recent_tx_loop(weak_cache: Weak<ContractClientCache>, idle_on_error: Du
             None => {
                 log::warn!("[recent_tx_loop] inner is dropped");
                 break;
-            }
+            },
         };
         let client_cache_ref = &client_cache;
 
@@ -134,7 +134,7 @@ async fn recent_tx_loop(weak_cache: Weak<ContractClientCache>, idle_on_error: Du
                 log::warn!("[recent_tx_loop] fail to loading latest txs: {err}");
                 tokio::time::sleep(idle_on_error).await;
                 continue;
-            }
+            },
         };
         log::debug!(
             "[recent_tx_loop] mc_seqno {}: loaded {} txs (last per address)",

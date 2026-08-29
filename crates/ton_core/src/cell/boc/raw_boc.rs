@@ -265,11 +265,7 @@ fn raw_from_indexed(
         end_bit: cell.borders.end_bit,
         refs_pos: refs_positions,
         level_mask: cell.level_mask(),
-        hashes_depths: if preserve_hash {
-            cell.meta.hashes_depths.get().cloned()
-        } else {
-            None
-        },
+        hashes_depths: if preserve_hash { cell.meta.hashes_depths.get().cloned() } else { None },
     })
 }
 

@@ -44,7 +44,9 @@ pub struct MetadataUnsupported {
 }
 
 impl FromTVMStack for MetadataContent {
-    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> { Ok(MetadataContent::from_cell(&stack.pop_cell()?)?) }
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(MetadataContent::from_cell(&stack.pop_cell()?)?)
+    }
 }
 
 impl TLB for MetadataContent {
@@ -58,7 +60,7 @@ impl TLB for MetadataContent {
                     cell: original_parser.read_remaining()?,
                 };
                 return Ok(unsupported.into());
-            }
+            },
         };
         parser.seek_bits(-8)?;
         let parsed: TonCoreResult<MetadataContent> = match prefix {
@@ -152,13 +154,19 @@ impl MetadataContent {
     }
 }
 impl From<MetadataInternal> for MetadataContent {
-    fn from(v: MetadataInternal) -> Self { MetadataContent::Internal(v) }
+    fn from(v: MetadataInternal) -> Self {
+        MetadataContent::Internal(v)
+    }
 }
 impl From<MetadataExternal> for MetadataContent {
-    fn from(v: MetadataExternal) -> Self { MetadataContent::External(v) }
+    fn from(v: MetadataExternal) -> Self {
+        MetadataContent::External(v)
+    }
 }
 impl From<MetadataUnsupported> for MetadataContent {
-    fn from(v: MetadataUnsupported) -> Self { MetadataContent::Unsupported(v) }
+    fn from(v: MetadataUnsupported) -> Self {
+        MetadataContent::Unsupported(v)
+    }
 }
 
 #[cfg(test)]

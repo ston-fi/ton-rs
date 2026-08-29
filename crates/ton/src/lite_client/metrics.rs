@@ -100,11 +100,7 @@ impl<'a> MetricGuard<'a> {
 
 impl Drop for MetricGuard<'_> {
     fn drop(&mut self) {
-        let count_map = if self.ok {
-            &self.metrics.requests_ok
-        } else {
-            &self.metrics.requests_failed
-        };
+        let count_map = if self.ok { &self.metrics.requests_ok } else { &self.metrics.requests_failed };
         increment_dashmap(count_map, &self.req_str, 1);
         increment_dashmap(
             &self.metrics.requests_duration_ms_total,
@@ -158,7 +154,9 @@ fn req_to_str(req: &Request) -> &'static str {
     }
 }
 
-fn duration_ms_u64(duration: Duration) -> u64 { duration.as_millis().min(u64::MAX as u128) as u64 }
+fn duration_ms_u64(duration: Duration) -> u64 {
+    duration.as_millis().min(u64::MAX as u128) as u64
+}
 
 #[cfg(test)]
 mod tests {

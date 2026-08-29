@@ -45,7 +45,7 @@ impl WalletVersion {
             HLV2R2 => WalletHLV2R2Data::new(wallet_id, public_key).to_cell(),
             HLV1R1 | HLV1R2 | HLV2 | HLV2R1 => {
                 bail_ton_core!("initial_data for {version:?} is unsupported");
-            }
+            },
         }
     }
 
@@ -118,13 +118,13 @@ impl WalletVersion {
                 builder.write_cell(msg_cell)?;
                 builder.write_bits(sign, sign.len() * 8)?;
                 Ok(builder.build()?)
-            }
+            },
             _ => {
                 let mut builder = TonCell::builder();
                 builder.write_bits(sign, sign.len() * 8)?;
                 builder.write_cell(msg_cell)?;
                 Ok(builder.build()?)
-            }
+            },
         }
     }
 }

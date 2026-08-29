@@ -18,7 +18,9 @@ where
     KA::KeyType: Eq + Hash + Ord,
 {
     /// Creates an optional dictionary adapter with the specified fixed key length.
-    pub fn new(key_bits_len: u32) -> Self { Self(TLBHashMap::new(key_bits_len)) }
+    pub fn new(key_bits_len: u32) -> Self {
+        Self(TLBHashMap::new(key_bits_len))
+    }
 
     pub fn read(&self, parser: &mut CellParser) -> Result<HashMap<KA::KeyType, VA::ValType>, TonCoreError> {
         if !parser.read_bit()? {

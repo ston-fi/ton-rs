@@ -43,15 +43,14 @@ impl Drop for Mnemonic {
 }
 
 impl Drop for KeyPair {
-    fn drop(&mut self) { self.secret_key.zeroize() }
+    fn drop(&mut self) {
+        self.secret_key.zeroize()
+    }
 }
 
 impl fmt::Debug for KeyPair {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("KeyPair")
-            .field("public_key", &self.public_key)
-            .field("secret_key", &"***REDACTED***")
-            .finish()
+        f.debug_struct("KeyPair").field("public_key", &self.public_key).field("secret_key", &"***REDACTED***").finish()
     }
 }
 
@@ -85,14 +84,14 @@ impl Mnemonic {
                 if seed[0] == 0 {
                     return Err(TonError::MnemonicFirstByte(seed[0]));
                 }
-            }
+            },
             _ => {
                 let entropy = to_entropy(&normalized_words, None)?;
                 let seed = pbkdf2_sha512(entropy, "TON seed version", cmp::max(1, PBKDF_ITERATIONS / 256), 64)?;
                 if seed[0] != 0 {
                     return Err(TonError::MnemonicFirstBytePassless(seed[0]));
                 }
-            }
+            },
         }
 
         Ok(Mnemonic {

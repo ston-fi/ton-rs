@@ -45,7 +45,7 @@ impl ContractClient {
             request.contract_state = match request.contract_state {
                 EmulatorContractState::Address { address, tx_id } => {
                     EmulatorContractState::Custom(self.load_state(&address, tx_id.as_ref()).await?)
-                }
+                },
                 state => state,
             };
         }
@@ -59,7 +59,9 @@ impl ContractClient {
         validate_emulation_success(success)
     }
 
-    pub fn cache_stats(&self) -> HashMap<String, usize> { self.inner.cache.cache_stats() }
+    pub fn cache_stats(&self) -> HashMap<String, usize> {
+        self.inner.cache.cache_stats()
+    }
 }
 
 fn validate_emulation_success(success: EmulatorGetMethodSuccess) -> TonResult<EmulatorGetMethodSuccess> {

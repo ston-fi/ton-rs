@@ -28,5 +28,7 @@ pub struct AccountStatusActive;
 pub struct AccountStatusNotExist;
 
 impl Default for AccountStatus {
-    fn default() -> Self { AccountStatus::NonExist(AccountStatusNotExist) }
+    fn default() -> Self {
+        AccountStatus::NonExist(AccountStatusNotExist)
+    }
 }

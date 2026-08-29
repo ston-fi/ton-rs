@@ -42,7 +42,7 @@ pub trait TLB: Sized {
             Err(err) => {
                 parser.set_position(parser_position)?;
                 Err(err)
-            }
+            },
         }
     }
 
@@ -52,10 +52,14 @@ pub trait TLB: Sized {
     }
 
     // Utilities
-    fn cell_hash(&self) -> TonCoreResult<TonHash> { Ok(*self.to_cell()?.hash()?) }
+    fn cell_hash(&self) -> TonCoreResult<TonHash> {
+        Ok(*self.to_cell()?.hash()?)
+    }
 
     /// Reading
-    fn from_cell(cell: &TonCell) -> TonCoreResult<Self> { Self::read(&mut cell.parser()) }
+    fn from_cell(cell: &TonCell) -> TonCoreResult<Self> {
+        Self::read(&mut cell.parser())
+    }
 
     fn from_boc<T: Into<Arc<Vec<u8>>>>(boc: T) -> TonCoreResult<Self> {
         let boc = boc.into();
@@ -63,7 +67,7 @@ pub trait TLB: Sized {
             Ok(cell) => Ok(cell),
             Err(TonCoreError::TLBEnumOutOfOptions { message, cell_boc_hex }) => {
                 Err(TonCoreError::TLBEnumOutOfOptions { message, cell_boc_hex })
-            }
+            },
             Err(err) => bail_ton_core_data!(
                 "Fail to read {} from bytes: {}, err: {err}",
                 type_name::<Self>(),
@@ -72,9 +76,13 @@ pub trait TLB: Sized {
         }
     }
 
-    fn from_boc_hex(boc: &str) -> TonCoreResult<Self> { Self::from_boc(hex::decode(boc)?) }
+    fn from_boc_hex(boc: &str) -> TonCoreResult<Self> {
+        Self::from_boc(hex::decode(boc)?)
+    }
 
-    fn from_boc_base64(boc: &str) -> TonCoreResult<Self> { Self::from_boc(STANDARD.decode(boc)?) }
+    fn from_boc_base64(boc: &str) -> TonCoreResult<Self> {
+        Self::from_boc(STANDARD.decode(boc)?)
+    }
 
     /// Writing
     fn to_cell(&self) -> TonCoreResult<TonCell> {
@@ -83,11 +91,17 @@ pub trait TLB: Sized {
         builder.build()
     }
 
-    fn to_boc(&self) -> TonCoreResult<Vec<u8>> { self.to_boc_extra(false) }
+    fn to_boc(&self) -> TonCoreResult<Vec<u8>> {
+        self.to_boc_extra(false)
+    }
 
-    fn to_boc_hex(&self) -> TonCoreResult<String> { self.to_boc_hex_extra(false) }
+    fn to_boc_hex(&self) -> TonCoreResult<String> {
+        self.to_boc_hex_extra(false)
+    }
 
-    fn to_boc_base64(&self) -> TonCoreResult<String> { self.to_boc_base64_extra(false) }
+    fn to_boc_base64(&self) -> TonCoreResult<String> {
+        self.to_boc_base64_extra(false)
+    }
 
     fn to_boc_extra(&self, add_crc32: bool) -> TonCoreResult<Vec<u8>> {
         let mut builder = TonCell::builder();
@@ -142,7 +156,9 @@ pub trait TLB: Sized {
     // when we write an object, we have to idea of it's type - including writing TonCell itself
     // so for all types except TonCell & TonCellRef we return Ordinary, but for them we return proper type
     // it's required to build a proper BOC
-    fn ton_cell_type(&self) -> CellType { CellType::Ordinary }
+    fn ton_cell_type(&self) -> CellType {
+        CellType::Ordinary
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -154,7 +170,9 @@ pub struct TLBPrefix {
 impl TLBPrefix {
     pub const NULL: TLBPrefix = TLBPrefix::new(0, 0);
     /// Creates a prefix that encodes `value` using exactly `bits_len` bits.
-    pub const fn new(value: usize, bits_len: usize) -> Self { TLBPrefix { value, bits_len } }
+    pub const fn new(value: usize, bits_len: usize) -> Self {
+        TLBPrefix { value, bits_len }
+    }
 }
 
 #[cfg(test)]
@@ -170,11 +188,7 @@ mod tests {
         fn read_definition(parser: &mut CellParser) -> TonCoreResult<Self> {
             parser.read_next_ref()?;
             let byte = u8::read_definition(parser)?;
-            if byte == 0x01 {
-                bail_ton_core_data!("Failed reading definition")
-            } else {
-                Ok(FailingTLBObjWithRef(byte))
-            }
+            if byte == 0x01 { bail_ton_core_data!("Failed reading definition") } else { Ok(FailingTLBObjWithRef(byte)) }
         }
 
         fn write_definition(&self, builder: &mut CellBuilder) -> TonCoreResult<()> {

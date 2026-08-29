@@ -68,7 +68,7 @@ impl TLB for ShardDescr {
             ShardDescrTag::New => {
                 let mut ref_parser = parser.read_next_ref()?.parser();
                 (TLB::read(&mut ref_parser)?, TLB::read(&mut ref_parser)?)
-            }
+            },
         };
         Ok(Self {
             prefix,
@@ -120,21 +120,25 @@ impl TLB for ShardDescr {
             ShardDescrTag::Old => {
                 self.fees_collected.write(builder)?;
                 self.funds_created.write(builder)?;
-            }
+            },
             ShardDescrTag::New => {
                 let mut ref_builder = TonCell::builder();
                 self.fees_collected.write(&mut ref_builder)?;
                 self.funds_created.write(&mut ref_builder)?;
                 builder.write_ref(ref_builder.build()?)?;
-            }
+            },
         }
 
         Ok(())
     }
 
-    fn read(parser: &mut CellParser) -> Result<Self, TonCoreError> { Self::read_definition(parser) }
+    fn read(parser: &mut CellParser) -> Result<Self, TonCoreError> {
+        Self::read_definition(parser)
+    }
 
-    fn write(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> { self.write_definition(builder) }
+    fn write(&self, builder: &mut CellBuilder) -> Result<(), TonCoreError> {
+        self.write_definition(builder)
+    }
 }
 
 /// Planned shard split or merge.

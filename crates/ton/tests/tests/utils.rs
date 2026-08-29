@@ -35,11 +35,8 @@ pub(crate) async fn make_tl_client(mainnet: bool, archive_only: bool) -> anyhow:
     init_logging();
     log::info!("Initializing tl_client with mainnet: {mainnet}, archive_only: {archive_only} ...");
 
-    let node_filter = if archive_only {
-        ton::tl_client::LiteNodeFilter::Archive
-    } else {
-        ton::tl_client::LiteNodeFilter::Healthy
-    };
+    let node_filter =
+        if archive_only { ton::tl_client::LiteNodeFilter::Archive } else { ton::tl_client::LiteNodeFilter::Healthy };
 
     let client = ton::tl_client::TLClient::builder()?
         .with_net_config(&TonNetConfig::new_default(mainnet)?)?

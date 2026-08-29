@@ -36,8 +36,12 @@ impl<T> TLBEitherRef<T> {
         }
     }
     /// Creates a value with an explicit serialization layout.
-    pub fn new_with_layout(value: T, layout: EitherRefLayout) -> Self { Self { value, layout } }
-    pub fn into_inner(self) -> T { self.value }
+    pub fn new_with_layout(value: T, layout: EitherRefLayout) -> Self {
+        Self { value, layout }
+    }
+    pub fn into_inner(self) -> T {
+        self.value
+    }
 }
 
 impl<T: TLB> TLB for TLBEitherRef<T> {
@@ -67,17 +71,17 @@ impl<T: TLB> TLB for TLBEitherRef<T> {
                 } else {
                     EitherRefLayout::ToRef
                 }
-            }
+            },
         };
         match serial_layout {
             EitherRefLayout::ToCell => {
                 builder.write_bit(false)?;
                 builder.write_cell(&cell)?;
-            }
+            },
             EitherRefLayout::ToRef => {
                 builder.write_bit(true)?;
                 builder.write_ref(cell)?;
-            }
+            },
             _ => unreachable!("Invalid EitherRefLayout value"),
         };
         Ok(())
@@ -170,7 +174,7 @@ mod tests {
 
             fn write_definition(&self, dst: &mut CellBuilder) -> Result<(), TonCoreError> {
                 match self {
-                    List::Empty => {}
+                    List::Empty => {},
                     List::Some(item) => item.write(dst)?,
                 }
                 Ok(())

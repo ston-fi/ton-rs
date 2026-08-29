@@ -81,7 +81,7 @@ pub(crate) mod serde_block_id_ext_vec_opt {
             Some(v) => {
                 let vec = serde_block_id_ext_vec::deserialize(v.into_deserializer()).map_err(Error::custom)?;
                 Ok(Some(vec))
-            }
+            },
             None => Ok(None),
         }
     }

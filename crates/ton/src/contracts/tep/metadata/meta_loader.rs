@@ -16,7 +16,9 @@ pub struct MetaLoader {
 }
 
 impl MetaLoader {
-    pub fn builder() -> Builder { Builder::new() }
+    pub fn builder() -> Builder {
+        Builder::new()
+    }
 
     pub async fn load_external_meta(&self, uri: &str) -> TonResult<String> {
         log::trace!("Downloading metadata from {}", uri);
@@ -44,7 +46,7 @@ impl MetaLoader {
             MetadataContent::External(MetadataExternal { uri }) => {
                 let json = self.load_external_meta(&uri.as_str()).await?;
                 Ok(T::from_json(&json)?)
-            }
+            },
             MetadataContent::Internal(MetadataInternal { data: dict }) => {
                 let uri = match dict.get(&META_URI) {
                     Some(uri) => uri,
@@ -59,10 +61,10 @@ impl MetaLoader {
                             "Failed to load metadata from internal META_URI {uri_str}: {err}, use internal data only"
                         );
                         return T::from_dict(dict);
-                    }
+                    },
                 };
                 Ok(T::from_data(dict, Some(&json))?)
-            }
+            },
             content => Err(MetaLoaderError::ContentLayoutUnsupported(Box::new(content.clone())).into()),
         }
     }

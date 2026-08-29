@@ -23,15 +23,21 @@ pub struct TLCallbacksStore {
 }
 
 impl TLCallback for TLCallbacksStore {
-    fn on_loop_enter(&self, tag: &str) { self.callbacks.iter().for_each(|cb| cb.on_loop_enter(tag)); }
-    fn on_loop_exit(&self, tag: &str) { self.callbacks.iter().for_each(|cb| cb.on_loop_exit(tag)); }
+    fn on_loop_enter(&self, tag: &str) {
+        self.callbacks.iter().for_each(|cb| cb.on_loop_enter(tag));
+    }
+    fn on_loop_exit(&self, tag: &str) {
+        self.callbacks.iter().for_each(|cb| cb.on_loop_exit(tag));
+    }
     fn before_send(&self, tag: &str, req_ctx: &TLRequestCtx, req: &TLRequest) {
         self.callbacks.iter().for_each(|cb| cb.before_send(tag, req_ctx, req));
     }
     fn on_send_error(&self, tag: &str, req_ctx: &TLRequestCtx, err: &TonError) {
         self.callbacks.iter().for_each(|cb| cb.on_send_error(tag, req_ctx, err));
     }
-    fn on_idle(&self, tag: &str) { self.callbacks.iter().for_each(|cb| cb.on_idle(tag)); }
+    fn on_idle(&self, tag: &str) {
+        self.callbacks.iter().for_each(|cb| cb.on_idle(tag));
+    }
     fn on_result(&self, tag: &str, result: &Result<(TLResponse, Option<String>), TonError>) {
         self.callbacks.iter().for_each(|cb| cb.on_result(tag, result));
     }

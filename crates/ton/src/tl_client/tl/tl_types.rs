@@ -62,11 +62,15 @@ pub struct TLAccountAddress {
 }
 
 impl From<TonAddress> for TLAccountAddress {
-    fn from(address: TonAddress) -> Self { TLAccountAddress { address } }
+    fn from(address: TonAddress) -> Self {
+        TLAccountAddress { address }
+    }
 }
 
 impl From<TLAccountAddress> for TonAddress {
-    fn from(tl_address: TLAccountAddress) -> Self { tl_address.address }
+    fn from(tl_address: TLAccountAddress) -> Self {
+        tl_address.address
+    }
 }
 
 // tonlib_api.tl_api, line 50

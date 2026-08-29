@@ -33,11 +33,17 @@ impl TonAddress {
     #[rustfmt::skip]
     pub const USDT: Self = TonAddress::new(0, TonHash::from_slice_sized(&[0xb1, 0x13, 0xa9, 0x94, 0xb5, 0x02, 0x4a, 0x16, 0x71, 0x9f, 0x69, 0x13, 0x93, 0x28, 0xeb, 0x75, 0x95, 0x96, 0xc3, 0x8a, 0x25, 0xf5, 0x90, 0x28, 0xb1, 0x46, 0xfe, 0xcd, 0xc3, 0x62, 0x1d, 0xfe, ]), );
 
-    pub fn is_zero(&self) -> bool { self == &TonAddress::ZERO }
-    pub fn is_native(&self) -> bool { self == &TonAddress::NATIVE }
+    pub fn is_zero(&self) -> bool {
+        self == &TonAddress::ZERO
+    }
+    pub fn is_native(&self) -> bool {
+        self == &TonAddress::NATIVE
+    }
 
     /// Creates an address preserving the supplied workchain and account hash.
-    pub const fn new(workchain: i32, hash: TonHash) -> Self { Self { workchain, hash } }
+    pub const fn new(workchain: i32, hash: TonHash) -> Self {
+        Self { workchain, hash }
+    }
 
     pub fn from_msg_address<T: Into<MsgAddress>>(msg_address: T) -> Result<Self, TonCoreError> {
         match msg_address.into() {
@@ -46,11 +52,13 @@ impl TonAddress {
             other => {
                 raise_address_error(&format!("{other:?}"), "can't make TonAddress from specified MsgAddress")?;
                 unreachable!()
-            }
+            },
         }
     }
 
-    pub fn to_hex(&self) -> String { format!("{}:{}", self.workchain, hex::encode(self.hash.as_slice())) }
+    pub fn to_hex(&self) -> String {
+        format!("{}:{}", self.workchain, hex::encode(self.hash.as_slice()))
+    }
 
     pub fn to_base64(&self, mainnet: bool, bounce: bool, urlsafe: bool) -> String {
         let mut buf = [0; 36];
@@ -66,11 +74,7 @@ impl TonAddress {
         let crc = CRC_16_XMODEM.checksum(&buf[0..34]);
         buf[34] = ((crc >> 8) & 0xff) as u8;
         buf[35] = (crc & 0xff) as u8;
-        if urlsafe {
-            URL_SAFE_NO_PAD.encode(buf)
-        } else {
-            STANDARD.encode(buf)
-        }
+        if urlsafe { URL_SAFE_NO_PAD.encode(buf) } else { STANDARD.encode(buf) }
     }
 
     pub fn to_msg_address_none(&self) -> Result<MsgAddressNone, TonCoreError> {
@@ -109,12 +113,16 @@ impl FromStr for TonAddress {
 
 impl TryFrom<String> for TonAddress {
     type Error = TonCoreError;
-    fn try_from(value: String) -> Result<Self, Self::Error> { TonAddress::from_str(&value) }
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        TonAddress::from_str(&value)
+    }
 }
 
 impl TryFrom<&str> for TonAddress {
     type Error = TonCoreError;
-    fn try_from(value: &str) -> Result<Self, Self::Error> { TonAddress::from_str(value) }
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        TonAddress::from_str(value)
+    }
 }
 
 impl Display for TonAddress {
@@ -141,7 +149,7 @@ impl PartialOrd for TonAddress {
             _ => {
                 log::error!("Failed to calc hash for addresses: {self:?} and {other:?}");
                 None
-            }
+            },
         }
     }
 }

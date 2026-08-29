@@ -18,7 +18,7 @@ impl<T: TLB> TLB for Option<T> {
             Some(value) => {
                 dst.write_bit(true)?;
                 value.write(dst)?;
-            }
+            },
         };
         Ok(())
     }

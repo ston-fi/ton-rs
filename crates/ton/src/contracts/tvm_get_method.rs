@@ -24,7 +24,9 @@ pub enum TVMGetMethodID {
 
 impl TVMGetMethodID {
     /// Creates a numeric ID from a method prototype.
-    pub fn from_prototype(prototype: &str) -> TVMGetMethodID { Self::Number(calc_opcode(prototype)) }
+    pub fn from_prototype(prototype: &str) -> TVMGetMethodID {
+        Self::Number(calc_opcode(prototype))
+    }
 
     /// Returns the numeric ID or method name as text.
     pub fn as_str(&self) -> Cow<'static, str> {
@@ -47,19 +49,27 @@ impl TVMGetMethodID {
 }
 
 impl From<&'static str> for TVMGetMethodID {
-    fn from(value: &'static str) -> Self { TVMGetMethodID::Name(Cow::Borrowed(value)) }
+    fn from(value: &'static str) -> Self {
+        TVMGetMethodID::Name(Cow::Borrowed(value))
+    }
 }
 
 impl From<Cow<'_, str>> for TVMGetMethodID {
-    fn from(value: Cow<'_, str>) -> Self { TVMGetMethodID::Name(Cow::Owned(value.into_owned())) }
+    fn from(value: Cow<'_, str>) -> Self {
+        TVMGetMethodID::Name(Cow::Owned(value.into_owned()))
+    }
 }
 
 impl From<String> for TVMGetMethodID {
-    fn from(value: String) -> Self { TVMGetMethodID::Name(Cow::Owned(value)) }
+    fn from(value: String) -> Self {
+        TVMGetMethodID::Name(Cow::Owned(value))
+    }
 }
 
 impl From<i32> for TVMGetMethodID {
-    fn from(value: i32) -> Self { TVMGetMethodID::Number(value) }
+    fn from(value: i32) -> Self {
+        TVMGetMethodID::Number(value)
+    }
 }
 
 impl Display for TVMGetMethodID {
@@ -72,7 +82,9 @@ impl Display for TVMGetMethodID {
 }
 
 impl Debug for TVMGetMethodID {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { Display::fmt(self, f) }
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
+    }
 }
 
 fn calc_opcode(command: &str) -> i32 {
@@ -99,13 +111,19 @@ pub struct TVMGetMethodSuccess {
 
 impl TVMGetMethodSuccess {
     /// Parses the returned TVM stack.
-    pub fn stack_parsed(&self) -> TonResult<TVMStack> { Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?) }
+    pub fn stack_parsed(&self) -> TonResult<TVMStack> {
+        Ok(TVMStack::from_boc_base64(&self.stack_boc_base64)?)
+    }
 
     /// Decodes the returned stack BOC.
-    pub fn stack_boc(&self) -> TonResult<Vec<u8>> { Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?) }
+    pub fn stack_boc(&self) -> TonResult<Vec<u8>> {
+        Ok(BASE64_STANDARD.decode(self.stack_boc_base64.as_bytes())?)
+    }
 
     /// Returns whether the VM exit code indicates success.
-    pub fn exit_success(&self) -> bool { self.vm_exit_code == 0 || self.vm_exit_code == 1 }
+    pub fn exit_success(&self) -> bool {
+        self.vm_exit_code == 0 || self.vm_exit_code == 1
+    }
 }
 
 impl From<ton_core::traits::emulation_provider::EmulatorGetMethodSuccess> for TVMGetMethodSuccess {

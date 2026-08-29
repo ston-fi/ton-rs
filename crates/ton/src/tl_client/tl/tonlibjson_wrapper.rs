@@ -18,7 +18,9 @@ impl TonLibJsonWrapper {
         Ok(TonLibJsonWrapper { ptr: client_ptr, tag })
     }
 
-    pub fn tag(&self) -> &str { self.tag.as_str() }
+    pub fn tag(&self) -> &str {
+        self.tag.as_str()
+    }
 
     pub fn send(&self, req: &TLRequest, extra: &str) -> Result<(), TonError> {
         let c_str = req.to_c_str_json(extra)?;
@@ -37,7 +39,9 @@ impl TonLibJsonWrapper {
 }
 
 impl Drop for TonLibJsonWrapper {
-    fn drop(&mut self) { unsafe { tonlib_client_json_destroy(self.ptr) } }
+    fn drop(&mut self) {
+        unsafe { tonlib_client_json_destroy(self.ptr) }
+    }
 }
 
 unsafe impl Send for TonLibJsonWrapper {}

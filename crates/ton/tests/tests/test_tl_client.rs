@@ -169,7 +169,7 @@ async fn assert_tl_client_account_state_by_tx_failed(client: &TLClient) -> anyho
     match err {
         TonError::TLClientResponseError { code: 0, msg } => {
             assert!(msg.starts_with("VM Log: , VM Exit Code: 0"), "Unexpected error message: {msg}");
-        }
+        },
         _ => panic!("Expected TLClientResponseError with code 0, got {:?}", err),
     }
     Ok(())

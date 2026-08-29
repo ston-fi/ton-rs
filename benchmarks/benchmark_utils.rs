@@ -16,7 +16,9 @@ pub(super) static SHARD_BLOCK_BOC: LazyLock<Arc<Vec<u8>>> = LazyLock::new(|| {
 });
 
 #[allow(unused)]
-pub fn get_now_ns() -> u128 { SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() }
+pub fn get_now_ns() -> u128 {
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+}
 
 const FIBONACHI_TASK_LOAD: u64 = 13; // ~0,87
 
