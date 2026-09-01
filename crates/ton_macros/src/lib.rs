@@ -32,6 +32,20 @@ pub fn from_tvm_stack_derive(input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 /// Generates get-method implementations for an async contract trait or impl.
+///
+/// `name_format` converts every generated method name. A bodyless method can
+/// override it with `#[ton_method(name = "...")]`; the exact name takes
+/// precedence over the enclosing format:
+///
+/// ```ignore
+/// #[ton_methods(name_format = "camelCase")]
+/// trait ContractMethods {
+///     #[ton_method(name = "getUIVariables")]
+///     async fn get_ui_variables(&self);
+/// }
+/// ```
+///
+/// `#[ton_method]` is only valid where this macro generates the method body.
 pub fn ton_methods(attr: TokenStream, item: TokenStream) -> TokenStream {
     ton_methods_impl(attr, item)
 }

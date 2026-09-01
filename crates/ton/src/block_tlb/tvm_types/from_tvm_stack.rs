@@ -8,7 +8,7 @@ use fastnum::*;
 use std::sync::Arc;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::traits::tlb::TLB;
-use ton_core::types::tlb_core::TLBCoins;
+use ton_core::types::tlb_core::{MsgAddress, TLBCoins};
 use ton_core::types::{Coins, TonAddress};
 
 /// Trait allows reading data from TVMStack
@@ -97,6 +97,20 @@ impl FromTVMStack for TonAddress {
     }
 }
 
+impl FromTVMStack for MsgAddress {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        let cell = match stack.pop_checked()? {
+            TVMStackValue::Null(_) => return Ok(MsgAddress::NONE),
+            TVMStackValue::Cell(cell) => cell.value.into_inner(),
+            TVMStackValue::CellSlice(slice) => slice.to_cell()?,
+            rest => {
+                bail_ton!("Can't parse MsgAddress from TVMStack: Expecting Cell, CellSlice or Null. Got {:?}", rest)
+            },
+        };
+        Ok(MsgAddress::from_cell(&cell)?)
+    }
+}
+
 impl FromTVMStack for TonHash {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let hash = match stack.pop_checked()? {
@@ -161,6 +175,7 @@ mod tests {
     use tokio_test::assert_err;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
+    use ton_core::types::tlb_core::MsgAddress;
     use ton_macros::FromTVMStack;
 
     #[derive(FromTVMStack, Debug)]
@@ -262,6 +277,15 @@ mod tests {
         assert_eq!(parsed.opt_some, Some(11));
         assert_eq!(parsed.opt_none, None);
         assert_eq!(parsed.another_field, 33);
+        Ok(())
+    }
+
+    #[test]
+    fn test_msg_address_from_stack_accepts_null() -> anyhow::Result<()> {
+        let mut stack = TVMStack::new(vec![TVMNull.into()]);
+
+        assert_eq!(MsgAddress::from_stack(&mut stack)?, MsgAddress::NONE);
+        assert!(stack.is_empty());
         Ok(())
     }
 }
