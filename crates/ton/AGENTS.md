@@ -30,6 +30,9 @@ emulator library caches belong to `TLEmulationProvider`, not `ContractClient`.
 Errors must remain typed; preserve emulator exit codes and raw diagnostics.
 Avoid `unwrap`, `expect`, and panic-driven production paths.
 
+`contracts::tep::metadata::meta_loader::MetaLoader` uses the IPFS Foundation's best-effort public gateway by
+default. Production consumers should configure a self-hosted or dedicated gateway through the builder.
+
 Downstream setup:
 
 ```toml

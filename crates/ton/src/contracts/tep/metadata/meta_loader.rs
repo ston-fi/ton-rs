@@ -17,6 +17,10 @@ pub struct MetaLoader {
 }
 
 impl MetaLoader {
+    /// Creates a metadata-loader builder.
+    ///
+    /// The default IPFS transport uses the best-effort `https://ipfs.io/ipfs` public gateway. Production
+    /// applications should configure their own gateway with [`Builder::with_ipfs_base_url`].
     pub fn builder() -> Builder {
         Builder::new()
     }

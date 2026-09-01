@@ -24,11 +24,11 @@ impl IpfsLoader {
     pub(super) async fn load(&self, path: &str) -> TonResult<Vec<u8>> {
         let response = match self.connection_type {
             IpfsConnectionType::HttpGateway => {
-                let full_url = format!("{}/{}", self.base_url, path);
+                let full_url = join_url_path(&self.base_url, path);
                 self.client.get(full_url).send().await?
             },
             IpfsConnectionType::IpfsNode => {
-                let full_url = format!("{}/api/v0/cat?arg={}", self.base_url, path);
+                let full_url = format!("{}/api/v0/cat?arg={}", self.base_url.trim_end_matches('/'), path);
                 self.client.post(full_url).send().await?
             },
         };
@@ -58,5 +58,26 @@ impl IpfsLoader {
         let bytes = self.load(path).await?;
         let str = String::from_utf8_lossy(&bytes).to_string();
         Ok(str)
+    }
+}
+
+fn join_url_path(base_url: &str, path: &str) -> String {
+    format!("{}/{}", base_url.trim_end_matches('/'), path.trim_start_matches('/'))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::join_url_path;
+
+    #[test]
+    fn test_join_url_path_normalizes_separator() {
+        assert_eq!(
+            join_url_path("https://example.com/ipfs", "cid/file.json"),
+            "https://example.com/ipfs/cid/file.json"
+        );
+        assert_eq!(
+            join_url_path("https://example.com/ipfs/", "/cid/file.json"),
+            "https://example.com/ipfs/cid/file.json"
+        );
     }
 }

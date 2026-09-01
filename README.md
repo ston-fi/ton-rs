@@ -34,6 +34,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [TLClient](crates/ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
 - [TonContract](crates/ton/src/contracts/ton_contract.rs) - Use it with `ContractClient::builder(state_provider, emulation_provider)` to get data or execute methods on TON contracts
 - Standard Jetton, NFT, SBT, and TON wallet contract wrappers live under `contracts::tep`, grouped into public modules by standard and implementation. For example, use `contracts::tep::jetton::jetton_master_contract::JettonMasterContract` or `contracts::tep::ton_wallet::TonWalletContract`.
+- `contracts::tep::metadata::meta_loader::MetaLoader` resolves `ipfs://` metadata through the IPFS Foundation's best-effort public gateway by default. Production applications should configure their own gateway with `MetaLoader::builder().with_ipfs_base_url(...)`.
 
 `ContractClient::builder(...).with_default_caches()` configures state caches. When using the native adapter, configure emulator library caches independently with `ton::emulators::tl_emulation_provider::TLEmulationProvider::with_default_caches()`.
 State caches require an active Tokio runtime when the client is built and start a background refresh task. Dropping the client does not cancel an in-flight provider call; initial sequence discovery also keeps retrying provider errors until it succeeds.

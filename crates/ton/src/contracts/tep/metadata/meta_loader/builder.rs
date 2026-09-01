@@ -8,11 +8,18 @@ use derive_setters::Setters;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 
+/// Configures HTTP and IPFS metadata loading.
+///
+/// IPFS URIs use the IPFS Foundation's best-effort public gateway by default. Production applications should
+/// configure infrastructure they control with [`Builder::with_ipfs_base_url`].
 #[derive(Setters)]
 #[setters(prefix = "with_", strip_option)]
 pub struct Builder {
+    /// IPFS transport used for `ipfs://` metadata.
     ipfs_connection_type: IpfsConnectionType,
+    /// Base URL of the HTTP gateway or IPFS node.
     ipfs_base_url: String,
+    /// HTTP client shared by HTTP and IPFS metadata requests.
     http_client: Option<reqwest::Client>,
     /// Requires semi-chain metadata to include its external document instead of falling back to on-chain fields.
     semichain_external_metadata_required: bool,
@@ -23,7 +30,7 @@ impl Builder {
         Self {
             http_client: None,
             ipfs_connection_type: IpfsConnectionType::HttpGateway,
-            ipfs_base_url: "https://cloudflare-ipfs.com/ipfs/".to_string(),
+            ipfs_base_url: "https://ipfs.io/ipfs".to_string(),
             semichain_external_metadata_required: false,
         }
     }

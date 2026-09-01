@@ -74,7 +74,7 @@ async fn assert_get_jetton_content_empty_external_meta() -> anyhow::Result<()> {
     Ok(())
 }
 
-// this test is ignored due restrictions of cloudflare-ipfs.com
+// This test is disabled because it depends on live chain and IPFS data.
 // TODO: Need to refactor this test when restore it. Delete make_tl_client
 //#[tokio::test]
 //async fn assert_get_jetton_content_ipfs_uri() -> anyhow::Result<()> {
