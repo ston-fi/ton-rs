@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `MetaLoader::builder().with_semichain_external_metadata_required(true)` to return semi-chain external-loading errors instead of falling back to on-chain metadata.
 
+### Changed
+
+- Changed the default IPFS metadata gateway from the retired Cloudflare public endpoint to `https://ipfs.io/ipfs`.
+
 ## [0.4.1](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.0...ton-v0.4.1) - 2026-08-29
 
 ### Other
