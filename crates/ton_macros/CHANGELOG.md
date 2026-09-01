@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.2.1...ton_macros-v0.2.2) - 2026-09-01
+
+### Other
+
+- Implement #NI: Support TonABI-generated contracts ([#225](https://github.com/ston-fi/ton-rs/pull/225))
+
 ### Added
 
 - Added `#[ton_method(name = "...")]` for exact get-method names within `#[ton_methods]` blocks.

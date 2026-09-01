@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.1...ton-v0.4.2) - 2026-09-01
+
+### Other
+
+- Implement #NI: Support TonABI-generated contracts ([#225](https://github.com/ston-fi/ton-rs/pull/225))
+- update default IPFS gateway ([#224](https://github.com/ston-fi/ton-rs/pull/224))
+- Implement #NI: Require semichain external metadata ([#223](https://github.com/ston-fi/ton-rs/pull/223))
+
 ### Added
 
 - Added `MetaLoader::builder().with_semichain_external_metadata_required(true)` to return semi-chain external-loading errors instead of falling back to on-chain metadata.
