@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `MetaLoader::builder().with_semichain_external_metadata_required(true)` to return semi-chain external-loading errors instead of falling back to on-chain metadata.
+- Added TVM stack conversions for `MsgAddress`, preserving internal, external, and `addr_none` variants.
 
 ### Changed
 

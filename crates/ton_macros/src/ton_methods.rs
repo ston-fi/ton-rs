@@ -10,11 +10,15 @@ pub fn ton_methods_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs = parse_macro_input!(attr as TonMethodsAttrs);
     let new_item = match parse_macro_input!(item as Item) {
         Item::Trait(mut item_impl) => {
-            rewrite_trait(&mut item_impl, &attrs);
+            if let Err(err) = rewrite_trait(&mut item_impl, &attrs) {
+                return err.into_compile_error().into();
+            }
             item_impl.into_token_stream()
         },
         Item::Impl(mut item_impl) => {
-            rewrite_struct_impl(&mut item_impl, &attrs);
+            if let Err(err) = rewrite_struct_impl(&mut item_impl, &attrs) {
+                return err.into_compile_error().into();
+            }
             item_impl.into_token_stream()
         },
         other => panic!("#[ton_methods]: unsupported item: {other:?}"),
@@ -24,6 +28,10 @@ pub fn ton_methods_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 struct TonMethodsAttrs {
     name_format: Option<Case<'static>>,
+}
+
+struct TonMethodAttrs {
+    name: String,
 }
 
 impl Parse for TonMethodsAttrs {
@@ -50,6 +58,36 @@ impl Parse for TonMethodsAttrs {
         }
 
         Ok(Self { name_format })
+    }
+}
+
+impl Parse for TonMethodAttrs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut name = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            if key != "name" {
+                return Err(Error::new(key.span(), "unsupported #[ton_method] argument"));
+            }
+            if name.is_some() {
+                return Err(Error::new(key.span(), "duplicate name argument"));
+            }
+
+            input.parse::<Token![=]>()?;
+            let value: LitStr = input.parse()?;
+            if value.value().is_empty() {
+                return Err(Error::new(value.span(), "method name cannot be empty"));
+            }
+            name = Some(value.value());
+
+            if input.is_empty() {
+                break;
+            }
+            input.parse::<Token![,]>()?;
+        }
+
+        name.map(|name| Self { name }).ok_or_else(|| Error::new(input.span(), "missing name argument"))
     }
 }
 
@@ -139,15 +177,38 @@ fn format_method_name(method_name: &str, name_format: Option<Case<'static>>) -> 
     }
 }
 
-fn rewrite_trait(trait_items: &mut ItemTrait, attrs: &TonMethodsAttrs) {
-    for item in &mut trait_items.items {
-        let TraitItem::Fn(method) = item else { continue };
-        if method.default.is_some() {
+fn take_method_name(attrs: &mut Vec<Attribute>) -> Result<Option<String>> {
+    let mut method_name = None;
+    let mut index = 0;
+    while index < attrs.len() {
+        if !attrs[index].path().is_ident("ton_method") {
+            index += 1;
             continue;
         }
-        let body = build_body(&method.sig, attrs.name_format);
+        if method_name.is_some() {
+            return Err(Error::new_spanned(&attrs[index], "duplicate #[ton_method] attribute"));
+        }
+
+        method_name = Some(attrs[index].parse_args::<TonMethodAttrs>()?.name);
+        attrs.remove(index);
+    }
+    Ok(method_name)
+}
+
+fn rewrite_trait(trait_items: &mut ItemTrait, attrs: &TonMethodsAttrs) -> Result<()> {
+    for item in &mut trait_items.items {
+        let TraitItem::Fn(method) = item else { continue };
+        let method_name = take_method_name(&mut method.attrs)?;
+        if method.default.is_some() {
+            if method_name.is_some() {
+                return Err(Error::new(method.sig.ident.span(), "#[ton_method] requires a generated method body"));
+            }
+            continue;
+        }
+        let body = build_body(&method.sig, method_name.as_deref(), attrs.name_format);
         method.default = Some(parse_quote!({ Box::pin(async move { #body.await }) }));
     }
+    Ok(())
 }
 
 // The syntax like
@@ -155,18 +216,19 @@ fn rewrite_trait(trait_items: &mut ItemTrait, attrs: &TonMethodsAttrs) {
 //     async fn blabla(&self);
 // }
 // is not a valid rust syntax. So we parse it as verbatim and reconstruct the function.
-fn rewrite_struct_impl(impl_items: &mut ItemImpl, attrs: &TonMethodsAttrs) {
+fn rewrite_struct_impl(impl_items: &mut ItemImpl, attrs: &TonMethodsAttrs) -> Result<()> {
     for item in &mut impl_items.items {
         let ImplItem::Verbatim(verb_stream) = item else {
             continue;
         };
 
-        let semi = match parse2::<SemiMethod>(verb_stream.clone()) {
+        let mut semi = match parse2::<SemiMethod>(verb_stream.clone()) {
             Ok(x) => x,
             Err(_) => panic!("Unexpected tokens in impl block: {}", verb_stream),
         };
 
-        let block = build_body(&semi.sig, attrs.name_format);
+        let method_name = take_method_name(&mut semi.attrs)?;
+        let block = build_body(&semi.sig, method_name.as_deref(), attrs.name_format);
 
         // bind fields to idents for quote repetition
         let attrs = &semi.attrs;
@@ -182,11 +244,14 @@ fn rewrite_struct_impl(impl_items: &mut ItemImpl, attrs: &TonMethodsAttrs) {
 
         *item = ImplItem::Fn(new_fn);
     }
+    Ok(())
 }
 
 #[rustfmt::skip]
-fn build_body(signature: &Signature, name_format: Option<Case<'static>>) -> proc_macro2::TokenStream {
-    let method_name_str = format_method_name(&signature.ident.to_string(), name_format);
+fn build_body(signature: &Signature, method_name: Option<&str>, name_format: Option<Case<'static>>) -> proc_macro2::TokenStream {
+    let method_name_str = method_name
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| format_method_name(&signature.ident.to_string(), name_format));
     let crate_path = crate_name_or_panic("ton");
 
     let args = collect_args_info(signature);
@@ -359,5 +424,16 @@ mod tests {
     #[test]
     fn test_parse_ton_methods_attrs_rejects_duplicate_name_format() {
         assert!(parse2::<TonMethodsAttrs>(quote!(name_format = "snake_case", name_format = "camelCase")).is_err());
+    }
+
+    #[test]
+    fn test_method_name_override_rejects_empty_name() -> Result<()> {
+        let mut method: TraitItemFn = parse_quote! {
+            #[ton_method(name = "")]
+            async fn get_ui_variables(&self);
+        };
+
+        assert!(take_method_name(&mut method.attrs).is_err());
+        Ok(())
     }
 }

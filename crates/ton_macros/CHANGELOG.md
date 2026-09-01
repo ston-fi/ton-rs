@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `#[ton_method(name = "...")]` for exact get-method names within `#[ton_methods]` blocks.
+
 ## [0.2.1](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.2.0...ton_macros-v0.2.1) - 2026-08-29
 
 ### Other

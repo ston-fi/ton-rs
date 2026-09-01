@@ -70,3 +70,15 @@ Supported format names are based on
 [`convert_case::Case`](https://docs.rs/convert_case/0.11.0/convert_case/enum.Case.html).
 Common values include `snake_case`, `camelCase`, `PascalCase`, `CamelCase`,
 `kebab-case`, and `CONSTANT_CASE`.
+
+Use `#[ton_method(name = "...")]` when one method does not follow the enclosing
+format. The exact name takes precedence over `name_format`:
+
+```rust
+#[async_trait::async_trait]
+#[ton_methods(name_format = "camelCase")]
+pub trait OrderContractMethods: TonContract {
+    #[ton_method(name = "getUIVariables")]
+    async fn get_ui_variables(&self) -> TonResult<u32>;
+}
+```
