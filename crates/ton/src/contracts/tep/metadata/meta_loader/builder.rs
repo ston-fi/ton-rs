@@ -14,6 +14,8 @@ pub struct Builder {
     ipfs_connection_type: IpfsConnectionType,
     ipfs_base_url: String,
     http_client: Option<reqwest::Client>,
+    /// Requires semi-chain metadata to include its external document instead of falling back to on-chain fields.
+    semichain_external_metadata_required: bool,
 }
 
 impl Builder {
@@ -22,6 +24,7 @@ impl Builder {
             http_client: None,
             ipfs_connection_type: IpfsConnectionType::HttpGateway,
             ipfs_base_url: "https://cloudflare-ipfs.com/ipfs/".to_string(),
+            semichain_external_metadata_required: false,
         }
     }
 
@@ -46,6 +49,7 @@ impl Builder {
         Ok(MetaLoader {
             http_loader: http_client,
             ipfs_loader,
+            semichain_external_metadata_required: self.semichain_external_metadata_required,
         })
     }
 }
