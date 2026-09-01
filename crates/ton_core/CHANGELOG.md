@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.1...ton_core-v0.3.2) - 2026-09-01
+
+### Other
+
+- Implement #NI: Support TonABI-generated contracts ([#225](https://github.com/ston-fi/ton-rs/pull/225))
+- update default IPFS gateway ([#224](https://github.com/ston-fi/ton-rs/pull/224))
+
 ## [0.3.1](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.0...ton_core-v0.3.1) - 2026-08-29
 
 ### Other
