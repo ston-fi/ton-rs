@@ -13,6 +13,7 @@ use crate::errors::{MetaLoaderError, TonResult};
 pub struct MetaLoader {
     http_loader: reqwest::Client,
     ipfs_loader: IpfsLoader,
+    semichain_external_metadata_required: bool,
 }
 
 impl MetaLoader {
@@ -41,6 +42,14 @@ impl MetaLoader {
         Ok(meta_str)
     }
 
+    /// Loads metadata according to its TEP-64 content layout.
+    ///
+    /// Semi-chain metadata falls back to its on-chain fields when the external document cannot be loaded unless
+    /// [`Builder::with_semichain_external_metadata_required`] requires that document.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the content layout is unsupported or required metadata cannot be loaded or parsed.
     pub async fn load<T: Metadata>(&self, content: &MetadataContent) -> TonResult<T> {
         match content {
             MetadataContent::External(MetadataExternal { uri }) => {
@@ -57,6 +66,9 @@ impl MetaLoader {
                 let json = match self.load_external_meta(&uri_str).await {
                     Ok(json) => json,
                     Err(err) => {
+                        if self.semichain_external_metadata_required {
+                            return Err(err);
+                        }
                         log::warn!(
                             "Failed to load metadata from internal META_URI {uri_str}: {err}, use internal data only"
                         );
@@ -67,5 +79,43 @@ impl MetaLoader {
             },
             content => Err(MetaLoaderError::ContentLayoutUnsupported(Box::new(content.clone())).into()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::contracts::tep::metadata::metadata_content::MetadataDict;
+    use crate::contracts::tep::snake_data::SnakeData;
+    use crate::errors::TonError;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct TestMetadata {
+        external_loaded: bool,
+    }
+
+    impl Metadata for TestMetadata {
+        fn from_data(_dict: &MetadataDict, json: Option<&str>) -> Result<Self, TonError> {
+            Ok(Self {
+                external_loaded: json.is_some(),
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_semichain_external_metadata_required() -> anyhow::Result<()> {
+        let content = MetadataContent::Internal(MetadataInternal {
+            data: MetadataDict::from([(**META_URI, SnakeData::from("unsupported://metadata").into())]),
+        });
+
+        let fallback_loader = MetaLoader::builder().build()?;
+        let fallback_metadata: TestMetadata = fallback_loader.load(&content).await?;
+        assert_eq!(fallback_metadata, TestMetadata { external_loaded: false });
+
+        let required_loader = MetaLoader::builder().with_semichain_external_metadata_required(true).build()?;
+        let required_result = required_loader.load::<TestMetadata>(&content).await;
+        assert!(matches!(required_result, Err(TonError::TransportError(_))));
+
+        Ok(())
     }
 }
