@@ -51,7 +51,8 @@ mod example {
 
         let state_provider = TLStateProvider::new(tl_client.clone());
         let emulation_provider = TLEmulationProvider::new(tl_client, EmulatorPool::builder()?.build()?);
-        let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.build()?;
+        // let ctr_cli = ContractClient::builder(state_provider, emulation_provider)?.build()?;
+        let ctr_cli = ContractClient::builder_shared(state_provider.into(), emulation_provider.into())?.build()?;
 
         let address = TonAddress::from_str("EQBSUY4UWGJFAps0KwHY4tpOGqzU41DZhyrT8OuyAWWtnezy")?;
 

@@ -26,6 +26,13 @@ impl ContractClient {
         state_provider: impl StateProvider,
         emulation_provider: impl EmulationProvider,
     ) -> TonResult<Builder> {
+        Builder::new(Arc::new(state_provider), Arc::new(emulation_provider))
+    }
+
+    pub fn builder_shared(
+        state_provider: Arc<impl StateProvider>,
+        emulation_provider: Arc<impl EmulationProvider>,
+    ) -> TonResult<Builder> {
         Builder::new(state_provider, emulation_provider)
     }
 
