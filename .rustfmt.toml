@@ -1,6 +1,9 @@
-match_block_trailing_comma=true
-max_width=120
-chain_width=120
-fn_call_width=120
-single_line_if_else_max_width = 120
-single_line_let_else_max_width = 120
+match_block_trailing_comma = true
+max_width = 120
+# Let full-width limits adapt when rustfmt reduces the width inside macro bodies.
+use_small_heuristics = "Max"
+# Preserve the other default heuristics for max_width = 120.
+attr_fn_like_width = 84
+struct_lit_width = 22
+struct_variant_width = 42
+array_width = 72
