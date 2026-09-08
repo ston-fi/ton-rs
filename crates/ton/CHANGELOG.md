@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.2...ton-v0.4.3) - 2026-09-08
+
+### Other
+
+- Contract client builder arc ([#227](https://github.com/ston-fi/ton-rs/pull/227))
+
 ## [0.4.2](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.1...ton-v0.4.2) - 2026-09-01
 
 ### Other
