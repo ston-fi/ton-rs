@@ -23,12 +23,12 @@ pub struct Builder {
 
 impl Builder {
     pub(super) fn new(
-        state_provider: impl StateProvider,
-        emulation_provider: impl EmulationProvider,
+        state_provider: Arc<impl StateProvider>,
+        emulation_provider: Arc<impl EmulationProvider>,
     ) -> TonResult<Self> {
         let builder = Self {
-            state_provider: Arc::new(state_provider),
-            emulation_provider: Arc::new(emulation_provider),
+            state_provider,
+            emulation_provider,
             tvm_emulation_timeout: Duration::from_secs(10),
             refresh_loop_idle_on_error: Duration::from_millis(100),
             contract_cache_capacity: 0,
