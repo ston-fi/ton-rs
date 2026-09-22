@@ -1,0 +1,15 @@
+Protocol behavior and independent test fixtures follow LedgerHQ/app-ton
+849962d6378567f5aaf708b116292ccf7b17a97c (TON app 2.9.1).
+Copyright 2020 Ledger SAS; copyright 2022 Whales Corp.
+Apache License 2.0; see LICENSE-UPSTREAM and LICENSE-APACHE.
+
+Secondary protocol reference: ton-community/ton-ledger-ts
+ce292b1ac136c3b0f973704a9ef1d89f5201e1d3 (7.4.0-pre.0), MIT,
+Steve Korshakov. Rust codecs were independently implemented from the firmware
+wire contract; no TypeScript source is bundled.
+
+Ledger device identifiers and framing were inspected in @ledgerhq/devices 8.18.0
+and @ledgerhq/hw-transport-node-ble, Apache-2.0, Ledger SAS.
+SDK path bound: LedgerHQ/ledger-secure-sdk
+63746b5cf231ba6e4e8c6ee4ee2ee6027d8bb2da, lib_standard_app/bip32.h:
+MAX_BIP32_PATH = 10. App firmware additionally requires length > 2.

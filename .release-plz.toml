@@ -9,3 +9,7 @@ changelog_path = "crates/ton_core/CHANGELOG.md"
 [[package]] # the double square brackets define a TOML table array
 name = "ton"
 changelog_path = "crates/ton/CHANGELOG.md"
+
+[[package]]
+name = "ton_ledger"
+changelog_path = "crates/ton_ledger/CHANGELOG.md"

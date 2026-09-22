@@ -44,6 +44,16 @@ State caches require an active Tokio runtime when the client is built and start 
 secret key bytes. Caller-owned mnemonic strings and copies read from the public
 `KeyPair::secret_key` field remain the caller's responsibility.
 
+## Ledger wallets
+
+[`ton_ledger`](crates/ton_ledger/README.md) provides V3R2/V4R2 signing through
+USB HID (default), optional Bluetooth, or an exclusive custom transport.
+Signatures and exact-message hashes are checked locally. The library owns no
+network provider. Its firmware profile is pinned to TON app 2.9.1; hardware
+acceptance remains separate from deterministic tests. A manual
+[Bluetooth self-transfer example](examples/ledger_bluetooth_self_transfer.rs)
+shows how to sign and broadcast 0.01 TON to the same deployed testnet wallet. See the crate README for platform setup and limits.
+
 ## Rust version
 
 The minimum supported Rust version (MSRV) is 1.94. CI verifies every published

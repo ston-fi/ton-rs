@@ -6,6 +6,7 @@ This workspace contains public Rust libraries for TON:
 
 - `ton_core`: cells, addresses, TLB primitives, and provider traits.
 - `ton`: block and contract types, wallets, clients, and optional emulators.
+- `ton_ledger`: exclusive Ledger sessions, USB/BLE transports and verified signing.
 - `ton_macros`: derives and attributes used by the two libraries.
 - `examples` and `benchmarks`: consumers, not reusable API crates.
 

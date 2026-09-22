@@ -18,7 +18,7 @@ jobs:
       - name: Install libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev libudev-dev libdbus-1-dev pkg-config
           CLANG_BIN="$(command -v clang)"
           CLANGXX_BIN="$(command -v clang++)"
           sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
