@@ -4,8 +4,8 @@ mod supported_msg;
 mod tlb;
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
-    protocol,
-    signing::SigningPolicy,
+    protocol::encoding as wire,
+    ton_ledger_wallet::config::SigningPolicy,
 };
 use ton::{
     block_tlb::{CommonMsgInfo, CommonMsgInfoInt, Msg},
@@ -69,7 +69,7 @@ pub(crate) fn transaction(
     let CommonMsgInfo::Int(info) = &msg.info else {
         return Err(TonLedgerError::Invalid("internal message required"));
     };
-    let dst = protocol::standard_address(&info.dst)?;
+    let dst = wire::standard_address(&info.dst)?;
     let has_payload = msg.body.layout == EitherRefLayout::ToRef;
     if !has_payload && (msg.body.value.data_len_bits() != 0 || !msg.body.value.refs().is_empty()) {
         return Err(TonLedgerError::Invalid("nonempty payload must be a reference"));
@@ -96,16 +96,16 @@ pub(crate) fn transaction(
     out.push(u8::from(version == WalletVersion::V4R2));
     out.extend(seqno.to_be_bytes());
     out.extend(expiry.to_be_bytes());
-    protocol::coins(&mut out, info.value.coins.to_u128())?;
-    protocol::address(&mut out, &dst)?;
+    wire::coins(&mut out, info.value.coins.to_u128())?;
+    wire::address(&mut out, &dst)?;
     out.extend([u8::from(info.bounce), mode]);
     out.push(u8::from(msg.init.is_some()));
     if let Some(init) = &msg.init {
-        protocol::cell_ref(&mut out, &init.value.to_cell()?)?;
+        wire::cell_ref(&mut out, &init.value.to_cell()?)?;
     }
     out.push(u8::from(has_payload));
     if has_payload {
-        protocol::cell_ref(&mut out, &msg.body.value)?;
+        wire::cell_ref(&mut out, &msg.body.value)?;
         out.extend(hints::encode(&msg.body.value, policy)?);
     } else {
         out.push(0);

@@ -1,11 +1,16 @@
-use crate::{
+use super::{
+    apdu,
     client::{Client, verify},
-    derivation_path::DerivationPath,
+    derivation_path, encoding,
+};
+use crate::{
     error::{TonLedgerError, TransportError},
-    proof::ProofRequest,
-    protocol,
-    ton_ledger_wallet::TonLedgerWallet,
-    traits::Transport,
+    ton_ledger_wallet::{
+        TonLedgerWallet,
+        config::{AddressOptions, DerivationPath},
+        proof::ProofRequest,
+    },
+    transports::Transport,
 };
 use async_trait::async_trait;
 use ed25519_dalek::{Signer, SigningKey};
@@ -51,7 +56,7 @@ fn setup() -> anyhow::Result<VecDeque<(Vec<u8>, Vec<u8>)>> {
     Ok(VecDeque::from([
         (vec![0xe0, 4, 0, 0, 0], ok(b"TON".to_vec())),
         (vec![0xe0, 3, 0, 0, 0], ok(vec![2, 9, 1])),
-        (protocol::command(5, 0, 0, &path)?, ok(key().verifying_key().to_bytes().to_vec())),
+        (apdu::command(5, 0, 0, &path)?, ok(key().verifying_key().to_bytes().to_vec())),
     ]))
 }
 fn signed(hash: &[u8], preimage: &[u8]) -> Vec<u8> {
@@ -84,23 +89,23 @@ fn test_signature_validation() -> anyhow::Result<()> {
 #[test]
 fn test_codec_boundaries() -> anyhow::Result<()> {
     for n in [254, 255] {
-        assert_eq!(protocol::command(6, 0, 0, &vec![0; n])?.len(), n + 5);
+        assert_eq!(apdu::command(6, 0, 0, &vec![0; n])?.len(), n + 5);
     }
-    assert!(protocol::command(6, 0, 0, &[0; 256]).is_err());
+    assert!(apdu::command(6, 0, 0, &[0; 256]).is_err());
     let mut b = vec![];
-    protocol::coins(&mut b, 0)?;
+    encoding::coins(&mut b, 0)?;
     assert_eq!(b, [0]);
     b.clear();
-    protocol::coins(&mut b, (1u128 << 120) - 1)?;
+    encoding::coins(&mut b, (1u128 << 120) - 1)?;
     assert_eq!(b.len(), 16);
-    assert!(protocol::coins(&mut b, 1u128 << 120).is_err());
+    assert!(encoding::coins(&mut b, 1u128 << 120).is_err());
     b.clear();
-    protocol::uint48(&mut b, 1_700_000_000)?;
+    encoding::uint48(&mut b, 1_700_000_000)?;
     assert_eq!(hex::encode(&b), "00006553f100");
-    assert!(protocol::uint48(&mut b, 1 << 48).is_err());
-    assert!(matches!(protocol::response(vec![0x69, 0x85]), Err(TonLedgerError::UserDenied)));
-    assert!(matches!(protocol::response(vec![0xbd, 0]), Err(TonLedgerError::BlindSigningDisabled)));
-    assert!(matches!(protocol::response(vec![0xab, 0xcd]), Err(TonLedgerError::Status(0xabcd))));
+    assert!(encoding::uint48(&mut b, 1 << 48).is_err());
+    assert!(matches!(apdu::response(vec![0x69, 0x85]), Err(TonLedgerError::UserDenied)));
+    assert!(matches!(apdu::response(vec![0xbd, 0]), Err(TonLedgerError::BlindSigningDisabled)));
+    assert!(matches!(apdu::response(vec![0xab, 0xcd]), Err(TonLedgerError::Status(0xabcd))));
     Ok(())
 }
 #[tokio::test]
@@ -114,11 +119,11 @@ async fn test_chunk_transcripts() -> anyhow::Result<()> {
         let payload = vec![0x42; size];
         let path = vec![3, 0, 0, 0, 44, 0, 0, 2, 95, 0, 0, 0, 0];
         let mut steps = VecDeque::new();
-        steps.push_back((protocol::command(6, 0, 3, &path)?, ok(vec![])));
+        steps.push_back((apdu::command(6, 0, 3, &path)?, ok(vec![])));
         let count = fragments.len();
         for (flag, length) in fragments {
             steps.push_back((
-                protocol::command(6, 0, flag, &vec![0x42; length])?,
+                apdu::command(6, 0, flag, &vec![0x42; length])?,
                 ok(if flag == 0 { vec![7] } else { vec![] }),
             ));
         }
@@ -179,7 +184,7 @@ async fn test_wallet_bytes_and_preflight() -> anyhow::Result<()> {
         .to_cell()?;
         let body = software.create_ext_in_body(1_700_000_000, 7, vec![msg.clone()])?;
         steps.extend(setup()?);
-        let path = DerivationPath::default().encode(0)?;
+        let path = derivation_path::encode(&DerivationPath::default(), 0)?;
         // Independent fixed transaction request (zero address varies with wallet version).
         let mut payload = hex::decode(if version == WalletVersion::V4R2 {
             "0129a9a31701000000076553f1000398968000"
@@ -188,9 +193,9 @@ async fn test_wallet_bytes_and_preflight() -> anyhow::Result<()> {
         })?;
         payload.extend(software.address.hash.as_slice());
         payload.extend([0, 3, 0, 0, 0]);
-        steps.push_back((protocol::command(6, 0, 3, &path)?, ok(vec![])));
+        steps.push_back((apdu::command(6, 0, 3, &path)?, ok(vec![])));
         steps.push_back((
-            protocol::command(6, 0, 0, &payload)?,
+            apdu::command(6, 0, 0, &payload)?,
             ok(signed(body.cell_hash()?.as_slice(), body.cell_hash()?.as_slice())),
         ));
         let mut wallet = TonLedgerWallet::builder(version)
@@ -218,17 +223,17 @@ async fn test_wallet_bytes_and_preflight() -> anyhow::Result<()> {
 #[test]
 fn test_derivation_path_encoding_and_validation() -> anyhow::Result<()> {
     assert_eq!(
-        hex::encode(
-            DerivationPath::Ton {
+        hex::encode(derivation_path::encode(
+            &DerivationPath::Ton {
                 account: 8,
                 testnet: true
-            }
-            .encode(-1)?
-        ),
+            },
+            -1
+        )?),
         "068000002c8000025f80000001800000ff8000000880000000"
     );
     for p in [vec![44, 607], vec![44, 607, 0x80000000], vec![0; 11]] {
-        assert!(DerivationPath::Custom(p).encode(0).is_err());
+        assert!(derivation_path::encode(&DerivationPath::Custom(p), 0).is_err());
     }
     Ok(())
 }
@@ -238,7 +243,7 @@ fn test_address_proof_digest() -> anyhow::Result<()> {
     let r = ProofRequest::new("example.org".into(), 1_700_000_000, b"challenge".to_vec());
     // Python hashlib vector, independent of Rust digest implementation.
     assert_eq!(
-        hex::encode(crate::proof::digest(&TonAddress::ZERO, &r)),
+        hex::encode(crate::protocol::proof::digest(&TonAddress::ZERO, &r)),
         "5bf275dadfbf9dac875ccdc2ea769cce50a031c2493a1d8807660999c25ca80e"
     );
     Ok(())
@@ -246,7 +251,7 @@ fn test_address_proof_digest() -> anyhow::Result<()> {
 
 #[test]
 fn test_upstream_data_vectors() -> anyhow::Result<()> {
-    use crate::data::{LedgerDataRequest, encode};
+    use crate::{protocol::data::encode, ton_ledger_wallet::data::LedgerDataRequest};
     let addr = TonAddress::new(0, ton::ton_core::cell::TonHash::from_slice(&[0x11; 32])?);
     let requests = [
         LedgerDataRequest::Plaintext("hello".into()),
@@ -257,11 +262,11 @@ fn test_upstream_data_vectors() -> anyhow::Result<()> {
             extension: Some(TonCell::empty().clone()),
         },
     ];
-    let vectors: Vec<_> = include_str!("../tests/fixtures/data.tsv").lines().collect();
+    let vectors: Vec<_> = include_str!("../../tests/fixtures/data.tsv").lines().collect();
     assert_eq!(requests.len(), vectors.len());
     for (request, line) in requests.iter().zip(vectors) {
         let fields: Vec<_> = line.split('\t').collect();
-        let crate::data::EncodedData {
+        let crate::protocol::data::EncodedData {
             apdu,
             preimage,
             schema,
@@ -286,7 +291,7 @@ async fn test_proof_budget_precedes_io() -> anyhow::Result<()> {
         .build()
         .await?;
     let request = ProofRequest::new("d".repeat(128), 1, vec![1; 89]);
-    assert!(wallet.get_address_proof(&request, crate::app::AddressOptions::default()).await.is_err());
+    assert!(wallet.get_address_proof(&request, AddressOptions::default()).await.is_err());
     assert_eq!(*seen.lock().map_err(|_| anyhow::anyhow!("lock"))?, 3);
     Ok(())
 }
@@ -303,7 +308,7 @@ async fn test_wallet_address_proof_transcript_and_rejection() -> anyhow::Result<
     let request = ProofRequest::new("example.org".into(), 1_700_000_000, b"challenge".to_vec());
     // digest() has an independent Python vector above. Use the software wallet's
     // address here to check that the Ledger operation binds the correct identity.
-    let hash = crate::proof::digest(&software.address, &request);
+    let hash = crate::protocol::proof::digest(&software.address, &request);
     let command = hex::decode(concat!(
         "e00801053b", // TON proof, confirmation, testnet display, 59-byte request.
         "068000002c8000025f80000000800000008000000080000000",
@@ -328,7 +333,7 @@ async fn test_wallet_address_proof_transcript_and_rejection() -> anyhow::Result<
             })
             .build()
             .await?;
-        let result = wallet.get_address_proof(&request, crate::app::AddressOptions::default().with_testnet(true)).await;
+        let result = wallet.get_address_proof(&request, AddressOptions::default().with_testnet(true)).await;
         match corruption {
             None => {
                 let proof = result?;
@@ -348,7 +353,7 @@ async fn test_wallet_address_proof_transcript_and_rejection() -> anyhow::Result<
 
 #[tokio::test]
 async fn test_wallet_data_signing_transcripts_and_rejection() -> anyhow::Result<()> {
-    use crate::data::LedgerDataRequest;
+    use crate::ton_ledger_wallet::data::LedgerDataRequest;
     let requests = [
         LedgerDataRequest::Plaintext("hello".into()),
         LedgerDataRequest::AppData {
@@ -359,7 +364,7 @@ async fn test_wallet_data_signing_transcripts_and_rejection() -> anyhow::Result<
         },
     ];
     let path_command = hex::decode("e009000319068000002c8000025f80000000800000008000000080000000")?;
-    let vectors: Vec<_> = include_str!("../tests/fixtures/data.tsv").lines().collect();
+    let vectors: Vec<_> = include_str!("../../tests/fixtures/data.tsv").lines().collect();
     assert_eq!(requests.len(), vectors.len());
     for (request, vector) in requests.iter().zip(vectors) {
         let fields: Vec<_> = vector.split('\t').collect();
@@ -375,7 +380,7 @@ async fn test_wallet_data_signing_transcripts_and_rejection() -> anyhow::Result<
             steps.extend(setup()?);
             steps.extend([
                 (path_command.clone(), ok(vec![])),
-                (protocol::command(9, 0, 0, &payload)?, ok(response)),
+                (apdu::command(9, 0, 0, &payload)?, ok(response)),
             ]);
             let seen = Arc::new(Mutex::new(0));
             let mut wallet = TonLedgerWallet::builder(WalletVersion::V4R2)
@@ -416,7 +421,7 @@ async fn test_builder_order_and_signed_identity() -> anyhow::Result<()> {
             testnet: true,
         };
         let mut steps = setup()?;
-        steps[2].0 = protocol::command(5, 0, 0, &path.encode(-1)?)?;
+        steps[2].0 = apdu::command(5, 0, 0, &derivation_path::encode(&path, -1)?)?;
         let seen = Arc::new(Mutex::new(0));
         let wallet = TonLedgerWallet::builder(version)
             .with_derivation_path(path.clone())
@@ -450,7 +455,7 @@ async fn test_builder_order_and_signed_identity() -> anyhow::Result<()> {
         })
         .build()
         .await?;
-    let req = crate::data::LedgerDataRequest::Plaintext("hello".into());
+    let req = crate::ton_ledger_wallet::data::LedgerDataRequest::Plaintext("hello".into());
     assert!(matches!(wallet.sign_data(&req, 0).await, Err(TonLedgerError::IdentityChanged)));
     assert!(matches!(wallet.settings().await, Err(TonLedgerError::DirtySession)));
     assert_eq!(*seen.lock().map_err(|_| anyhow::anyhow!("lock"))?, 6);

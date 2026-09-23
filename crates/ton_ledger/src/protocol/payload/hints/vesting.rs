@@ -1,12 +1,12 @@
 use super::{Hint, LedgerHintEncode, unsupported_record};
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
-    payload::{
+    protocol::encoding as wire,
+    protocol::payload::{
         encoding, exact,
         tlb::{Comment, Vesting},
     },
-    protocol,
-    signing::SigningPolicy,
+    ton_ledger_wallet::config::SigningPolicy,
 };
 use ton::{
     block_tlb::{CommonMsgInfo, CommonMsgInfoInt, Msg},
@@ -22,7 +22,7 @@ impl LedgerHintEncode for Vesting {
         let CommonMsgInfo::Int(info) = &internal_message.info else {
             return Err(TonLedgerError::OpaquePayload);
         };
-        let destination = protocol::standard_address(&info.dst)?;
+        let destination = wire::standard_address(&info.dst)?;
         let comment: Comment = exact(&internal_message.body.value).map_err(unsupported_record)?;
         let text = comment.encode_hint(policy)?.data;
         let mut reconstructed = Msg::new(
@@ -36,8 +36,8 @@ impl LedgerHintEncode for Vesting {
         let mut output = Vec::new();
         encoding::query_id(&mut output, &self.query, policy)?;
         output.push(self.mode);
-        protocol::address(&mut output, &destination)?;
-        protocol::coins(&mut output, info.value.coins.to_u128())?;
+        wire::address(&mut output, &destination)?;
+        wire::coins(&mut output, info.value.coins.to_u128())?;
         output.push(text.len() as u8);
         output.extend(text);
         Ok(Hint { id: 13, data: output })

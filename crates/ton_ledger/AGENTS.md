@@ -3,8 +3,15 @@
 Own the exclusive Ledger session, native transports and verified signing here.
 Networking/history/broadcasting belong in callers, including the examples crate.
 Public paths are module-qualified; no convenience re-exports. The only supported
-transport extension is `traits::Transport`, using Send async futures and complete
+transport extension is `transports::Transport`, using Send async futures and complete
 APDUs with status bytes. Build through `TonLedgerWallet::builder(version)`.
+
+Keep exactly three public root modules: `ton_ledger_wallet`, `transports`, and
+`error`. Wallet configuration lives in `ton_ledger_wallet::config`; app, proof
+and data modules contain public requests/results. Firmware codecs, derivation
+encoding, proof digests, hints and session state belong in private `protocol`.
+Transport framing stays private under `transports`. Do not restore legacy root
+modules or add aliases/re-exports for the pre-release import paths.
 
 Preserve exact TON cells: compare local reconstruction and device hashes and
 verify Ed25519 before returning a signature. Never normalize caller layout,
@@ -34,8 +41,8 @@ an external consumer. Reuse published ton APIs without changing the ton crate.
 Keep wallet assembly private here; compare its bytes against TonWallet vectors.
 
 Hint encoding stays private to this crate. Define ordered field mappings with
-`impl_ledger_hint!` in `payload/hints.rs` using the existing TON message types.
-Keep primitive checks and signing-policy handling in `payload/encoding.rs`;
+`impl_ledger_hint!` in `protocol/payload/hints.rs` using the existing TON message types.
+Keep primitive checks and signing-policy handling in `protocol/payload/encoding.rs`;
 the private `LedgerSupportedMsg` enum derives TLB and selects each message by its
 prefix. Exact-cell validation precedes encoding. Keep comment, DNS and vesting
 hint rules on their typed messages. The private NFT adapter preserves standard

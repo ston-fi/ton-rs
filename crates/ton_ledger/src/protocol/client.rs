@@ -1,8 +1,8 @@
 use crate::{
-    app::{AppInfo, AppSettings},
     error::{TonLedgerError, TonLedgerResult, TransportError},
-    protocol,
-    traits::Transport,
+    protocol::apdu,
+    ton_ledger_wallet::app::{AppInfo, AppSettings},
+    transports::Transport,
 };
 use ed25519_dalek::{Signature, VerifyingKey};
 use std::time::Duration;
@@ -31,7 +31,7 @@ impl Client {
         data: &[u8],
         approval: bool,
     ) -> TonLedgerResult<Vec<u8>> {
-        let command = protocol::command(ins, p1, p2, data)?;
+        let command = apdu::command(ins, p1, p2, data)?;
         self.begin()?;
         let budget = if approval { self.approval_timeout } else { self.request_timeout };
         let res = self.exchange(&command, Instant::now() + budget).await;
@@ -57,13 +57,13 @@ impl Client {
         let bytes = timeout_at(deadline, self.transport.exchange(command, remaining))
             .await
             .map_err(|_| TransportError::Timeout)??;
-        protocol::response(bytes)
+        apdu::response(bytes)
     }
     pub(crate) async fn chunked(&mut self, ins: u8, path: &[u8], data: &[u8]) -> TonLedgerResult<Vec<u8>> {
         if data.is_empty() || data.len() > 510 {
             return Err(TonLedgerError::Invalid("chunked payload must contain 1..510 bytes"));
         }
-        let first = protocol::command(ins, 0, 3, path)?;
+        let first = apdu::command(ins, 0, 3, path)?;
         self.begin()?;
         let res = self.chunked_inner(ins, &first, data).await;
         self.finish(&res);
@@ -78,7 +78,7 @@ impl Client {
         let count = chunks.len();
         for (i, chunk) in chunks.enumerate() {
             let last = i + 1 == count;
-            let command = protocol::command(ins, 0, if last { 0 } else { 2 }, chunk)?;
+            let command = apdu::command(ins, 0, if last { 0 } else { 2 }, chunk)?;
             let result =
                 self.exchange(&command, if last { Instant::now() + self.approval_timeout } else { deadline }).await?;
             if last {

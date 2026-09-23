@@ -1,11 +1,12 @@
 //! Infallible configuration followed by validated async connection.
-use super::TonLedgerWallet;
+use super::{
+    TonLedgerWallet,
+    config::{DerivationPath, SigningPolicy},
+};
 use crate::{
-    client::Client,
-    derivation_path::DerivationPath,
     error::{TonLedgerError, TonLedgerResult},
-    signing::SigningPolicy,
-    traits::Transport,
+    protocol::{client::Client, derivation_path},
+    transports::Transport,
 };
 use derive_setters::Setters;
 use std::time::Duration;
@@ -57,7 +58,7 @@ impl Builder {
         {
             return Err(TonLedgerError::Invalid("timeouts must be positive and representable"));
         }
-        let path = self.derivation_path.encode(self.workchain)?;
+        let path = derivation_path::encode(&self.derivation_path, self.workchain)?;
         let transport = match self.transport {
             Some(t) => t,
             None => {

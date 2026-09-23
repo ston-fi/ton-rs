@@ -3,7 +3,7 @@ use super::{
     hints::{Hint, LedgerHintEncode},
     tlb::*,
 };
-use crate::{error::TonLedgerResult, signing::SigningPolicy};
+use crate::{error::TonLedgerResult, ton_ledger_wallet::config::SigningPolicy};
 use ton::{
     contracts::tep::jetton::{jetton_burn_msg::JettonBurnMsg, jetton_transfer_msg::JettonTransferMsg},
     ton_core::TLB,

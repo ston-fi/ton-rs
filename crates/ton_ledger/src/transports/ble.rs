@@ -4,7 +4,7 @@
 mod tests;
 
 use super::framing::{Reassembler, frames};
-use crate::{error::TransportError, traits::Transport};
+use crate::{error::TransportError, transports::Transport};
 use async_trait::async_trait;
 use btleplug::{
     api::{

@@ -4,10 +4,22 @@ A Ledger-backed TON wallet with V3R2/V4R2 message construction, USB HID,
 optional Bluetooth, and custom transports. Requires native Tokio with its time
 driver enabled. Rust 1.94 or later. No network provider is owned by the wallet.
 
+The public API has three modules:
+
+| Module | Contents |
+| --- | --- |
+| `ton_ledger_wallet` | `TonLedgerWallet` and its `builder`, `config`, `app`, `proof`, and `data` modules. |
+| `transports` | The `Transport` extension trait and feature-gated `hid`/`ble` backends. |
+| `error` | Wallet results and typed wallet/transport errors. |
+
+`ton_ledger_wallet::config` owns `DerivationPath`, `SigningPolicy` and
+`AddressOptions`. Proof/data modules expose requests and verified results;
+firmware encoding, hashing, hints and session machinery are private.
+
 ```rust,no_run
 use ton::ton_wallet::WalletVersion;
 use ton_ledger::ton_ledger_wallet::TonLedgerWallet;
-use ton_ledger::app::AddressOptions;
+use ton_ledger::ton_ledger_wallet::config::AddressOptions;
 
 # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 let mut wallet = TonLedgerWallet::builder(WalletVersion::V4R2).build().await?;
@@ -74,7 +86,7 @@ Wallet operations return `error::TonLedgerResult<T>`, using the typed
 - `ble`: `btleplug` 0.13; `BleTransport::discover(timeout)` and `connect(device)`.
   Service UUIDs identify normal-mode Nano X, Stax, Flex and Nano Gen5 interfaces.
   Device model identifiers are not a claim of physical-device validation.
-- No default features: supply `with_transport(impl traits::Transport)`; otherwise
+- No default features: supply `with_transport(impl transports::Transport)`; otherwise
   `build()` returns `MissingTransport`. The trait exchanges short APDUs including
   response status bytes. `Send` futures are supported; `Sync` is not required.
 

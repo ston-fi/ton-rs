@@ -1,15 +1,24 @@
 //! A non-cloneable wallet with immutable identity and an exclusive device session.
+pub mod app;
 pub mod builder;
-use crate::{
-    app::{AddressOptions, AppInfo, AppSettings},
-    client::{Client, verify},
+pub mod config;
+pub mod data;
+pub mod proof;
+
+use self::{
+    app::{AppInfo, AppSettings},
+    builder::Builder,
+    config::{AddressOptions, DerivationPath, SigningPolicy},
     data::{LedgerDataRequest, SignedData},
-    derivation_path::DerivationPath,
-    error::{TonLedgerError, TonLedgerResult},
     proof::{AddressProof, ProofRequest},
-    signing::SigningPolicy,
 };
-use builder::Builder;
+use crate::{
+    error::{TonLedgerError, TonLedgerResult},
+    protocol::{
+        self,
+        client::{Client, verify},
+    },
+};
 use ton::ton_core::traits::tlb::TLB;
 use ton::{
     block_tlb::{CommonMsgInfoExtIn, Msg, StateInit},
@@ -58,12 +67,12 @@ impl TonLedgerWallet {
             return Err(TonLedgerError::Invalid("Ledger requires exactly one internal message"));
         }
         let body = WalletVersion::build_ext_in_body(self.version, expire_at, seqno, self.wallet_id, int_msgs)?;
-        crate::payload::transaction(self.version, self.wallet_id, &body, self.policy)?;
+        protocol::payload::transaction(self.version, self.wallet_id, &body, self.policy)?;
         Ok(body)
     }
     /// Signs only if firmware reconstruction, returned hash and Ed25519 all match.
     pub async fn sign_ext_in_body(&mut self, body: &TonCell) -> TonLedgerResult<TonCell> {
-        let payload = crate::payload::transaction(self.version, self.wallet_id, body, self.policy)?;
+        let payload = protocol::payload::transaction(self.version, self.wallet_id, body, self.policy)?;
         let hash = body.cell_hash()?;
         self.check_identity().await?;
         let response = self.client.chunked(6, &self.path, &payload).await?;
@@ -120,8 +129,8 @@ impl TonLedgerWallet {
         data.extend(request.domain.as_bytes());
         data.extend(request.timestamp.to_be_bytes());
         data.extend(&request.payload);
-        crate::protocol::command(8, 1, flags, &data)?;
-        let hash = crate::proof::digest(&self.address, request);
+        protocol::apdu::command(8, 1, flags, &data)?;
+        let hash = protocol::proof::digest(&self.address, request);
         self.check_identity().await?;
         let response = self.client.request(8, 1, flags, &data, true).await?;
         let signature = self.verify(&response, &hash, &hash)?;
@@ -129,12 +138,12 @@ impl TonLedgerWallet {
     }
     /// Signs the legacy schema/timestamp/cell-hash preimage, not TON Connect signData.
     pub async fn sign_data(&mut self, request: &LedgerDataRequest, timestamp: u64) -> TonLedgerResult<SignedData> {
-        let crate::data::EncodedData {
+        let protocol::data::EncodedData {
             apdu: data,
             preimage,
             schema,
             hash: cell_hash,
-        } = crate::data::encode(request, timestamp)?;
+        } = protocol::data::encode(request, timestamp)?;
         self.check_identity().await?;
         let response = self.client.chunked(9, &self.path, &data).await?;
         let signature = self.verify(&response, &cell_hash, &preimage)?;

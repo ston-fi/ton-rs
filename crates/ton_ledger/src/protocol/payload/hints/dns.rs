@@ -1,12 +1,12 @@
 use super::{Hint, LedgerHintEncode, unsupported_record};
 use crate::{
     error::TonLedgerResult,
-    payload::{
+    protocol::encoding as wire,
+    protocol::payload::{
         encoding, exact,
         tlb::{DnsCapabilities, DnsChangeRecord, DnsWalletRecord},
     },
-    protocol,
-    signing::SigningPolicy,
+    ton_ledger_wallet::config::SigningPolicy,
 };
 use sha2::{Digest, Sha256};
 
@@ -29,7 +29,7 @@ impl LedgerHintEncode for DnsChangeRecord {
             encoding::opaque(policy)?;
             output.extend(self.key.as_slice());
             if let Some(record) = &self.record.0 {
-                protocol::cell_ref(&mut output, record)?;
+                wire::cell_ref(&mut output, record)?;
             }
         }
         Ok(Hint { id: 9, data: output })

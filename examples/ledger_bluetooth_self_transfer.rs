@@ -18,9 +18,10 @@ use ton::{
     ton_wallet::{WalletV4Data, WalletVersion},
 };
 use ton_ledger::{
-    app::AddressOptions,
-    derivation_path::DerivationPath,
-    ton_ledger_wallet::TonLedgerWallet,
+    ton_ledger_wallet::{
+        TonLedgerWallet,
+        config::{AddressOptions, DerivationPath},
+    },
     transports::ble::{BleDeviceInfo, BleTransport},
 };
 

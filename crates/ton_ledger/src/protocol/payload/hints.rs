@@ -4,8 +4,8 @@ mod vesting;
 use super::{exact, supported_msg::LedgerSupportedMsg, tlb::*};
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
-    protocol,
-    signing::SigningPolicy,
+    protocol::encoding as wire,
+    ton_ledger_wallet::config::SigningPolicy,
 };
 use ton::contracts::tep::{
     jetton::{jetton_burn_msg::JettonBurnMsg, jetton_transfer_msg::JettonTransferMsg},
@@ -59,7 +59,7 @@ impl LedgerHintEncode for Comment {
         }
         let data = parser.read_bits(bit_count)?;
         parser.ensure_empty()?;
-        protocol::printable(&data, 120)?;
+        wire::printable(&data, 120)?;
         Ok(Hint { id: 0, data })
     }
 }

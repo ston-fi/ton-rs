@@ -88,7 +88,7 @@ fn test_layout_policy_and_trailing_data() -> anyhow::Result<()> {
 
 #[test]
 fn test_upstream_firmware_python_vectors() -> anyhow::Result<()> {
-    let payloads: Vec<_> = include_str!("../../tests/fixtures/payloads.tsv").lines().collect();
+    let payloads: Vec<_> = include_str!("../../../tests/fixtures/payloads.tsv").lines().collect();
     assert_eq!(payloads.len(), 14, "each supported hint family needs an independent vector");
     for (id, line) in payloads.into_iter().enumerate() {
         let fields: Vec<_> = line.split('\t').collect();
@@ -97,7 +97,7 @@ fn test_upstream_firmware_python_vectors() -> anyhow::Result<()> {
         assert_eq!(hex::encode(cell.cell_hash()?.as_slice()), fields[3]);
         assert_eq!(hex::encode(&hints::encode(&cell, SigningPolicy::ClearOnly)?[1..]), fields[2], "hint {}", fields[0]);
     }
-    for line in include_str!("../../tests/fixtures/transactions.tsv").lines() {
+    for line in include_str!("../../../tests/fixtures/transactions.tsv").lines() {
         let fields: Vec<_> = line.split('\t').collect();
         let cell = TonCell::from_boc_hex(fields[1])?;
         assert_eq!(hex::encode(cell.cell_hash()?.as_slice()), fields[3]);

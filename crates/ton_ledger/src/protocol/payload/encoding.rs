@@ -2,8 +2,8 @@
 use super::tlb::TrailingAppId;
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
-    protocol,
-    signing::SigningPolicy,
+    protocol::encoding as wire,
+    ton_ledger_wallet::config::SigningPolicy,
 };
 use ton::ton_core::{
     cell::{TonCell, TonHash},
@@ -34,15 +34,15 @@ pub(super) fn coins(out: &mut Vec<u8>, value: &TLBCoins, _policy: SigningPolicy)
     if value.to_cell()?.cell_hash()? != TLBCoins::new(value.to_u128()).to_cell()?.cell_hash()? {
         return Err(TonLedgerError::Invalid("nonminimal coin encoding"));
     }
-    protocol::coins(out, value.to_u128())
+    wire::coins(out, value.to_u128())
 }
 
 pub(super) fn address(out: &mut Vec<u8>, value: &MsgAddress, _policy: SigningPolicy) -> TonLedgerResult<()> {
-    protocol::address(out, &protocol::standard_address(value)?)
+    wire::address(out, &wire::standard_address(value)?)
 }
 
 pub(super) fn ton_address(out: &mut Vec<u8>, value: &TonAddress, _policy: SigningPolicy) -> TonLedgerResult<()> {
-    protocol::address(out, value)
+    wire::address(out, value)
 }
 
 pub(super) fn custom_payload(
@@ -53,7 +53,7 @@ pub(super) fn custom_payload(
     out.push(u8::from(value.is_some()));
     if let Some(cell) = value {
         opaque(policy)?;
-        protocol::cell_ref(out, cell)?;
+        wire::cell_ref(out, cell)?;
     }
     Ok(())
 }
@@ -85,7 +85,7 @@ pub(super) fn forward_payload(
     if value.layout == EitherRefLayout::ToRef {
         opaque(policy)?;
         out.push(1);
-        protocol::cell_ref(out, &value.value)?;
+        wire::cell_ref(out, &value.value)?;
     } else if value.value.data_len_bits() == 0 && value.value.refs().is_empty() {
         out.push(0);
     } else {
@@ -103,7 +103,7 @@ pub(super) fn trailing_app_id(out: &mut Vec<u8>, value: &TrailingAppId, _policy:
 }
 
 pub(super) fn uint48(out: &mut Vec<u8>, value: &u64, _policy: SigningPolicy) -> TonLedgerResult<()> {
-    protocol::uint48(out, *value)
+    wire::uint48(out, *value)
 }
 
 pub(super) fn boolean(out: &mut Vec<u8>, value: &bool, _policy: SigningPolicy) -> TonLedgerResult<()> {

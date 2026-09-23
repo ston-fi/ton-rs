@@ -1,29 +1,10 @@
-//! Legacy Ledger data signatures. This is not TON Connect signData.
+//! Legacy Ledger data encoding and signature preimages.
+use super::encoding;
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
-    protocol,
+    ton_ledger_wallet::data::LedgerDataRequest,
 };
-use ton::ton_core::{cell::TonCell, traits::tlb::TLB, types::TonAddress};
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub enum LedgerDataRequest {
-    Plaintext(String),
-    /// The device displays the address/domain and hashes of data and extension.
-    AppData {
-        address: Option<TonAddress>,
-        domain: Option<String>,
-        data: TonCell,
-        extension: Option<TonCell>,
-    },
-}
-#[derive(Debug, Clone)]
-#[non_exhaustive]
-pub struct SignedData {
-    pub signature: [u8; 64],
-    pub cell_hash: [u8; 32],
-    pub schema: u32,
-    pub timestamp: u64,
-}
+use ton::ton_core::{cell::TonCell, traits::tlb::TLB};
 pub(crate) struct EncodedData {
     pub(crate) apdu: Vec<u8>,
     pub(crate) preimage: Vec<u8>,
@@ -35,7 +16,7 @@ pub(crate) fn encode(req: &LedgerDataRequest, timestamp: u64) -> TonLedgerResult
     let mut d = Vec::new();
     let schema: u32 = match req {
         LedgerDataRequest::Plaintext(text) => {
-            protocol::printable(text.as_bytes(), 120)?;
+            encoding::printable(text.as_bytes(), 120)?;
             b.write_bits(text.as_bytes(), text.len() * 8)?;
             d.extend(text.as_bytes());
             0x754bf91b
@@ -52,13 +33,13 @@ pub(crate) fn encode(req: &LedgerDataRequest, timestamp: u64) -> TonLedgerResult
             d.push(u8::from(address.is_some()));
             b.write_bit(address.is_some())?;
             if let Some(a) = address {
-                protocol::address(&mut d, a)?;
+                encoding::address(&mut d, a)?;
                 a.to_msg_address_int().write(&mut b)?;
             }
             d.push(u8::from(domain.is_some()));
             b.write_bit(domain.is_some())?;
             if let Some(domain) = domain {
-                protocol::printable(domain.as_bytes(), 126)?;
+                encoding::printable(domain.as_bytes(), 126)?;
                 d.push(domain.len() as u8);
                 d.extend(domain.as_bytes());
                 let mut db = TonCell::builder();
@@ -68,12 +49,12 @@ pub(crate) fn encode(req: &LedgerDataRequest, timestamp: u64) -> TonLedgerResult
                 }
                 b.write_ref(db.build()?)?;
             }
-            protocol::cell_ref(&mut d, data)?;
+            encoding::cell_ref(&mut d, data)?;
             b.write_ref(data.clone())?;
             d.push(u8::from(extension.is_some()));
             b.write_bit(extension.is_some())?;
             if let Some(ext) = extension {
-                protocol::cell_ref(&mut d, ext)?;
+                encoding::cell_ref(&mut d, ext)?;
                 b.write_ref(ext.clone())?;
             }
             0x54b58535

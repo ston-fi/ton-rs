@@ -15,7 +15,7 @@ PYTHONPATH=/path/to/pinned/app-ton/tests python generate.py
 Payload columns: hint ID, BOC, hint bytes, cell hash. Transaction columns: V4
 flag, unsigned wallet-body BOC, transaction APDU payload, unsigned-body hash.
 Data columns: APDU payload, directly signed preimage. The proof vector in
-`_test_protocol.rs` uses independent Python hashlib and struct encoding.
+`src/protocol/_test_protocol.rs` uses independent Python hashlib and struct encoding.
 
 The upstream Python `write_varuint(0)` encodes `01 00`, which does not match
 its canonical TON-cell encoding. These fixtures use nonzero forwarded amounts;

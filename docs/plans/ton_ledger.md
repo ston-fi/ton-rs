@@ -19,7 +19,7 @@ Required capabilities:
 
 - `TonLedgerWallet::builder(WalletVersion)` with defaults and `with_` setters.
 - Built-in USB HID transport by default and optional Bluetooth Low Energy.
-- User-provided transport through a public trait in `traits.rs`.
+- User-provided transport through a public trait in `transports.rs`.
 - An enum selecting conventional TON account derivation or a custom path.
 - Wallet V3R2/V4R2, public-key acquisition, address derivation and confirmation.
 - One-message transaction signing, recognized payload hints, explicit opaque
@@ -71,14 +71,14 @@ or device compatibility from one source snapshot.
 | --- | --- |
 | `ton_ledger_wallet::TonLedgerWallet` | Own immutable wallet identity and one exclusive device session; expose wallet operations. |
 | `ton_ledger_wallet::builder::Builder` | Configure wallet, derivation, transport, policy and timeouts; validate and connect in `build().await`. |
-| `traits::Transport` | Public extension point exchanging complete APDU byte sequences. |
+| `transports::Transport` | Public extension point exchanging complete APDU byte sequences. |
 | `transports::hid::HidTransport` | Native USB discovery, selection, framing, exchange and connection lifecycle. |
 | `transports::ble::BleTransport` | Native BLE discovery, selection, GATT framing, notifications and connection lifecycle. |
-| `derivation_path::DerivationPath` | Select a conventional TON account or explicit custom components. |
-| `signing::SigningPolicy` | Explicit policy for unknown payloads and opaque nested fields. |
-| `proof::ProofRequest`, `AddressProof` | Proof inputs and locally verified output. |
-| `data::LedgerDataRequest`, `SignedData` | Legacy Ledger plaintext/app-data inputs and verified output. |
-| `app::AppInfo`, `AppSettings` | App identity/version and blind-signing/expert-mode settings. |
+| `ton_ledger_wallet::config::DerivationPath` | Select a conventional TON account or explicit custom components. |
+| `ton_ledger_wallet::config::SigningPolicy` | Explicit policy for unknown payloads and opaque nested fields. |
+| `ton_ledger_wallet::proof::ProofRequest`, `AddressProof` | Proof inputs and locally verified output. |
+| `ton_ledger_wallet::data::LedgerDataRequest`, `SignedData` | Legacy Ledger plaintext/app-data inputs and verified output. |
+| `ton_ledger_wallet::app::AppInfo`, `AppSettings` | App identity/version and blind-signing/expert-mode settings. |
 | `error::{TonLedgerError, TonLedgerResult}`, `TransportError` | Typed domain/session errors and backend failures preserving their source. |
 
 `TonLedgerWallet` is non-generic and owns `Box<dyn Transport>` internally. It is
@@ -86,7 +86,7 @@ not `Clone`: a device session must not be duplicated implicitly. Read-only
 accessors expose version, address, wallet ID, public key and derivation path;
 callers cannot mutate identity independently of the cached public key/address.
 
-`LedgerClient`, APDU commands, capability rules, payload hints and prepared
+`protocol::client::Client`, APDU commands, capability rules, payload hints and prepared
 signing state remain private. Normal users do not construct a separate account,
 transaction request or prepared transaction entity.
 
@@ -234,15 +234,15 @@ byte-oriented hints. TLB handles on-chain records; a small checked byte codec
 handles APDUs and hints. A hash/depth hint is not a fabricated pruned cell.
 
 Reuse existing public Jetton/NFT types. Missing recognized on-chain bodies can
-initially be crate-private TLB records in `payload/tlb.rs`; do not add entire
+initially be crate-private TLB records in `protocol/payload/tlb.rs`; do not add entire
 public contract families to `ton` just for Ledger display recognition. New
 publicly reusable TON schemas should only be promoted with a concrete consumer
 need and the applicable library review.
 
 Encode the eleven fixed-field hint families with a private `impl_ledger_hint!`
-macro in `ton_ledger/src/payload/hints.rs`. Each invocation lists the existing
+macro in `ton_ledger/src/protocol/payload/hints.rs`. Each invocation lists the existing
 message type, hint ID and fields in firmware order with named byte adapters.
-Adapters in `payload/encoding.rs` own primitive validation and signing policy.
+Adapters in `protocol/payload/encoding.rs` own primitive validation and signing policy.
 A private `LedgerSupportedMsg` enum derives TLB and owns opcode dispatch. Parse and
 round-trip the complete cell before encoding. Typed comments, DNS records and
 vesting messages retain explicit hint rules. A private NFT wrapper preserves
@@ -287,7 +287,7 @@ on-chain field widths before any device request.
 
 ## 9. Transport contract and built-in implementations
 
-The object-safe async trait belongs directly in `traits.rs`. It exchanges one
+The object-safe async trait belongs directly in `transports.rs`. It exchanges one
 complete short APDU and returns the complete response including status bytes.
 The intended shape is `exchange(&mut self, command: &[u8], timeout: Duration)`
 returning `Result<Vec<u8>, TransportError>`, using the repository's standard
@@ -416,30 +416,31 @@ crates/ton_ledger/
   CHANGELOG.md
   src/
     lib.rs
-    ton_ledger_wallet.rs
-    ton_ledger_wallet/builder.rs
-    traits.rs
-    transports.rs
-    transports/hid.rs
-    transports/ble.rs
-    derivation_path.rs
-    signing.rs
-    app.rs
-    proof.rs
-    data.rs
     error.rs
-    client.rs
-    payload.rs
-    payload/recognize.rs
-    payload/hints.rs
-    payload/tlb.rs
-    protocol.rs
-    protocol/codec.rs
-    protocol/commands.rs
-    _test_*.rs                 # Located beside the responsible modules.
+    ton_ledger_wallet.rs       # Public wallet and operation methods.
+    ton_ledger_wallet/
+      builder.rs
+      config.rs               # DerivationPath, SigningPolicy, AddressOptions.
+      app.rs                  # AppInfo and AppSettings.
+      proof.rs                # ProofRequest and AddressProof.
+      data.rs                 # LedgerDataRequest and SignedData.
+    transports.rs             # Public Transport trait.
+    transports/
+      hid.rs
+      ble.rs
+      framing.rs              # Private transport framing.
+    protocol.rs               # Private module; no external protocol API.
+    protocol/
+      client.rs               # Session state, APDU requests and chunking.
+      apdu.rs
+      encoding.rs
+      derivation_path.rs
+      proof.rs
+      data.rs
+      payload.rs
+      payload/                # Exact-cell checks and firmware hints.
+    _test_*.rs                # Located beside the responsible modules.
   tests/
-    test_protocol_transcripts.rs
-    test_wallet_vectors.rs
     fixtures/                 # Small, source-attributed deterministic vectors.
 examples/ledger_bluetooth_self_transfer.rs
 ```
@@ -456,7 +457,7 @@ manifest, release-plz package entry and CI feature coverage together.
   fixtures, resolve SDK path bounds, choose HID/BLE versions and documented
   target support. Preflight native build dependencies and hardware availability.
 - [x] **2. Add crate skeleton and transport boundary.** Manifests, features,
-  errors, `traits.rs`, module structure and initial crate guidance. Compile a
+  errors, `transports.rs`, module structure and initial crate guidance. Compile a
   custom-transport consumer with default features disabled.
 - [x] **3. Implement private Ledger wallet assembly.** Public-key initial data,
   V3/V4 signature attachment and external envelopes reuse existing ton schemas.

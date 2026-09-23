@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Reorganize the pre-release API into `ton_ledger_wallet`, `transports` and
+  `error`. Move `DerivationPath`, `SigningPolicy` and `AddressOptions` to
+  `ton_ledger_wallet::config`, app/proof/data types to the corresponding wallet
+  submodules, and `Transport` to `transports::Transport`. Remove the old root
+  modules without compatibility aliases. Firmware/session code is private
+  under `protocol`; signing behavior and wire formats are unchanged.
+
 - Reject duplicate in-process BLE sessions with `TransportError::DeviceBusy`;
   retain ownership until the connection worker finishes cleanup.
 - Clarify BLE discovery cleanup time and document a complete transfer example.
