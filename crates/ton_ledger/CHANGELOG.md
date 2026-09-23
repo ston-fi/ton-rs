@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Quarantine BLE devices after failed, timed-out or cancelled disconnect cleanup.
+  Reuse requires a confirmed disconnect; uncertain cleanup requires process restart.
+
 - Reject duplicate in-process USB HID connections by backend path, retaining
   ownership through cancelled setup and device-handle cleanup.
 

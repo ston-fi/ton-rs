@@ -100,10 +100,10 @@ Linux CI is configured to build the feature combinations. No browser/WASM or no_
 Discovery and connection are bounded. Request/approval defaults are 10/180
 seconds, configurable on the builder. HID and BLE connect budgets are 10/20
 seconds. BLE discovery can add up to two seconds to stop scanning before returning;
-connection cleanup takes up to four seconds in the background. Blocking OS HID enumeration or
+connection cleanup waits up to four seconds in the background. Blocking OS HID enumeration or
 writes cannot be forcibly interrupted; timed-out callers return, and workers
 release resources after the OS call returns. HID reads poll at most every 50 ms.
-Drop releases session ownership. There is no automatic reconnect, retry or
+Drop starts transport cleanup. There is no automatic reconnect, retry or
 USB/BLE fallback. Cancellation or uncertain I/O poisons the wallet; drop it,
 resolve any device prompt, reconnect and build again. Reconnecting does not
 cancel a pending prompt on the device. Custom transports must enforce exclusive
@@ -113,7 +113,11 @@ HID and BLE reject duplicate connections to the same backend device in this
 process with `TransportError::DeviceBusy`, including while an old worker is
 cleaning up. HID uses the private OS path; BLE uses the backend peripheral ID.
 The leases cover cloned and rediscovered handles and survive cancelled setup
-until the worker releases its resources. They do not coordinate other applications
+until the worker releases its resources. BLE releases ownership only after a
+successful backend disconnect. Failed, timed-out or cancelled cleanup leaves
+that peripheral quarantined: later connections return `DeviceBusy` until the
+process restarts, even if the OS subsequently disconnects it. This avoids a late
+disconnect interrupting a replacement session. The leases do not coordinate other applications
 or USB and Bluetooth access to the same physical Ledger; close those sessions first.
 
 ## Signing scope

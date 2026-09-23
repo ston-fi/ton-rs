@@ -67,3 +67,9 @@ HID also requires a process-local lease keyed by the private `CString` OS path,
 never the editable or lossy display ID. Acquire it before spawning the worker
 and retain it through failed/cancelled setup, blocking OS calls and handle
 destruction. Caller cancellation must not release a worker's ownership early.
+
+BLE leases become non-releasable before the first backend operation. Only a
+confirmed successful disconnect permits reuse. Failed, timed-out or cancelled
+cleanup must quarantine the backend ID until process restart; do not release
+ownership based only on a timeout or a disconnected-state snapshot. Keep cleanup
+bounded and test success, failure, timeout and worker cancellation.

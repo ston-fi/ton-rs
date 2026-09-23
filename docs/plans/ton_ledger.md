@@ -638,3 +638,11 @@ Review correction validation:
   documentation or changelog changes remain relative to the original baseline.
 - Independent review found no actionable issue in private wallet assembly,
   builder validation or the error/result rename.
+
+### BLE uncertain-cleanup recovery
+
+A BLE worker marks its lease non-releasable before starting backend I/O. Release
+requires a successful disconnect within the cleanup budget. On disconnect error,
+timeout or worker cancellation, retain the backend ID in the process registry;
+subsequent connections return `DeviceBusy` until process restart. Do not infer
+completion from a state snapshot while an old OS disconnect can remain pending.

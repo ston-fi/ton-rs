@@ -61,7 +61,10 @@ type Notifications = Pin<Box<dyn Stream<Item = ValueNotification> + Send>>;
 // Use the backend identity, never the caller-editable BleDeviceInfo::id label.
 static CONNECTED_DEVICES: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
-struct DeviceLease(String);
+struct DeviceLease {
+    id: String,
+    release_on_drop: bool,
+}
 impl DeviceLease {
     fn acquire(id: String) -> Result<Self, TransportError> {
         let mut devices = CONNECTED_DEVICES
@@ -70,14 +73,30 @@ impl DeviceLease {
         if !devices.insert(id.clone()) {
             return Err(TransportError::DeviceBusy);
         }
-        Ok(Self(id))
+        Ok(Self {
+            id,
+            release_on_drop: true,
+        })
+    }
+    fn begin_session(&mut self) {
+        // From the first OS operation onward, only a confirmed disconnect permits reuse.
+        self.release_on_drop = false;
+    }
+    async fn disconnect(mut self, disconnect: impl std::future::Future<Output = Result<(), TransportError>>) {
+        if matches!(tokio::time::timeout(Duration::from_secs(2), disconnect).await, Ok(Ok(()))) {
+            self.release_on_drop = true;
+        }
     }
 }
 impl Drop for DeviceLease {
     fn drop(&mut self) {
-        // Cleanup must release ownership even if another holder panicked.
+        // An interrupted worker or uncertain OS disconnect quarantines this ID
+        // until process restart. A late callback must never affect a new session.
+        if !self.release_on_drop {
+            return;
+        }
         let mut devices = CONNECTED_DEVICES.lock().unwrap_or_else(|error| error.into_inner());
-        devices.remove(&self.0);
+        devices.remove(&self.id);
     }
 }
 
@@ -139,14 +158,16 @@ impl BleTransport {
     }
     /// Connects and negotiates packet size within 20 seconds. Pair through the OS.
     /// Returns `DeviceBusy` if this process already owns the peripheral, including
-    /// while a dropped or failed session finishes its bounded cleanup.
+    /// while a dropped or failed session finishes its bounded cleanup. If cleanup
+    /// cannot confirm disconnection, this peripheral stays busy until process restart.
     pub async fn connect(device: BleDeviceInfo) -> Result<Self, TransportError> {
         let lease = DeviceLease::acquire(device.peripheral.id().to_string())?;
         let (sender, mut receiver) = mpsc::channel::<Request>(1);
         let (mut ready, opened) = oneshot::channel();
         tokio::spawn(async move {
             // The worker retains the lease through setup, cancellation and disconnect.
-            let _lease = lease;
+            let mut lease = lease;
+            lease.begin_session();
             let p = device.peripheral;
             let setup = async {
                 p.connect().await.map_err(backend)?;
@@ -200,7 +221,7 @@ impl BleTransport {
                     let _ = tokio::time::timeout(Duration::from_secs(2), p.unsubscribe(&notify)).await;
                 },
             }
-            let _ = tokio::time::timeout(Duration::from_secs(2), p.disconnect()).await;
+            lease.disconnect(async { p.disconnect().await.map_err(backend) }).await;
         });
         opened.await.map_err(|_| TransportError::Disconnected)??;
         Ok(Self { sender })

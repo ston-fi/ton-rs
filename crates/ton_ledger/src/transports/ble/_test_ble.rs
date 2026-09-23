@@ -63,3 +63,53 @@ async fn test_packet_size_rejects_truncated_invalid_and_disconnected_replies() {
         Err(TransportError::Disconnected)
     ));
 }
+
+#[tokio::test]
+async fn test_disconnect_releases_only_after_backend_confirmation() -> anyhow::Result<()> {
+    let id = "ble-confirmed-disconnect".to_owned();
+    let mut lease = DeviceLease::acquire(id.clone())?;
+    lease.begin_session();
+    let (finish, pending) = oneshot::channel();
+    let cleanup = tokio::spawn(lease.disconnect(async { pending.await.map_err(|_| TransportError::Disconnected)? }));
+    assert!(matches!(DeviceLease::acquire(id.clone()), Err(TransportError::DeviceBusy)));
+    finish.send(Ok(())).map_err(|_| anyhow::anyhow!("cleanup stopped"))?;
+    cleanup.await?;
+    let _reconnected = DeviceLease::acquire(id)?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_disconnect_failure_quarantines_device() -> anyhow::Result<()> {
+    let id = "ble-failed-disconnect".to_owned();
+    let mut lease = DeviceLease::acquire(id.clone())?;
+    lease.begin_session();
+    lease.disconnect(async { Err(TransportError::Disconnected) }).await;
+    assert!(matches!(DeviceLease::acquire(id), Err(TransportError::DeviceBusy)));
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn test_disconnect_timeout_quarantines_device_after_late_completion() -> anyhow::Result<()> {
+    let id = "ble-timed-out-disconnect".to_owned();
+    let mut lease = DeviceLease::acquire(id.clone())?;
+    lease.begin_session();
+    let (late_completion, pending) = oneshot::channel::<()>();
+    lease.disconnect(async { pending.await.map_err(|_| TransportError::Disconnected) }).await;
+    assert!(matches!(DeviceLease::acquire(id.clone()), Err(TransportError::DeviceBusy)));
+    // The OS may still complete the queued disconnect after the waiter is gone.
+    assert!(late_completion.send(()).is_err());
+    assert!(matches!(DeviceLease::acquire(id), Err(TransportError::DeviceBusy)));
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_cancelled_cleanup_keeps_device_quarantined() -> anyhow::Result<()> {
+    let id = "ble-cancelled-cleanup".to_owned();
+    let mut lease = DeviceLease::acquire(id.clone())?;
+    lease.begin_session();
+    let cleanup = tokio::spawn(lease.disconnect(std::future::pending()));
+    cleanup.abort();
+    assert!(cleanup.await.is_err());
+    assert!(matches!(DeviceLease::acquire(id), Err(TransportError::DeviceBusy)));
+    Ok(())
+}
