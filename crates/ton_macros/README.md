@@ -1,6 +1,7 @@
 # ton_macros
 
-Automatically derive TLB and TonContract traits for your types
+Procedural macros for `TLB`, `FromTVMStack`, and async get-method implementations
+with `#[ton_methods]`. The `ton_contract!` wrapper macro belongs to the `ton` crate.
 
 ## TLB Derive
 
