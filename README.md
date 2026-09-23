@@ -5,13 +5,12 @@ Set of general-purpose rust libraries to interact with [TON](https://ton.org/) b
 [![CI](https://github.com/ston-fi/ton-rs/actions/workflows/build.yml/badge.svg)](https://github.com/ston-fi/ton-rs/actions/workflows/build.yml)
 [![Crates.io](https://img.shields.io/crates/v/ton.svg)](https://crates.io/crates/ton)
 
-This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib-rs) repository and also uses [tonlib-sys](https://github.com/ston-fi/tonlib-sys) underneath for the [tonlibjson_client](crates/ton/src/clients/tonlibjson) implementation.
+This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib-rs) repository and also uses [tonlib-sys](https://github.com/ston-fi/tonlib-sys) underneath for the [tonlibjson_client](crates/ton/src/tl_client.rs) implementation.
 
 ## ton_macros
 
 - `TLB` Derive macros: Automatically derive TLB trait for your types based on it's members
 - Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [ton_core_enum.rs](examples/ton_core_enum.rs) example). Provides powerful enums, but use them carefully; read the [Enum with TLB macros](#enum-with-tlb-macros) chapter.
-- `ton_contract!`: Generate a `TonContract` wrapper type and optionally implement method traits for it.
 - `#[ton_methods]`: Generate async get-method implementations for contract traits or impl blocks, with optional block-level `name_format` conversion and per-method exact names.
 
 ## ton_core
@@ -23,6 +22,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [Types](crates/ton_core/src/types) - Few basic types, common and stable enough to be in core
 
 ## ton
+- `ton_contract!`: Generate a `TonContract` wrapper type and optionally implement method traits for it.
 - `lite-client` feature: Disabled by default. Enable it for the ADNL-based `LiteClient`; it also enables the networking dependencies required by that client.
 - `tonlibjson` feature: Disabled by default. Enable it for the native `TLClient`, emulator implementations, `TLStateProvider`, and `ton::emulators::tl_emulation_provider::TLEmulationProvider`. `ContractClient` and `TonContract` can be used without it by supplying custom providers.
   This feature includes `lite-client` because `TLClient` uses it to refresh the network configuration's init block.
@@ -65,48 +65,57 @@ as minor compatibility changes.
 ## Getting started
 Examples can be found in [examples](examples) folder (feel free to add your own)
 
-Interesting one:
-* [ton_emulate_get_method](examples/ton_emulate_get_method.rs) - use your own TonContract
-* [ton_transfer](examples/ton_transfer.rs) - transfer TONs between wallets using TLClient
+- [ton_emulate_get_method](examples/ton_emulate_get_method.rs): network-backed contract emulation; requires `--features tonlibjson`.
+- [ton_transfer](examples/ton_transfer.rs): signs and broadcasts a transfer; requires `--features tonlibjson` and deliberate account/recipient configuration.
+- [ton_ledger_bluetooth_self_transfer](examples/ton_ledger_bluetooth_self_transfer.rs): USB-first Ledger signing with Bluetooth fallback; requires `--features ledger-ble` and spends mainnet fees.
+
+Run examples through `cargo run -p examples --example <name> --features <features>`.
+Compilation is separate from execution; do not run transfer examples as smoke tests.
 
 ### Basic usage
+
+Build and read a cell with `ton_core`:
+
 ```rust
-// Build and read custom cells
-fn main() -> anyhow::Result<()> {
-    use ton_lib::cell::ton_cell::TonCell;
+use ton_core::cell::TonCell;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut builder = TonCell::builder();
-    builder.write_bits([1,2,3], 24).unwrap();
-    let cell = builder.build().unwrap();
-    assert_eq!(cell.data, vec![1, 2, 3]);
+    builder.write_bits([1, 2, 3], 24)?;
+    let cell = builder.build()?;
     let mut parser = cell.parser();
-    let data = parser.read_bits(24).unwrap();
-    assert_eq!(data, [1, 2, 3]);
+    assert_eq!(parser.read_bits(24)?, [1, 2, 3]);
+    parser.ensure_empty()?;
+    Ok(())
 }
 ```
+
+Derive a TLB codec and round-trip a typed record:
+
 ```rust
-// describe TLB type:
-#[derive(Debug, Clone, PartialEq, TLB)]
-#[tlb(ensure_empty = true)]
-pub struct StateInit {
-    #[tlb_derive(bits_len = 5)]
-    pub split_depth: Option<u8>,
-    pub tick_tock: Option<TickTock>,
-    pub code: Option<TLBRef<TonCell>>,
-    pub data: Option<TLBRef<TonCell>>,
-    #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
-    pub library: LibsDict,
+use ton_core::TLB;
+use ton_core::traits::tlb::TLB;
+
+#[derive(Debug, PartialEq, TLB)]
+#[tlb(prefix = 0xc4, bits_len = 8)]
+struct GlobalVersion {
+    version: u32,
+    capabilities: u64,
 }
 
-fn main() {
-    let boc_hex = "b5ee9c720102160100030400020134020100510000082f29a9a31738dd3a33f904d35e2f4f6f9af2d2f9c563c05faa6bb0b12648d5632083ea3f89400114ff00f4a413f4bcf2c80b03020120090404f8f28308d71820d31fd31fd31f02f823bbf264ed44d0d31fd31fd3fff404d15143baf2a15151baf2a205f901541064f910f2a3f80024a4c8cb1f5240cb1f5230cbff5210f400c9ed54f80f01d30721c0009f6c519320d74a96d307d402fb00e830e021c001e30021c002e30001c0039130e30d03a4c8cb1f12cb1fcbff08070605000af400c9ed54006c810108d718fa00d33f305224810108f459f2a782106473747270748018c8cb05cb025005cf165003fa0213cb6acb1f12cb3fc973fb000070810108d718fa00d33fc8542047810108f451f2a782106e6f746570748018c8cb05cb025006cf165004fa0214cb6a12cb1fcb3fc973fb0002006ed207fa00d4d422f90005c8ca0715cbffc9d077748018c8cb05cb0222cf165005fa0214cb6b12ccccc973fb00c84014810108f451f2a702020148130a0201200c0b0059bd242b6f6a2684080a06b90fa0218470d4080847a4937d29910ce6903e9ff9837812801b7810148987159f31840201200e0d0011b8c97ed44d0d70b1f8020158120f02012011100019af1df6a26840106b90eb858fc00019adce76a26840206b90eb85ffc0003db29dfb513420405035c87d010c00b23281f2fff274006040423d029be84c6002e6d001d0d3032171b0925f04e022d749c120925f04e002d31f218210706c7567bd22821064737472bdb0925f05e003fa403020fa4401c8ca07cbffc9d0ed44d0810140d721f404305c810108f40a6fa131b3925f07e005d33fc8258210706c7567ba923830e30d03821064737472ba925f06e30d1514008a5004810108f45930ed44d0810140d720c801cf16f400c9ed540172b08e23821064737472831eb17080185005cb055003cf1623fa0213cb6acb1fcb3fc98040fb00925f03e2007801fa00f40430f8276f2230500aa121bef2e0508210706c7567831eb17080185004cb0526cf1658fa0219f400cb6917cb1f5260cb3f20c98040fb0006";
-    let state_init = StateInit::from_boc_hex(boc_hex).unwrap();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let original = GlobalVersion { version: 1, capabilities: 0 };
+    let cell = original.to_cell()?;
+    assert_eq!(GlobalVersion::from_cell(&cell)?, original);
+    Ok(())
 }
 ```
 
 ### Enum with TLB macros
 TLB macros can derive TLB for enums. You can define enums with a common prefix or with no common prefix.
 Enums without a common prefix are tricky: if you embed such an enum into another enum, its variants are effectively inlined into the outer enum.
-```rust 
+```rust
+use ton_core::TLB;
 
 #[derive(TLB)]
 #[tlb(prefix = 0b010, bits_len = 3)]
@@ -134,7 +143,7 @@ This is effectively parsed as:
 enum OuterEnum {
     OuterVariant1(u16), // Prefix overall = 0b101
     Variant1(u8),       // Prefix overall = 0b1010
-    Variant2(u16),      // Prefix overall = 0b1011
+    Variant2(u8),       // Prefix overall = 0b1011
 }
 ```
 Be careful with null (zero-length) prefixes. A null prefix acts like a wildcard; during parsing, variants are tried in declaration order, so a null-prefix variant placed earlier can consume the input before later variants are considered. See tests in [ton_core/src/traits/tlb/test_tlb_enum.rs](crates/ton_core/src/traits/tlb/test_tlb_enum.rs) for the shadowing and the safe-prefix example.

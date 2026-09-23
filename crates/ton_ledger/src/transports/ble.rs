@@ -30,10 +30,14 @@ const SERVICES: [Uuid; 4] = [
     Uuid::from_u128(0x13d634002c97300400004c6564676572),
     Uuid::from_u128(0x13d634002c97800400004c6564676572),
 ];
+/// Discovered Bluetooth device; obtain through the transport discovery method.
+/// Cloning this descriptor does not open another session.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct BleDeviceInfo {
+    /// Display identifier; changing it does not change backend identity or ownership.
     pub id: String,
+    /// Optional device name reported by the OS.
     pub name: Option<String>,
     peripheral: Peripheral,
     service: Uuid,
@@ -61,6 +65,7 @@ type Notifications = Pin<Box<dyn Stream<Item = ValueNotification> + Send>>;
 // Use the backend identity, never the caller-editable BleDeviceInfo::id label.
 static CONNECTED_DEVICES: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
+/// Backend identity guard; uncertain cleanup leaves the registry entry quarantined.
 struct DeviceLease {
     id: String,
     release_on_drop: bool,

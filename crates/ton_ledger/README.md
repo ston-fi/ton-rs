@@ -4,6 +4,20 @@ A Ledger-backed TON wallet with V3R2/V4R2 message construction, USB HID,
 optional Bluetooth, and custom transports. Requires native Tokio with its time
 driver enabled. Rust 1.94 or later. No network provider is owned by the wallet.
 
+## Installation and API
+
+```toml
+[dependencies]
+ton_ledger = "0.1.0" # USB HID by default; add features = ["ble"] for Bluetooth
+ton = { version = "0.4", default-features = false }
+tokio = { version = "1", features = ["rt", "macros", "time"] }
+```
+
+Use `#[tokio::main(flavor = "current_thread")]` for a standalone application,
+or enable Tokio's time driver when building a runtime manually. Construct and
+use the wallet inside that runtime. The caller supplies chain state, expiry,
+broadcasting and inclusion checks.
+
 The public API has three modules:
 
 | Module | Contents |
@@ -146,7 +160,7 @@ uses generic Jetton hints rather than the firmware's optional hardcoded token
 registry. It also currently rejects zero TonWhales query IDs in clear mode,
 although the pinned firmware parser accepts them; `AllowOpaque` falls back to
 hash-only signing for those payloads. Exact layout and policy restrictions above
-still apply. Other firmware versions and hardware behavior are not validated.
+still apply. Other firmware versions are not validated. See the hardware acceptance note below.
 
 A private TLB enum parses supported payloads and validates exact cell layouts.
 Hint encoding uses ordered field mappings over the existing TON message types.
@@ -179,5 +193,15 @@ endpoint without retries. It uses account zero, V4R2 and workchain zero.
 Fund and deploy that wallet before running it; network fees reduce its balance.
 The printed acknowledgement does not confirm transaction inclusion.
 
-CI compiles the example without running it. Hardware pairing, approval,
-disconnect behavior and a live self-transfer require manual acceptance.
+## Validation and hardware acceptance
+
+CI compiles the example without running it. Protocol fixtures and scripted
+transport tests cover encoding, verification and session failure paths; fixtures
+do not execute firmware. Package verification is separate from hardware testing.
+
+On 2026-09-23, the maintainer reported a successful physical-device test. The
+report did not specify model, OS, transport, operations or transaction inclusion;
+it confirms that tested setup, not every supported transport or recovery path.
+Record those details when extending the acceptance matrix. Pairing, refusal,
+timeout, disconnect/reconnect and displayed transaction fields need coverage for
+each production setup. See `AGENTS.md` for maintainer checks and source locations.

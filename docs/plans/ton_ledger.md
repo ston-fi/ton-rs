@@ -578,7 +578,9 @@ fixtures, supplemented by explicit zero-varuint, DNS empty-capability and
 
 Generic Jetton hints do not infer token registry IDs, tickers or decimals. The
 reference Python zero-varuint encoder has a nonminimal-zero bug; see fixture
-provenance. Hardware tests and live funds were not used. USB discovery cannot
+provenance. Automated implementation validation did not use hardware or live funds. A later
+maintainer report on 2026-09-23 confirms successful hardware use; the device,
+transport and operations were not specified. USB discovery cannot
 forcibly cancel a blocked OS call; asynchronous callers have a deadline and
 workers release resources when that call returns. This OS limitation is documented.
 

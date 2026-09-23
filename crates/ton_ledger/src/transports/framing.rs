@@ -30,6 +30,8 @@ pub(super) fn frames(data: &[u8], size: usize, hid: bool) -> Result<Vec<Vec<u8>>
     }
     Ok(frames)
 }
+/// Reassembles one bounded APDU response and rejects reordered fragments.
+/// Discard after returning a complete response; parsers are not reused across exchanges.
 pub(super) struct Reassembler {
     hid: bool,
     seq: u16,

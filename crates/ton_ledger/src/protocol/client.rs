@@ -8,6 +8,8 @@ use ed25519_dalek::{Signature, VerifyingKey};
 use std::time::Duration;
 use tokio::time::{Instant, timeout_at};
 
+/// Owns the transport and keeps the session dirty from first I/O until a known
+/// terminal response. Dropping an operation future intentionally skips reset.
 pub(crate) struct Client {
     transport: Box<dyn Transport>,
     dirty: bool,

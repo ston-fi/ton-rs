@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Document public API contracts, configuration defaults and recovery behavior;
+  enable missing-documentation warnings and expand maintainer navigation.
+
 - Quarantine BLE devices after failed, timed-out or cancelled disconnect cleanup.
   Reuse requires a confirmed disconnect; uncertain cleanup requires process restart.
 

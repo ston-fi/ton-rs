@@ -1,5 +1,7 @@
 # ton_ledger maintainer guide
 
+## Scope and navigation
+
 Own the exclusive Ledger session, native transports and verified signing here.
 Networking/history/broadcasting belong in callers, including the examples crate.
 Public paths are module-qualified; no convenience re-exports. The only supported
@@ -12,6 +14,8 @@ and data modules contain public requests/results. Firmware codecs, derivation
 encoding, proof digests, hints and session state belong in private `protocol`.
 Transport framing stays private under `transports`. Do not restore legacy root
 modules or add aliases/re-exports for the pre-release import paths.
+
+## Signing and lifecycle invariants
 
 Preserve exact TON cells: compare local reconstruction and device hashes and
 verify Ed25519 before returning a signature. Never normalize caller layout,
@@ -28,6 +32,8 @@ vectors; version numbers alone are insufficient. Update docs, fixtures, feature
 matrix, package contents and changelog together. Never invoke the funded example
 without explicit live-transfer authorization.
 
+## Validation
+
 Fast checks:
 ```
 cargo test -p ton_ledger --no-default-features
@@ -36,9 +42,48 @@ cargo check -p examples --example ton_ledger_bluetooth_self_transfer --features 
 cargo clippy -p ton_ledger --all-targets --all-features -- -D warnings
 cargo +nightly fmt --check
 ```
-Also check hid-only and ble-only, Rust 1.94, strict Rustdoc, package contents and
-an external consumer. Reuse published ton APIs without changing the ton crate.
+Before release, also run:
+
+```sh
+cargo test -p ton_ledger
+cargo test -p ton_ledger --no-default-features --features ble
+cargo +1.94 hack check -p ton_ledger --feature-powerset --all-targets
+RUSTDOCFLAGS="-D warnings -D missing_docs" cargo doc -p ton_ledger --no-deps --all-features
+cargo package --list -p ton_ledger
+cargo publish --dry-run -p ton_ledger
+```
+
+Compile a temporary consumer of the extracted `.crate` with default, no-default,
+BLE-only and combined features. Version `0.1.0` is the initial release; there is
+no published baseline for a SemVer comparison. Release-plz owns subsequent
+version/changelog updates through the workspace `.release-plz.toml`.
+
+The crate enables `missing_docs`: document public types, variants, fields,
+methods and generated setters. Explain units, defaults, limits, I/O, approval,
+errors and recovery where meaningful. Private comments should explain invariants
+and non-obvious ownership rather than narrate the code.
+
+A maintainer reported a working physical-device test on 2026-09-23; model,
+transport and operation details were not recorded. Do not turn that report into
+blanket device/platform/recovery claims. Record model, OS, firmware/app version,
+transport, tested operations and observed outcome for future hardware acceptance.
+
+Reuse published ton APIs without changing the ton crate.
 Keep wallet assembly private here; compare its bytes against TonWallet vectors.
+
+## Code map and extension points
+
+- `ton_ledger_wallet.rs`: wallet identity, address confirmation and signing entrypoints.
+- `ton_ledger_wallet/{builder,config,app,proof,data}.rs`: configuration and public records.
+- `protocol/client.rs`: APDU session state, chunking and verification.
+- `protocol/{apdu,derivation_path,proof,data}.rs`: wire encoders and digest construction.
+- `protocol/payload.rs` and `protocol/payload/`: exact-cell validation and display hints.
+- `transports/{hid,ble,framing}.rs`: worker ownership, native backends and packet framing.
+- `_test_*.rs` beside these modules: deterministic regression tests.
+- `tests/fixtures/README.md`: fixture generation and pinned-source provenance.
+
+The full design is `docs/plans/ton_ledger.md` at the repository root (not included
+in the published package). Keep package-local guidance sufficient on its own.
 
 Hint encoding stays private to this crate. Define ordered field mappings with
 `impl_ledger_hint!` in `protocol/payload/hints.rs` using the existing TON message types.
@@ -49,6 +94,8 @@ hint rules on their typed messages. The private NFT adapter preserves standard
 zero addresses instead of normalizing them to addr_none. Do not add derives or
 traversal to other crates. Ledger hint IDs are distinct from TLB opcodes.
 Verify mappings against the independent firmware fixtures and payload-policy tests.
+
+## Transport maintenance
 
 BLE negotiation uses tag 0x08 and the packet size at offset 5, as Ledger's host
 transports do. Do not fix the intervening header bytes: newer device SDKs also

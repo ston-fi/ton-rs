@@ -13,10 +13,14 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::oneshot;
+/// Discovered USB HID device; obtain through the transport discovery method.
+/// Cloning this descriptor does not open another session.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct HidDeviceInfo {
+    /// Display identifier; changing it does not change backend identity or ownership.
     pub id: String,
+    /// Optional device name reported by the OS.
     pub product: Option<String>,
     path: CString,
 }
@@ -156,6 +160,7 @@ impl Transport for HidTransport {
 // Use the private OS path, never the editable or lossy display ID.
 static CONNECTED_DEVICES: LazyLock<Mutex<HashSet<CString>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
 
+/// Worker-owned OS-path exclusion, released only after device-handle destruction.
 struct DeviceLease(CString);
 impl DeviceLease {
     fn acquire(path: CString) -> Result<Self, TransportError> {

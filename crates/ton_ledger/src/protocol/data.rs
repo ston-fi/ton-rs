@@ -5,6 +5,7 @@ use crate::{
     ton_ledger_wallet::data::LedgerDataRequest,
 };
 use ton::ton_core::{cell::TonCell, traits::tlb::TLB};
+/// APDU payload plus the independent local signature preimage and cell digest.
 pub(crate) struct EncodedData {
     pub(crate) apdu: Vec<u8>,
     pub(crate) preimage: Vec<u8>,

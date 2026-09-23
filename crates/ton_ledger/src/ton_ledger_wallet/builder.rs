@@ -13,16 +13,25 @@ use std::time::Duration;
 use ton::ton_wallet::{WALLET_ID_DEFAULT, WalletVersion};
 #[derive(Setters)]
 #[setters(prefix = "with_", strip_option)]
+/// Wallet configuration with mainnet account zero, workchain zero, the standard
+/// wallet ID, `ClearOnly`, and request/approval budgets of 10/180 seconds.
+/// Obtain this through [`TonLedgerWallet::builder`]. Setters do not perform I/O.
 pub struct Builder {
     #[setters(skip)]
     version: WalletVersion,
     #[setters(skip)]
     transport: Option<Box<dyn Transport>>,
+    /// Key derivation configuration; defaults to mainnet account zero.
     derivation_path: DerivationPath,
+    /// Address workchain, restricted to 0 (default) or -1.
     workchain: i32,
+    /// Subwallet ID; defaults to `ton::ton_wallet::WALLET_ID_DEFAULT`.
     wallet_id: i32,
+    /// Whether opaque transaction fields are allowed; defaults to `ClearOnly`.
     signing_policy: SigningPolicy,
+    /// Positive non-approval request budget; defaults to 10 seconds.
     request_timeout: Duration,
+    /// Positive device-approval budget; defaults to 180 seconds.
     approval_timeout: Duration,
 }
 impl Builder {
@@ -44,6 +53,15 @@ impl Builder {
         self
     }
     /// Validates all configuration before discovery; checks app and binds the public key.
+    /// Without a supplied transport, selects exactly one USB device when `hid`
+    /// is enabled, otherwise returns `MissingTransport`. Bluetooth is explicit.
+    ///
+    /// # Errors
+    /// Rejects unsupported wallets, workchains, paths, timeouts, firmware or keys;
+    /// propagates discovery and device I/O errors.
+    ///
+    /// # Panics
+    /// Requires an active Tokio runtime with its time driver enabled.
     pub async fn build(self) -> TonLedgerResult<TonLedgerWallet> {
         if !matches!(self.version, WalletVersion::V3R2 | WalletVersion::V4R2) {
             return Err(TonLedgerError::UnsupportedWallet);

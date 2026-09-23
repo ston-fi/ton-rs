@@ -31,6 +31,12 @@ use ton::{
     },
     ton_wallet::{WalletV3Data, WalletV4Data, WalletVersion},
 };
+/// An immutable wallet identity bound to one exclusive Ledger session.
+///
+/// Signing verifies the device key, reconstructed message hash and Ed25519
+/// signature. No method broadcasts transactions. Dropping an in-flight operation
+/// can leave the device prompt active and makes the session unusable; reconnect
+/// before retrying. Inspect wallet history before retrying an uncertain broadcast.
 pub struct TonLedgerWallet {
     client: Client,
     version: WalletVersion,
@@ -42,26 +48,34 @@ pub struct TonLedgerWallet {
     policy: SigningPolicy,
 }
 impl TonLedgerWallet {
+    /// Configures a V3R2/V4R2 wallet; validation and device I/O happen in `build`.
     pub fn builder(version: WalletVersion) -> Builder {
         Builder::new(version)
     }
+    /// Wallet code version selected at construction.
     pub fn version(&self) -> WalletVersion {
         self.version
     }
+    /// Ed25519 public key read and bound during construction.
     pub fn public_key(&self) -> &[u8; 32] {
         &self.public_key
     }
+    /// Raw address derived locally from wallet code, public key and wallet ID.
     pub fn address(&self) -> &TonAddress {
         &self.address
     }
+    /// Subwallet ID, preserving all 32 bits through the signed representation.
     pub fn wallet_id(&self) -> i32 {
         self.wallet_id
     }
+    /// Key derivation configuration bound to this session.
     pub fn derivation_path(&self) -> &DerivationPath {
         &self.derivation_path
     }
     /// Constructs mode-3 bodies containing exactly one representable internal message.
     /// Empty bodies must be inline; nonempty bodies and state init must be references.
+    /// `expire_at` is Unix seconds. Rejects unsupported layouts, wallet IDs,
+    /// payload policies and message counts without contacting the device.
     pub fn create_ext_in_body(&self, expire_at: u32, seqno: u32, int_msgs: Vec<TonCell>) -> TonLedgerResult<TonCell> {
         if int_msgs.len() != 1 {
             return Err(TonLedgerError::Invalid("Ledger requires exactly one internal message"));
@@ -71,6 +85,8 @@ impl TonLedgerWallet {
         Ok(body)
     }
     /// Signs only if firmware reconstruction, returned hash and Ed25519 all match.
+    /// Unsupported inputs fail before I/O. Approval denial returns `UserDenied`;
+    /// timeout, cancellation or verification failure requires a fresh session.
     pub async fn sign_ext_in_body(&mut self, body: &TonCell) -> TonLedgerResult<TonCell> {
         let payload = protocol::payload::transaction(self.version, self.wallet_id, body, self.policy)?;
         let hash = body.cell_hash()?;
@@ -82,6 +98,9 @@ impl TonLedgerWallet {
         builder.write_cell(body)?;
         Ok(builder.build()?)
     }
+    /// Wraps an already signed body for this wallet, optionally including deployment state.
+    /// Does not contact the device or validate the supplied signature; use a body
+    /// returned by [`Self::sign_ext_in_body`]. Cell encoding errors are propagated.
     pub fn create_ext_in_msg_from_body(&self, signed_body: TonCell, add_state_init: bool) -> TonLedgerResult<TonCell> {
         let info = CommonMsgInfoExtIn {
             src: MsgAddressExt::NONE,
@@ -94,6 +113,9 @@ impl TonLedgerWallet {
         }
         Ok(msg.to_cell()?)
     }
+    /// Constructs, approves, verifies and wraps one internal message without broadcasting.
+    /// `seqno` and Unix-seconds `expire_at` come from the caller. `add_state_init`
+    /// includes wallet deployment state. Propagates construction and signing errors.
     pub async fn create_ext_in_msg(
         &mut self,
         int_msgs: Vec<TonCell>,
@@ -116,6 +138,9 @@ impl TonLedgerWallet {
         }
         Ok(self.address)
     }
+    /// Requests approval and verifies a TON address proof for this wallet.
+    /// Domain/payload length and APDU-budget errors fail before device I/O.
+    /// Device, identity and signature errors are returned without a proof.
     pub async fn get_address_proof(
         &mut self,
         request: &ProofRequest,
@@ -137,6 +162,8 @@ impl TonLedgerWallet {
         Ok(AddressProof { signature, hash })
     }
     /// Signs the legacy schema/timestamp/cell-hash preimage, not TON Connect signData.
+    /// `timestamp` is Unix seconds. Invalid input fails before I/O; approval and
+    /// verification failures return errors rather than an unchecked signature.
     pub async fn sign_data(&mut self, request: &LedgerDataRequest, timestamp: u64) -> TonLedgerResult<SignedData> {
         let protocol::data::EncodedData {
             apdu: data,
@@ -154,9 +181,11 @@ impl TonLedgerWallet {
             timestamp,
         })
     }
+    /// Queries the app and requires the pinned TON 2.9.1 protocol profile.
     pub async fn app_info(&mut self) -> TonLedgerResult<AppInfo> {
         self.client.app_info().await
     }
+    /// Reads blind-signing and expert-mode flags without changing device settings.
     pub async fn settings(&mut self) -> TonLedgerResult<AppSettings> {
         self.client.settings().await
     }
