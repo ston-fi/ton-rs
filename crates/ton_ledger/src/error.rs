@@ -18,6 +18,8 @@ pub enum TransportError {
     NoDevice,
     #[error("multiple Ledger devices found; select one explicitly")]
     AmbiguousDevice,
+    #[error("Ledger device is already owned by another session in this process; wait for it to close")]
+    DeviceBusy,
 }
 /// Invalid inputs fail before device I/O; uncertain sessions cannot be reused.
 #[derive(Debug, Error)]

@@ -1,6 +1,21 @@
 use super::*;
 use futures_util::stream;
 
+#[test]
+fn test_device_lease_excludes_duplicates_until_owner_drops() -> anyhow::Result<()> {
+    let first_id = "lease-test-first".to_owned();
+    let second_id = "lease-test-second".to_owned();
+    let first = DeviceLease::acquire(first_id.clone())?;
+    let _second = DeviceLease::acquire(second_id.clone())?;
+    assert!(matches!(DeviceLease::acquire(first_id.clone()), Err(TransportError::DeviceBusy)));
+    // A rejected acquisition must not release the current owner's lease.
+    assert!(matches!(DeviceLease::acquire(first_id.clone()), Err(TransportError::DeviceBusy)));
+    drop(first);
+    let _reconnected = DeviceLease::acquire(first_id)?;
+    assert!(matches!(DeviceLease::acquire(second_id), Err(TransportError::DeviceBusy)));
+    Ok(())
+}
+
 fn notifications(frames: Vec<Vec<u8>>) -> Notifications {
     Box::pin(stream::iter(frames.into_iter().map(|value| ValueNotification {
         uuid: Uuid::nil(),

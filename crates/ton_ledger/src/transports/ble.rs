@@ -13,7 +13,12 @@ use btleplug::{
     platform::{Manager, Peripheral},
 };
 use futures_util::{Stream, StreamExt};
-use std::{pin::Pin, time::Duration};
+use std::{
+    collections::HashSet,
+    pin::Pin,
+    sync::{LazyLock, Mutex},
+    time::Duration,
+};
 use tokio::{
     sync::{mpsc, oneshot},
     time::{Instant, timeout_at},
@@ -51,8 +56,34 @@ fn backend(e: btleplug::Error) -> TransportError {
     }
 }
 type Notifications = Pin<Box<dyn Stream<Item = ValueNotification> + Send>>;
+
+// All discovery handles for a peripheral share one process-local session lease.
+// Use the backend identity, never the caller-editable BleDeviceInfo::id label.
+static CONNECTED_DEVICES: LazyLock<Mutex<HashSet<String>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
+
+struct DeviceLease(String);
+impl DeviceLease {
+    fn acquire(id: String) -> Result<Self, TransportError> {
+        let mut devices = CONNECTED_DEVICES
+            .lock()
+            .map_err(|_| TransportError::Backend(Box::new(std::io::Error::other("BLE session registry poisoned"))))?;
+        if !devices.insert(id.clone()) {
+            return Err(TransportError::DeviceBusy);
+        }
+        Ok(Self(id))
+    }
+}
+impl Drop for DeviceLease {
+    fn drop(&mut self) {
+        // Cleanup must release ownership even if another holder panicked.
+        let mut devices = CONNECTED_DEVICES.lock().unwrap_or_else(|error| error.into_inner());
+        devices.remove(&self.0);
+    }
+}
+
 impl BleTransport {
-    /// Scans all adapters for normal-mode Ledger services within a total budget.
+    /// Scans all adapters for normal-mode Ledger services within `timeout`.
+    /// Stopping the scans can add up to two seconds before this returns.
     pub async fn discover(timeout: Duration) -> Result<Vec<BleDeviceInfo>, TransportError> {
         if timeout.is_zero() {
             return Err(TransportError::Timeout);
@@ -107,10 +138,15 @@ impl BleTransport {
         recv.await.map_err(|_| TransportError::Disconnected)?
     }
     /// Connects and negotiates packet size within 20 seconds. Pair through the OS.
+    /// Returns `DeviceBusy` if this process already owns the peripheral, including
+    /// while a dropped or failed session finishes its bounded cleanup.
     pub async fn connect(device: BleDeviceInfo) -> Result<Self, TransportError> {
+        let lease = DeviceLease::acquire(device.peripheral.id().to_string())?;
         let (sender, mut receiver) = mpsc::channel::<Request>(1);
         let (mut ready, opened) = oneshot::channel();
         tokio::spawn(async move {
+            // The worker retains the lease through setup, cancellation and disconnect.
+            let _lease = lease;
             let p = device.peripheral;
             let setup = async {
                 p.connect().await.map_err(backend)?;

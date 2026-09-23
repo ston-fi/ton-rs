@@ -96,7 +96,7 @@ async fn transfer() -> anyhow::Result<()> {
 
 async fn select_device() -> anyhow::Result<Option<BleDeviceInfo>> {
     loop {
-        println!("Scanning for Ledger devices (up to 10 seconds)…");
+        println!("Scanning for Ledger devices (10-second scan budget, plus up to 2 seconds to stop scanning)…");
         let mut devices = match BleTransport::discover(Duration::from_secs(10)).await {
             Ok(devices) => devices,
             Err(error) => {

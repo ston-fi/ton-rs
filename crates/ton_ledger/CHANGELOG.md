@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Reject duplicate in-process BLE sessions with `TransportError::DeviceBusy`;
+  retain ownership until the connection worker finishes cleanup.
+- Clarify BLE discovery cleanup time and document a complete transfer example.
+- Exercise proof and legacy-data signing through the wallet, including rejected
+  hashes/signatures and unusable-session behavior.
+- Restore the Bluetooth example's explicit testnet selection and display flags.
+
 - Fix BLE packet-size negotiation rejecting newer Ledger SDK reply headers;
   wait for the negotiation tag within the existing connection timeout.
 

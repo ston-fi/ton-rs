@@ -326,6 +326,12 @@ Bluetooth:
 - Pairing and permissions use the OS facilities; report actionable errors.
 - Own notification tasks and handles; closing/dropping the session terminates
   readers/workers and releases connections without leaking background work.
+- Acquire a process-local lease by backend peripheral ID before starting setup;
+  hold it through disconnect cleanup and reject duplicate connections with
+  `TransportError::DeviceBusy`. Other processes and USB sessions are outside
+  this lease's scope.
+- Discovery's scan budget excludes a bounded two-second stop-scan allowance;
+  document that allowance in the public API and interactive example.
 
 Both backends use the same protocol/signature tests. Mark an in-flight session
 dirty before awaiting I/O; timeout, dropped futures or uncertain transport

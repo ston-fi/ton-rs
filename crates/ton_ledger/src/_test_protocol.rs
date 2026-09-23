@@ -292,6 +292,121 @@ async fn test_proof_budget_precedes_io() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn test_wallet_address_proof_transcript_and_rejection() -> anyhow::Result<()> {
+    let software = TonWallet::new(
+        WalletVersion::V4R2,
+        KeyPair {
+            public_key: key().verifying_key().to_bytes(),
+            secret_key: key().to_keypair_bytes(),
+        },
+    )?;
+    let request = ProofRequest::new("example.org".into(), 1_700_000_000, b"challenge".to_vec());
+    // digest() has an independent Python vector above. Use the software wallet's
+    // address here to check that the Ledger operation binds the correct identity.
+    let hash = crate::proof::digest(&software.address, &request);
+    let command = hex::decode(concat!(
+        "e00801053b", // TON proof, confirmation, testnet display, 59-byte request.
+        "068000002c8000025f80000000800000008000000080000000",
+        "0029a9a317",                         // V4R2 and the default wallet ID.
+        "0b6578616d706c652e6f7267",           // UTF-8 domain length and example.org.
+        "000000006553f1006368616c6c656e6765"  // Timestamp and challenge.
+    ))?;
+    // A valid response, a mismatched returned hash, and a corrupted signature.
+    for corruption in [None, Some(66), Some(1)] {
+        let mut response = signed(&hash, &hash);
+        if let Some(offset) = corruption {
+            response[offset] ^= 1;
+        }
+        let mut steps = setup()?;
+        steps.extend(setup()?);
+        steps.push_back((command.clone(), ok(response)));
+        let seen = Arc::new(Mutex::new(0));
+        let mut wallet = TonLedgerWallet::builder(WalletVersion::V4R2)
+            .with_transport(Script {
+                steps,
+                seen: seen.clone(),
+            })
+            .build()
+            .await?;
+        let result = wallet.get_address_proof(&request, crate::app::AddressOptions::default().with_testnet(true)).await;
+        match corruption {
+            None => {
+                let proof = result?;
+                assert_eq!(proof.hash, hash);
+                assert_eq!(proof.signature, key().sign(&hash).to_bytes());
+            },
+            Some(66) => assert!(matches!(result, Err(TonLedgerError::HashMismatch))),
+            _ => assert!(matches!(result, Err(TonLedgerError::Signature))),
+        }
+        if corruption.is_some() {
+            assert!(matches!(wallet.settings().await, Err(TonLedgerError::DirtySession)));
+        }
+        assert_eq!(*seen.lock().map_err(|_| anyhow::anyhow!("lock"))?, 7);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_wallet_data_signing_transcripts_and_rejection() -> anyhow::Result<()> {
+    use crate::data::LedgerDataRequest;
+    let requests = [
+        LedgerDataRequest::Plaintext("hello".into()),
+        LedgerDataRequest::AppData {
+            address: Some(TonAddress::new(0, ton::ton_core::cell::TonHash::from_slice(&[0x11; 32])?)),
+            domain: Some("app.example.org".into()),
+            data: TonCell::empty().clone(),
+            extension: Some(TonCell::empty().clone()),
+        },
+    ];
+    let path_command = hex::decode("e009000319068000002c8000025f80000000800000008000000080000000")?;
+    let vectors: Vec<_> = include_str!("../tests/fixtures/data.tsv").lines().collect();
+    assert_eq!(requests.len(), vectors.len());
+    for (request, vector) in requests.iter().zip(vectors) {
+        let fields: Vec<_> = vector.split('\t').collect();
+        let payload = hex::decode(fields[0])?;
+        let preimage = hex::decode(fields[1])?;
+        let hash = &preimage[12..];
+        for corruption in [None, Some(66), Some(1)] {
+            let mut response = signed(hash, &preimage);
+            if let Some(offset) = corruption {
+                response[offset] ^= 1;
+            }
+            let mut steps = setup()?;
+            steps.extend(setup()?);
+            steps.extend([
+                (path_command.clone(), ok(vec![])),
+                (protocol::command(9, 0, 0, &payload)?, ok(response)),
+            ]);
+            let seen = Arc::new(Mutex::new(0));
+            let mut wallet = TonLedgerWallet::builder(WalletVersion::V4R2)
+                .with_transport(Script {
+                    steps,
+                    seen: seen.clone(),
+                })
+                .build()
+                .await?;
+            let result = wallet.sign_data(request, 1_700_000_000).await;
+            match corruption {
+                None => {
+                    let data = result?;
+                    assert_eq!(data.cell_hash, hash);
+                    assert_eq!(data.signature, key().sign(&preimage).to_bytes());
+                    assert_eq!(data.schema.to_be_bytes(), &preimage[..4]);
+                    assert_eq!(data.timestamp, 1_700_000_000);
+                },
+                Some(66) => assert!(matches!(result, Err(TonLedgerError::HashMismatch))),
+                _ => assert!(matches!(result, Err(TonLedgerError::Signature))),
+            }
+            if corruption.is_some() {
+                assert!(matches!(wallet.settings().await, Err(TonLedgerError::DirtySession)));
+            }
+            assert_eq!(*seen.lock().map_err(|_| anyhow::anyhow!("lock"))?, 8);
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_builder_order_and_signed_identity() -> anyhow::Result<()> {
     for version in [WalletVersion::V3R2, WalletVersion::V4R2] {
         let key = key();

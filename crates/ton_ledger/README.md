@@ -26,6 +26,37 @@ silently rewritten. Then use `create_ext_in_body(expiry, seqno, vec![message])`,
 wallet TLB records can express supported custom modes. Signed cells are locally
 verified; they are not transaction IDs or proof of inclusion.
 
+For example, construct an empty-body transfer with explicit inline placement.
+The caller supplies the destination, current seqno and expiry:
+
+```rust,no_run
+use ton::block_tlb::{CommonMsgInfoInt, Msg};
+use ton::ton_core::{
+    cell::TonCell,
+    traits::tlb::TLB,
+    types::{TonAddress, tlb_core::{EitherRefLayout, TLBCoins}},
+};
+use ton_ledger::{error::TonLedgerResult, ton_ledger_wallet::TonLedgerWallet};
+
+async fn transfer(
+    wallet: &mut TonLedgerWallet,
+    destination: TonAddress,
+    seqno: u32,
+    expire_at: u32,
+) -> TonLedgerResult<TonCell> {
+    let mut message = Msg::new(
+        CommonMsgInfoInt::new(destination.to_msg_address_int().into(), TLBCoins::new(10_000_000)),
+        TonCell::empty().clone(),
+    );
+    message.body.layout = EitherRefLayout::ToCell;
+    wallet.create_ext_in_msg(vec![message.to_cell()?], seqno, expire_at, false).await
+}
+```
+
+For a nonempty payload, supply its cell as the body and use
+`EitherRefLayout::ToRef`. Attach state init with `TLBEitherRef::new_ref(state_init)`
+and explicitly select `SigningPolicy::AllowOpaque` on the wallet builder.
+
 The default path is `44'/607'/0'/0'/0'/0'`. Use
 `with_derivation_path(DerivationPath::Ton { account, testnet })`; workchain -1
 selects chain component 255. `Custom(Vec<u32>)` accepts 3–10 unhardened indexes
@@ -56,7 +87,8 @@ Linux CI is configured to build the feature combinations. No browser/WASM or no_
 
 Discovery and connection are bounded. Request/approval defaults are 10/180
 seconds, configurable on the builder. HID and BLE connect budgets are 10/20
-seconds; BLE cleanup adds at most four seconds. Blocking OS HID enumeration or
+seconds. BLE discovery can add up to two seconds to stop scanning before returning;
+connection cleanup takes up to four seconds in the background. Blocking OS HID enumeration or
 writes cannot be forcibly interrupted; timed-out callers return, and workers
 release resources after the OS call returns. HID reads poll at most every 50 ms.
 Drop releases session ownership. There is no automatic reconnect, retry or
@@ -64,6 +96,11 @@ USB/BLE fallback. Cancellation or uncertain I/O poisons the wallet; drop it,
 resolve any device prompt, reconnect and build again. Reconnecting does not
 cancel a pending prompt on the device. Custom transports must enforce exclusive
 physical-device access for the whole wallet lifetime.
+
+BLE rejects duplicate connections to the same backend device in this process
+with `TransportError::DeviceBusy`, including while an old worker is cleaning up.
+The lease covers cloned and rediscovered handles. It does not coordinate other
+applications or USB access to the same physical Ledger; close those sessions first.
 
 ## Signing scope
 

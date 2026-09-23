@@ -47,3 +47,11 @@ BLE negotiation uses tag 0x08 and the packet size at offset 5, as Ledger's host
 transports do. Do not fix the intervening header bytes: newer device SDKs also
 encode the size there. Ignore unrelated setup notifications within the existing
 connection deadline; preserve errors for truncated or undersized size replies.
+
+Acquire the BLE device lease from the backend peripheral ID before spawning a
+connection worker, never from the editable display ID. Keep it in the worker
+through disconnect cleanup, including failed or cancelled setup. Duplicate
+connections fail with `TransportError::DeviceBusy`; the lease is process-local.
+BLE discovery has a separate two-second stop-scan allowance after its scan budget.
+Keep proof/data wallet transcript tests alongside the independent codec vectors:
+they must check request bytes, signature preimages and dirty-session rejection.

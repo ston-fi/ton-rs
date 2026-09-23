@@ -11,8 +11,8 @@ use tokio::time::{Instant, timeout_at};
 pub(crate) struct Client {
     transport: Box<dyn Transport>,
     dirty: bool,
-    pub(crate) request_timeout: Duration,
-    pub(crate) approval_timeout: Duration,
+    request_timeout: Duration,
+    approval_timeout: Duration,
 }
 impl Client {
     pub(crate) fn new(transport: Box<dyn Transport>, request_timeout: Duration, approval_timeout: Duration) -> Self {

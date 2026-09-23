@@ -50,7 +50,9 @@ pub(crate) fn standard_address(addr: &MsgAddress) -> TonLedgerResult<TonAddress>
     match addr {
         MsgAddress::Int(MsgAddressInt::Std(a)) if a.anycast.is_none() => {
             let addr = TonAddress::from_msg_address(addr.clone())?;
-            address(&mut Vec::new(), &addr)?;
+            if !matches!(addr.workchain, 0 | -1) {
+                return Err(TonLedgerError::Invalid("unsupported workchain"));
+            }
             Ok(addr)
         },
         _ => Err(TonLedgerError::Invalid("only standard non-anycast addresses are supported")),
