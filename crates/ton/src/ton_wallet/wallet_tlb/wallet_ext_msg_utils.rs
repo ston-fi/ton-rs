@@ -20,7 +20,6 @@ pub(super) fn write_up_to_4_msgs(
 
 pub(super) fn read_up_to_4_msgs(parser: &mut CellParser) -> Result<(Vec<u8>, Vec<TonCell>), TonCoreError> {
     let msgs_cnt = parser.refs_left();
-    println!("refs left: {}", msgs_cnt);
     let mut msgs_modes = Vec::with_capacity(msgs_cnt);
     let mut msgs = Vec::with_capacity(msgs_cnt);
     for _ in 0..msgs_cnt {
