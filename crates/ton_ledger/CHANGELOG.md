@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Accept all TON app 2.x.x versions under an assumed SemVer compatibility policy;
+  retain 2.9.1 as the source-validated protocol baseline and reject other majors.
+
 - Add an optional random opaque payload to the mainnet self-transfer example
   for manual blind-signing checks.
 

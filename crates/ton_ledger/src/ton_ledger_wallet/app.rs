@@ -1,11 +1,11 @@
 //! TON app inspection results.
-/// Source-validated firmware identity; this does not attest the installed binary.
+/// App-reported identity accepted by the version policy; this does not attest the installed binary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct AppInfo {
     /// Validated app name (`TON`).
     pub name: String,
-    /// Validated major, minor and patch version.
+    /// Reported major, minor and patch version; only major version 2 is accepted.
     pub version: [u8; 3],
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -575,8 +575,9 @@ claims; do not describe Bluetooth or a self-transfer as tested.
 
 Implemented in the existing `ton_ledger` checkout. The crate uses hidapi 2.6.7
 and btleplug 0.13.2, Rust 1.94, default HID and independent BLE/custom features.
-Only firmware version 2.9.1 is accepted; device identification is not firmware
-attestation. All 14 hint families have source-attributed independent Python
+All TON app 2.x.x versions are accepted under an assumed SemVer compatibility
+policy; other major versions are rejected. The source-validated baseline remains
+2.9.1; device identification is not firmware attestation. All 14 hint families have source-attributed independent Python
 fixtures, supplemented by explicit zero-varuint, DNS empty-capability and
 48-bit timestamp cases. SDK maximum path length is 10 at the commit in NOTICE.
 

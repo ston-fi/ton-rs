@@ -27,9 +27,11 @@ futures/timeouts. No automatic retry or reconnection. Backends own and close the
 workers/streams; they cannot promise to cancel the device's approval screen.
 
 Use fixtures under tests/fixtures, pinned firmware source, README and the plan
-in docs/plans/ton_ledger.md. Changing firmware rules requires new independent
-vectors; version numbers alone are insufficient. Update docs, fixtures, feature
-matrix, package contents and changelog together. Never invoke the funded example
+in docs/plans/ton_ledger.md. Accept all TON app 2.x.x versions under the assumed
+SemVer compatibility policy; reject other majors. The source-validated baseline
+remains 2.9.1. Changes to wire encoding or signing rules require new independent
+vectors; accepting a version does not establish validation of that release.
+Update docs, fixtures, feature matrix, package contents and changelog together. Never invoke the funded example
 without explicit live-transfer authorization.
 
 ## Validation

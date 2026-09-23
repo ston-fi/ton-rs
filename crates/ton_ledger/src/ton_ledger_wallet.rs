@@ -181,7 +181,7 @@ impl TonLedgerWallet {
             timestamp,
         })
     }
-    /// Queries the app and requires the pinned TON 2.9.1 protocol profile.
+    /// Queries the app and requires TON app major version 2.
     pub async fn app_info(&mut self) -> TonLedgerResult<AppInfo> {
         self.client.app_info().await
     }

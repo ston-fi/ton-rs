@@ -481,6 +481,36 @@ async fn test_cancellation_between_chunks() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn test_app_version_accepts_major_two() -> anyhow::Result<()> {
+    for version in [[2, 0, 0], [2, 9, 0], [2, 9, 1], [2, 9, 2], [2, 10, 0], [2, 255, 255]] {
+        let mut steps = setup()?;
+        steps[1].1 = ok(version.to_vec());
+        let transport = Script {
+            steps,
+            seen: Arc::new(Mutex::new(0)),
+        };
+        let mut client = Client::new(Box::new(transport), Duration::from_secs(1), Duration::from_secs(1));
+        assert_eq!(client.app_info().await?.version, version);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_app_version_rejects_malformed_response() -> anyhow::Result<()> {
+    for version in [vec![], vec![2], vec![2, 9], vec![2, 9, 1, 0]] {
+        let mut steps = setup()?;
+        steps[1].1 = ok(version);
+        let transport = Script {
+            steps,
+            seen: Arc::new(Mutex::new(0)),
+        };
+        let mut client = Client::new(Box::new(transport), Duration::from_secs(1), Duration::from_secs(1));
+        assert!(matches!(client.app_info().await, Err(TonLedgerError::Response("version length"))));
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_app_identity_settings_and_invalid_configuration() -> anyhow::Result<()> {
     let seen = Arc::new(Mutex::new(0));
     assert!(matches!(
@@ -494,7 +524,7 @@ async fn test_app_identity_settings_and_invalid_configuration() -> anyhow::Resul
         Err(TonLedgerError::UnsupportedWallet)
     ));
     assert_eq!(*seen.lock().map_err(|_| anyhow::anyhow!("lock"))?, 0);
-    for version in [[2, 9, 0], [2, 10, 0]] {
+    for version in [[0, 0, 0], [1, 9, 1], [3, 0, 0], [255, 9, 1]] {
         let mut steps = setup()?;
         steps[1].1 = ok(version.to_vec());
         assert!(matches!(

@@ -136,10 +136,12 @@ or USB and Bluetooth access to the same physical Ledger; close those sessions fi
 
 ## Signing scope
 
-The compatibility profile is the LedgerHQ TON app **2.9.1**, pinned at
-`849962d6378567f5aaf708b116292ccf7b17a97c`. Other version strings fail explicitly.
-Version checking does not attest a firmware binary, and does not infer support
-from `version >= minimum`. V5, multiple messages and extra currencies are rejected.
+All LedgerHQ TON app **2.x.x** versions are accepted, assuming semantic-versioning
+compatibility within major version 2. Other major versions fail explicitly.
+The source-validated protocol baseline remains **2.9.1**, pinned at
+`849962d6378567f5aaf708b116292ccf7b17a97c`. Version checking does not attest a
+firmware binary or independently validate every accepted release. V5, multiple
+messages and extra currencies are rejected.
 The APDU payload limit is 255 bytes; chunked transaction/data payloads total at
 most 510 bytes. No key export, app installation, background device discovery or
 balance cache is provided.

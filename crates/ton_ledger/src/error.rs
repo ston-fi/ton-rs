@@ -48,8 +48,8 @@ pub enum TonLedgerError {
     /// Only V3R2 and V4R2 wallet code is supported.
     #[error("unsupported wallet version")]
     UnsupportedWallet,
-    /// The app version differs from the pinned protocol profile.
-    #[error("unvalidated TON app version {0:?}; source baseline is 2.9.1")]
+    /// The app major version is outside the supported TON 2.x series.
+    #[error("unvalidated TON app version {0:?}; expected major version 2")]
     UnvalidatedFirmware([u8; 3]),
     /// The device did not report the TON app.
     #[error("open the TON app on the Ledger")]

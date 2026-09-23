@@ -102,7 +102,7 @@ impl Client {
             .await?
             .try_into()
             .map_err(|_| TonLedgerError::Response("version length"))?;
-        if version != [2, 9, 1] {
+        if version[0] != 2 {
             return Err(TonLedgerError::UnvalidatedFirmware(version));
         }
         Ok(AppInfo {
