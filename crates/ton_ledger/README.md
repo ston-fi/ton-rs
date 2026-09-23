@@ -193,6 +193,13 @@ endpoint without retries. It uses account zero, V4R2 and workchain zero.
 Fund and deploy that wallet before running it; network fees reduce its balance.
 The printed acknowledgement does not confirm transaction inclusion.
 
+At startup, press Enter for the plain transfer or `b` to test blind signing.
+The latter attaches an unrecognized `0xdeadbeef` opcode and 32 random bytes as a
+referenced payload, explicitly selects `SigningPolicy::AllowOpaque`, and prints
+the payload bytes and cell hash. Enable blind signing in the Ledger TON app;
+review its hash-based approval display. Both modes send the same amount to the
+same wallet; a readable text comment would exercise clear signing instead.
+
 ## Validation and hardware acceptance
 
 CI compiles the example without running it. Protocol fixtures and scripted

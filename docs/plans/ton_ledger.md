@@ -384,6 +384,10 @@ cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features le
 Keep the transfer flow straight-line: select a discovered device, build a V4R2 mainnet account-zero
 wallet, confirm its address, read the deployed wallet's seqno, construct a
 0.01 TON self-transfer, sign, and broadcast without automatic retries.
+Offer a plain transfer by default or an explicit blind-signing test: an unknown
+`0xdeadbeef` opcode plus 32 random bytes in a referenced payload, using
+`SigningPolicy::AllowOpaque`. Print bytes and cell hash before device approval
+and explain that the TON app must enable blind signing.
 Keep Bluetooth discovery interactive: list names and IDs, select by number, rescan, or quit.
 Explain empty scans and permission failures; print progress before device approval.
 Require a funded, deployed wallet. State that fees reduce its balance and

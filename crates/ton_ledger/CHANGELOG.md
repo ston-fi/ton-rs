@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Add an optional random opaque payload to the mainnet self-transfer example
+  for manual blind-signing checks.
+
 - Document public API contracts, configuration defaults and recovery behavior;
   enable missing-documentation warnings and expand maintainer navigation.
 

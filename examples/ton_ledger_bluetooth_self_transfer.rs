@@ -1,4 +1,5 @@
 //! Sends 0.01 TON to a funded, deployed V4R2 mainnet Ledger wallet itself.
+//! Optionally includes a random opaque payload to exercise blind signing.
 //! Prefers USB; scans Bluetooth when no USB Ledger is connected.
 //! Run manually with the TON app open; approval spends network fees.
 use anyhow::Context;
@@ -21,7 +22,7 @@ use ton::{
 use ton_ledger::{
     ton_ledger_wallet::{
         TonLedgerWallet,
-        config::{AddressOptions, DerivationPath},
+        config::{AddressOptions, DerivationPath, SigningPolicy},
     },
     transports::{
         ble::{BleDeviceInfo, BleTransport},
@@ -42,7 +43,9 @@ async fn main() -> ExitCode {
 
 async fn transfer() -> anyhow::Result<()> {
     println!("Mainnet · V4R2 · account 0 · self-transfer 0.01 TON (plus network fees).");
-    let Some(mut wallet) = connect_wallet().await? else { return Ok(()) };
+    let Some(policy) = select_signing_policy()? else { return Ok(()) };
+    let payload = transfer_payload(policy)?;
+    let Some(mut wallet) = connect_wallet(policy).await? else { return Ok(()) };
 
     println!("Confirm the wallet address on your Ledger.");
     wallet.confirm_address(AddressOptions::default().with_testnet(false)).await?;
@@ -61,7 +64,7 @@ async fn transfer() -> anyhow::Result<()> {
         }
         .into(),
         init: None,
-        body: TLBEitherRef::new_with_layout(TonCell::empty().clone(), EitherRefLayout::ToCell),
+        body: payload,
     }
     .to_cell()?;
     let expires_at = SystemTime::now() + Duration::from_secs(600);
@@ -77,7 +80,39 @@ async fn transfer() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn connect_wallet() -> anyhow::Result<Option<TonLedgerWallet>> {
+fn select_signing_policy() -> io::Result<Option<SigningPolicy>> {
+    loop {
+        let Some(choice) = prompt("Enter = plain transfer, b = random blind-signing payload, q = quit: ")? else {
+            return Ok(None);
+        };
+        if choice.is_empty() {
+            return Ok(Some(SigningPolicy::ClearOnly));
+        }
+        if choice.eq_ignore_ascii_case("b") {
+            println!("Enable blind signing in the Ledger TON app settings before continuing.");
+            println!("The payload will be displayed by hash, not as a readable message.");
+            return Ok(Some(SigningPolicy::AllowOpaque));
+        }
+        println!("Choose Enter, b, or q.");
+    }
+}
+
+fn transfer_payload(policy: SigningPolicy) -> anyhow::Result<TLBEitherRef<TonCell>> {
+    if policy == SigningPolicy::ClearOnly {
+        return Ok(TLBEitherRef::new_with_layout(TonCell::empty().clone(), EitherRefLayout::ToCell));
+    }
+    let random_bytes = rand::random::<[u8; 32]>();
+    let mut builder = TonCell::builder();
+    // An unrecognized opcode guarantees the random bytes cannot become a clear-signing hint.
+    builder.write_num(&0xdead_beefu32, 32)?;
+    builder.write_bits(random_bytes, 256)?;
+    let payload = builder.build()?;
+    println!("Payload bytes: deadbeef{}", hex::encode(random_bytes));
+    println!("Payload cell hash: {}", hex::encode(payload.cell_hash()?.as_slice()));
+    Ok(TLBEitherRef::new_with_layout(payload, EitherRefLayout::ToRef))
+}
+
+async fn connect_wallet(policy: SigningPolicy) -> anyhow::Result<Option<TonLedgerWallet>> {
     println!("Unlock your Ledger and open the TON app. Connect a USB cable if available.");
     if prompt("Press Enter to connect, or q to quit: ")?.is_none() {
         return Ok(None);
@@ -107,6 +142,7 @@ async fn connect_wallet() -> anyhow::Result<Option<TonLedgerWallet>> {
         builder.with_transport(transport)
     };
     let wallet = builder
+        .with_signing_policy(policy)
         .with_derivation_path(DerivationPath::Ton {
             account: 0,
             testnet: false,
