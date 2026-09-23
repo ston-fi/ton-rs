@@ -243,7 +243,7 @@ Encode the eleven fixed-field hint families with a private `impl_ledger_hint!`
 macro in `ton_ledger/src/payload/hints.rs`. Each invocation lists the existing
 message type, hint ID and fields in firmware order with named byte adapters.
 Adapters in `payload/encoding.rs` own primitive validation and signing policy.
-A private `SupportedMessage` enum derives TLB and owns opcode dispatch. Parse and
+A private `LedgerSupportedMsg` enum derives TLB and owns opcode dispatch. Parse and
 round-trip the complete cell before encoding. Typed comments, DNS records and
 vesting messages retain explicit hint rules. A private NFT wrapper preserves
 standard zero addresses using the existing NFTTransferMsg fields. No public extension
@@ -373,9 +373,11 @@ existing pure-Rust LiteClient.
 cargo run -p examples --example ledger_bluetooth_self_transfer --features ledger-ble
 ```
 
-Keep a straight-line main: discover one device, build a V4R2 testnet account-zero
+Keep the transfer flow straight-line: select a discovered device, build a V4R2 testnet account-zero
 wallet, confirm its address, read the deployed wallet's seqno, construct a
 0.01 TON self-transfer, sign, and broadcast without automatic retries.
+Keep discovery interactive: list names and IDs, select by number, rescan, or quit.
+Explain empty scans and permission failures; print progress before device approval.
 Require a funded, deployed wallet. State that fees reduce its balance and
 broadcast acknowledgement does not prove inclusion. Omit CLI parsing, history
 verification, deployment management and example-specific tests. CI compiles the

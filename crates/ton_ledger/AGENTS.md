@@ -36,7 +36,7 @@ Keep wallet assembly private here; compare its bytes against TonWallet vectors.
 Hint encoding stays private to this crate. Define ordered field mappings with
 `impl_ledger_hint!` in `payload/hints.rs` using the existing TON message types.
 Keep primitive checks and signing-policy handling in `payload/encoding.rs`;
-the private `SupportedMessage` enum derives TLB and selects each message by its
+the private `LedgerSupportedMsg` enum derives TLB and selects each message by its
 prefix. Exact-cell validation precedes encoding. Keep comment, DNS and vesting
 hint rules on their typed messages. The private NFT adapter preserves standard
 zero addresses instead of normalizing them to addr_none. Do not add derives or

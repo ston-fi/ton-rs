@@ -113,7 +113,8 @@ From this repository:
 cargo run -p examples --example ledger_bluetooth_self_transfer --features ledger-ble
 ```
 
-The short example connects to one Ledger, confirms its address, reads the seqno,
+The example lists nearby Ledgers and lets you choose one or rescan. Enter `q`
+at a prompt to quit. It confirms the address on the device, reads the seqno,
 signs **10,000,000 nanotons to itself**, and broadcasts through one testnet
 endpoint without retries. It uses account zero, V4R2 and workchain zero.
 Fund and deploy that wallet before running it; network fees reduce its balance.

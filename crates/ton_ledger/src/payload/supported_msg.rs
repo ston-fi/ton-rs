@@ -10,7 +10,7 @@ use ton::{
 };
 
 #[derive(TLB)]
-pub(super) enum SupportedMessage {
+pub(super) enum LedgerSupportedMsg {
     Comment(Comment),
     JettonTransfer(JettonTransferMsg),
     NftTransfer(NftTransfer),
@@ -27,7 +27,7 @@ pub(super) enum SupportedMessage {
     Vesting(Vesting),
 }
 
-impl LedgerHintEncode for SupportedMessage {
+impl LedgerHintEncode for LedgerSupportedMsg {
     fn encode_hint(&self, policy: SigningPolicy) -> TonLedgerResult<Hint> {
         match self {
             Self::Comment(message) => message.encode_hint(policy),

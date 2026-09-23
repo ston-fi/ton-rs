@@ -1,7 +1,7 @@
 //! Ordered Ledger field mappings and complete hint encoding.
 mod dns;
 mod vesting;
-use super::{exact, message::SupportedMessage, tlb::*};
+use super::{exact, supported_msg::LedgerSupportedMsg, tlb::*};
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
     protocol,
@@ -23,7 +23,7 @@ pub(super) trait LedgerHintEncode {
 }
 
 pub(super) fn encode(cell: &TonCell, policy: SigningPolicy) -> TonLedgerResult<Vec<u8>> {
-    let hint = exact::<SupportedMessage>(cell).and_then(|message| message.encode_hint(policy));
+    let hint = exact::<LedgerSupportedMsg>(cell).and_then(|message| message.encode_hint(policy));
     match hint {
         Ok(Hint { id, data }) => {
             let length = u16::try_from(data.len()).map_err(|_| TonLedgerError::Invalid("hint exceeds 65535 bytes"))?;

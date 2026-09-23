@@ -1,6 +1,6 @@
 mod encoding;
 mod hints;
-mod message;
+mod supported_msg;
 mod tlb;
 use crate::{
     error::{TonLedgerError, TonLedgerResult},

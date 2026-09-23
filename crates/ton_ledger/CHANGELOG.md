@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Rename the private payload enum to `LedgerSupportedMsg`; make the Bluetooth
+  example interactive with device selection, rescanning and actionable errors.
+
 - Parse supported Ledger payloads through a private TLB enum; give DNS records
   and NFT address preservation explicit types instead of manual opcode dispatch.
 
