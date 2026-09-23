@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Prefer USB in the manual self-transfer example, falling back to Bluetooth
+  scanning when no USB Ledger is connected.
+
 - Reorganize the pre-release API into `ton_ledger_wallet`, `transports` and
   `error`. Move `DerivationPath`, `SigningPolicy` and `AddressOptions` to
   `ton_ledger_wallet::config`, app/proof/data types to the corresponding wallet

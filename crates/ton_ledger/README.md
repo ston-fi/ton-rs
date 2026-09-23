@@ -154,7 +154,7 @@ schemas, not TON Connect signData. Plaintext is at most 120 printable ASCII
 bytes. App-data requires address or domain; domain is at most 126 printable ASCII
 bytes. Signatures cover schema BE32, timestamp BE64 and cell hash, directly.
 
-## Manual Bluetooth self-transfer
+## Manual USB/Bluetooth self-transfer
 
 From this repository:
 
@@ -162,7 +162,11 @@ From this repository:
 cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
 ```
 
-The example lists nearby Ledgers and lets you choose one or rescan. Enter `q`
+The example prefers a connected USB Ledger and scans Bluetooth only when no USB
+Ledger is found. USB discovery/connection errors stop the example; if multiple USB
+Ledgers are connected, leave only the intended one connected. The `ledger-ble`
+example feature enables both HID and BLE. Bluetooth scanning lists nearby Ledgers
+and lets you choose one or rescan. Enter `q`
 at a prompt to quit. It confirms the address on the device, reads the seqno,
 signs **10,000,000 nanotons to itself**, and broadcasts through one testnet
 endpoint without retries. It uses account zero, V4R2 and workchain zero.

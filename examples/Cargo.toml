@@ -6,7 +6,7 @@ publish = false
 
 [features]
 default = []
-ledger-ble = ["dep:ton_ledger", "ton_ledger/ble", "ton/lite-client"]
+ledger-ble = ["dep:ton_ledger", "ton_ledger/ble", "ton_ledger/hid", "ton/lite-client"]
 tonlibjson = ["ton/tonlibjson"]
 
 [dependencies]

@@ -369,11 +369,13 @@ not claim to cancel a device prompt: the TON app has no cancel instruction.
 - Legacy data signatures cover `schema_BE4 || timestamp_BE8 || cell_hash32`.
   Do not label this API as current TON Connect `signData` compatibility.
 
-## 11. Bluetooth self-transfer example
+## 11. USB-first self-transfer example
 
 Add a short, copy-pastable `examples/ton_ledger_bluetooth_self_transfer.rs` executable
-with `required-features = ["ledger-ble"]`. Use BLE without requiring HID and the
-existing pure-Rust LiteClient.
+with `required-features = ["ledger-ble"]`. Enable both HID and BLE and use the existing pure-Rust LiteClient. Prefer a single
+connected USB Ledger; scan Bluetooth only when USB discovery returns no devices.
+Report USB discovery/connection errors without falling back; reject multiple USB
+devices with instructions to leave only the intended device connected.
 
 ```sh
 cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
@@ -382,7 +384,7 @@ cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features le
 Keep the transfer flow straight-line: select a discovered device, build a V4R2 testnet account-zero
 wallet, confirm its address, read the deployed wallet's seqno, construct a
 0.01 TON self-transfer, sign, and broadcast without automatic retries.
-Keep discovery interactive: list names and IDs, select by number, rescan, or quit.
+Keep Bluetooth discovery interactive: list names and IDs, select by number, rescan, or quit.
 Explain empty scans and permission failures; print progress before device approval.
 Require a funded, deployed wallet. State that fees reduce its balance and
 broadcast acknowledgement does not prove inclusion. Omit CLI parsing, history

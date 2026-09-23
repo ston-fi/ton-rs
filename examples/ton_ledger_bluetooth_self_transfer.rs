@@ -1,4 +1,5 @@
 //! Sends 0.01 TON to a funded, deployed V4R2 testnet Ledger wallet itself.
+//! Prefers USB; scans Bluetooth when no USB Ledger is connected.
 //! Run manually with the TON app open; approval spends network fees.
 use anyhow::Context;
 use std::{
@@ -22,7 +23,10 @@ use ton_ledger::{
         TonLedgerWallet,
         config::{AddressOptions, DerivationPath},
     },
-    transports::ble::{BleDeviceInfo, BleTransport},
+    transports::{
+        ble::{BleDeviceInfo, BleTransport},
+        hid::HidTransport,
+    },
 };
 
 #[tokio::main(flavor = "current_thread")]
@@ -38,17 +42,35 @@ async fn main() -> ExitCode {
 
 async fn transfer() -> anyhow::Result<()> {
     println!("Testnet · V4R2 · account 0 · self-transfer 0.01 TON (plus network fees).");
-    println!("Unlock your Ledger, enable Bluetooth, and open the TON app.");
-    if prompt("Press Enter to scan, or q to quit: ")?.is_none() {
+    println!("Unlock your Ledger and open the TON app. Connect a USB cable if available.");
+    if prompt("Press Enter to connect, or q to quit: ")?.is_none() {
         return Ok(());
     }
-    let Some(device) = select_device().await? else { return Ok(()) };
-    println!("Connecting… Accept pairing on your Ledger if prompted.");
-    let transport = BleTransport::connect(device)
+    println!("Checking for a USB Ledger…");
+    let mut devices = HidTransport::discover(Duration::from_secs(10))
         .await
-        .context("Could not connect; check pairing and close other Ledger connections")?;
-    let mut wallet = TonLedgerWallet::builder(WalletVersion::V4R2)
-        .with_transport(transport)
+        .context("Could not discover USB Ledgers; check USB permissions and the cable")?;
+    anyhow::ensure!(devices.len() <= 1, "Multiple USB Ledgers found; leave only the intended device connected");
+    let builder = TonLedgerWallet::builder(WalletVersion::V4R2);
+    let builder = if let Some(device) = devices.pop() {
+        println!("Connecting via USB…");
+        let transport = HidTransport::connect(device)
+            .await
+            .context("Could not connect via USB; check the cable and close other Ledger connections")?;
+        builder.with_transport(transport)
+    } else {
+        println!("No USB Ledger found. Enable Bluetooth on your Ledger to scan.");
+        if prompt("Press Enter to scan Bluetooth, or q to quit: ")?.is_none() {
+            return Ok(());
+        }
+        let Some(device) = select_device().await? else { return Ok(()) };
+        println!("Connecting via Bluetooth… Accept pairing on your Ledger if prompted.");
+        let transport = BleTransport::connect(device)
+            .await
+            .context("Could not connect; check pairing and close other Ledger connections")?;
+        builder.with_transport(transport)
+    };
+    let mut wallet = builder
         .with_derivation_path(DerivationPath::Ton {
             account: 0,
             testnet: true,

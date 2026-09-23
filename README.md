@@ -51,7 +51,7 @@ USB HID (default), optional Bluetooth, or an exclusive custom transport.
 Signatures and exact-message hashes are checked locally. The library owns no
 network provider. Its firmware profile is pinned to TON app 2.9.1; hardware
 acceptance remains separate from deterministic tests. A manual
-[Bluetooth self-transfer example](examples/ton_ledger_bluetooth_self_transfer.rs)
+[USB-first self-transfer example](examples/ton_ledger_bluetooth_self_transfer.rs)
 shows how to sign and broadcast 0.01 TON to the same deployed testnet wallet. See the crate README for platform setup and limits.
 
 ## Rust version
