@@ -371,12 +371,12 @@ not claim to cancel a device prompt: the TON app has no cancel instruction.
 
 ## 11. Bluetooth self-transfer example
 
-Add a short, copy-pastable `examples/ledger_bluetooth_self_transfer.rs` executable
+Add a short, copy-pastable `examples/ton_ledger_bluetooth_self_transfer.rs` executable
 with `required-features = ["ledger-ble"]`. Use BLE without requiring HID and the
 existing pure-Rust LiteClient.
 
 ```sh
-cargo run -p examples --example ledger_bluetooth_self_transfer --features ledger-ble
+cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
 ```
 
 Keep the transfer flow straight-line: select a discovered device, build a V4R2 testnet account-zero
@@ -442,7 +442,7 @@ crates/ton_ledger/
     _test_*.rs                # Located beside the responsible modules.
   tests/
     fixtures/                 # Small, source-attributed deterministic vectors.
-examples/ledger_bluetooth_self_transfer.rs
+examples/ton_ledger_bluetooth_self_transfer.rs
 ```
 
 Record the source licenses for adapted code/fixtures and preserve required
@@ -525,7 +525,7 @@ cargo test -p ton_ledger --all-features
 cargo test -p ton --lib
 cargo test -p ton_core
 cargo test -p ton_macros
-cargo check -p examples --example ledger_bluetooth_self_transfer --features ledger-ble
+cargo check -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
 cargo test -p ton_ledger --doc --all-features
 cargo test --workspace --all-features
 cargo test -p ton --doc --all-features

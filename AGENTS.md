@@ -10,6 +10,10 @@ This workspace contains public Rust libraries for TON:
 - `ton_macros`: derives and attributes used by the two libraries.
 - `examples` and `benchmarks`: consumers, not reusable API crates.
 
+Example filenames and Cargo target names start with the crate they demonstrate:
+`ton_ledger_`, `ton_core_`, or `ton_`. External comparison examples use their
+actual crate prefix, such as `tonlib_core_`.
+
 Use the `rust-library-review` workflow for public API, dependency, feature,
 serialization, documentation, or release changes.
 

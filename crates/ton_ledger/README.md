@@ -159,7 +159,7 @@ bytes. Signatures cover schema BE32, timestamp BE64 and cell hash, directly.
 From this repository:
 
 ```sh
-cargo run -p examples --example ledger_bluetooth_self_transfer --features ledger-ble
+cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
 ```
 
 The example lists nearby Ledgers and lets you choose one or rescan. Enter `q`

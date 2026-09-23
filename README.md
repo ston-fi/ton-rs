@@ -10,7 +10,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 ## ton_macros
 
 - `TLB` Derive macros: Automatically derive TLB trait for your types based on it's members
-- Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [enum.rs](examples/enum.rs) example). Provides powerful enums, but use them carefully; read the [Enum with TLB macros](#enum-with-tlb-macros) chapter.
+- Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [ton_core_enum.rs](examples/ton_core_enum.rs) example). Provides powerful enums, but use them carefully; read the [Enum with TLB macros](#enum-with-tlb-macros) chapter.
 - `ton_contract!`: Generate a `TonContract` wrapper type and optionally implement method traits for it.
 - `#[ton_methods]`: Generate async get-method implementations for contract traits or impl blocks, with optional block-level `name_format` conversion and per-method exact names.
 
@@ -51,7 +51,7 @@ USB HID (default), optional Bluetooth, or an exclusive custom transport.
 Signatures and exact-message hashes are checked locally. The library owns no
 network provider. Its firmware profile is pinned to TON app 2.9.1; hardware
 acceptance remains separate from deterministic tests. A manual
-[Bluetooth self-transfer example](examples/ledger_bluetooth_self_transfer.rs)
+[Bluetooth self-transfer example](examples/ton_ledger_bluetooth_self_transfer.rs)
 shows how to sign and broadcast 0.01 TON to the same deployed testnet wallet. See the crate README for platform setup and limits.
 
 ## Rust version
@@ -66,7 +66,7 @@ as minor compatibility changes.
 Examples can be found in [examples](examples) folder (feel free to add your own)
 
 Interesting one:
-* [emulate_get_method](examples/emulate_get_method.rs) - use your own TonContract
+* [ton_emulate_get_method](examples/ton_emulate_get_method.rs) - use your own TonContract
 * [ton_transfer](examples/ton_transfer.rs) - transfer TONs between wallets using TLClient
 
 ### Basic usage

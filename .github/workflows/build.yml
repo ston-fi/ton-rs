@@ -66,4 +66,4 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
       - uses: Swatinem/rust-cache@v2
       - run: cargo test -p ton_ledger --no-default-features --features '${{ matrix.features }}'
-      - run: cargo check -p examples --example ledger_bluetooth_self_transfer --features ledger-ble
+      - run: cargo check -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble

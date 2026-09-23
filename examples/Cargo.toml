@@ -26,42 +26,42 @@ zeroize.workspace = true
 
 
 [[example]]
-name = "perf_cell_from_boc_tonlib"
-path = "perf_cell_from_boc_tonlib.rs"
+name = "tonlib_core_perf_cell_from_boc"
+path = "tonlib_core_perf_cell_from_boc.rs"
 
 [[example]]
-name = "perf_cell_from_boc"
-path = "perf_cell_from_boc.rs"
+name = "ton_core_perf_cell_from_boc"
+path = "ton_core_perf_cell_from_boc.rs"
 
 [[example]]
-name = "cell_perf_build_cell_tonlib"
-path = "cell_perf_build_cell_tonlib.rs"
+name = "tonlib_core_perf_build_cell"
+path = "tonlib_core_perf_build_cell.rs"
 
 [[example]]
-name = "perf_build_cell"
-path = "perf_build_cell.rs"
+name = "ton_core_perf_build_cell"
+path = "ton_core_perf_build_cell.rs"
 
 [[example]]
-name = "types_tlb_build_dict_large"
-path = "types_tlb_build_dict_large.rs"
+name = "ton_types_tlb_build_dict_large"
+path = "ton_types_tlb_build_dict_large.rs"
 
 [[example]]
-name = "read_tx_data"
-path = "read_tx_data.rs"
+name = "ton_read_tx_data"
+path = "ton_read_tx_data.rs"
 
 [[example]]
 name = "ton_transfer"
 path = "ton_transfer.rs"
 
 [[example]]
-name = "emulate_get_method"
-path = "emulate_get_method.rs"
+name = "ton_emulate_get_method"
+path = "ton_emulate_get_method.rs"
 
 [[example]]
-name = "enum"
-path = "enum.rs"
+name = "ton_core_enum"
+path = "ton_core_enum.rs"
 
 [[example]]
-name = "ledger_bluetooth_self_transfer"
-path = "ledger_bluetooth_self_transfer.rs"
+name = "ton_ledger_bluetooth_self_transfer"
+path = "ton_ledger_bluetooth_self_transfer.rs"
 required-features = ["ledger-ble"]
