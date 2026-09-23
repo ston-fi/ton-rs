@@ -21,3 +21,10 @@ The upstream Python `write_varuint(0)` encodes `01 00`, which does not match
 its canonical TON-cell encoding. These fixtures use nonzero forwarded amounts;
 Rust's independent zero vector explicitly requires `00`, following the firmware
 `BitString_storeCoinsBuf` length contract. This upstream bug is not copied.
+
+BLE negotiation regression vectors in `src/transports/ble/_test_ble.rs` cover
+legacy headers and the newer format from Ledger Secure SDK
+[`e9470456`](https://github.com/LedgerHQ/ledger-secure-sdk/blob/e9470456ff38432393ba76b76d0479a976a1a8cd/protocol/src/ledger_protocol.c#L206-L220).
+The BLE profile removes the two-byte channel prefix. For a packet size of 244,
+the newer reply is `08 00 00 f4 01 f4`; the legacy reply is `08 00 00 00 01 f4`.
+These are source-derived protocol vectors, not captures from a physical device.

@@ -42,3 +42,8 @@ hint rules on their typed messages. The private NFT adapter preserves standard
 zero addresses instead of normalizing them to addr_none. Do not add derives or
 traversal to other crates. Ledger hint IDs are distinct from TLB opcodes.
 Verify mappings against the independent firmware fixtures and payload-policy tests.
+
+BLE negotiation uses tag 0x08 and the packet size at offset 5, as Ledger's host
+transports do. Do not fix the intervening header bytes: newer device SDKs also
+encode the size there. Ignore unrelated setup notifications within the existing
+connection deadline; preserve errors for truncated or undersized size replies.

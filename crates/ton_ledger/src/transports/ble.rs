@@ -1,4 +1,8 @@
 //! Native Bluetooth through OS pairing. Discovery uses service UUIDs, never names.
+#[cfg(test)]
+#[path = "ble/_test_ble.rs"]
+mod tests;
+
 use super::framing::{Reassembler, frames};
 use crate::{error::TransportError, traits::Transport};
 use async_trait::async_trait;
@@ -135,11 +139,8 @@ impl BleTransport {
                 let mut stream = p.notifications().await.map_err(backend)?;
                 p.subscribe(&notify).await.map_err(backend)?;
                 p.write(&write, &[8, 0, 0, 0, 0], WriteType::WithResponse).await.map_err(backend)?;
-                let n = next(&mut stream, notify.uuid).await?;
-                if n.len() != 6 || n[..5] != [8, 0, 0, 0, 1] || n[5] < 20 {
-                    return Err(TransportError::Frame("invalid Ledger packet-size negotiation"));
-                }
-                Ok((stream, notify, write, n[5] as usize))
+                let packet_size = receive_packet_size(&mut stream, notify.uuid).await?;
+                Ok((stream, notify, write, packet_size))
             };
             let result = tokio::select! {_ = ready.closed()=>Err(TransportError::Disconnected),r=tokio::time::timeout(Duration::from_secs(20),setup)=>r.map_err(|_|TransportError::Timeout).and_then(|x|x)};
             match result {
@@ -169,6 +170,22 @@ impl BleTransport {
         Ok(Self { sender })
     }
 }
+async fn receive_packet_size(stream: &mut Notifications, notify: Uuid) -> Result<usize, TransportError> {
+    loop {
+        let response = next(stream, notify).await?;
+        if response.first() != Some(&0x08) {
+            continue;
+        }
+        // Ledger transports read the size at offset 5. Other header bytes vary
+        // across firmware; newer SDKs also encode the size at offsets 2..4.
+        let size = *response.get(5).ok_or(TransportError::Frame("truncated Ledger packet-size response"))?;
+        if size < 20 {
+            return Err(TransportError::Frame("Ledger packet size is below the BLE minimum of 20 bytes"));
+        }
+        return Ok(usize::from(size));
+    }
+}
+
 async fn next(stream: &mut Notifications, id: Uuid) -> Result<Vec<u8>, TransportError> {
     loop {
         let n = stream.next().await.ok_or(TransportError::Disconnected)?;

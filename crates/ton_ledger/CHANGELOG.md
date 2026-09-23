@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Fix BLE packet-size negotiation rejecting newer Ledger SDK reply headers;
+  wait for the negotiation tag within the existing connection timeout.
+
 - Rename the private payload enum to `LedgerSupportedMsg`; make the Bluetooth
   example interactive with device selection, rescanning and actionable errors.
 
