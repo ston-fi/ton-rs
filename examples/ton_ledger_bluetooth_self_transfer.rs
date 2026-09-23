@@ -1,4 +1,4 @@
-//! Sends 0.01 TON to a funded, deployed V4R2 testnet Ledger wallet itself.
+//! Sends 0.01 TON to a funded, deployed V4R2 mainnet Ledger wallet itself.
 //! Prefers USB; scans Bluetooth when no USB Ledger is connected.
 //! Run manually with the TON app open; approval spends network fees.
 use anyhow::Context;
@@ -41,10 +41,46 @@ async fn main() -> ExitCode {
 }
 
 async fn transfer() -> anyhow::Result<()> {
-    println!("Testnet · V4R2 · account 0 · self-transfer 0.01 TON (plus network fees).");
+    println!("Mainnet · V4R2 · account 0 · self-transfer 0.01 TON (plus network fees).");
+    let Some(mut wallet) = connect_wallet().await? else { return Ok(()) };
+
+    println!("Confirm the wallet address on your Ledger.");
+    wallet.confirm_address(AddressOptions::default().with_testnet(false)).await?;
+    println!("Wallet: {}", wallet.address().to_base64(true, true, true));
+
+    let client = mainnet_client()?;
+    println!("Reading the deployed wallet's state from mainnet…");
+    let block = client.get_mc_info().await.context("Could not reach a mainnet lite server")?;
+    let account = client.get_account_state(wallet.address(), block.last.seqno, None).await?;
+    let wallet_data = WalletV4Data::from_cell(account.get_data().context("fund and deploy the wallet first")?)?;
+
+    let transfer = Msg {
+        info: CommonMsgInfoInt {
+            bounce: false,
+            ..CommonMsgInfoInt::new(wallet.address().to_msg_address_int().into(), TLBCoins::new(10_000_000))
+        }
+        .into(),
+        init: None,
+        body: TLBEitherRef::new_with_layout(TonCell::empty().clone(), EitherRefLayout::ToCell),
+    }
+    .to_cell()?;
+    let expires_at = SystemTime::now() + Duration::from_secs(600);
+    let expire_at = u32::try_from(expires_at.duration_since(UNIX_EPOCH)?.as_secs())?;
+    println!("Review and approve the 0.01 TON self-transfer on your Ledger.");
+    let message = wallet.create_ext_in_msg(vec![transfer], wallet_data.seqno, expire_at, false).await?;
+    println!("Broadcasting the approved transaction…");
+    let status = client
+        .send_msg(message.to_boc()?, Some(LiteReqParams::new(0, 0, 5000)))
+        .await
+        .context("Broadcast result is uncertain; check wallet history before sending again")?;
+    println!("Broadcast acknowledged ({status}); transaction inclusion is not yet confirmed.");
+    Ok(())
+}
+
+async fn connect_wallet() -> anyhow::Result<Option<TonLedgerWallet>> {
     println!("Unlock your Ledger and open the TON app. Connect a USB cable if available.");
     if prompt("Press Enter to connect, or q to quit: ")?.is_none() {
-        return Ok(());
+        return Ok(None);
     }
     println!("Checking for a USB Ledger…");
     let mut devices = HidTransport::discover(Duration::from_secs(10))
@@ -61,63 +97,37 @@ async fn transfer() -> anyhow::Result<()> {
     } else {
         println!("No USB Ledger found. Enable Bluetooth on your Ledger to scan.");
         if prompt("Press Enter to scan Bluetooth, or q to quit: ")?.is_none() {
-            return Ok(());
+            return Ok(None);
         }
-        let Some(device) = select_device().await? else { return Ok(()) };
+        let Some(device) = select_bluetooth_device().await? else { return Ok(None) };
         println!("Connecting via Bluetooth… Accept pairing on your Ledger if prompted.");
         let transport = BleTransport::connect(device)
             .await
             .context("Could not connect; check pairing and close other Ledger connections")?;
         builder.with_transport(transport)
     };
-    let mut wallet = builder
+    let wallet = builder
         .with_derivation_path(DerivationPath::Ton {
             account: 0,
-            testnet: true,
+            testnet: false,
         })
         .build()
         .await
         .context("Could not open the wallet; unlock the Ledger and open the TON app")?;
-    println!("Confirm the wallet address on your Ledger.");
-    wallet.confirm_address(AddressOptions::default().with_testnet(true)).await?;
-    println!("Wallet: {}", wallet.address().to_base64(false, true, true));
-
-    let mut config = TonNetConfig::new_default(false)?;
-    config.lite_endpoints.truncate(1);
-    let client = LiteClient::builder()?
-        .with_mainnet(false)?
-        .with_net_config(config)
-        .with_default_req_params(LiteReqParams::new(0, 0, 5000))
-        .build()?;
-    println!("Reading the deployed wallet's state from testnet…");
-    let block = client.get_mc_info().await.context("Could not reach a testnet lite server")?;
-    let account = client.get_account_state(wallet.address(), block.last.seqno, None).await?;
-    let data = WalletV4Data::from_cell(account.get_data().context("fund and deploy the wallet first")?)?;
-
-    let transfer = Msg {
-        info: CommonMsgInfoInt {
-            bounce: false,
-            ..CommonMsgInfoInt::new(wallet.address().to_msg_address_int().into(), TLBCoins::new(10_000_000))
-        }
-        .into(),
-        init: None,
-        body: TLBEitherRef::new_with_layout(TonCell::empty().clone(), EitherRefLayout::ToCell),
-    }
-    .to_cell()?;
-    let expire_at =
-        u32::try_from((SystemTime::now().duration_since(UNIX_EPOCH)? + Duration::from_secs(600)).as_secs())?;
-    println!("Review and approve the 0.01 TON self-transfer on your Ledger.");
-    let message = wallet.create_ext_in_msg(vec![transfer], data.seqno, expire_at, false).await?;
-    println!("Broadcasting the approved transaction…");
-    let status = client
-        .send_msg(message.to_boc()?, Some(LiteReqParams::new(0, 0, 5000)))
-        .await
-        .context("Broadcast result is uncertain; check wallet history before sending again")?;
-    println!("Broadcast acknowledged ({status}); transaction inclusion is not yet confirmed.");
-    Ok(())
+    Ok(Some(wallet))
 }
 
-async fn select_device() -> anyhow::Result<Option<BleDeviceInfo>> {
+fn mainnet_client() -> anyhow::Result<LiteClient> {
+    let mut config = TonNetConfig::new_default(true)?;
+    config.lite_endpoints.truncate(1);
+    Ok(LiteClient::builder()?
+        .with_mainnet(true)?
+        .with_net_config(config)
+        .with_default_req_params(LiteReqParams::new(0, 0, 5000))
+        .build()?)
+}
+
+async fn select_bluetooth_device() -> anyhow::Result<Option<BleDeviceInfo>> {
     loop {
         println!("Scanning for Ledger devices (10-second scan budget, plus up to 2 seconds to stop scanning)…");
         let mut devices = match BleTransport::discover(Duration::from_secs(10)).await {

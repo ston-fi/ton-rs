@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Switch the manual self-transfer example to mainnet and separate wallet
+  connection and client setup from the signing and broadcasting flow.
+
 - Prefer USB in the manual self-transfer example, falling back to Bluetooth
   scanning when no USB Ledger is connected.
 

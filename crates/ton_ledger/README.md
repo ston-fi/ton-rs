@@ -168,7 +168,7 @@ Ledgers are connected, leave only the intended one connected. The `ledger-ble`
 example feature enables both HID and BLE. Bluetooth scanning lists nearby Ledgers
 and lets you choose one or rescan. Enter `q`
 at a prompt to quit. It confirms the address on the device, reads the seqno,
-signs **10,000,000 nanotons to itself**, and broadcasts through one testnet
+signs **10,000,000 nanotons to itself**, and broadcasts through one mainnet
 endpoint without retries. It uses account zero, V4R2 and workchain zero.
 Fund and deploy that wallet before running it; network fees reduce its balance.
 The printed acknowledgement does not confirm transaction inclusion.

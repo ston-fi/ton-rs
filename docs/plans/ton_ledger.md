@@ -381,7 +381,7 @@ devices with instructions to leave only the intended device connected.
 cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
 ```
 
-Keep the transfer flow straight-line: select a discovered device, build a V4R2 testnet account-zero
+Keep the transfer flow straight-line: select a discovered device, build a V4R2 mainnet account-zero
 wallet, confirm its address, read the deployed wallet's seqno, construct a
 0.01 TON self-transfer, sign, and broadcast without automatic retries.
 Keep Bluetooth discovery interactive: list names and IDs, select by number, rescan, or quit.
