@@ -17,6 +17,9 @@ modules or add aliases/re-exports for the pre-release import paths.
 
 ## Signing and lifecycle invariants
 
+Message creation accepts one internal `TonCell`, not a vector. Keep the independent
+message-count check when signing caller-built bodies; constructors are not the only input path.
+
 Preserve exact TON cells: compare local reconstruction and device hashes and
 verify Ed25519 before returning a signature. Never normalize caller layout,
 omit extra currencies, guess token identities, or infer nested clear display.

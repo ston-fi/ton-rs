@@ -70,7 +70,7 @@ async fn transfer() -> anyhow::Result<()> {
     let expires_at = SystemTime::now() + Duration::from_secs(600);
     let expire_at = u32::try_from(expires_at.duration_since(UNIX_EPOCH)?.as_secs())?;
     println!("Review and approve the 0.01 TON self-transfer on your Ledger.");
-    let message = wallet.create_ext_in_msg(vec![transfer], wallet_data.seqno, expire_at, false).await?;
+    let message = wallet.create_ext_in_msg(transfer, wallet_data.seqno, expire_at, false).await?;
     println!("Broadcasting the approved transaction…");
     let status = client
         .send_msg(message.to_boc()?, Some(LiteReqParams::new(0, 0, 5000)))

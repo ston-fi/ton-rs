@@ -72,20 +72,18 @@ impl TonLedgerWallet {
     pub fn derivation_path(&self) -> &DerivationPath {
         &self.derivation_path
     }
-    /// Constructs mode-3 bodies containing exactly one representable internal message.
+    /// Constructs a mode-3 body from one representable internal message.
     /// Empty bodies must be inline; nonempty bodies and state init must be references.
     /// `expire_at` is Unix seconds. Rejects unsupported layouts, wallet IDs,
-    /// payload policies and message counts without contacting the device.
-    pub fn create_ext_in_body(&self, expire_at: u32, seqno: u32, int_msgs: Vec<TonCell>) -> TonLedgerResult<TonCell> {
-        if int_msgs.len() != 1 {
-            return Err(TonLedgerError::Invalid("Ledger requires exactly one internal message"));
-        }
-        let body = WalletVersion::build_ext_in_body(self.version, expire_at, seqno, self.wallet_id, int_msgs)?;
+    /// and payload policies without contacting the device.
+    pub fn create_ext_in_body(&self, expire_at: u32, seqno: u32, int_msg: TonCell) -> TonLedgerResult<TonCell> {
+        let body = WalletVersion::build_ext_in_body(self.version, expire_at, seqno, self.wallet_id, vec![int_msg])?;
         protocol::payload::transaction(self.version, self.wallet_id, &body, self.policy)?;
         Ok(body)
     }
     /// Signs only if firmware reconstruction, returned hash and Ed25519 all match.
-    /// Unsupported inputs fail before I/O. Approval denial returns `UserDenied`;
+    /// The body must contain exactly one internal message. Unsupported inputs fail
+    /// before I/O. Approval denial returns `UserDenied`;
     /// timeout, cancellation or verification failure requires a fresh session.
     pub async fn sign_ext_in_body(&mut self, body: &TonCell) -> TonLedgerResult<TonCell> {
         let payload = protocol::payload::transaction(self.version, self.wallet_id, body, self.policy)?;
@@ -118,12 +116,12 @@ impl TonLedgerWallet {
     /// includes wallet deployment state. Propagates construction and signing errors.
     pub async fn create_ext_in_msg(
         &mut self,
-        int_msgs: Vec<TonCell>,
+        int_msg: TonCell,
         seqno: u32,
         expire_at: u32,
         add_state_init: bool,
     ) -> TonLedgerResult<TonCell> {
-        let body = self.create_ext_in_body(expire_at, seqno, int_msgs)?;
+        let body = self.create_ext_in_body(expire_at, seqno, int_msg)?;
         let signed = self.sign_ext_in_body(&body).await?;
         self.create_ext_in_msg_from_body(signed, add_state_init)
     }

@@ -70,7 +70,7 @@ println!("{}", wallet.address());
 Construct one internal `Msg` with IHR disabled, no source, no extra currencies,
 zero fees/timestamps, and a standard workchain 0/-1 destination. Empty bodies
 must be inline; present payloads and state init must be references. No layout is
-silently rewritten. Then use `create_ext_in_body(expiry, seqno, vec![message])`,
+silently rewritten. Then use `create_ext_in_body(expiry, seqno, message)`,
 `sign_ext_in_body(&body).await`, and `create_ext_in_msg_from_body(signed, deploy)`;
 `create_ext_in_msg(...).await` composes these. Send mode defaults to 3. Existing
 wallet TLB records can express supported custom modes. Signed cells are locally
@@ -99,7 +99,7 @@ async fn transfer(
         TonCell::empty().clone(),
     );
     message.body.layout = EitherRefLayout::ToCell;
-    wallet.create_ext_in_msg(vec![message.to_cell()?], seqno, expire_at, false).await
+    wallet.create_ext_in_msg(message.to_cell()?, seqno, expire_at, false).await
 }
 ```
 

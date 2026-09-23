@@ -172,20 +172,21 @@ convention, not cryptographic transaction-network separation.
 ## 6. Wallet API and exact-message semantics
 
 Mirror the corresponding `TonWallet` method argument order and `TonCell`
-input/result types:
+input/result types, except that Ledger creation accepts a single internal
+message cell rather than a vector:
 
 | Method | Behavior |
 | --- | --- |
-| `create_ext_in_body(&self, expire_at, seqno, int_msgs)` | Synchronous construction using existing wallet TLBs and default send mode 3. |
+| `create_ext_in_body(&self, expire_at, seqno, int_msg)` | Synchronous construction using existing wallet TLBs and default send mode 3. |
 | `sign_ext_in_body(&mut self, &body)` | Async Ledger signing and verified signature attachment. |
 | `create_ext_in_msg_from_body(&self, signed_body, add_state_init)` | Synchronous external message construction. |
-| `create_ext_in_msg(&mut self, int_msgs, seqno, expire_at, add_state_init)` | Async composition of the preceding operations. |
+| `create_ext_in_msg(&mut self, int_msg, seqno, expire_at, add_state_init)` | Async composition of the preceding operations. |
 | `confirm_address(&mut self, options)` | Confirm the bound wallet identity on device; distinguish display flags from raw address. |
 | `get_address_proof(&mut self, request, options)` | Request, reconstruct and verify proof. |
 | `sign_data(&mut self, request, timestamp)` | Sign the legacy data scheme with explicit timestamp. |
 | `app_info`, `settings` | Typed app inspection without exposing APDU details. |
 
-Message creation validates exactly one internal message and the supported
+Message creation accepts exactly one internal message as a `TonCell` and validates the supported
 wallet version before prompting. Signing additionally validates subwallet ID,
 V4 opcode zero, send mode and all fields the firmware reconstructs. A manually
 built body can express supported custom send modes through existing wallet TLB

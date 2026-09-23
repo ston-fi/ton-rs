@@ -206,9 +206,15 @@ async fn test_wallet_bytes_and_preflight() -> anyhow::Result<()> {
             .build()
             .await?;
         assert_eq!(wallet.address(), &software.address);
-        assert!(wallet.create_ext_in_body(1, 1, vec![]).is_err());
+        assert!(wallet.create_ext_in_body(1, 1, TonCell::empty().clone()).is_err());
+        // Caller-built bodies bypass the single-message constructor, so signing
+        // must still reject unsupported message counts before any device I/O.
+        for messages in [vec![], vec![msg.clone(), msg.clone()]] {
+            let invalid_body = software.create_ext_in_body(1_700_000_000, 7, messages)?;
+            assert!(matches!(wallet.sign_ext_in_body(&invalid_body).await, Err(TonLedgerError::Invalid(_))));
+        }
         assert_eq!(*seen.lock().map_err(|_| anyhow::anyhow!("lock"))?, 3);
-        let unsigned = wallet.create_ext_in_body(1_700_000_000, 7, vec![msg])?;
+        let unsigned = wallet.create_ext_in_body(1_700_000_000, 7, msg)?;
         let signed = wallet.sign_ext_in_body(&unsigned).await?;
         assert_eq!(signed.to_boc()?, software.sign_ext_in_body(&body)?.to_boc()?);
         for init in [false, true] {
