@@ -46,12 +46,34 @@ secret key bytes. Caller-owned mnemonic strings and copies read from the public
 
 ## Ledger wallets
 
+> [!WARNING]
+> **Risk of permanent loss of funds — use at your own risk.**
+>
+> `ton_ledger` is provided “as is”, without warranties. To the extent permitted
+> by applicable law and subject to the Apache-2.0 license, the authors,
+> maintainers, and contributors are not responsible for lost funds or other
+> damages arising from its use. You are responsible for reviewing and testing
+> your integration and every transaction you approve.
+>
+> **Always test with a small amount you can afford to lose before using larger
+> amounts.** Use a dedicated test wallet with a minimal balance, allow for network
+> fees, and confirm that the recipient received the funds on-chain before
+> proceeding. Repeat these checks after changing your integration, device,
+> firmware, or TON app version. A successful test does not guarantee future safety.
+>
+> Verify the destination, amount, and all available transaction details on the
+> Ledger screen before approving. Do not approve blind signing or opaque payloads
+> unless you independently understand and verify what they authorize. Hardware
+> signing and local signature checks do not guarantee that a transaction is safe
+> or that it succeeded on-chain. Confirmed blockchain transfers cannot be undone
+> by this library or its maintainers.
+
 [`ton_ledger`](crates/ton_ledger/README.md) provides V3R2/V4R2 signing through
 USB HID (default), optional Bluetooth, or an exclusive custom transport.
 Signatures and exact-message hashes are checked locally. The library owns no
 network provider. Its firmware profile is pinned to TON app 2.9.1; hardware
 acceptance remains separate from deterministic tests. A manual
-[USB-first self-transfer example](examples/ton_ledger_bluetooth_self_transfer.rs)
+[USB-first self-transfer example](examples/ton_ledger_self_transfer.rs)
 shows how to sign and broadcast 0.01 TON to the same deployed mainnet wallet. See the crate README for platform setup and limits.
 
 ## Rust version
@@ -67,7 +89,7 @@ Examples can be found in [examples](examples) folder (feel free to add your own)
 
 - [ton_emulate_get_method](examples/ton_emulate_get_method.rs): network-backed contract emulation; requires `--features tonlibjson`.
 - [ton_transfer](examples/ton_transfer.rs): signs and broadcasts a transfer; requires `--features tonlibjson` and deliberate account/recipient configuration.
-- [ton_ledger_bluetooth_self_transfer](examples/ton_ledger_bluetooth_self_transfer.rs): USB-first Ledger signing with Bluetooth fallback; requires `--features ledger-ble` and spends mainnet fees.
+- [ton_ledger_self_transfer](examples/ton_ledger_self_transfer.rs): USB-first Ledger signing with Bluetooth fallback; requires `--features ledger-ble` and spends mainnet fees.
 
 Run examples through `cargo run -p examples --example <name> --features <features>`.
 Compilation is separate from execution; do not run transfer examples as smoke tests.

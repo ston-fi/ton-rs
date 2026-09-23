@@ -66,4 +66,4 @@ jobs:
         run: cargo test -p ton_ledger
       - name: Test Ledger with default features and Bluetooth
         run: cargo test -p ton_ledger --features ble
-      - run: cargo check -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
+      - run: cargo check -p examples --example ton_ledger_self_transfer --features ledger-ble

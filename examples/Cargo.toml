@@ -63,6 +63,6 @@ name = "ton_core_enum"
 path = "ton_core_enum.rs"
 
 [[example]]
-name = "ton_ledger_bluetooth_self_transfer"
-path = "ton_ledger_bluetooth_self_transfer.rs"
+name = "ton_ledger_self_transfer"
+path = "ton_ledger_self_transfer.rs"
 required-features = ["ledger-ble"]

@@ -4,6 +4,30 @@ A Ledger-backed TON wallet with V3R2/V4R2 message construction, USB HID,
 optional Bluetooth, and custom transports. Requires native Tokio with its time
 driver enabled. Rust 1.94 or later. No network provider is owned by the wallet.
 
+## Fund safety — read before use
+
+> [!WARNING]
+> **Risk of permanent loss of funds — use at your own risk.**
+>
+> `ton_ledger` is provided “as is”, without warranties. To the extent permitted
+> by applicable law and subject to the Apache-2.0 license, the authors,
+> maintainers, and contributors are not responsible for lost funds or other
+> damages arising from its use. You are responsible for reviewing and testing
+> your integration and every transaction you approve.
+>
+> **Always test with a small amount you can afford to lose before using larger
+> amounts.** Use a dedicated test wallet with a minimal balance, allow for network
+> fees, and confirm that the recipient received the funds on-chain before
+> proceeding. Repeat these checks after changing your integration, device,
+> firmware, or TON app version. A successful test does not guarantee future safety.
+>
+> Verify the destination, amount, and all available transaction details on the
+> Ledger screen before approving. Do not approve blind signing or opaque payloads
+> unless you independently understand and verify what they authorize. Hardware
+> signing and local signature checks do not guarantee that a transaction is safe
+> or that it succeeded on-chain. Confirmed blockchain transfers cannot be undone
+> by this library or its maintainers.
+
 ## Installation and API
 
 ```toml
@@ -181,7 +205,7 @@ bytes. Signatures cover schema BE32, timestamp BE64 and cell hash, directly.
 From this repository:
 
 ```sh
-cargo run -p examples --example ton_ledger_bluetooth_self_transfer --features ledger-ble
+cargo run -p examples --example ton_ledger_self_transfer --features ledger-ble
 ```
 
 The example prefers a connected USB Ledger and scans Bluetooth only when no USB
