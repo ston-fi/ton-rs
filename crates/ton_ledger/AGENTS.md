@@ -62,3 +62,8 @@ connections fail with `TransportError::DeviceBusy`; the lease is process-local.
 BLE discovery has a separate two-second stop-scan allowance after its scan budget.
 Keep proof/data wallet transcript tests alongside the independent codec vectors:
 they must check request bytes, signature preimages and dirty-session rejection.
+
+HID also requires a process-local lease keyed by the private `CString` OS path,
+never the editable or lossy display ID. Acquire it before spawning the worker
+and retain it through failed/cancelled setup, blocking OS calls and handle
+destruction. Caller cancellation must not release a worker's ownership early.

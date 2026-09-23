@@ -109,10 +109,12 @@ resolve any device prompt, reconnect and build again. Reconnecting does not
 cancel a pending prompt on the device. Custom transports must enforce exclusive
 physical-device access for the whole wallet lifetime.
 
-BLE rejects duplicate connections to the same backend device in this process
-with `TransportError::DeviceBusy`, including while an old worker is cleaning up.
-The lease covers cloned and rediscovered handles. It does not coordinate other
-applications or USB access to the same physical Ledger; close those sessions first.
+HID and BLE reject duplicate connections to the same backend device in this
+process with `TransportError::DeviceBusy`, including while an old worker is
+cleaning up. HID uses the private OS path; BLE uses the backend peripheral ID.
+The leases cover cloned and rediscovered handles and survive cancelled setup
+until the worker releases its resources. They do not coordinate other applications
+or USB and Bluetooth access to the same physical Ledger; close those sessions first.
 
 ## Signing scope
 

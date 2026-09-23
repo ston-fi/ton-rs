@@ -1,11 +1,15 @@
 //! Native Ledger USB HID. A dedicated worker owns the blocking handle.
+#[cfg(test)]
+#[path = "hid/_test_hid.rs"]
+mod tests;
 use super::framing::{Reassembler, frames};
 use crate::{error::TransportError, transports::Transport};
 use async_trait::async_trait;
 use hidapi::{HidApi, HidDevice};
 use std::{
+    collections::HashSet,
     ffi::CString,
-    sync::mpsc,
+    sync::{LazyLock, Mutex, mpsc},
     time::{Duration, Instant},
 };
 use tokio::sync::oneshot;
@@ -60,36 +64,35 @@ impl HidTransport {
         Self::connect(devices.pop().ok_or(TransportError::NoDevice)?).await
     }
     /// Opens a previously discovered interface, with a 10-second connection budget.
+    /// Returns `DeviceBusy` while this process already owns the backend path,
+    /// including while a cancelled or dropped connection is still closing.
     pub async fn connect(device: HidDeviceInfo) -> Result<Self, TransportError> {
         let (sender, receiver) = mpsc::sync_channel::<Request>(1);
         let (ready, opened) = oneshot::channel();
-        std::thread::Builder::new()
-            .name("ton-ledger-hid".into())
-            .spawn(move || {
-                let dev = HidApi::new().and_then(|api| api.open_path(&device.path)).map_err(backend);
-                match dev {
-                    Err(e) => {
-                        let _ = ready.send(Err(e));
-                    },
-                    Ok(dev) => {
-                        if ready.send(Ok(())).is_err() {
-                            return;
+        spawn_worker(device.path.clone(), move || {
+            let dev = HidApi::new().and_then(|api| api.open_path(&device.path)).map_err(backend);
+            match dev {
+                Err(e) => {
+                    let _ = ready.send(Err(e));
+                },
+                Ok(dev) => {
+                    if ready.send(Ok(())).is_err() {
+                        return;
+                    }
+                    while let Ok(req) = receiver.recv() {
+                        if req.reply.is_closed() {
+                            break;
                         }
-                        while let Ok(req) = receiver.recv() {
-                            if req.reply.is_closed() {
-                                break;
-                            }
-                            let result = exchange(&dev, &req);
-                            let failed = result.is_err();
-                            let _ = req.reply.send(result);
-                            if failed {
-                                break;
-                            }
+                        let result = exchange(&dev, &req);
+                        let failed = result.is_err();
+                        let _ = req.reply.send(result);
+                        if failed {
+                            break;
                         }
-                    },
-                }
-            })
-            .map_err(|e| TransportError::Backend(Box::new(e)))?;
+                    }
+                },
+            }
+        })?;
         tokio::time::timeout(Duration::from_secs(10), opened)
             .await
             .map_err(|_| TransportError::Timeout)?
@@ -148,4 +151,42 @@ impl Transport for HidTransport {
             .map_err(|_| TransportError::Timeout)?
             .map_err(|_| TransportError::Disconnected)?
     }
+}
+
+// Use the private OS path, never the editable or lossy display ID.
+static CONNECTED_DEVICES: LazyLock<Mutex<HashSet<CString>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
+
+struct DeviceLease(CString);
+impl DeviceLease {
+    fn acquire(path: CString) -> Result<Self, TransportError> {
+        let mut devices = CONNECTED_DEVICES
+            .lock()
+            .map_err(|_| TransportError::Backend(Box::new(std::io::Error::other("HID session registry poisoned"))))?;
+        if !devices.insert(path.clone()) {
+            return Err(TransportError::DeviceBusy);
+        }
+        Ok(Self(path))
+    }
+}
+impl Drop for DeviceLease {
+    fn drop(&mut self) {
+        let mut devices = CONNECTED_DEVICES.lock().unwrap_or_else(|error| error.into_inner());
+        devices.remove(&self.0);
+    }
+}
+
+fn spawn_worker(
+    path: CString,
+    work: impl FnOnce() + Send + 'static,
+) -> Result<std::thread::JoinHandle<()>, TransportError> {
+    let lease = DeviceLease::acquire(path)?;
+    std::thread::Builder::new()
+        .name("ton-ledger-hid".into())
+        .spawn(move || {
+            // Hold ownership through setup, all I/O, and handle destruction.
+            // Dropping the caller cannot release a worker blocked in an OS call.
+            let _lease = lease;
+            work();
+        })
+        .map_err(|error| TransportError::Backend(Box::new(error)))
 }
