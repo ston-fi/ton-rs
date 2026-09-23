@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.0...ton_ledger-v0.1.1) - 2026-09-23
+
+### Other
+
+- Refactor #NI: Simplify Ledger single-message API ([#229](https://github.com/ston-fi/ton-rs/pull/229))
+- fix renamed example references and document fund risks
+
 - Change `create_ext_in_body` and `create_ext_in_msg` to accept one `TonCell`
   instead of `Vec<TonCell>`. Migrate calls from `vec![message]` to `message`;
   Ledger signing continues to reject caller-built bodies with zero or multiple messages.
