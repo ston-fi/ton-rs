@@ -93,9 +93,9 @@ although the pinned firmware parser accepts them; `AllowOpaque` falls back to
 hash-only signing for those payloads. Exact layout and policy restrictions above
 still apply. Other firmware versions and hardware behavior are not validated.
 
-Hint encoding uses private ordered field mappings over existing TON message
-types. Callers keep constructing TEP messages and passing their cells to the
-wallet; no additional derive or Ledger-specific message struct is required.
+A private TLB enum parses supported payloads and validates exact cell layouts.
+Hint encoding uses ordered field mappings over the existing TON message types.
+Callers keep constructing TEP messages and passing their cells to the wallet; no additional derive or Ledger-specific message struct is required.
 
 `get_address_proof` reconstructs the TON proof digest from the bound address,
 UTF-8 domain, timestamp and payload. Domain/payload are each at most 128 bytes

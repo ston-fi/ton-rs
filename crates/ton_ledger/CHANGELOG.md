@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Parse supported Ledger payloads through a private TLB enum; give DNS records
+  and NFT address preservation explicit types instead of manual opcode dispatch.
+
 - Use private field-mapping macros for Ledger hints without changing TON types
   or the wallet API; preserve the firmware encoding and signing policies.
 

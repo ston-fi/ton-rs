@@ -1,6 +1,6 @@
 mod encoding;
 mod hints;
-mod recognize;
+mod message;
 mod tlb;
 use crate::{
     error::{TonLedgerError, TonLedgerResult},
@@ -34,15 +34,27 @@ pub(crate) fn transaction(
 ) -> TonLedgerResult<Vec<u8>> {
     let (id, seqno, expiry, modes, msgs) = match version {
         WalletVersion::V3R2 => {
-            let b: WalletV3ExtMsgBody = exact(body)?;
-            (b.subwallet_id, b.msg_seqno, b.valid_until, b.msgs_modes, b.msgs)
+            let wallet_body: WalletV3ExtMsgBody = exact(body)?;
+            (
+                wallet_body.subwallet_id,
+                wallet_body.msg_seqno,
+                wallet_body.valid_until,
+                wallet_body.msgs_modes,
+                wallet_body.msgs,
+            )
         },
         WalletVersion::V4R2 => {
-            let b: WalletV4ExtMsgBody = exact(body)?;
-            if b.opcode != 0 {
+            let wallet_body: WalletV4ExtMsgBody = exact(body)?;
+            if wallet_body.opcode != 0 {
                 return Err(TonLedgerError::Invalid("V4 opcode must be zero"));
             }
-            (b.subwallet_id, b.msg_seqno, b.valid_until, b.msgs_modes, b.msgs)
+            (
+                wallet_body.subwallet_id,
+                wallet_body.msg_seqno,
+                wallet_body.valid_until,
+                wallet_body.msgs_modes,
+                wallet_body.msgs,
+            )
         },
         _ => return Err(TonLedgerError::UnsupportedWallet),
     };
@@ -94,7 +106,7 @@ pub(crate) fn transaction(
     out.push(u8::from(has_payload));
     if has_payload {
         protocol::cell_ref(&mut out, &msg.body.value)?;
-        out.extend(recognize::hints(&msg.body.value, policy)?);
+        out.extend(hints::encode(&msg.body.value, policy)?);
     } else {
         out.push(0);
     }

@@ -36,8 +36,9 @@ Keep wallet assembly private here; compare its bytes against TonWallet vectors.
 Hint encoding stays private to this crate. Define ordered field mappings with
 `impl_ledger_hint!` in `payload/hints.rs` using the existing TON message types.
 Keep primitive checks and signing-policy handling in `payload/encoding.rs`;
-recognition and exact-cell validation precede encoding. Comment, DNS and vesting
-formats retain explicit encoders. Do not add derives or traversal to other crates.
-Use each message type's `TLB::PREFIX` for dispatch; Ledger hint IDs are separate
-firmware values and must not be substituted with TLB opcodes.
+the private `SupportedMessage` enum derives TLB and selects each message by its
+prefix. Exact-cell validation precedes encoding. Keep comment, DNS and vesting
+hint rules on their typed messages. The private NFT adapter preserves standard
+zero addresses instead of normalizing them to addr_none. Do not add derives or
+traversal to other crates. Ledger hint IDs are distinct from TLB opcodes.
 Verify mappings against the independent firmware fixtures and payload-policy tests.

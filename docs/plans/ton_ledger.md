@@ -243,8 +243,10 @@ Encode the eleven fixed-field hint families with a private `impl_ledger_hint!`
 macro in `ton_ledger/src/payload/hints.rs`. Each invocation lists the existing
 message type, hint ID and fields in firmware order with named byte adapters.
 Adapters in `payload/encoding.rs` own primitive validation and signing policy.
-The recognizer still validates exact cells before invoking the generated encoder;
-comment, DNS and vesting formats retain explicit handling. No public extension
+A private `SupportedMessage` enum derives TLB and owns opcode dispatch. Parse and
+round-trip the complete cell before encoding. Typed comments, DNS records and
+vesting messages retain explicit hint rules. A private NFT wrapper preserves
+standard zero addresses using the existing NFTTransferMsg fields. No public extension
 trait, duplicate TEP structs, or changes to ton/ton_core/ton_macros are needed.
 Existing independent fixtures must remain byte-for-byte identical.
 
