@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Change `create_ext_in_body` and `create_ext_in_msg` to accept one `TonCell`
+  instead of `Vec<TonCell>`. Migrate calls from `vec![message]` to `message`;
+  Ledger signing continues to reject caller-built bodies with zero or multiple messages.
+
 - Accept all TON app 2.x.x versions under an assumed SemVer compatibility policy;
   retain 2.9.1 as the source-validated protocol baseline and reject other majors.
 
