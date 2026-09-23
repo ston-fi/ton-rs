@@ -105,16 +105,21 @@ fn test_codec_boundaries() -> anyhow::Result<()> {
 }
 #[tokio::test]
 async fn test_chunk_transcripts() -> anyhow::Result<()> {
-    for size in [254, 255, 256, 509, 510] {
+    // Explicit protocol expectations at the single-APDU and total-size bounds.
+    for (size, fragments) in [
+        (255, vec![(0, 255)]),
+        (256, vec![(2, 255), (0, 1)]),
+        (510, vec![(2, 255), (0, 255)]),
+    ] {
         let payload = vec![0x42; size];
         let path = vec![3, 0, 0, 0, 44, 0, 0, 2, 95, 0, 0, 0, 0];
         let mut steps = VecDeque::new();
         steps.push_back((protocol::command(6, 0, 3, &path)?, ok(vec![])));
-        let count = payload.chunks(255).len();
-        for (i, c) in payload.chunks(255).enumerate() {
+        let count = fragments.len();
+        for (flag, length) in fragments {
             steps.push_back((
-                protocol::command(6, 0, if i + 1 == count { 0 } else { 2 }, c)?,
-                ok(if i + 1 == count { vec![7] } else { vec![] }),
+                protocol::command(6, 0, flag, &vec![0x42; length])?,
+                ok(if flag == 0 { vec![7] } else { vec![] }),
             ));
         }
         let seen = Arc::new(Mutex::new(0));
@@ -211,7 +216,7 @@ async fn test_wallet_bytes_and_preflight() -> anyhow::Result<()> {
     Ok(())
 }
 #[test]
-fn test_derivation_and_legacy_data() -> anyhow::Result<()> {
+fn test_derivation_path_encoding_and_validation() -> anyhow::Result<()> {
     assert_eq!(
         hex::encode(
             DerivationPath::Ton {
@@ -225,17 +230,11 @@ fn test_derivation_and_legacy_data() -> anyhow::Result<()> {
     for p in [vec![44, 607], vec![44, 607, 0x80000000], vec![0; 11]] {
         assert!(DerivationPath::Custom(p).encode(0).is_err());
     }
-    let crate::data::EncodedData {
-        apdu: bytes,
-        preimage,
-        schema,
-        hash,
-    } = crate::data::encode(&crate::data::LedgerDataRequest::Plaintext("hello".into()), 1_700_000_000)?;
-    assert_eq!(schema, 0x754bf91b);
-    assert_eq!(hex::encode(bytes), "754bf91b000000006553f10068656c6c6f");
-    assert_eq!(&preimage[12..], &hash);
-    assert_eq!(preimage.len(), 44);
-    assert!(crate::data::encode(&crate::data::LedgerDataRequest::Plaintext("é".into()), 0).is_err());
+    Ok(())
+}
+
+#[test]
+fn test_address_proof_digest() -> anyhow::Result<()> {
     let r = ProofRequest::new("example.org".into(), 1_700_000_000, b"challenge".to_vec());
     // Python hashlib vector, independent of Rust digest implementation.
     assert_eq!(
@@ -258,12 +257,22 @@ fn test_upstream_data_vectors() -> anyhow::Result<()> {
             extension: Some(TonCell::empty().clone()),
         },
     ];
-    for (request, line) in requests.iter().zip(include_str!("../tests/fixtures/data.tsv").lines()) {
+    let vectors: Vec<_> = include_str!("../tests/fixtures/data.tsv").lines().collect();
+    assert_eq!(requests.len(), vectors.len());
+    for (request, line) in requests.iter().zip(vectors) {
         let fields: Vec<_> = line.split('\t').collect();
-        let crate::data::EncodedData { apdu, preimage, .. } = encode(request, 1_700_000_000)?;
+        let crate::data::EncodedData {
+            apdu,
+            preimage,
+            schema,
+            hash,
+        } = encode(request, 1_700_000_000)?;
         assert_eq!(hex::encode(apdu), fields[0]);
         assert_eq!(hex::encode(preimage), fields[1]);
+        assert_eq!(hex::encode(schema.to_be_bytes()), &fields[1][..8]);
+        assert_eq!(hex::encode(hash), &fields[1][24..]);
     }
+    assert!(encode(&LedgerDataRequest::Plaintext("é".into()), 0).is_err());
     Ok(())
 }
 #[tokio::test]

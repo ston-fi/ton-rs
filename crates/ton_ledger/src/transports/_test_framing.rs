@@ -11,13 +11,14 @@ fn test_framing_and_malformed_fragments() -> anyhow::Result<()> {
                 result = parser.push(p)?;
             }
             assert_eq!(result, Some(bytes));
-            let mut bad = packets[0].clone();
-            bad[if hid { 4 } else { 2 }] = 1;
-            assert!(Reassembler::new(hid).push(&bad).is_err());
-            let mut bad = packets[0].clone();
-            bad[if hid { 2 } else { 0 }] = 4;
-            assert!(Reassembler::new(hid).push(&bad).is_err());
         }
+        let packet = frames(&[0x90, 0], size, hid)?.remove(0);
+        let mut bad_sequence = packet.clone();
+        bad_sequence[if hid { 4 } else { 2 }] = 1;
+        assert!(Reassembler::new(hid).push(&bad_sequence).is_err());
+        let mut bad_tag = packet;
+        bad_tag[if hid { 2 } else { 0 }] = 4;
+        assert!(Reassembler::new(hid).push(&bad_tag).is_err());
     }
     assert_eq!(frames(&[0xe0, 3, 0, 0, 0], 20, false)?, vec![vec![5, 0, 0, 0, 5, 0xe0, 3, 0, 0, 0]]);
     assert!(Reassembler::new(false).push(&[5, 0, 0, 0, 2, 0x90, 0, 0]).is_err());

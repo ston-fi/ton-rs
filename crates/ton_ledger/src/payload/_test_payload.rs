@@ -20,76 +20,38 @@ fn start(op: u32) -> anyhow::Result<ton::ton_core::cell::CellBuilder> {
     Ok(builder)
 }
 #[test]
-fn test_all_hint_families_and_dns_empty_capabilities() -> anyhow::Result<()> {
-    let addr = TonAddress::ZERO;
-    let mut builder = start(0)?;
-    builder.write_bits(b"hello", 40)?;
-    assert_eq!(hint(&builder.build()?, 0)?, b"hello");
+fn test_tep_hints_preserve_zero_addresses_and_absent_payloads() -> anyhow::Result<()> {
+    // Upstream vectors use nonzero addresses and forwarded amounts. Keep these
+    // distinct cases: standard zero addresses and minimally encoded zero coins.
     for (op, id) in [(0x0f8a7ea5, 1), (0x5fcc3d14, 2), (0x595f07bc, 3)] {
         let mut builder = start(op)?;
         if id != 2 {
             TLBCoins::ONE.write(&mut builder)?;
         }
         if id != 3 {
-            addr.to_msg_address_int().write(&mut builder)?;
+            TonAddress::ZERO.to_msg_address_int().write(&mut builder)?;
         }
-        addr.to_msg_address_int().write(&mut builder)?;
+        TonAddress::ZERO.to_msg_address_int().write(&mut builder)?;
         builder.write_bit(false)?;
         if id != 3 {
             TLBCoins::ZERO.write(&mut builder)?;
             builder.write_bit(false)?;
         }
-        hint(&builder.build()?, id)?;
-    }
-    for (op, id) in [(0x7258a69b, 4), (0x1001, 6)] {
-        let mut builder = start(op)?;
-        addr.to_msg_address_int().write(&mut builder)?;
-        hint(&builder.build()?, id)?;
-    }
-    let mut builder = start(0x1000)?;
-    TLBCoins::ONE.write(&mut builder)?;
-    hint(&builder.build()?, 5)?;
-    let mut builder = start(0x47d54391)?;
-    builder.write_num(&9u64, 64)?;
-    assert_eq!(hint(&builder.build()?, 7)?, [0, 1, 0, 0, 0, 0, 0, 0, 0, 9]);
-    let mut builder = start(0x69fb306c)?;
-    addr.to_msg_address_int().write(&mut builder)?;
-    builder.write_num(&1_700_000_000u64, 48)?;
-    builder.write_bit(true)?;
-    builder.write_bit(false)?;
-    let data = hint(&builder.build()?, 8)?;
-    assert_eq!(&data[34..], &hex::decode("00006553f1000100")?);
-    let mut builder = start(0x4eb1f0f9)?;
-    builder.write_bits(Sha256::digest(b"wallet"), 256)?;
-    let mut record_builder = TonCell::builder();
-    record_builder.write_num(&0x9fd3u16, 16)?;
-    addr.to_msg_address_int().write(&mut record_builder)?;
-    record_builder.write_num(&1u8, 8)?;
-    record_builder.write_bit(false)?;
-    builder.write_ref(record_builder.build()?)?;
-    let data = hint(&builder.build()?, 9)?;
-    assert_eq!(&data[data.len() - 2..], &[1, 0]);
-    let mut builder = start(8)?;
-    TonHash::ZERO.write(&mut builder)?;
-    hint(&builder.build()?, 10)?;
-    for (op, id) in [(0x7bcd1fefu32, 11), (0xda803efd, 12)] {
-        let mut builder = TonCell::builder();
-        builder.write_num(&op, 32)?;
-        builder.write_num(&1u64, 64)?;
-        TLBCoins::ONE.write(&mut builder)?;
-        if id == 12 {
-            TLBCoins::ONE.write(&mut builder)?;
+
+        let mut expected = vec![0]; // Absent query ID.
+        if id != 2 {
+            expected.extend([1, 1]); // One coin.
         }
-        hint(&builder.build()?, id)?;
+        if id != 3 {
+            expected.extend([0; 33]); // Destination.
+        }
+        expected.extend([0; 33]); // Response destination.
+        expected.push(0); // No custom payload.
+        if id != 3 {
+            expected.extend([0, 0]); // Zero coins and empty inline forward payload.
+        }
+        assert_eq!(hint(&builder.build()?, id)?, expected);
     }
-    let mut comment = start(0)?;
-    comment.write_bits(b"hi", 16)?;
-    let mut msg = Msg::new(CommonMsgInfoInt::new(addr.to_msg_address_int().into(), TLBCoins::ONE), comment.build()?);
-    msg.body.layout = EitherRefLayout::Native;
-    let mut builder = start(0xa7733acd)?;
-    builder.write_num(&3u8, 8)?;
-    builder.write_ref(msg.to_cell()?)?;
-    hint(&builder.build()?, 13)?;
     Ok(())
 }
 #[test]
@@ -126,8 +88,11 @@ fn test_layout_policy_and_trailing_data() -> anyhow::Result<()> {
 
 #[test]
 fn test_upstream_firmware_python_vectors() -> anyhow::Result<()> {
-    for line in include_str!("../../tests/fixtures/payloads.tsv").lines() {
+    let payloads: Vec<_> = include_str!("../../tests/fixtures/payloads.tsv").lines().collect();
+    assert_eq!(payloads.len(), 14, "each supported hint family needs an independent vector");
+    for (id, line) in payloads.into_iter().enumerate() {
         let fields: Vec<_> = line.split('\t').collect();
+        assert_eq!(fields[0].parse::<usize>()?, id);
         let cell = TonCell::from_boc_hex(fields[1])?;
         assert_eq!(hex::encode(cell.cell_hash()?.as_slice()), fields[3]);
         assert_eq!(hex::encode(&hints::encode(&cell, SigningPolicy::ClearOnly)?[1..]), fields[2], "hint {}", fields[0]);
@@ -208,8 +173,8 @@ fn test_enum_rejects_unknown_trailing_and_normalized_nft_payloads() -> anyhow::R
     extra_reference.write_ref(TonCell::empty().clone())?;
     assert!(hints::encode(&extra_reference.build()?, SigningPolicy::ClearOnly).is_err());
 
-    // Existing firmware vectors cover standard zero addresses. addr_none must
-    // remain distinct even though NFTTransferMsg parses it as TonAddress::ZERO.
+    // addr_none must remain distinct from standard zero addresses even though
+    // NFTTransferMsg parses it as TonAddress::ZERO.
     let mut transfer = ton::contracts::tep::nft::nft_transfer_msg::NFTTransferMsg::new(&TonAddress::ZERO);
     transfer.forward_payload.layout = EitherRefLayout::ToCell;
     assert!(hints::encode(&transfer.to_cell()?, SigningPolicy::ClearOnly).is_err());

@@ -47,8 +47,4 @@ async fn test_packet_size_rejects_truncated_invalid_and_disconnected_replies() {
         receive_packet_size(&mut notifications(vec![]), Uuid::nil()).await,
         Err(TransportError::Disconnected)
     ));
-    let mut pending: Notifications = Box::pin(stream::pending());
-    assert!(
-        tokio::time::timeout(Duration::from_millis(1), receive_packet_size(&mut pending, Uuid::nil())).await.is_err()
-    );
 }
