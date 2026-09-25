@@ -44,6 +44,7 @@ Fast checks:
 cargo test -p ton_ledger --no-default-features
 cargo test -p ton_ledger --all-features
 cargo check -p examples --example ton_ledger_self_transfer --features ledger-ble
+cargo check -p examples --example ton_ledger_reconnect --features ledger-hid
 cargo clippy -p ton_ledger --all-targets --all-features -- -D warnings
 cargo +nightly fmt --check
 ```
@@ -119,6 +120,13 @@ HID also requires a process-local lease keyed by the private `CString` OS path,
 never the editable or lossy display ID. Acquire it before spawning the worker
 and retain it through failed/cancelled setup, blocking OS calls and handle
 destruction. Caller cancellation must not release a worker's ownership early.
+
+All `HidApi::new()` calls must run on the process-lifetime HIDAPI worker. On
+macOS the native global manager retains the initializing thread's run loop;
+neither a Tokio blocking-pool thread nor a per-device worker lives long enough.
+Keep discovery fresh on each request and skip cancelled queued requests. A
+timeout cannot stop native enumeration or retire its owning thread. Session
+workers still own device open, I/O, close and the backend-path lease.
 
 BLE leases become non-releasable before the first backend operation. Only a
 confirmed successful disconnect permits reuse. Failed, timed-out or cancelled

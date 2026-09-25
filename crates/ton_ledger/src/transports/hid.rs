@@ -1,4 +1,5 @@
-//! Native Ledger USB HID. A dedicated worker owns the blocking handle.
+//! Native Ledger USB HID. A dedicated worker owns each blocking handle.
+//! HIDAPI initialization and enumeration share a process-lifetime thread.
 #[cfg(test)]
 #[path = "hid/_test_hid.rs"]
 mod tests;
@@ -42,9 +43,11 @@ fn backend(e: hidapi::HidError) -> TransportError {
 }
 impl HidTransport {
     /// Enumerates application interfaces without opening a wallet or prompting.
+    /// A process-lifetime worker keeps the native HID manager's thread alive.
+    /// Timing out does not interrupt an enumeration already inside the OS.
     pub async fn discover(timeout: Duration) -> Result<Vec<HidDeviceInfo>, TransportError> {
-        let job = tokio::task::spawn_blocking(|| {
-            let api = HidApi::new().map_err(backend)?;
+        tokio::time::timeout(timeout, async {
+            let api = request_api()?.await.map_err(|_| TransportError::Disconnected)??;
             Ok(api
                 .device_list()
                 .filter(|d| d.vendor_id() == 0x2c97 && (d.usage_page() == 0xffa0 || d.interface_number() == 0))
@@ -54,11 +57,9 @@ impl HidTransport {
                     path: d.path().to_owned(),
                 })
                 .collect())
-        });
-        tokio::time::timeout(timeout, job)
-            .await
-            .map_err(|_| TransportError::Timeout)?
-            .map_err(|e| TransportError::Backend(Box::new(e)))?
+        })
+        .await
+        .map_err(|_| TransportError::Timeout)?
     }
     pub(crate) async fn connect_default(timeout: Duration) -> Result<Self, TransportError> {
         let mut devices = Self::discover(timeout).await?;
@@ -74,7 +75,9 @@ impl HidTransport {
         let (sender, receiver) = mpsc::sync_channel::<Request>(1);
         let (ready, opened) = oneshot::channel();
         spawn_worker(device.path.clone(), move || {
-            let dev = HidApi::new().and_then(|api| api.open_path(&device.path)).map_err(backend);
+            let dev = request_api()
+                .and_then(|reply| reply.blocking_recv().map_err(|_| TransportError::Disconnected)?)
+                .and_then(|api| api.open_path(&device.path).map_err(backend));
             match dev {
                 Err(e) => {
                     let _ = ready.send(Err(e));
@@ -104,6 +107,41 @@ impl HidTransport {
         Ok(Self { sender })
     }
 }
+
+type ApiReply = oneshot::Sender<Result<HidApi, TransportError>>;
+
+// HIDAPI's C context is never deinitialized by its Rust wrapper. On macOS its
+// IOHIDManager uses the initializing thread's CFRunLoop, so that thread must not
+// be a Tokio blocking-pool thread or a short-lived device worker. The static
+// sender keeps this worker alive even after all transports and runtimes drop.
+static API_WORKER: LazyLock<Result<mpsc::Sender<ApiReply>, std::io::Error>> =
+    LazyLock::new(|| spawn_api_worker(|| HidApi::new().map_err(backend)));
+
+fn request_api() -> Result<oneshot::Receiver<Result<HidApi, TransportError>>, TransportError> {
+    let worker = API_WORKER
+        .as_ref()
+        .map_err(|error| TransportError::Backend(Box::new(std::io::Error::other(error.to_string()))))?;
+    let (reply, result) = oneshot::channel();
+    worker.send(reply).map_err(|_| TransportError::Disconnected)?;
+    Ok(result)
+}
+
+fn spawn_api_worker(
+    mut create_api: impl FnMut() -> Result<HidApi, TransportError> + Send + 'static,
+) -> std::io::Result<mpsc::Sender<ApiReply>> {
+    let (sender, receiver) = mpsc::channel::<ApiReply>();
+    std::thread::Builder::new().name("ton-ledger-hid-api".into()).spawn(move || {
+        for reply in receiver {
+            // Cancelled queued discoveries need no OS work. An in-flight call
+            // must finish, but its timeout must never retire the owning thread.
+            if !reply.is_closed() {
+                let _ = reply.send(create_api());
+            }
+        }
+    })?;
+    Ok(sender)
+}
+
 fn exchange(dev: &HidDevice, req: &Request) -> Result<Vec<u8>, TransportError> {
     for frame in frames(&req.command, 64, true)? {
         if req.reply.is_closed() {

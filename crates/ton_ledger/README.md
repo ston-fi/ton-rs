@@ -141,6 +141,12 @@ seconds. BLE discovery can add up to two seconds to stop scanning before returni
 connection cleanup waits up to four seconds in the background. Blocking OS HID enumeration or
 writes cannot be forcibly interrupted; timed-out callers return, and workers
 release resources after the OS call returns. HID reads poll at most every 50 ms.
+HIDAPI initialization and enumeration use one process-lifetime thread, which
+survives idle periods, dropped wallets and Tokio runtime shutdown. This keeps
+the macOS HID manager's run loop alive across device replacement. Device handles
+still close on their session workers. Applications sharing `hidapi` directly
+must also keep its first initialization thread alive; this library cannot repair
+a native context previously initialized on a terminated thread.
 Drop starts transport cleanup. There is no automatic reconnect, retry or
 USB/BLE fallback. Cancellation or uncertain I/O poisons the wallet; drop it,
 resolve any device prompt, reconnect and build again. Reconnecting does not
@@ -226,9 +232,24 @@ the payload bytes and cell hash. Enable blind signing in the Ledger TON app;
 review its hash-based approval display. Both modes send the same amount to the
 same wallet; a readable text comment would exercise clear signing instead.
 
+## Manual USB reconnection
+
+Connect one USB Ledger and open its TON app, then run:
+
+```sh
+cargo run -p examples --example ton_ledger_reconnect --features ledger-hid
+```
+
+The example reads its V4R2 wallet address and drops the wallet. Replace the
+device and open the replacement's TON app while the example waits 11 seconds,
+then press Enter when prompted to read the replacement's address in the same
+process. This exercises the macOS reconnection scenario from issue #231 after
+Tokio's default blocking-thread idle timeout. It only reads addresses; no
+signing, broadcasting or funded wallet is required.
+
 ## Validation and hardware acceptance
 
-CI compiles the example without running it. Protocol fixtures and scripted
+CI compiles the examples without running them. Protocol fixtures and scripted
 transport tests cover encoding, verification and session failure paths; fixtures
 do not execute firmware. Package verification is separate from hardware testing.
 
