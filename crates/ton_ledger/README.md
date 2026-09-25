@@ -232,9 +232,24 @@ the payload bytes and cell hash. Enable blind signing in the Ledger TON app;
 review its hash-based approval display. Both modes send the same amount to the
 same wallet; a readable text comment would exercise clear signing instead.
 
+## Manual USB reconnection
+
+Connect one USB Ledger and open its TON app, then run:
+
+```sh
+cargo run -p examples --example ton_ledger_reconnect --features ledger-hid
+```
+
+The example reads its V4R2 wallet address and drops the wallet. Replace the
+device and open the replacement's TON app while the example waits 11 seconds,
+then press Enter when prompted to read the replacement's address in the same
+process. This exercises the macOS reconnection scenario from issue #231 after
+Tokio's default blocking-thread idle timeout. It only reads addresses; no
+signing, broadcasting or funded wallet is required.
+
 ## Validation and hardware acceptance
 
-CI compiles the example without running it. Protocol fixtures and scripted
+CI compiles the examples without running them. Protocol fixtures and scripted
 transport tests cover encoding, verification and session failure paths; fixtures
 do not execute firmware. Package verification is separate from hardware testing.
 

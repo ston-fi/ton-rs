@@ -90,6 +90,7 @@ Examples can be found in [examples](examples) folder (feel free to add your own)
 - [ton_emulate_get_method](examples/ton_emulate_get_method.rs): network-backed contract emulation; requires `--features tonlibjson`.
 - [ton_transfer](examples/ton_transfer.rs): signs and broadcasts a transfer; requires `--features tonlibjson` and deliberate account/recipient configuration.
 - [ton_ledger_self_transfer](examples/ton_ledger_self_transfer.rs): USB-first Ledger signing with Bluetooth fallback; requires `--features ledger-ble` and spends mainnet fees.
+- [ton_ledger_reconnect](examples/ton_ledger_reconnect.rs): reads addresses before and after USB Ledger replacement in one process; requires `--features ledger-hid`, with no signing or broadcasting.
 
 Run examples through `cargo run -p examples --example <name> --features <features>`.
 Compilation is separate from execution; do not run transfer examples as smoke tests.

@@ -44,6 +44,7 @@ Fast checks:
 cargo test -p ton_ledger --no-default-features
 cargo test -p ton_ledger --all-features
 cargo check -p examples --example ton_ledger_self_transfer --features ledger-ble
+cargo check -p examples --example ton_ledger_reconnect --features ledger-hid
 cargo clippy -p ton_ledger --all-targets --all-features -- -D warnings
 cargo +nightly fmt --check
 ```
