@@ -141,6 +141,12 @@ seconds. BLE discovery can add up to two seconds to stop scanning before returni
 connection cleanup waits up to four seconds in the background. Blocking OS HID enumeration or
 writes cannot be forcibly interrupted; timed-out callers return, and workers
 release resources after the OS call returns. HID reads poll at most every 50 ms.
+HIDAPI initialization and enumeration use one process-lifetime thread, which
+survives idle periods, dropped wallets and Tokio runtime shutdown. This keeps
+the macOS HID manager's run loop alive across device replacement. Device handles
+still close on their session workers. Applications sharing `hidapi` directly
+must also keep its first initialization thread alive; this library cannot repair
+a native context previously initialized on a terminated thread.
 Drop starts transport cleanup. There is no automatic reconnect, retry or
 USB/BLE fallback. Cancellation or uncertain I/O poisons the wallet; drop it,
 resolve any device prompt, reconnect and build again. Reconnecting does not

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep HIDAPI initialization and enumeration on a process-lifetime thread to
+  prevent the macOS HID manager from retaining a retired thread's run loop
+  during Ledger replacement and reconnection (#231).
+
 ## [0.1.1](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.0...ton_ledger-v0.1.1) - 2026-09-23
 
 ### Other

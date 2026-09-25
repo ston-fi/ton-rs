@@ -120,6 +120,13 @@ never the editable or lossy display ID. Acquire it before spawning the worker
 and retain it through failed/cancelled setup, blocking OS calls and handle
 destruction. Caller cancellation must not release a worker's ownership early.
 
+All `HidApi::new()` calls must run on the process-lifetime HIDAPI worker. On
+macOS the native global manager retains the initializing thread's run loop;
+neither a Tokio blocking-pool thread nor a per-device worker lives long enough.
+Keep discovery fresh on each request and skip cancelled queued requests. A
+timeout cannot stop native enumeration or retire its owning thread. Session
+workers still own device open, I/O, close and the backend-path lease.
+
 BLE leases become non-releasable before the first backend operation. Only a
 confirmed successful disconnect permits reuse. Failed, timed-out or cancelled
 cleanup must quarantine the backend ID until process restart; do not release
