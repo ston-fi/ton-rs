@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.1...ton_ledger-v0.1.2) - 2026-09-25
+
+### Other
+
+- Fix #231: Keep HIDAPI thread alive across Ledger reconnections ([#232](https://github.com/ston-fi/ton-rs/pull/232))
+
 ### Fixed
 
 - Keep HIDAPI initialization and enumeration on a process-lifetime thread to
