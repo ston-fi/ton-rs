@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.4...ton_core-v0.3.5) - 2026-09-28
+
+### Fixed
+
+- harden BoC parsing against untrusted input ([#234](https://github.com/ston-fi/ton-rs/pull/234))
+
 ### Fixed
 
 - `BoC::from_bytes` treats its input as untrusted. Header counts must be backed by the input before
