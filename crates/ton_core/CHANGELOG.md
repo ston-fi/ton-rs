@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `BoC::from_bytes` treats its input as untrusted. Header counts must be backed by the input before
+  anything is allocated, root and ref indices are bounds-checked, the index and CRC32C are verified,
+  and trailing bytes are rejected. Malformed BoCs used to panic, abort on allocation, or overflow the stack.
+- Parsed cells are checked the way the TON node checks them: exotic cell layouts, level masks,
+  Merkle proof and update hashes and depths, and a cell depth limit of 1024.
+- Pruned branches with level masks 2, 4, 5 and 6 hash correctly.
+- Dropping a deep cell tree no longer overflows the stack.
+
+### Changed
+
+- `CellBuilder` accepts pruned branches of every level mask and rejects Merkle updates and library
+  cells with a wrong layout. The 200-bit pruned branch special case is removed: such cells could not be hashed.
+
 ## [0.3.4](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.3...ton_core-v0.3.4) - 2026-09-25
 
 ### Other
