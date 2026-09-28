@@ -1,10 +1,10 @@
 use crate::bail_ton_core_data;
 use crate::bits_utils::BitsUtils;
-use crate::cell::boc::read_var_size::read_var_size;
-use crate::cell::ton_cell::{CellBitWriter, CellBytesReader, CellData, RefStorage};
-use crate::cell::{CellBorders, CellMeta, CellType, HashesDepthsStorage, LevelMask, TonCell};
+use crate::cell::boc::boc_reader::BocReader;
+use crate::cell::ton_cell::{CellBitWriter, CellData, RefStorage};
+use crate::cell::{CellBorders, CellMeta, CellType, HashesDepthsStorage, LevelMask, TonCell, TonHash};
 use crate::errors::TonCoreError;
-use bitstream_io::{BitWrite, ByteRead};
+use bitstream_io::BitWrite;
 use once_cell;
 use once_cell::sync::OnceCell;
 use smallvec::SmallVec;
@@ -71,76 +71,69 @@ impl RawCell {
         Ok(())
     }
 
-    pub(crate) fn read(
-        reader: &mut CellBytesReader,
-        ref_pos_size_bytes: u8,
-        data_storage: Arc<Vec<u8>>,
+    /// Reads one serialized cell. Reference indices are checked when the cell tree is built.
+    pub(super) fn read(
+        reader: &mut BocReader,
+        ref_pos_size_bytes: usize,
+        data_storage: &Arc<Vec<u8>>,
     ) -> Result<Self, TonCoreError> {
-        let mut descriptors = [0u8; 2];
-        reader.read_bytes(&mut descriptors)?;
-        let (d1, d2) = (descriptors[0], descriptors[1]);
+        let d1 = reader.read_u8()?;
+        let d2 = reader.read_u8()?;
 
-        let refs_count = d1 & 0b111;
+        let refs_count = (d1 & 0b111) as usize;
         let is_exotic = (d1 & 0b1000) != 0;
         let has_hashes = (d1 & 0b10000) != 0;
         let level_mask = LevelMask::new(d1 >> 5);
         let full_bytes = (d2 & 0x01) == 0;
         let data_len_bytes = ((d2 >> 1) + (d2 & 1)) as usize;
 
-        // TODO: check or save depths and hashes if provided?
+        // 5 and 6 are invalid, 7 marks an absent cell: neither can be represented as TonCell.
+        if refs_count > TonCell::MAX_REFS_COUNT {
+            bail_ton_core_data!("Invalid cell: {refs_count} refs, at most {} allowed", TonCell::MAX_REFS_COUNT);
+        }
+
+        // Stored hashes and depths are not trusted: they are recomputed from the cell tree on demand.
         if has_hashes {
-            let hash_count = level_mask.hash_count();
-            let skip_size = hash_count * (32 + 2);
-            reader.skip(skip_size as u32)?;
+            reader.take(level_mask.hash_count() * (TonHash::BYTES_LEN + CellMeta::DEPTH_BYTES))?;
         }
 
-        let start_bit = reader.reader().position() as usize * 8;
+        let start_bit = reader.position() * 8;
+        let data = reader.take(data_len_bytes)?;
 
-        let cell_type = match is_exotic {
-            true if data_len_bytes == 0 => bail_ton_core_data!("Exotic cell must have at least 1 byte"),
-            true => CellType::new_exotic(reader.read::<u8>()?)?,
-            false => CellType::Ordinary,
+        let data_len_bits = match data.last() {
+            // The last byte ends with a completion tag: a 1 bit followed by zeros.
+            // A zero byte has no tag and 0x80 holds no data bits, so both are rejected like in the TON node.
+            Some(&last_byte) if !full_bytes => {
+                if last_byte & 0x7f == 0 {
+                    bail_ton_core_data!("Invalid cell: bad completion tag in the last data byte {last_byte:#04x}");
+                }
+                data_len_bytes * 8 - last_byte.trailing_zeros() as usize - 1
+            },
+            _ => data_len_bytes * 8,
         };
 
-        // we need to read last byte to get padding info,
-        // if it's exotic, we already took 1 byte.
-        let mut data_len_bytes_left = data_len_bytes;
-        if is_exotic {
-            data_len_bytes_left -= 1;
-        }
-
-        let padding_len_bits = if data_len_bytes_left > 0 && !full_bytes {
-            reader.skip(data_len_bytes_left as u32 - 1)?; // can skip 0
-            let last_byte = reader.read::<u8>()?;
-            let num_zeros = last_byte.trailing_zeros();
-            if num_zeros >= 8 {
-                bail_ton_core_data!("Last byte can't be zero if full_byte flag is not set");
-            }
-            num_zeros + 1
-        } else {
-            // not interesting in last byte, skipp all the rest
-            reader.skip(data_len_bytes_left as u32)?; // can skip 0
-            0
+        let cell_type = match (is_exotic, data.first()) {
+            (false, _) => CellType::Ordinary,
+            // Every exotic cell layout is a whole number of bytes.
+            (true, _) if !full_bytes => bail_ton_core_data!("Exotic cell data must be byte-aligned"),
+            (true, Some(&type_byte)) => CellType::new_exotic(type_byte)?,
+            (true, None) => bail_ton_core_data!("Exotic cell must have at least 1 byte"),
         };
 
-        let data_len_bits = data_len_bytes * 8 - padding_len_bits as usize;
-        let end_bit = start_bit + data_len_bits;
-
-        let mut refs_pos = RefPosStorage::with_capacity(refs_count as usize);
+        let mut refs_pos = RefPosStorage::with_capacity(refs_count);
         for _ in 0..refs_count {
-            refs_pos.push(read_var_size(reader, ref_pos_size_bytes)?);
+            refs_pos.push(reader.read_uint(ref_pos_size_bytes)? as usize);
         }
 
-        let cell = RawCell {
+        Ok(RawCell {
             cell_type,
-            data_storage,
+            data_storage: data_storage.clone(),
             start_bit,
-            end_bit,
+            end_bit: start_bit + data_len_bits,
             refs_pos,
             level_mask,
             hashes_depths: None,
-        };
-        Ok(cell)
+        })
     }
 
     pub(crate) fn into_ton_cell(self, refs: RefStorage) -> TonCell {

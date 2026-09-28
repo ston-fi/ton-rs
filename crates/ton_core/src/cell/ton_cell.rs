@@ -7,8 +7,9 @@ use crate::cell::raw_boc::RawBoC;
 use crate::cell::ton_hash::TonHash;
 use crate::cell::{CellBuilder, CellParser, LevelMask};
 use crate::errors::TonCoreError;
-use bitstream_io::{BigEndian, BitReader, BitWriter, ByteReader};
+use bitstream_io::{BigEndian, BitReader, BitWriter};
 use smallvec::SmallVec;
+use std::cell::{Cell, RefCell};
 use std::fmt::Formatter;
 use std::io::Cursor;
 use std::ops::Deref;
@@ -202,6 +203,45 @@ pub(super) struct CellData {
     pub refs: RefStorage,
 }
 
+/// Recursive drops deeper than this are deferred, so dropping a deep tree can't overflow the stack.
+const MAX_RECURSIVE_DROP_DEPTH: usize = 128;
+
+struct DropState {
+    depth: Cell<usize>,
+    deferred: RefCell<Vec<TonCell>>,
+}
+
+thread_local! {
+    static DROP_STATE: DropState = const { DropState { depth: Cell::new(0), deferred: RefCell::new(Vec::new()) } };
+}
+
+impl Drop for CellData {
+    fn drop(&mut self) {
+        if self.refs.is_empty() {
+            return;
+        }
+        // If the thread-local is already destroyed, refs are dropped recursively as usual.
+        let _ = DROP_STATE.try_with(|state| {
+            let depth = state.depth.get();
+            if depth >= MAX_RECURSIVE_DROP_DEPTH {
+                state.deferred.borrow_mut().extend(self.refs.drain(..));
+                return;
+            }
+            state.depth.set(depth + 1);
+            self.refs.clear();
+            // The outermost drop finishes the deferred subtrees, each with the recursion budget reset.
+            if depth == 0 {
+                loop {
+                    let next = state.deferred.borrow_mut().pop();
+                    let Some(cell) = next else { break };
+                    drop(cell);
+                }
+            }
+            state.depth.set(depth);
+        });
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CellBorders {
     pub start_bit: usize,
@@ -225,7 +265,6 @@ static EMPTY_CELL: LazyLock<TonCell> = LazyLock::new(|| TonCell {
     meta: Arc::new(CellMeta::default()),
 });
 
-pub(super) type CellBytesReader<'a> = ByteReader<Cursor<&'a [u8]>, BigEndian>;
 pub(super) type CellBitsReader<'a> = BitReader<Cursor<&'a [u8]>, BigEndian>;
 pub(super) type CellBitWriter = BitWriter<Vec<u8>, BigEndian>;
 

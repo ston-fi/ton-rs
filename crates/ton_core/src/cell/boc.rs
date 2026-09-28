@@ -1,6 +1,8 @@
+#[cfg(test)]
+mod _test_boc_parsing;
+mod boc_reader;
 pub(crate) mod raw_boc;
 pub(crate) mod raw_cell;
-mod read_var_size;
 
 use crate::bail_ton_core_data;
 use crate::cell::TonCell;
@@ -27,13 +29,21 @@ impl BoC {
         }
     }
 
+    /// Parses a serialized bag of cells. The input may be untrusted.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error unless the input is a single BoC, with no trailing bytes, that the TON node
+    /// would accept: header sizes must match the input, the index and CRC32C must match when
+    /// present, exotic cells must have valid layouts and Merkle hashes, level masks must match
+    /// the cells, and no cell may be deeper than 1024.
     pub fn from_bytes<T: Into<Arc<Vec<u8>>>>(bytes: T) -> Result<Self, TonCoreError> {
         let bytes_ptr = bytes.into();
         if bytes_ptr.is_empty() {
             bail_ton_core_data!("Can't read BOC from empty slice");
         }
         Ok(Self {
-            roots: RawBoC::from_bytes(bytes_ptr)?.into_ton_cells()?,
+            roots: RawBoC::from_bytes(bytes_ptr)?.into_verified_ton_cells()?,
         })
     }
 

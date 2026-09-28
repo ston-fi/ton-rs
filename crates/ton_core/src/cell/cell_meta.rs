@@ -5,7 +5,7 @@ mod level_mask;
 pub use cell_type::*;
 pub use level_mask::*;
 
-use crate::cell::cell_meta::cell_meta_builder::CellMetaBuilder;
+pub(crate) use crate::cell::cell_meta::cell_meta_builder::{CellMetaBuilder, LevelDepths, RefDepthsStorage};
 use crate::cell::ton_cell::TonCell;
 use crate::cell::ton_hash::TonHash;
 use crate::errors::TonCoreError;
