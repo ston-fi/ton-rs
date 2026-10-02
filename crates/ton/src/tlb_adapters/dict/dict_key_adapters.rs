@@ -17,6 +17,8 @@ pub trait DictKeyAdapter {
 
 pub struct DictKeyAdapterTonHash; // properly tested in LibsDict & account_types
 pub struct DictKeyAdapterUint<T>(PhantomData<T>);
+/// Signed dictionary keys encoded as `KEY_BITS_LEN`-bit two's complement.
+/// Conversion rejects zero width and keys outside the representable range.
 pub struct DictKeyAdapterInt<const KEY_BITS_LEN: usize, T>(PhantomData<T>);
 pub struct DictKeyAdapterMsgAddress;
 pub struct DictKeyAdapterTonAddress;
@@ -95,29 +97,32 @@ where
     type KeyType = T;
 
     fn make_key(src_key: &Self::KeyType) -> Result<BigUint, TonError> {
+        if KEY_BITS_LEN == 0 {
+            bail_ton!("signed dictionary key width must be nonzero");
+        }
         let big_int: BigInt = src_key.clone().into();
+        let limit = BigInt::one() << (KEY_BITS_LEN - 1);
+        if big_int < -&limit || big_int >= limit {
+            bail_ton!("signed dictionary key {big_int} exceeds {KEY_BITS_LEN} bits");
+        }
 
-        let big_uint = if big_int.sign() == Sign::Minus {
-            // compute 2^bits + x  (since x is negative)
-            let modulo = BigUint::one() << KEY_BITS_LEN;
-            let abs_val = (-big_int).to_biguint().unwrap();
-            &modulo - &abs_val
-        } else {
-            big_int.to_biguint().unwrap()
-        };
-
-        Ok(big_uint)
+        let (sign, magnitude) = big_int.into_parts();
+        if sign == Sign::Minus { Ok((BigUint::one() << KEY_BITS_LEN) - magnitude) } else { Ok(magnitude) }
     }
 
     fn extract_key(dict_key: &BigUint) -> Result<Self::KeyType, TonError> {
+        if KEY_BITS_LEN == 0 {
+            bail_ton!("signed dictionary key width must be nonzero");
+        }
+        if dict_key.bits() > KEY_BITS_LEN as u64 {
+            bail_ton!("dictionary key {dict_key} exceeds {KEY_BITS_LEN} bits");
+        }
         let sign_bit = BigUint::one() << (KEY_BITS_LEN - 1);
-
         let big_int = if dict_key >= &sign_bit {
             // interpret as negative: x - 2^bits
-            let modulo = BigUint::one() << KEY_BITS_LEN;
-            BigInt::from_biguint(Sign::Minus, &modulo - dict_key)
+            BigInt::from(dict_key.clone()) - (BigInt::one() << KEY_BITS_LEN)
         } else {
-            BigInt::from_biguint(Sign::Plus, dict_key.clone())
+            BigInt::from(dict_key.clone())
         };
         match T::try_from(big_int.clone()) {
             Ok(key) => Ok(key),

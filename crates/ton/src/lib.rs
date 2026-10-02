@@ -24,3 +24,7 @@ pub mod sys_utils;
 pub mod test_utils;
 #[cfg(feature = "tonlibjson")]
 pub mod tl_client;
+
+#[cfg(test)]
+#[path = "tests/test_dictionary.rs"]
+mod test_dictionary;

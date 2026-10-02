@@ -4,6 +4,7 @@ use super::label_type::DictLabelType;
 use crate::tlb_adapters::DictValAdapter;
 use num_bigint::BigUint;
 use num_traits::One;
+use ton_core::bail_ton_core_data;
 use ton_core::cell::CellParser;
 use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
@@ -43,37 +44,31 @@ impl DictDataParser {
         // will rollback prefix to original value at the end of the function
         let origin_key_prefix_len = self.cur_key_prefix.bits();
 
-        let label_type = self.detect_label_type(parser)?;
-        match label_type {
+        let remaining = self.key_bits_len - (origin_key_prefix_len as usize - 1);
+        let len_bits = (usize::BITS - remaining.leading_zeros()) as usize;
+        let (prefix_len, repeated_bit) = match self.detect_label_type(parser)? {
             DictLabelType::Same => {
-                let prefix_val = parser.read_bit()?;
-                let prefix_len_len = self.remain_suffix_bit_len();
-                let prefix_len = parser.read_num::<usize>(prefix_len_len)?;
-                if prefix_val {
-                    self.cur_key_prefix += 1u32;
-                    self.cur_key_prefix <<= prefix_len;
-                    self.cur_key_prefix -= 1u32;
-                } else {
-                    self.cur_key_prefix <<= prefix_len;
-                }
+                let bit = parser.read_bit()?;
+                (parser.read_num::<usize>(len_bits)?, Some(bit))
             },
-            DictLabelType::Short => {
-                let prefix_len = UnaryLen::read(parser)?;
-                if *prefix_len != 0 {
-                    let val = parser.read_num::<BigUint>(*prefix_len)?;
-                    self.cur_key_prefix <<= *prefix_len;
-                    self.cur_key_prefix |= val;
-                }
-            },
-            DictLabelType::Long => {
-                let prefix_len_len = self.remain_suffix_bit_len();
-                let prefix_len: usize = parser.read_num(prefix_len_len)?;
-                if prefix_len_len != 0 {
-                    let val: BigUint = parser.read_num(prefix_len)?;
-                    self.cur_key_prefix <<= prefix_len;
-                    self.cur_key_prefix |= val;
-                }
-            },
+            DictLabelType::Short => (*UnaryLen::read(parser)?, None),
+            DictLabelType::Long => (parser.read_num::<usize>(len_bits)?, None),
+        };
+        if prefix_len > remaining {
+            bail_ton_core_data!("dictionary label length {prefix_len} exceeds remaining key width {remaining}");
+        }
+        if let Some(bit) = repeated_bit {
+            if bit {
+                self.cur_key_prefix += 1u32;
+                self.cur_key_prefix <<= prefix_len;
+                self.cur_key_prefix -= 1u32;
+            } else {
+                self.cur_key_prefix <<= prefix_len;
+            }
+        } else if prefix_len != 0 {
+            let val = parser.read_num::<BigUint>(prefix_len)?;
+            self.cur_key_prefix <<= prefix_len;
+            self.cur_key_prefix |= val;
         }
         if self.cur_key_prefix.bits() as usize == (self.key_bits_len + 1) {
             let mut key = BigUint::one() << self.key_bits_len;
@@ -99,11 +94,5 @@ impl DictDataParser {
             DictLabelType::Short
         };
         Ok(label)
-    }
-
-    fn remain_suffix_bit_len(&self) -> usize {
-        // add 2 because cur_prefix contains leading bit
-        let prefix_len_left = self.key_bits_len - self.cur_key_prefix.bits() as usize + 2;
-        (prefix_len_left as f32).log2().ceil() as usize
     }
 }
