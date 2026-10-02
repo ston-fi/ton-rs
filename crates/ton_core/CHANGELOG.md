@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.5...ton_core-v0.3.6) - 2026-10-02
+
+### Other
+
+- add InternalAddress TLB adapter ([#236](https://github.com/ston-fi/ton-rs/pull/236))
+
 ### Added
 
 - `InternalAddress` TLB adapter preserves standard internal `0:0` and rejects null, external, variable-length and anycast addresses and out-of-range workchains.

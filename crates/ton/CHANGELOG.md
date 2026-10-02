@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.5...ton-v0.4.6) - 2026-10-02
+
+### Other
+
+- add InternalAddress TLB adapter ([#236](https://github.com/ston-fi/ton-rs/pull/236))
+
 ## [0.4.5](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.4...ton-v0.4.5) - 2026-09-25
 
 ### Other
