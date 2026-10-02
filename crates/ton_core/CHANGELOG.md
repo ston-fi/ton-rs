@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `NullableAddress` TLB adapter matches Tolk `address?` for nullable standard internal addresses, without a `Maybe` bit, and preserves `Some(0:0)` separately from `None`.
+
 ## [0.3.6](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.5...ton_core-v0.3.6) - 2026-10-02
 
 ### Other

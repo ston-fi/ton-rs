@@ -19,6 +19,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [TonCell](crates/ton_core/src/cell/ton_cell.rs)
 - [TonAddress](crates/ton_core/src/types/ton_address.rs)
 - [`InternalAddress`](crates/ton_core/src/types/tlb_core/adapters/internal_address.rs): use `#[tlb(adapter = "InternalAddress")]` for a required standard internal address, including internal `0:0`. Default `TonAddress` serialization maps zero to `addr_none`. The adapter rejects null, external, variable-length and anycast addresses and checks the int8 workchain range.
+- [`NullableAddress`](crates/ton_core/src/types/tlb_core/adapters/nullable_address.rs): use `#[tlb(adapter = "NullableAddress")]` on `Option<TonAddress>` to match Tolk `address?` for nullable standard internal addresses. It writes `addr_none` for `None`, delegates `Some` to `InternalAddress`, and keeps `Some(0:0)` distinct from `None`, without an extra `Maybe` bit.
 - [TLB](crates/ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
 - [Types](crates/ton_core/src/types) - Few basic types, common and stable enough to be in core
 
