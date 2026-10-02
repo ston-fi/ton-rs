@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.7...ton-v0.4.8) - 2026-10-02
+
+### Other
+
+- Fix #NI: Validate signed dictionary keys and label bounds ([#240](https://github.com/ston-fi/ton-rs/pull/240))
+
 ## [0.4.7](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.6...ton-v0.4.7) - 2026-10-02
 
 ### Other
