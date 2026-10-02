@@ -28,3 +28,8 @@ ton_core = "0.3"
 
 Enable `serde` only when serialization support is needed. Start validation with
 `cargo test -p ton_core`; finish with the root full checks and package listing.
+
+Use `types::tlb_core::adapters::InternalAddress` for required standard internal
+addresses. It encodes `TonAddress::ZERO` as internal `0:0`, rejects unsupported
+address forms and workchains outside int8, and consumes only its inline field.
+Default `TonAddress` encoding still maps zero to `addr_none`.

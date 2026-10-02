@@ -10,3 +10,6 @@ pub mod errors;
 pub mod serde;
 pub mod traits;
 pub mod types;
+
+#[cfg(test)]
+mod tests;
