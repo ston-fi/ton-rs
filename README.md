@@ -18,6 +18,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [EmulationProvider](crates/ton_core/src/traits/emulation_provider.rs) - Provider-neutral interface used to execute TVM get methods
 - [TonCell](crates/ton_core/src/cell/ton_cell.rs)
 - [TonAddress](crates/ton_core/src/types/ton_address.rs)
+- [`InternalAddress`](crates/ton_core/src/types/tlb_core/adapters/internal_address.rs): use `#[tlb(adapter = "InternalAddress")]` for a required standard internal address, including internal `0:0`. Default `TonAddress` serialization maps zero to `addr_none`. The adapter rejects null, external, variable-length and anycast addresses and checks the int8 workchain range.
 - [TLB](crates/ton_core/src/traits/tlb.rs) - Trait allows you read/write arbitrary objects in BOC format
 - [Types](crates/ton_core/src/types) - Few basic types, common and stable enough to be in core
 
