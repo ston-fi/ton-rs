@@ -45,3 +45,11 @@ and emulators. Custom providers need neither feature.
 
 Run the root fast/full validation commands. For crate-only iteration, start with
 `cargo test -p ton --lib --all-features` and strict crate Rustdoc/Clippy.
+
+## Dictionary invariants
+
+Signed dictionary key adapters must reject values outside their declared signed
+width before converting to two's complement. Dictionary readers bound every
+label by the remaining key width, including inside forks, and accept all valid
+short, long, and same label encodings, including zero-length labels. Invalid
+keys and labels return typed errors rather than panicking or aliasing keys.

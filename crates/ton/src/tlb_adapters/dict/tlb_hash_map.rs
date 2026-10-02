@@ -33,6 +33,8 @@ where
         }
     }
 
+    /// Reads a dictionary, rejecting labels longer than the remaining key width.
+    /// Valid short, long, and same label encodings are accepted.
     pub fn read(&self, parser: &mut CellParser) -> Result<HashMap<KA::KeyType, VA::ValType>, TonCoreError> {
         let mut data_parser = DictDataParser::new(self.key_bits_len as usize);
         let data_raw = data_parser.read::<VA>(parser)?;
