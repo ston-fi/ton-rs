@@ -33,3 +33,8 @@ Use `types::tlb_core::adapters::InternalAddress` for required standard internal
 addresses. It encodes `TonAddress::ZERO` as internal `0:0`, rejects unsupported
 address forms and workchains outside int8, and consumes only its inline field.
 Default `TonAddress` encoding still maps zero to `addr_none`.
+
+Use `types::tlb_core::adapters::NullableAddress` for Tolk `address?` fields
+represented as `Option<TonAddress>`. It writes `addr_none` for `None` without a
+`Maybe` bit and delegates present values to `InternalAddress`, preserving
+`Some(TonAddress::ZERO)` as standard internal `0:0`.
