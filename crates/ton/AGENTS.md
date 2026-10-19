@@ -53,3 +53,11 @@ width before converting to two's complement. Dictionary readers bound every
 label by the remaining key width, including inside forks, and accept all valid
 short, long, and same label encodings, including zero-length labels. Invalid
 keys and labels return typed errors rather than panicking or aliasing keys.
+
+## Jetton discovery
+
+TEP-89 request/reply wire records live in their named Jetton modules. Preserve
+raw nullable addresses and the absent/present owner reference. Strict reply
+parsing must validate that reference without changing global TLBRef semantics.
+Do not place master discovery requests in the wallet message enum or equate
+wire parsing with source authentication or request correlation.
