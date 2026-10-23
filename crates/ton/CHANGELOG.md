@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - *(ton)* add TEP-89 wallet discovery message codecs ([#242](https://github.com/ston-fi/ton-rs/pull/242))
 
+### Other
+
+- release ([#241](https://github.com/ston-fi/ton-rs/pull/241))
+
+## [0.4.9](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.8...ton-v0.4.9) - 2026-10-23
+
+### Added
+
+- *(ton)* add TEP-89 wallet discovery message codecs ([#242](https://github.com/ston-fi/ton-rs/pull/242))
+
 ### Added
 
 - Add TEP-89 wallet-address request/reply codecs with literal nullable addresses and strict included-owner parsing.
