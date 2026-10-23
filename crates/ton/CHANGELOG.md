@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add TEP-89 wallet-address request/reply codecs with literal nullable addresses and strict included-owner parsing.
+
 ## [0.4.8](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.7...ton-v0.4.8) - 2026-10-02
 
 ### Other

@@ -35,6 +35,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 - [TonWallet](crates/ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages
 - [TLClient](crates/ton/src/tl_client.rs) - Using `tonlibjson` to interact with TON network
 - [TonContract](crates/ton/src/contracts/ton_contract.rs) - Use it with `ContractClient::builder(state_provider, emulation_provider)` to get data or execute methods on TON contracts
+- TEP-89 asynchronous wallet-address requests/replies live in `contracts::tep::jetton::{jetton_provide_wallet_address_msg, jetton_take_wallet_address_msg}`. Raw addresses preserve none versus internal zero; reply authentication and query correlation remain caller-owned. Use `JettonTakeWalletAddressMsg::from_cell_strict` to reject both root and included-owner tails.
 - Standard Jetton, NFT, SBT, and TON wallet contract wrappers live under `contracts::tep`, grouped into public modules by standard and implementation. For example, use `contracts::tep::jetton::jetton_master_contract::JettonMasterContract` or `contracts::tep::ton_wallet::TonWalletContract`.
 - `contracts::tep::metadata::meta_loader::MetaLoader` resolves `ipfs://` metadata through the IPFS Foundation's best-effort public gateway by default. Production applications should configure their own gateway with `MetaLoader::builder().with_ipfs_base_url(...)`.
 

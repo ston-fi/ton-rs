@@ -11,3 +11,6 @@ pub mod jetton_transfer_msg;
 pub mod jetton_transfer_notification_msg;
 pub mod jetton_wallet_contract;
 pub mod jetton_wallet_msg_body;
+
+pub mod jetton_provide_wallet_address_msg;
+pub mod jetton_take_wallet_address_msg;
