@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.7...ton_core-v0.3.8) - 2026-10-23
+
+### Added
+
+- *(ton)* add TEP-89 wallet discovery message codecs ([#242](https://github.com/ston-fi/ton-rs/pull/242))
+
 ## [0.3.7](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.6...ton_core-v0.3.7) - 2026-10-02
 
 ### Other
