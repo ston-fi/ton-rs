@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.10](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.9...ton-v0.4.10) - 2026-10-27
+
+### Other
+
+- make ton-rs helpers discoverable to agents ([#244](https://github.com/ston-fi/ton-rs/pull/244))
+
 ## [0.4.9](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.8...ton-v0.4.9) - 2026-10-23
 
 ### Added
