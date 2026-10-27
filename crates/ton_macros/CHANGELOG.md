@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.2.3...ton_macros-v0.2.4) - 2026-10-27
+
+### Other
+
+- make ton-rs helpers discoverable to agents ([#244](https://github.com/ston-fi/ton-rs/pull/244))
+
 ## [0.2.3](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.2.2...ton_macros-v0.2.3) - 2026-09-23
 
 ### Other
