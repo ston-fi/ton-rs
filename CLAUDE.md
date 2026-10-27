@@ -1,0 +1,3 @@
+# ton-rs
+
+@AGENTS.md
