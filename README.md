@@ -88,6 +88,25 @@ as minor compatibility changes.
 
 
 ## Getting started
+
+### Using ton-rs with coding agents
+
+Start with the [agent guide](AGENTS.md)
+for built-in adapters, macro flags, dictionaries, and contract helpers. The crate
+guides are also shipped in published packages. `CLAUDE.md` imports the shared
+root guide for work in this repository.
+
+For work in another project, add this instruction to that project's `AGENTS.md`
+or `CLAUDE.md` (dependency guides may not be loaded automatically):
+
+> Before implementing TON serialization or contract integration, locate the
+> resolved ton-rs packages with `cargo metadata --format-version 1`. Read
+> `AGENTS.md` beside the `ton_core`, `ton_macros`, and relevant `ton`/`ton_ledger`
+> manifests. Reuse their adapters, derives, and typed helpers before writing
+> custom implementations; check behavior against the resolved version's source.
+
+### Examples
+
 Examples can be found in [examples](examples) folder (feel free to add your own)
 
 - [ton_emulate_get_method](examples/ton_emulate_get_method.rs): network-backed contract emulation; requires `--features tonlibjson`.

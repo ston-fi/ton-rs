@@ -1,5 +1,38 @@
 # ton-rs agent guide
 
+## Using ton-rs from another project
+
+Before writing a custom codec, adapter, get-method wrapper, or wallet helper,
+check the capability map below and read the relevant crate guide. Prefer the
+existing implementation when its wire format and behavior match the task;
+explain the missing capability before introducing a replacement.
+
+Use the dependency version/revision resolved by the consuming project's
+`Cargo.lock`, not an arbitrary checkout or the latest online documentation.
+`cargo metadata --format-version 1` in that project exposes each resolved
+package's `manifest_path`; read `AGENTS.md` beside the relevant manifest and
+inspect its `src/` and tests. Crate guides are included in published packages.
+Paths in each crate guide are relative to that crate unless stated otherwise.
+
+Do not assume dependency instructions are loaded automatically. In the consuming
+project's agent instructions, explicitly ask agents to read the resolved
+`ton_core`, `ton_macros`, and (when used) `ton`/`ton_ledger` guides. This repository's
+`CLAUDE.md` imports this guide so the shared entry point stays in one place.
+Repository maintenance commands below apply when changing ton-rs; downstream
+work should run the consuming project's checks and deterministic wire fixtures.
+
+| Task | Reuse first | Details |
+| --- | --- | --- |
+| Typed cells, opcodes, fixed-width fields, strict cell parsing | `TLB` derive; `prefix`, `bits_len`, `adapter`, `ensure_empty` | [Macro options](crates/ton_macros/AGENTS.md) |
+| Required internal or nullable Tolk addresses | `InternalAddress`, `NullableAddress`; raw `MsgAddress` for other wire variants | [Core recipes](crates/ton_core/AGENTS.md) |
+| Maybe, referenced or either payloads, coin/variable lengths | `Option<T>`, `TLBRef`, `TLBEither`, `TLBEitherRef`, `TLBCoins`, `VarLenBits`/`VarLenBytes` | [Core recipes](crates/ton_core/AGENTS.md) |
+| TON dictionaries in Rust maps | `TLBHashMapE`/`TLBHashMap` with existing key/value adapters | [Dictionary recipe](crates/ton/AGENTS.md) |
+| Typed TVM results and get methods | `FromTVMStack`, `ton_methods`, `ton_contract!` | [Macro options](crates/ton_macros/AGENTS.md), [contract helpers](crates/ton/AGENTS.md) |
+| Standard messages, Jetton/NFT/SBT contracts, metadata | `block_tlb`, `contracts::tep`, `SnakeData`, `MetaLoader` | [ton guide](crates/ton/AGENTS.md) |
+| Provider integration without native tonlib | `StateProvider`, `EmulationProvider`, `ContractClient::builder(...)` | [ton guide](crates/ton/AGENTS.md) |
+| Software or hardware wallet signing | `TonWallet` or `TonLedgerWallet::builder(...)` | [Wallet guide](crates/ton/src/ton_wallet/AGENTS.md), [Ledger guide](crates/ton_ledger/AGENTS.md) |
+| JSON address/hash encodings | `ton_core::serde` field adapters, behind `serde` | [Core recipes](crates/ton_core/AGENTS.md) |
+
 ## Repository
 
 This workspace contains public Rust libraries for TON:
