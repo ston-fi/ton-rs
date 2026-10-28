@@ -1,14 +1,11 @@
 name: MSRV
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: msrv-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  workflow_call:
   schedule:
     - cron: "17 7 * * 1"
   workflow_dispatch:
@@ -18,11 +15,12 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'allow' || 'fallback' }}
 
 jobs:
   msrv:
     name: Verify declared MSRV
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Install libraries
         run: |
@@ -34,33 +32,29 @@ jobs:
           sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
       - name: Checkout repository
         uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94"
+      - run: cargo generate-lockfile
+      # tonlib-sys builds with -march=native; do not restore another CPU's binaries.
+      - name: Identify native build cache
+        id: native-cache
+        run: |
+          version=$(python3 -c 'import tomllib; print(next(p["version"] for p in tomllib.load(open("Cargo.lock", "rb"))["package"] if p["name"] == "tonlib-sys"))')
+          key=$({ echo "$version"; clang --version; LC_ALL=C lscpu | sed -n '/^Model name:/p; /^Flags:/p'; } | sha256sum | cut -d ' ' -f 1)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          # Cargo's git-cache cleanup deletes tonlib-sys's default native build directory.
+          echo "TON_MONOREPO_DIR=$RUNNER_TEMP/tonlib-sys-$version" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.TON_MONOREPO_DIR }}
+          key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
       - name: Install cargo-hack
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-hack@0.6.44
-      - name: Resolve latest dependency releases
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        env:
-          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
-        run: cargo update --verbose
       - name: Check published crates on their declared MSRV
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
-        run: >-
-          cargo hack check
-          --rust-version
-          --workspace
-          --all-targets
-          --all-features
-          --ignore-private
-      - name: Check latest dependencies on the declared MSRV
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        env:
-          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
-        run: >-
-          cargo hack check
-          --rust-version
-          --workspace
-          --all-targets
-          --all-features
-          --ignore-private
+        run: cargo hack check --rust-version --workspace --all-targets --all-features --ignore-private --locked

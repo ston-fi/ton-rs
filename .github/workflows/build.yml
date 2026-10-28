@@ -2,69 +2,125 @@ name: Build-Test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A main build may be publishing; only superseded PR runs can be cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_VERSION: "1.97.1"
 
 jobs:
-  build_default_features:
-    runs-on: ubuntu-latest
+  format:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install clang toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libudev-dev libdbus-1-dev pkg-config
-          CLANG_BIN="$(command -v clang)"
-          CLANGXX_BIN="$(command -v clang++)"
-          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
-          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          fetch-depth: 0
-      - uses: Swatinem/rust-cache@v2
-      - run: rustup toolchain install nightly
-      - run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-      - run: cargo +nightly fmt --check
-      - run: cargo clippy
-      - run: cargo test --lib --all --verbose --exclude examples
-      - run: cargo test -p ton --lib --no-default-features --features lite-client
-  build_all_features:
-    runs-on: ubuntu-latest
+          toolchain: nightly-2026-10-27
+          components: rustfmt
+      - run: cargo fmt --check
+
+  build_default_features:
+    runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+      - run: cargo generate-lockfile
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ hashFiles('Cargo.toml') }}
+      - run: cargo clippy --workspace --locked -- -D warnings
+      - run: cargo test --workspace --lib --locked --exclude examples
+      - run: cargo test -p ton --lib --locked --no-default-features --features lite-client
+      - run: cargo test --workspace --doc --locked
+
+  build_all_features:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
       - name: Install libraries
         run: |
           sudo apt-get update
           sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev libudev-dev libdbus-1-dev pkg-config
-          CLANG_BIN="$(command -v clang)"
-          CLANGXX_BIN="$(command -v clang++)"
-          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
-          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
-      - name: Checkout repository
-        uses: actions/checkout@v4
+          sudo ln -sf "$(command -v clang)" /usr/local/bin/clang-21
+          sudo ln -sf "$(command -v clang++)" /usr/local/bin/clang++-21
+      - uses: dtolnay/rust-toolchain@master
         with:
-          fetch-depth: 0
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+      - run: cargo generate-lockfile
+      # tonlib-sys builds with -march=native; do not restore another CPU's binaries.
+      - name: Identify native build cache
+        id: native-cache
+        run: |
+          version=$(python3 -c 'import tomllib; print(next(p["version"] for p in tomllib.load(open("Cargo.lock", "rb"))["package"] if p["name"] == "tonlib-sys"))')
+          key=$({ echo "$version"; clang --version; LC_ALL=C lscpu | sed -n '/^Model name:/p; /^Flags:/p'; } | sha256sum | cut -d ' ' -f 1)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          # Cargo's git-cache cleanup deletes tonlib-sys's default native build directory.
+          echo "TON_MONOREPO_DIR=$RUNNER_TEMP/tonlib-sys-$version" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.TON_MONOREPO_DIR }}
+          key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --all --all-features --verbose
-      - run: cargo clippy --fix --all-features
-      - run: cargo test --lib --all --all-features
+        with:
+          key: ${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - run: cargo test --workspace --lib --all-features --locked
+      - run: cargo test -p ton --doc --all-features --locked
+      - run: cargo check -p examples --examples --all-features --locked
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features --locked
 
   ledger_features:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - run: cargo generate-lockfile
       - uses: Swatinem/rust-cache@v2
-      - name: Test Ledger with default features
-        run: cargo test -p ton_ledger
-      - name: Test Ledger with default features and Bluetooth
-        run: cargo test -p ton_ledger --features ble
-      - run: cargo check -p examples --example ton_ledger_self_transfer --features ledger-ble
-      - run: cargo check -p examples --example ton_ledger_reconnect --features ledger-hid
+        with:
+          key: ${{ hashFiles('Cargo.toml') }}
+      - run: cargo test -p ton_ledger --locked
+      - run: cargo test -p ton_ledger --no-default-features --locked
+      - run: cargo test -p ton_ledger --no-default-features --features ble --locked
+      - run: cargo check -p examples --example ton_ledger_self_transfer --features ledger-ble --locked
+      - run: cargo check -p examples --example ton_ledger_reconnect --features ledger-hid --locked
+
+  msrv:
+    uses: ./.github/workflows/msrv.yml
+
+  ci:
+    name: CI
+    if: always()
+    needs: [format, build_default_features, build_all_features, ledger_features, msrv]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: test "$RESULT" = success
+        env:
+          RESULT: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') && 'success' || 'failure' }}
+
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: ci
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
