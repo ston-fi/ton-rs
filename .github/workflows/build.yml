@@ -45,7 +45,7 @@ jobs:
             BASE=$(git merge-base "$BASE" "$HEAD")
           fi
           changes=$(git diff --name-only --no-renames "$BASE" "$HEAD" -- \
-            Cargo.toml '**/Cargo.toml' .cargo .github/workflows \
+            .cargo .github/workflows \
             crates/ton/src/lib.rs \
             crates/ton/src/emulators.rs crates/ton/src/emulators \
             crates/ton/src/sys_utils.rs crates/ton/src/sys_utils \
@@ -62,7 +62,32 @@ jobs:
           if [[ -n "$changes" ]]; then
             echo "tonlibjson=true" >> "$GITHUB_OUTPUT"
           else
-            echo "tonlibjson=false" >> "$GITHUB_OUTPUT"
+            python3 - "$BASE" "$HEAD" >> "$GITHUB_OUTPUT" <<'PY'
+          import subprocess
+          import sys
+          import tomllib
+
+          base, head = sys.argv[1:]
+          paths = subprocess.check_output([
+              "git", "diff", "--name-only", "--no-renames", "-z", base, head,
+              "--", "Cargo.toml", "**/Cargo.toml",
+          ]).decode().split("\0")
+          native = False
+          for path in filter(None, paths):
+              files = [subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True) for ref in (base, head)]
+              if any(file.returncode for file in files):
+                  native = True  # Added or deleted manifests still require native checks.
+                  break
+              manifests = [tomllib.loads(file.stdout.decode()) for file in files]
+              # Release-plz's package version bumps do not change the build configuration.
+              if all(isinstance(manifest.get("package", {}).get("version"), str) for manifest in manifests):
+                  for manifest in manifests:
+                      del manifest["package"]["version"]
+              if manifests[0] != manifests[1]:
+                  native = True
+                  break
+          print(f"tonlibjson={str(native).lower()}")
+          PY
           fi
       - uses: dtolnay/rust-toolchain@master
         with:
