@@ -66,18 +66,5 @@ fn join_url_path(base_url: &str, path: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::join_url_path;
-
-    #[test]
-    fn test_join_url_path_normalizes_separator() {
-        assert_eq!(
-            join_url_path("https://example.com/ipfs", "cid/file.json"),
-            "https://example.com/ipfs/cid/file.json"
-        );
-        assert_eq!(
-            join_url_path("https://example.com/ipfs/", "/cid/file.json"),
-            "https://example.com/ipfs/cid/file.json"
-        );
-    }
-}
+#[path = "../../../../tests/contracts/tep/metadata/meta_loader/test_ipfs_loader.rs"]
+mod tests;

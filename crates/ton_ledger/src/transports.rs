@@ -1,5 +1,6 @@
 //! Device transport extension point and optional native backends.
 #[cfg(test)]
+#[path = "tests/transports/test_framing.rs"]
 mod _test_framing;
 #[cfg(feature = "ble")]
 pub mod ble;

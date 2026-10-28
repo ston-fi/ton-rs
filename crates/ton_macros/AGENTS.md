@@ -41,7 +41,7 @@ payload prefixes. Zero-length prefixes can shadow later variants in fallback
 declaration order. The derive also supplies `From<Payload>`, `as_<variant>()`,
 `as_<variant>_mut()` and `into_<variant>()` helpers (snake_case variant names).
 Check `src/tlb_derive_enum.rs` and the resolved
-`ton_core` package's `src/traits/tlb/test_tlb_enum.rs` before composing enums.
+`ton_core` package's `src/tests/traits/tlb/test_tlb_enum.rs` before composing enums.
 
 Sources of truth: `src/tlb_derive.rs` (accepted attributes),
 `src/tlb_derive_struct.rs` (field adapters/strictness), and

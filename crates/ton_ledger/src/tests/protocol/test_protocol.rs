@@ -268,7 +268,7 @@ fn test_upstream_data_vectors() -> anyhow::Result<()> {
             extension: Some(TonCell::empty().clone()),
         },
     ];
-    let vectors: Vec<_> = include_str!("../../tests/fixtures/data.tsv").lines().collect();
+    let vectors: Vec<_> = include_str!("../../../tests/fixtures/data.tsv").lines().collect();
     assert_eq!(requests.len(), vectors.len());
     for (request, line) in requests.iter().zip(vectors) {
         let fields: Vec<_> = line.split('\t').collect();
@@ -370,7 +370,7 @@ async fn test_wallet_data_signing_transcripts_and_rejection() -> anyhow::Result<
         },
     ];
     let path_command = hex::decode("e009000319068000002c8000025f80000000800000008000000080000000")?;
-    let vectors: Vec<_> = include_str!("../../tests/fixtures/data.tsv").lines().collect();
+    let vectors: Vec<_> = include_str!("../../../tests/fixtures/data.tsv").lines().collect();
     assert_eq!(requests.len(), vectors.len());
     for (request, vector) in requests.iter().zip(vectors) {
         let fields: Vec<_> = vector.split('\t').collect();

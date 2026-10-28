@@ -8,4 +8,5 @@ pub(crate) mod payload;
 pub(crate) mod proof;
 
 #[cfg(test)]
+#[path = "tests/protocol/test_protocol.rs"]
 mod _test_protocol;

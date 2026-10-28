@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[path = "tests/block_tlb/test_block_data.rs"]
 mod _test_block_data;
 
 mod account_types;

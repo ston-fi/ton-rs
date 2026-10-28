@@ -116,4 +116,5 @@ pub(crate) fn transaction(
     Ok(out)
 }
 #[cfg(test)]
+#[path = "../tests/protocol/payload/test_payload.rs"]
 mod _test_payload;

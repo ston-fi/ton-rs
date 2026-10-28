@@ -191,7 +191,7 @@ enum OuterEnum {
     Variant2(u8),       // Prefix overall = 0b1011
 }
 ```
-Be careful with null (zero-length) prefixes. A null prefix acts like a wildcard; during parsing, variants are tried in declaration order, so a null-prefix variant placed earlier can consume the input before later variants are considered. See tests in [ton_core/src/traits/tlb/test_tlb_enum.rs](crates/ton_core/src/traits/tlb/test_tlb_enum.rs) for the shadowing and the safe-prefix example.
+Be careful with null (zero-length) prefixes. A null prefix acts like a wildcard; during parsing, variants are tried in declaration order, so a null-prefix variant placed earlier can consume the input before later variants are considered. See tests in [ton_core/src/tests/traits/tlb/test_tlb_enum.rs](crates/ton_core/src/tests/traits/tlb/test_tlb_enum.rs) for the shadowing and the safe-prefix example.
 
 ## Contribution
 
