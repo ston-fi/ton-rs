@@ -30,8 +30,9 @@ struct TonMethodsAttrs {
     name_format: Option<Case<'static>>,
 }
 
-struct TonMethodAttrs {
-    name: String,
+enum TonMethodAttrs {
+    Name(String),
+    Id(i32),
 }
 
 impl Parse for TonMethodsAttrs {
@@ -63,31 +64,31 @@ impl Parse for TonMethodsAttrs {
 
 impl Parse for TonMethodAttrs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut name = None;
-
-        while !input.is_empty() {
-            let key: Ident = input.parse()?;
-            if key != "name" {
-                return Err(Error::new(key.span(), "unsupported #[ton_method] argument"));
-            }
-            if name.is_some() {
-                return Err(Error::new(key.span(), "duplicate name argument"));
-            }
-
-            input.parse::<Token![=]>()?;
+        let key: Ident = input.parse()?;
+        input.parse::<Token![=]>()?;
+        let selector = if key == "name" {
             let value: LitStr = input.parse()?;
             if value.value().is_empty() {
                 return Err(Error::new(value.span(), "method name cannot be empty"));
             }
-            name = Some(value.value());
-
-            if input.is_empty() {
-                break;
-            }
+            Self::Name(value.value())
+        } else if key == "id" {
+            let negative = input.parse::<Option<Token![-]>>()?.is_some();
+            let value: LitInt = input.parse()?;
+            let magnitude = value.base10_parse::<i64>()?;
+            let id = i32::try_from(if negative { -magnitude } else { magnitude })
+                .map_err(|_| Error::new(value.span(), "method id must fit in i32"))?;
+            Self::Id(id)
+        } else {
+            return Err(Error::new(key.span(), "unsupported #[ton_method] argument"));
+        };
+        if !input.is_empty() {
             input.parse::<Token![,]>()?;
+            if !input.is_empty() {
+                return Err(input.error("specify exactly one name or id argument"));
+            }
         }
-
-        name.map(|name| Self { name }).ok_or_else(|| Error::new(input.span(), "missing name argument"))
+        Ok(selector)
     }
 }
 
@@ -177,35 +178,35 @@ fn format_method_name(method_name: &str, name_format: Option<Case<'static>>) -> 
     }
 }
 
-fn take_method_name(attrs: &mut Vec<Attribute>) -> Result<Option<String>> {
-    let mut method_name = None;
+fn take_method_selector(attrs: &mut Vec<Attribute>) -> Result<Option<TonMethodAttrs>> {
+    let mut selector = None;
     let mut index = 0;
     while index < attrs.len() {
         if !attrs[index].path().is_ident("ton_method") {
             index += 1;
             continue;
         }
-        if method_name.is_some() {
+        if selector.is_some() {
             return Err(Error::new_spanned(&attrs[index], "duplicate #[ton_method] attribute"));
         }
 
-        method_name = Some(attrs[index].parse_args::<TonMethodAttrs>()?.name);
+        selector = Some(attrs[index].parse_args::<TonMethodAttrs>()?);
         attrs.remove(index);
     }
-    Ok(method_name)
+    Ok(selector)
 }
 
 fn rewrite_trait(trait_items: &mut ItemTrait, attrs: &TonMethodsAttrs) -> Result<()> {
     for item in &mut trait_items.items {
         let TraitItem::Fn(method) = item else { continue };
-        let method_name = take_method_name(&mut method.attrs)?;
+        let selector = take_method_selector(&mut method.attrs)?;
         if method.default.is_some() {
-            if method_name.is_some() {
+            if selector.is_some() {
                 return Err(Error::new(method.sig.ident.span(), "#[ton_method] requires a generated method body"));
             }
             continue;
         }
-        let body = build_body(&method.sig, method_name.as_deref(), attrs.name_format);
+        let body = build_body(&method.sig, selector.as_ref(), attrs.name_format);
         method.default = Some(parse_quote!({ Box::pin(async move { #body.await }) }));
     }
     Ok(())
@@ -227,8 +228,8 @@ fn rewrite_struct_impl(impl_items: &mut ItemImpl, attrs: &TonMethodsAttrs) -> Re
             Err(_) => panic!("Unexpected tokens in impl block: {}", verb_stream),
         };
 
-        let method_name = take_method_name(&mut semi.attrs)?;
-        let block = build_body(&semi.sig, method_name.as_deref(), attrs.name_format);
+        let selector = take_method_selector(&mut semi.attrs)?;
+        let block = build_body(&semi.sig, selector.as_ref(), attrs.name_format);
 
         // bind fields to idents for quote repetition
         let attrs = &semi.attrs;
@@ -248,16 +249,21 @@ fn rewrite_struct_impl(impl_items: &mut ItemImpl, attrs: &TonMethodsAttrs) -> Re
 }
 
 #[rustfmt::skip]
-fn build_body(signature: &Signature, method_name: Option<&str>, name_format: Option<Case<'static>>) -> proc_macro2::TokenStream {
-    let method_name_str = method_name
-        .map(ToOwned::to_owned)
-        .unwrap_or_else(|| format_method_name(&signature.ident.to_string(), name_format));
+fn build_body(signature: &Signature, selector: Option<&TonMethodAttrs>, name_format: Option<Case<'static>>) -> proc_macro2::TokenStream {
+    let method_id = match selector {
+        Some(TonMethodAttrs::Name(name)) => quote! { #name },
+        Some(TonMethodAttrs::Id(id)) => quote! { #id },
+        None => {
+            let name = format_method_name(&signature.ident.to_string(), name_format);
+            quote! { #name }
+        },
+    };
     let crate_path = crate_name_or_panic("ton");
 
     let args = collect_args_info(signature);
 
     if args.is_empty() {
-        return quote! { self.emulate_get_method(#method_name_str, &#crate_path::block_tlb::TVMStack::EMPTY) };
+        return quote! { self.emulate_get_method(#method_id, &#crate_path::block_tlb::TVMStack::EMPTY) };
     }
     let push_args = args.into_iter().map(|info| {
         let ident = info.ident;
@@ -271,7 +277,7 @@ fn build_body(signature: &Signature, method_name: Option<&str>, name_format: Opt
     quote! {
         let mut stack = #crate_path::block_tlb::TVMStack::default();
         #( #push_args )*
-        self.emulate_get_method(#method_name_str, &stack)
+        self.emulate_get_method(#method_id, &stack)
     }
 }
 
@@ -433,7 +439,33 @@ mod tests {
             async fn get_ui_variables(&self);
         };
 
-        assert!(take_method_name(&mut method.attrs).is_err());
+        assert!(take_method_selector(&mut method.attrs).is_err());
+        Ok(())
+    }
+    #[test]
+    fn test_method_selector_rejects_ambiguous_or_out_of_range_ids() {
+        for tokens in [
+            quote!(name = "seqno", id = 85143),
+            quote!(id = 85143, name = "seqno"),
+            quote!(id = 1, id = 2),
+            quote!(id = 2147483648),
+            quote!(id = -2147483649),
+            quote!(id = "85143"),
+        ] {
+            assert!(parse2::<TonMethodAttrs>(tokens).is_err());
+        }
+    }
+
+    #[test]
+    fn test_method_selector_accepts_signed_i32_limits_and_hex_literals() -> Result<()> {
+        for (tokens, expected) in [
+            (quote!(id = -2147483648), i32::MIN),
+            (quote!(id = 2147483647), i32::MAX),
+            (quote!(id = 0x1_abcd,), 0x1_abcd),
+        ] {
+            let TonMethodAttrs::Id(actual) = parse2(tokens)? else { panic!("expected numeric id") };
+            assert_eq!(actual, expected);
+        }
         Ok(())
     }
 }

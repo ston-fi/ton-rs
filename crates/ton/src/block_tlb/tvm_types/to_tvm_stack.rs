@@ -9,6 +9,7 @@ pub trait ToTVMStack {
 /// Implementations of TVMType for base classes
 mod to_tvm_stack_impls {
     use super::*;
+    use crate::errors::TonError;
     use fastnum::I512;
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
@@ -28,6 +29,24 @@ mod to_tvm_stack_impls {
             Ok(())
         }
     }
+
+    macro_rules! to_tvm_stack_primitives_impl {
+        ($($t:ty),*) => {
+            $(
+                impl ToTVMStack for $t {
+                    fn to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
+                        let value = I512::try_from(*self).map_err(|_| TonError::UnexpectedValue {
+                            expected: "TVM integer".into(),
+                            actual: self.to_string(),
+                        })?;
+                        stack.push_int(value);
+                        Ok(())
+                    }
+                }
+            )*
+        };
+    }
+    to_tvm_stack_primitives_impl!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i128, isize);
 
     impl ToTVMStack for I512 {
         fn to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {

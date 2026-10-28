@@ -103,11 +103,22 @@ For real schemas see `src/block_tlb/state_init.rs` and for boundary fixtures
 see `src/tests/test_dictionary.rs`. The repository's
 `examples/ton_types_tlb_build_dict_large.rs` demonstrates dictionary assembly.
 
+### TVM stack conversions
+
+`block_tlb::ToTVMStack` supports native Rust integers without narrowing to i64;
+existing i64 and bool packing is unchanged. `FromTVMStack` supports
+`MsgAddressInt`, rejecting TVM NULL, addr_none and external addresses while
+preserving standard/variable internal forms. `TLBRef<TonCell>` consumes one
+Cell or CellSlice entry and wraps it without adding a reference layer. These
+fields can be used directly in `FromTVMStack` derives. Optional referenced cells
+use the existing `Option<T>` NULL handling. This conversion is specific to raw
+cells; it does not infer how arbitrary `TLBRef<T>` records map to stack items.
+
 ### Contracts, standard messages, and metadata
 
 - Use `ton_contract!(Name<Storage>: Methods)` and `#[ton_methods]` before
   implementing `TonContract` and stack packing manually. The `ton_macros` guide
-  documents naming overrides and `FromTVMStack` strictness flags.
+  documents exact-name/numeric-selector overrides and `FromTVMStack` strictness flags.
 - Use `contracts::ContractClient::builder(state_provider, emulation_provider)`
   for custom provider integration. Core `StateProvider`/`EmulationProvider`
   traits let wrappers work without native features. `TonContract::new` is
