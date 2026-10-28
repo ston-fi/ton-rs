@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.11](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.10...ton-v0.4.11) - 2026-10-28
+
+### Other
+
+- cache native builds and gate releases ([#247](https://github.com/ston-fi/ton-rs/pull/247))
+- to_tvm_stack for numerics + numeric method_name ([#246](https://github.com/ston-fi/ton-rs/pull/246))
+
 ### Added
 
 - Add native integer TVM arguments and `MsgAddressInt`/`TLBRef<TonCell>` result conversions.

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.10](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.9...ton_core-v0.3.10) - 2026-10-28
+
+### Other
+
+- cache native builds and gate releases ([#247](https://github.com/ston-fi/ton-rs/pull/247))
+- to_tvm_stack for numerics + numeric method_name ([#246](https://github.com/ston-fi/ton-rs/pull/246))
+
 ## [0.3.9](https://github.com/ston-fi/ton-rs/compare/ton_core-v0.3.8...ton_core-v0.3.9) - 2026-10-27
 
 ### Other

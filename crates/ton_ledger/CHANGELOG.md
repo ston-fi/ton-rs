@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.2...ton_ledger-v0.1.3) - 2026-10-28
+
+### Other
+
+- cache native builds and gate releases ([#247](https://github.com/ston-fi/ton-rs/pull/247))
+
 ## [0.1.2](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.1...ton_ledger-v0.1.2) - 2026-09-25
 
 ### Other
