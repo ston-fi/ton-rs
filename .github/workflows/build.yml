@@ -196,7 +196,10 @@ jobs:
                  (needs.format.outputs.tonlibjson == 'false' && needs.build_tonlibjson.result == 'skipped')) }}
 
   release:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # Override implicit success(): optional native checks may be skipped upstream of CI.
+    if: >-
+      ${{ !cancelled() && needs.ci.result == 'success' && github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     needs: ci
     permissions:
       contents: write
