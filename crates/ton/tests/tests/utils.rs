@@ -3,7 +3,7 @@ use log4rs::Config;
 use log4rs::append::console::{ConsoleAppender, Target};
 use log4rs::config::{Appender, Root};
 use std::sync::Once;
-#[cfg(feature = "lite-client")]
+#[cfg(feature = "tonlibjson")]
 use std::time::Duration;
 #[cfg(feature = "lite-client")]
 use ton::lite_client::*;

@@ -6,8 +6,10 @@ concurrency:
 
 on:
   workflow_call:
-  schedule:
-    - cron: "17 7 * * 1"
+    inputs:
+      tonlibjson:
+        type: boolean
+        default: true
   workflow_dispatch:
 
 permissions:
@@ -15,6 +17,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  TONLIBJSON: ${{ inputs.tonlibjson || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
   CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'allow' || 'fallback' }}
 
 jobs:
@@ -22,10 +25,11 @@ jobs:
     name: Verify declared MSRV
     runs-on: ubuntu-24.04
     steps:
-      - name: Install libraries
+      - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
+      - name: Install native libraries
+        if: env.TONLIBJSON == 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev libudev-dev libdbus-1-dev pkg-config
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
           CLANG_BIN="$(command -v clang)"
           CLANGXX_BIN="$(command -v clang++)"
           sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
@@ -38,6 +42,7 @@ jobs:
       - run: cargo generate-lockfile
       # tonlib-sys builds with -march=native; do not restore another CPU's binaries.
       - name: Identify native build cache
+        if: env.TONLIBJSON == 'true'
         id: native-cache
         run: |
           version=$(python3 -c 'import tomllib; print(next(p["version"] for p in tomllib.load(open("Cargo.lock", "rb"))["package"] if p["name"] == "tonlib-sys"))')
@@ -46,6 +51,7 @@ jobs:
           # Cargo's git-cache cleanup deletes tonlib-sys's default native build directory.
           echo "TON_MONOREPO_DIR=$RUNNER_TEMP/tonlib-sys-$version" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
+        if: env.TONLIBJSON == 'true'
         with:
           path: ${{ env.TON_MONOREPO_DIR }}
           key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
@@ -57,4 +63,10 @@ jobs:
         with:
           tool: cargo-hack@0.6.44
       - name: Check published crates on their declared MSRV
-        run: cargo hack check --rust-version --workspace --all-targets --all-features --ignore-private --locked
+        run: |
+          if [[ "$TONLIBJSON" == true ]]; then
+            cargo hack check --rust-version --workspace --all-targets --all-features --ignore-private --locked
+          else
+            cargo hack check --rust-version -p ton --all-targets --features lite-client,unstable --locked
+            cargo hack check --rust-version -p ton_core -p ton_macros -p ton_ledger --all-targets --all-features --locked
+          fi
