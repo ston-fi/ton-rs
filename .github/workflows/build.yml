@@ -2,69 +2,179 @@ name: Build-Test
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A main build may be publishing; only superseded PR runs can be cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 7 * * 1"
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_VERSION: "1.97.1"
 
 jobs:
-  build_default_features:
-    runs-on: ubuntu-latest
+  format:
+    runs-on: ubuntu-24.04
+    outputs:
+      tonlibjson: ${{ steps.changes.outputs.tonlibjson }}
     steps:
-      - name: Install clang toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libudev-dev libdbus-1-dev pkg-config
-          CLANG_BIN="$(command -v clang)"
-          CLANGXX_BIN="$(command -v clang++)"
-          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
-          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: Swatinem/rust-cache@v2
-      - run: rustup toolchain install nightly
-      - run: rustup component add --toolchain nightly-x86_64-unknown-linux-gnu rustfmt
-      - run: cargo +nightly fmt --check
-      - run: cargo clippy
-      - run: cargo test --lib --all --verbose --exclude examples
-      - run: cargo test -p ton --lib --no-default-features --features lite-client
-  build_all_features:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install libraries
+      - name: Detect native changes
+        id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev libudev-dev libdbus-1-dev pkg-config
-          CLANG_BIN="$(command -v clang)"
-          CLANGXX_BIN="$(command -v clang++)"
-          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
-          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
-      - name: Checkout repository
-        uses: actions/checkout@v4
+          if [[ "$EVENT" == schedule || "$EVENT" == workflow_dispatch || "$BASE" == 0000000000000000000000000000000000000000 ]]; then
+            echo "tonlibjson=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT" == pull_request ]]; then
+            BASE=$(git merge-base "$BASE" "$HEAD")
+          fi
+          changes=$(git diff --name-only --no-renames "$BASE" "$HEAD" -- \
+            Cargo.toml '**/Cargo.toml' .cargo .github/workflows \
+            crates/ton/src/lib.rs \
+            crates/ton/src/emulators.rs crates/ton/src/emulators \
+            crates/ton/src/sys_utils.rs crates/ton/src/sys_utils \
+            crates/ton/src/test_utils.rs crates/ton/src/test_utils \
+            crates/ton/src/tl_client.rs crates/ton/src/tl_client \
+            crates/ton/src/tests/emulators crates/ton/src/tests/test_emulators.rs \
+            crates/ton/src/tests/tl_client crates/ton/src/tests/test_tl_client.rs \
+            crates/ton/src/tests/test_utils.rs crates/ton/src/tests/test_sys_utils.rs \
+            crates/ton/tests/tests/test_contract_client.rs crates/ton/tests/tests/test_contracts.rs \
+            crates/ton/tests/tests/test_tl_client.rs crates/ton/tests/tests/utils.rs \
+            crates/ton/tests/tests/mod.rs crates/ton/tests/init.rs crates/ton/resources \
+            examples/ton_transfer.rs examples/ton_emulate_get_method.rs \
+            benchmarks/tx_emulator_bench.rs)
+          if [[ -n "$changes" ]]; then
+            echo "tonlibjson=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tonlibjson=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: dtolnay/rust-toolchain@master
         with:
-          fetch-depth: 0
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo build --all --all-features --verbose
-      - run: cargo clippy --fix --all-features
-      - run: cargo test --lib --all --all-features
+          toolchain: nightly-2026-10-27
+          components: rustfmt
+      - run: cargo fmt --check
 
-  ledger_features:
-    runs-on: ubuntu-latest
+  build_non_native:
+    name: All features except tonlibjson
+    runs-on: ubuntu-24.04
+    env:
+      # Keep this list in sync with workspace manifests.
+      FEATURES: --features=ton/lite-client,ton/unstable,ton_core/serde,ton_ledger/ble,examples/ledger-ble,benchmarks/tonunstable
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
       - uses: Swatinem/rust-cache@v2
-      - name: Test Ledger with default features
-        run: cargo test -p ton_ledger
-      - name: Test Ledger with default features and Bluetooth
-        run: cargo test -p ton_ledger --features ble
-      - run: cargo check -p examples --example ton_ledger_self_transfer --features ledger-ble
-      - run: cargo check -p examples --example ton_ledger_reconnect --features ledger-hid
+        with:
+          shared-key: deps-non-native
+      - run: cargo clippy --workspace --all-targets "$FEATURES" --locked -- -D warnings
+      - run: cargo test --workspace --lib "$FEATURES" --locked
+      - run: cargo test --workspace --doc "$FEATURES" --locked
+      - run: cargo check --workspace --examples "$FEATURES" --locked
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps "$FEATURES" --locked
+
+  build_tonlibjson:
+    name: All features including tonlibjson
+    needs: format
+    if: needs.format.outputs.tonlibjson == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
+      - name: Install native libraries
+        run: |
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
+          sudo ln -sf "$(command -v clang)" /usr/local/bin/clang-21
+          sudo ln -sf "$(command -v clang++)" /usr/local/bin/clang++-21
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
+      # tonlib-sys builds with -march=native; do not restore another CPU's binaries.
+      - name: Identify native build cache
+        id: native-cache
+        run: |
+          version=$(python3 -c 'import tomllib; print(next(p["version"] for p in tomllib.load(open("Cargo.lock", "rb"))["package"] if p["name"] == "tonlib-sys"))')
+          key=$({ echo "$version"; clang --version; LC_ALL=C lscpu | sed -n '/^Model name:/p; /^Flags:/p'; } | sha256sum | cut -d ' ' -f 1)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          # Cargo's git-cache cleanup deletes tonlib-sys's default native build directory.
+          echo "TON_MONOREPO_DIR=$RUNNER_TEMP/tonlib-sys-$version" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.TON_MONOREPO_DIR }}
+          key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: deps-native-${{ steps.native-cache.outputs.key }}
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - run: cargo test --workspace --lib --all-features --locked
+      - run: cargo test --workspace --doc --all-features --locked
+      - run: cargo check --workspace --examples --all-features --locked
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features --locked
+
+  msrv:
+    needs: format
+    uses: ./.github/workflows/msrv.yml
+    with:
+      tonlibjson: ${{ needs.format.outputs.tonlibjson == 'true' }}
+
+  ci:
+    name: CI
+    if: always()
+    needs: [format, build_non_native, build_tonlibjson, msrv]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: test "$RESULT" = true
+        env:
+          RESULT: >-
+            ${{ needs.format.result == 'success' && needs.build_non_native.result == 'success' && needs.msrv.result == 'success' &&
+                (needs.build_tonlibjson.result == 'success' ||
+                 (needs.format.outputs.tonlibjson == 'false' && needs.build_tonlibjson.result == 'skipped')) }}
+
+  release:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: ci
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/release.yml
+    secrets: inherit

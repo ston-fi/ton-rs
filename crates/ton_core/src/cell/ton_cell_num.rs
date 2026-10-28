@@ -4,6 +4,7 @@ use num_traits::Zero;
 use std::fmt::Display;
 
 #[cfg(test)]
+#[path = "../tests/cell/ton_cell_num/test_ton_cell_num.rs"]
 mod _ton_cell_num_tests;
 mod ton_cell_bignum;
 mod ton_cell_fastnum;

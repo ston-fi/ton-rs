@@ -1,7 +1,7 @@
 //! Native Ledger USB HID. A dedicated worker owns each blocking handle.
 //! HIDAPI initialization and enumeration share a process-lifetime thread.
 #[cfg(test)]
-#[path = "hid/_test_hid.rs"]
+#[path = "../tests/transports/hid/test_hid.rs"]
 mod tests;
 use super::framing::{Reassembler, frames};
 use crate::{error::TransportError, transports::Transport};

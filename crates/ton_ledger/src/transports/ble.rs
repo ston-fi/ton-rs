@@ -1,6 +1,6 @@
 //! Native Bluetooth through OS pairing. Discovery uses service UUIDs, never names.
 #[cfg(test)]
-#[path = "ble/_test_ble.rs"]
+#[path = "../tests/transports/ble/test_ble.rs"]
 mod tests;
 
 use super::framing::{Reassembler, frames};

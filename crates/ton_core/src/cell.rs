@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[path = "tests/cell/test_build_parse.rs"]
 mod _test_build_parse;
 /// The lowest brick in the library stack
 /// Provides the basic types to interact with the TON blockchain:

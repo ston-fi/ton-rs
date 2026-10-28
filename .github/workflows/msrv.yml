@@ -1,16 +1,15 @@
 name: MSRV
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: msrv-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "17 7 * * 1"
+  workflow_call:
+    inputs:
+      tonlibjson:
+        type: boolean
+        default: true
   workflow_dispatch:
 
 permissions:
@@ -18,49 +17,65 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  TONLIBJSON: ${{ inputs.tonlibjson || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+  CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'allow' || 'fallback' }}
 
 jobs:
   msrv:
     name: Verify declared MSRV
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install libraries
+      - run: sudo apt-get update && sudo apt-get install -y libudev-dev libdbus-1-dev pkg-config
+      - name: Install native libraries
+        if: env.TONLIBJSON == 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev libudev-dev libdbus-1-dev pkg-config
+          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev
           CLANG_BIN="$(command -v clang)"
           CLANGXX_BIN="$(command -v clang++)"
           sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
           sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
       - name: Checkout repository
         uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.94"
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
+      # tonlib-sys builds with -march=native; do not restore another CPU's binaries.
+      - name: Identify native build cache
+        if: env.TONLIBJSON == 'true'
+        id: native-cache
+        run: |
+          version=$(python3 -c 'import tomllib; print(next(p["version"] for p in tomllib.load(open("Cargo.lock", "rb"))["package"] if p["name"] == "tonlib-sys"))')
+          key=$({ echo "$version"; clang --version; LC_ALL=C lscpu | sed -n '/^Model name:/p; /^Flags:/p'; } | sha256sum | cut -d ' ' -f 1)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          # Cargo's git-cache cleanup deletes tonlib-sys's default native build directory.
+          echo "TON_MONOREPO_DIR=$RUNNER_TEMP/tonlib-sys-$version" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        if: env.TONLIBJSON == 'true'
+        with:
+          path: ${{ env.TON_MONOREPO_DIR }}
+          key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: deps-msrv-${{ env.TONLIBJSON }}-${{ steps.native-cache.outputs.key }}
       - name: Install cargo-hack
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-hack@0.6.44
-      - name: Resolve latest dependency releases
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        env:
-          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
-        run: cargo update --verbose
       - name: Check published crates on their declared MSRV
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
-        run: >-
-          cargo hack check
-          --rust-version
-          --workspace
-          --all-targets
-          --all-features
-          --ignore-private
-      - name: Check latest dependencies on the declared MSRV
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        env:
-          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
-        run: >-
-          cargo hack check
-          --rust-version
-          --workspace
-          --all-targets
-          --all-features
-          --ignore-private
+        run: |
+          if [[ "$TONLIBJSON" == true ]]; then
+            cargo hack check --rust-version --workspace --all-targets --all-features --ignore-private --locked
+          else
+            cargo hack check --rust-version -p ton --all-targets --features lite-client,unstable --locked
+            cargo hack check --rust-version -p ton_core -p ton_macros -p ton_ledger --all-targets --all-features --locked
+          fi

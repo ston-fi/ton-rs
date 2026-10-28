@@ -85,7 +85,7 @@ Keep wallet assembly private here; compare its bytes against TonWallet vectors.
 - `protocol/{apdu,derivation_path,proof,data}.rs`: wire encoders and digest construction.
 - `protocol/payload.rs` and `protocol/payload/`: exact-cell validation and display hints.
 - `transports/{hid,ble,framing}.rs`: worker ownership, native backends and packet framing.
-- `_test_*.rs` beside these modules: deterministic regression tests.
+- `src/tests/**/test_*.rs`: deterministic regression tests, attached to their owning modules.
 - `tests/fixtures/README.md`: fixture generation and pinned-source provenance.
 
 The full design is `docs/plans/ton_ledger.md` at the repository root (not included

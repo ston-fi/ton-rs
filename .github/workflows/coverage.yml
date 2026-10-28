@@ -5,33 +5,44 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  push:
-    branches: [ "main" ]
+  schedule:
+    - cron: "43 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   coverage_ton_lib:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libsodium-dev libsecp256k1-dev liblz4-dev libudev-dev libdbus-1-dev pkg-config
-          CLANG_BIN="$(command -v clang)"
-          CLANGXX_BIN="$(command -v clang++)"
-          sudo ln -sf "$CLANG_BIN" /usr/local/bin/clang-21
-          sudo ln -sf "$CLANGXX_BIN" /usr/local/bin/clang++-21
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+      - uses: dtolnay/rust-toolchain@master
         with:
-          fetch-depth: 0
+          toolchain: "1.97.1"
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: deps-coverage
       - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-tarpaulin@0.37.5
       - name: Generate coverage
-        run: cargo tarpaulin --lib --all --out Xml
+        run: cargo tarpaulin --lib --all --locked --out Xml
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:

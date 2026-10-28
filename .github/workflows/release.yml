@@ -1,24 +1,16 @@
 name: Release-plz
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   pull-requests: write
   contents: write
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-    inputs:
+  workflow_call:
 
 jobs:
   release-plz:
     name: Release-plz
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,9 +18,23 @@ jobs:
           fetch-depth: 0
       - name: Install Ledger USB build dependencies
         run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
-      - uses: Swatinem/rust-cache@v2
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.97.1"
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: deps-release
       - name: Install release tools
         uses: taiki-e/install-action@v2
         with:
@@ -39,7 +45,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run release-plz
         run: |
-          export CARGO_SEMVER_CHECKS_BIN="$(command -v cargo-semver-checks)"
+          CARGO_SEMVER_CHECKS_BIN="$(command -v cargo-semver-checks)"
+          export CARGO_SEMVER_CHECKS_BIN
           export PATH="$GITHUB_WORKSPACE/.github/scripts:$PATH"
           release-plz release-pr \
             --git-token "$GITHUB_TOKEN" \
