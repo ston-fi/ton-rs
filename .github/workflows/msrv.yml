@@ -39,7 +39,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.94"
-      - run: cargo generate-lockfile
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
       # tonlib-sys builds with -march=native; do not restore another CPU's binaries.
       - name: Identify native build cache
         if: env.TONLIBJSON == 'true'
@@ -57,7 +66,7 @@ jobs:
           key: native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ hashFiles('Cargo.toml') }}-${{ steps.native-cache.outputs.key }}
+          shared-key: deps-msrv-${{ env.TONLIBJSON }}-${{ steps.native-cache.outputs.key }}
       - name: Install cargo-hack
         uses: taiki-e/install-action@v2
         with:

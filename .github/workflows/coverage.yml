@@ -24,10 +24,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.97.1"
-      - run: cargo generate-lockfile
+      - name: Prepare dependency cache
+        # rust-cache hashes every installed toolchain, including unused runner defaults.
+        run: |
+          active=$(rustup show active-toolchain)
+          rustup toolchain list | while read -r toolchain _; do
+            if [[ "$toolchain" != "${active%% *}" ]]; then
+              rustup toolchain uninstall "$toolchain"
+            fi
+          done
+          cargo generate-lockfile
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ hashFiles('Cargo.toml') }}
+          shared-key: deps-coverage
       - name: Install tarpaulin
         uses: taiki-e/install-action@v2
         with:
