@@ -28,3 +28,10 @@ pub mod tl_client;
 #[cfg(test)]
 #[path = "tests/test_dictionary.rs"]
 mod test_dictionary;
+
+#[cfg(test)]
+#[path = "tests/test_stack_conversions.rs"]
+mod test_stack_conversions;
+#[cfg(test)]
+#[path = "tests/test_ton_methods.rs"]
+mod test_ton_methods;

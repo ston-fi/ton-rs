@@ -83,3 +83,18 @@ pub trait OrderContractMethods: TonContract {
     async fn get_ui_variables(&self) -> TonResult<u32>;
 }
 ```
+
+
+For an export with a known numeric selector, use `id` instead of `name`:
+
+```rust,ignore
+#[ton_methods]
+impl Contract {
+    #[ton_method(id = 109505)]
+    async fn estimate_gas(&self, kind: u8) -> TonResult<u32>;
+}
+```
+
+The signed i32 literal is passed directly to emulation, bypassing name formatting
+and hashing. Decimal and hexadecimal literals are accepted. `name` and `id` are
+mutually exclusive and apply only to generated bodyless methods.

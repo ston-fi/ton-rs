@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `#[ton_method(id = ...)]` for explicit numeric selectors in generated get methods.
+
 ## [0.2.4](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.2.3...ton_macros-v0.2.4) - 2026-10-27
 
 ### Other

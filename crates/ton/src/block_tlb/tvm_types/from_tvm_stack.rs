@@ -8,7 +8,7 @@ use fastnum::*;
 use std::sync::Arc;
 use ton_core::cell::{TonCell, TonHash};
 use ton_core::traits::tlb::TLB;
-use ton_core::types::tlb_core::{MsgAddress, TLBCoins};
+use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBCoins, TLBRef};
 use ton_core::types::{Coins, TonAddress};
 
 /// Trait allows reading data from TVMStack
@@ -83,6 +83,13 @@ impl FromTVMStack for TonCell {
     }
 }
 
+// A referenced raw-cell result still occupies one Cell/CellSlice stack entry.
+impl FromTVMStack for TLBRef<TonCell> {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        Ok(Self::new(TonCell::from_stack(stack)?))
+    }
+}
+
 impl FromTVMStack for TonAddress {
     fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
         let cell = match stack.pop_checked()? {
@@ -108,6 +115,18 @@ impl FromTVMStack for MsgAddress {
             },
         };
         Ok(MsgAddress::from_cell(&cell)?)
+    }
+}
+
+impl FromTVMStack for MsgAddressInt {
+    fn from_stack(stack: &mut TVMStack) -> TonResult<Self> {
+        match MsgAddress::from_stack(stack)? {
+            MsgAddress::Int(address) => Ok(address),
+            other => Err(TonError::UnexpectedValue {
+                expected: "MsgAddressInt".into(),
+                actual: format!("{other:?}"),
+            }),
+        }
     }
 }
 

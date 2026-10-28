@@ -94,7 +94,10 @@ arguments with `ton::block_tlb::ToTVMStack`, and decodes the return value with
 `FromTVMStack`. Default method names are unchanged. Use
 `#[ton_methods(name_format = "camelCase")]` for a shared naming convention and
 `#[ton_method(name = "getUIVariables")]` for an exact per-method override (which
-wins over the format). The override belongs only on a generated bodyless method.
+wins over the format). Use `#[ton_method(id = 109505)]` for an explicit numeric
+selector without hashing a name. The ID is an i32 integer literal (decimal or hex,
+optionally negative); it bypasses `name_format`. Specify exactly one of `name` or
+`id`. The override belongs only on a generated bodyless method.
 
 `ton::ton_contract!` is a separate declarative macro owned by `ton`; it supplies
 wrapper state and the `TonContract` implementation. For example:

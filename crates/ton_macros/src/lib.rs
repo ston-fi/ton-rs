@@ -45,6 +45,9 @@ pub fn from_tvm_stack_derive(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
+/// Use `#[ton_method(id = 109505)]` to pass an explicit i32 selector instead of
+/// hashing a name. Decimal, hexadecimal and negative literals are accepted;
+/// `id` bypasses `name_format` and cannot be combined with `name`.
 /// `#[ton_method]` is only valid where this macro generates the method body.
 pub fn ton_methods(attr: TokenStream, item: TokenStream) -> TokenStream {
     ton_methods_impl(attr, item)
