@@ -1,6 +1,6 @@
 [package]
 name = "ton_ledger"
-version = "0.1.2"
+version = "0.1.3"
 description = "Verified TON Ledger wallet signing over USB, Bluetooth or custom transports"
 edition.workspace = true
 rust-version.workspace = true

@@ -1,6 +1,6 @@
 [package]
 name = "ton"
-version = "0.4.10"
+version = "0.4.11"
 description.workspace = true
 keywords.workspace = true
 edition.workspace = true
