@@ -22,6 +22,12 @@ pub fn tlb_derive(input: TokenStream) -> TokenStream {
 
 /// Automatic `FromTVMStack` implementation for POD types.
 ///
+/// A field's `#[from_tvm_stack(adapter = InternalAddress)]` reads one Cell/Slice
+/// using the TLB adapter's `read` method. Adapter expressions may also be quoted,
+/// as in `#[tlb(adapter = "InternalAddress")]`. TVM NULL is rejected by this path;
+/// a nullable wire adapter handles an encoded `addr_none` instead. Unannotated
+/// fields keep their native stack conversion. Adapter expressions use caller scope.
+///
 /// Supports `#[from_tvm_stack(ensure_empty = true)]` to reject remaining stack
 /// values after parsing and `#[from_tvm_stack(allow_extra = true)]` to discard
 /// top stack values above the derived struct fields before parsing.

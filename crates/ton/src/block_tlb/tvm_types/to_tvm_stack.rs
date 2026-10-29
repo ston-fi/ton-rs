@@ -14,7 +14,7 @@ mod to_tvm_stack_impls {
     use ton_core::cell::TonCell;
     use ton_core::traits::tlb::TLB;
     use ton_core::types::TonAddress;
-    use ton_core::types::tlb_core::MsgAddress;
+    use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt};
 
     impl ToTVMStack for bool {
         fn to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
@@ -63,6 +63,14 @@ mod to_tvm_stack_impls {
     }
 
     impl ToTVMStack for MsgAddress {
+        fn to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
+            stack.push_cell_slice(self.to_cell()?);
+            Ok(())
+        }
+    }
+
+    /// Packs the full internal-address domain as a Slice, including internal zero.
+    impl ToTVMStack for MsgAddressInt {
         fn to_stack(&self, stack: &mut TVMStack) -> TonResult<()> {
             stack.push_cell_slice(self.to_cell()?);
             Ok(())

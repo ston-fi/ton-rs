@@ -9,6 +9,12 @@ struct HeaderAttributes {
     allow_extra: Option<bool>,  // use false as default
 }
 
+#[derive(deluxe::ExtractAttributes)]
+#[deluxe(attributes(from_tvm_stack))]
+struct FieldAttributes {
+    adapter: Option<syn::Expr>,
+}
+
 pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream {
     let mut input = syn::parse::<syn::DeriveInput>(input).unwrap();
     let header_attrs: HeaderAttributes = match deluxe::extract_attributes(&mut input) {
@@ -35,12 +41,27 @@ pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream
         let name = &f.ident;
         quote! {#name}
     });
-    let assigns = fields.into_iter().rev().map(|f| {
-        let name = &f.ident;
-        quote! {
-            let #name = #crate_path::block_tlb::FromTVMStack::from_stack(stack)?;
-        }
-    });
+    let mut assigns = Vec::with_capacity(fields.len());
+    for field in fields.iter().rev() {
+        let adapter = match field_adapter(field) {
+            Ok(adapter) => adapter,
+            Err(error) => return error.into_compile_error(),
+        };
+        let name = &field.ident;
+        let ty = &field.ty;
+        let value = if let Some(adapter) = adapter {
+            quote! {
+                {
+                    let cell = <#crate_path::ton_core::cell::TonCell as
+                        #crate_path::block_tlb::FromTVMStack>::from_stack(stack)?;
+                    (#adapter).read(&mut cell.parser())?
+                }
+            }
+        } else {
+            quote! { #crate_path::block_tlb::FromTVMStack::from_stack(stack)? }
+        };
+        assigns.push(quote! { let #name: #ty = #value; });
+    }
 
     let ensure_empty = if header_attrs.ensure_empty.unwrap_or(false) {
         quote! {stack.ensure_empty()?;}
@@ -76,3 +97,20 @@ pub fn from_tvm_stack_derive_impl(input: proc_macro::TokenStream) -> TokenStream
     // Hand the output tokens back to the compiler.
     expanded
 }
+
+fn field_adapter(field: &syn::Field) -> syn::Result<Option<syn::Expr>> {
+    let mut attrs = field.attrs.clone();
+    let attrs: FieldAttributes = deluxe::extract_attributes(&mut attrs)?;
+    match attrs.adapter {
+        // Accept the quoted expressions used by TLB field adapters as well.
+        Some(syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(value),
+            ..
+        })) => value.parse::<syn::Expr>().map(Some),
+        adapter => Ok(adapter),
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/test_from_tvm_stack_derive.rs"]
+mod tests;

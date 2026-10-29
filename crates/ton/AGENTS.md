@@ -105,6 +105,13 @@ see `src/tests/test_dictionary.rs`. The repository's
 
 ### TVM stack conversions
 
+`block_tlb::ToTVMStack` supports `MsgAddressInt` as a Slice, preserving standard,
+variable, anycast and literal-zero internal addresses. No argument attributes
+are needed in `ton_methods`. Plain TonAddress keeps its existing zero-to-addr_none
+encoding. Result fields can select a TLB adapter with
+`#[from_tvm_stack(adapter = InternalAddress)]`; see the macro guide for Cell/Slice
+and TVM NULL behavior.
+
 `block_tlb::ToTVMStack` supports native Rust integers without narrowing to i64;
 existing i64 and bool packing is unchanged. `FromTVMStack` supports
 `MsgAddressInt`, rejecting TVM NULL, addr_none and external addresses while
