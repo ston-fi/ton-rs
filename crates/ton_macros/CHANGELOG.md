@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6](https://github.com/ston-fi/ton-rs/compare/ton_macros-v0.2.5...ton_macros-v0.2.6) - 2026-10-29
+
+### Other
+
+- support adapters for FromTVMStack ([#249](https://github.com/ston-fi/ton-rs/pull/249))
+
 ### Added
 
 - Add field-level `FromTVMStack` TLB adapters for Cell/Slice values, including `InternalAddress` and `NullableAddress`.
