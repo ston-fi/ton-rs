@@ -98,3 +98,31 @@ impl Contract {
 The signed i32 literal is passed directly to emulation, bypassing name formatting
 and hashing. Decimal and hexadecimal literals are accepted. `name` and `id` are
 mutually exclusive and apply only to generated bodyless methods.
+
+## FromTVMStack field adapters
+
+Fields normally use their native `FromTVMStack` implementation. Select a TLB
+adapter when a stack Cell/Slice contains a specific wire representation:
+
+```rust,ignore
+use ton::ton_core::types::{TonAddress, tlb_core::adapters::{InternalAddress, NullableAddress}};
+
+#[derive(ton::ton_core::FromTVMStack)]
+#[from_tvm_stack(ensure_empty = true)]
+struct Owners {
+    #[from_tvm_stack(adapter = InternalAddress)]
+    owner: TonAddress,
+    #[from_tvm_stack(adapter = NullableAddress)]
+    pending_owner: Option<TonAddress>,
+}
+```
+
+The adapter expression can also be quoted, for example `adapter = "InternalAddress"`,
+or configured, for example `adapter = ConstLen::<u32>::new(24)`. It uses caller
+scope and must provide `read(&mut CellParser)` returning the field's type.
+Each adapted field consumes one Cell/Slice; TVM NULL and other stack kinds fail.
+`NullableAddress` accepts encoded addr_none while preserving Some(internal zero).
+Cell tail handling follows the adapter; exact stack arity remains controlled by
+`ensure_empty`. Unannotated fields and method arguments retain their existing
+behavior. For internal-address arguments, native `MsgAddressInt: ToTVMStack`
+lets `ton_methods` generate ordinary signatures without parameter attributes.

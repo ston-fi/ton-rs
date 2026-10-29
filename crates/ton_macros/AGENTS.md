@@ -61,6 +61,14 @@ in the get-method's logical result order, not pop order.
   stack length equals the number of struct fields. Use only for a deliberately
   compatible result shape; it assumes one stack item per field. It can be
   combined with `ensure_empty`, but discarded values are then not rejected.
+- Field `#[from_tvm_stack(adapter = InternalAddress)]` consumes one Cell/Slice
+  and calls the TLB adapter's `read(&mut CellParser)`. Import the adapter or use
+  a fully qualified expression. Quoted expressions are also accepted, matching
+  TLB syntax. `NullableAddress` maps encoded addr_none to None and preserves
+  Some(internal zero); both address adapters reject TVM NULL. Ordinary cell tails
+  follow the chosen TLB adapter's policy. This is only for fields encoded inside
+  a Cell/Slice; unannotated fields retain native stack conversion. For TVM NULL
+  slots or arbitrary nested tuples, keep their actual stack semantics explicit.
 - Both flags default to false. Do not treat `allow_extra` as validation or use
   it to hide a mismatched ABI.
 

@@ -11,6 +11,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
 
 - `TLB` Derive macros: Automatically derive TLB trait for your types based on it's members
 - Native `Enum` support using TLBPrefix: Automatically match underlying variant by it's prefix (check [ton_core_enum.rs](examples/ton_core_enum.rs) example). Provides powerful enums, but use them carefully; read the [Enum with TLB macros](#enum-with-tlb-macros) chapter.
+- `FromTVMStack` field adapters: `#[from_tvm_stack(adapter = InternalAddress)]` decodes a Cell/Slice through an existing TLB adapter; TVM NULL remains a separate representation.
 - `#[ton_methods]`: Generate async get-method implementations for contract traits or impl blocks, with optional block-level `name_format` conversion and per-method exact names or numeric selectors.
 
 ## ton_core
