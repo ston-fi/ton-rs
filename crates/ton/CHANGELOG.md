@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 
+- release ([#248](https://github.com/ston-fi/ton-rs/pull/248))
+- support adapters for FromTVMStack ([#249](https://github.com/ston-fi/ton-rs/pull/249))
+
+## [0.4.12](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.11...ton-v0.4.12) - 2026-10-29
+
+### Other
+
 - support adapters for FromTVMStack ([#249](https://github.com/ston-fi/ton-rs/pull/249))
 
 ### Added
