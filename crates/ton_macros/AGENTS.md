@@ -133,7 +133,7 @@ storage use `ton_contract!(CounterContract<Storage>: CounterMethods)` with a
 
 ## Maintaining macros
 
-Use `rust-library-review` for public macro syntax or generated API changes.
+Use [rust-library-review](https://git.stonfi.net/ston-fi/research/agent-skills/-/blob/main/plugins/rust-library-review/skills/rust-library-review/SKILL.md) for public macro syntax or generated API changes.
 Generated paths must resolve when crates are renamed. Preserve existing
 attributes and diagnostics unless a breaking change is documented. Keep parsing
 strict by default; tolerance such as `allow_extra` must remain opt-in.
