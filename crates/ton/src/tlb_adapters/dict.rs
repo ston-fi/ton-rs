@@ -11,3 +11,7 @@ pub use dict_key_adapters::*;
 pub use dict_val_adapters::*;
 pub use tlb_hash_map::*;
 pub use tlb_hash_map_e::*;
+
+#[cfg(test)]
+#[path = "../tests/tlb_adapters/test_dict_strict.rs"]
+mod tests_strict;

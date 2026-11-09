@@ -12,14 +12,16 @@ use ton_core::types::tlb_core::adapters::UnaryLen;
 
 pub struct DictDataParser {
     key_bits_len: usize,
+    strict_nodes: bool,
     cur_key_prefix: BigUint, // store leading 1 to determinate len properly
 }
 
 impl DictDataParser {
     /// Creates a parser with an empty key prefix and the specified fixed key length.
-    pub fn new(key_len_bits: usize) -> DictDataParser {
+    pub fn new(key_len_bits: usize, strict_nodes: bool) -> DictDataParser {
         DictDataParser {
             key_bits_len: key_len_bits,
+            strict_nodes,
             cur_key_prefix: BigUint::one(),
         }
     }
@@ -82,6 +84,9 @@ impl DictDataParser {
             let right_ref = parser.read_next_ref()?;
             self.cur_key_prefix += BigUint::one();
             self.parse_impl::<VA>(&mut right_ref.parser(), dst)?;
+        }
+        if self.strict_nodes {
+            parser.ensure_empty()?;
         }
         self.cur_key_prefix >>= self.cur_key_prefix.bits() - origin_key_prefix_len;
         Ok(())
