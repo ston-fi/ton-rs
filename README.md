@@ -30,6 +30,7 @@ This crate is heavily based on the [tonlib-rs](https://github.com/ston-fi/tonlib
   This feature includes `lite-client` because `TLClient` uses it to refresh the network configuration's init block.
 - `WalletVersion` and `LiteNodeFilter` serialize using their Rust variant names; `TVMGetMethodID` serializes as an integer or string according to its variant.
 - Use `TON_NET_CONF_MAINNET_PATH` or `TON_NET_CONF_TESTNET_PATH` env variables to override `netconfig.json` and use your own TON nodes.
+- Dictionary adapters preserve permissive reads by default. Use `TLBHashMap::new(...).with_strict_nodes()` or `TLBHashMapE::new(...).with_strict_nodes()` to reject unread bits/references in every dictionary node while accepting all valid label encodings. The optional adapter leaves subsequent fields in its containing cell available.
 - [TLBAdapters](crates/ton/src/tlb_adapters.rs) - Allows you to work with rust types like HashMap, and still serialize it properly for TON
 - [BlockTLB](crates/ton/src/block_tlb.rs) - Bunch of types to interact with raw blockchain data (However it's not fully covered)
 - [TonWallet](crates/ton/src/ton_wallet.rs) - Wrapper of wallet to sign and create external messages

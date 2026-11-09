@@ -53,6 +53,10 @@ width before converting to two's complement. Dictionary readers bound every
 label by the remaining key width, including inside forks, and accept all valid
 short, long, and same label encodings, including zero-length labels. Invalid
 keys and labels return typed errors rather than panicking or aliasing keys.
+`TLBHashMap` and `TLBHashMapE` default to permissive node consumption. Opt into
+`with_strict_nodes()` for storage evidence that requires every leaf and fork to
+be fully consumed; do not enforce canonical label encoding through reserialization.
+For `TLBHashMapE`, this does not exhaust the containing cell.
 
 ## Jetton discovery
 

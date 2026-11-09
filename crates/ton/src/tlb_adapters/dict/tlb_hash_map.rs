@@ -16,6 +16,7 @@ use ton_core::errors::TonCoreError;
 /// Usage example: `#[tlb_derive(adapter = "TLBHashMap::<DictKeyAdapterTonHash, DictValAdapterTLB>::new(256)")]` instead
 pub struct TLBHashMap<KA: DictKeyAdapter, VA: DictValAdapter> {
     key_bits_len: u32,
+    strict_nodes: bool,
     _phantom: PhantomData<(KA, VA)>,
 }
 
@@ -29,14 +30,25 @@ where
     pub fn new(key_bits_len: u32) -> Self {
         Self {
             key_bits_len,
+            strict_nodes: false,
             _phantom: PhantomData,
         }
+    }
+
+    /// Requires every dictionary cell to be fully consumed after reading its label
+    /// and value or two child references. Unread bits or references return an error.
+    ///
+    /// All valid label encodings remain accepted. The value adapter determines how
+    /// much of a leaf is consumed. This option does not change writing.
+    pub fn with_strict_nodes(mut self) -> Self {
+        self.strict_nodes = true;
+        self
     }
 
     /// Reads a dictionary, rejecting labels longer than the remaining key width.
     /// Valid short, long, and same label encodings are accepted.
     pub fn read(&self, parser: &mut CellParser) -> Result<HashMap<KA::KeyType, VA::ValType>, TonCoreError> {
-        let mut data_parser = DictDataParser::new(self.key_bits_len as usize);
+        let mut data_parser = DictDataParser::new(self.key_bits_len as usize, self.strict_nodes);
         let data_raw = data_parser.read::<VA>(parser)?;
         let data = data_raw
             .into_iter()

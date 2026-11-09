@@ -22,6 +22,30 @@ where
         Self(TLBHashMap::new(key_bits_len))
     }
 
+    /// Requires full consumption of every dictionary cell, accepting all valid
+    /// label encodings. Unread bits or references return an error.
+    ///
+    /// The containing cell is not checked: fields after the presence bit and
+    /// dictionary reference remain available to the caller. Writing is unchanged.
+    ///
+    /// ```
+    /// use std::collections::HashMap;
+    /// use ton::tlb_adapters::{DictKeyAdapterUint, DictValAdapterNum, TLBHashMapE};
+    /// use ton_core::cell::TonCell;
+    ///
+    /// let checkpoints = HashMap::from([(0u8, 42u64)]);
+    /// let adapter = TLBHashMapE::<DictKeyAdapterUint<u8>, DictValAdapterNum<u64, 64>>::new(8)
+    ///     .with_strict_nodes();
+    /// let mut builder = TonCell::builder();
+    /// adapter.write(&mut builder, &checkpoints)?;
+    /// let cell = builder.build()?;
+    /// assert_eq!(adapter.read(&mut cell.parser())?, checkpoints);
+    /// # Ok::<(), ton_core::errors::TonCoreError>(())
+    /// ```
+    pub fn with_strict_nodes(self) -> Self {
+        Self(self.0.with_strict_nodes())
+    }
+
     pub fn read(&self, parser: &mut CellParser) -> Result<HashMap<KA::KeyType, VA::ValType>, TonCoreError> {
         if !parser.read_bit()? {
             return Ok(HashMap::new());
