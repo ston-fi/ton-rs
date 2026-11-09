@@ -1,6 +1,7 @@
 //! Contract state loading and provider-neutral TVM get-method execution.
 
 mod contract_client;
+pub mod fees;
 pub mod tep;
 mod ton_contract;
 mod tvm_get_method;
