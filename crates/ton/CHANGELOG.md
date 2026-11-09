@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in `with_strict_nodes()` to dictionary adapters for fully consumed leaf/fork parsing without requiring canonical labels.
+
 ## [0.4.12](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.11...ton-v0.4.12) - 2026-10-29
 
 ### Other
@@ -41,8 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(ton)* add TEP-89 wallet discovery message codecs ([#242](https://github.com/ston-fi/ton-rs/pull/242))
 
 ### Added
-
-- Add opt-in `with_strict_nodes()` to dictionary adapters for fully consumed leaf/fork parsing without requiring canonical labels.
 
 - Add TEP-89 wallet-address request/reply codecs with literal nullable addresses and strict included-owner parsing.
 
