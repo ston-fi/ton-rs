@@ -48,7 +48,7 @@ either with `#[tlb(adapter = "...")]` or directly via `.read()`/`.write()`.
 | Tolk `address?` (nullable standard internal address) | `Option<TonAddress>` with `NullableAddress` | `None` is `addr_none`; `Some(0:0)` stays internal; no extra Maybe bit. Present values follow `InternalAddress`. |
 | Existing default address convention | Plain `TonAddress` | Zero serializes as `addr_none`; do not use when the schema requires internal zero. |
 | TL-B `Maybe X` | Plain `Option<T>` | Adds a presence bit before `T`; `Option<TonAddress>` is therefore not Tolk `address?`. |
-| Preserve raw address variants | `types::tlb_core::{MsgAddress, MsgAddressInt, MsgAddressExt}` | Use the wire records when the schema needs forms not supported by the standard-address adapters. |
+| Preserve raw address variants | `types::tlb_core::{MsgAddress, MsgAddressInt, MsgAddressExt}` | Use the wire records when the schema needs forms not supported by the standard-address adapters. They implement structural `Eq`; `MsgAddress::validate()` checks field encodability and anycast depth without normalizing the address or promising VM acceptance. |
 
 See `src/types/tlb_core/adapters/{internal_address,nullable_address}.rs` and
 `src/tests/test_{internal_address,nullable_address}.rs` for implementation and

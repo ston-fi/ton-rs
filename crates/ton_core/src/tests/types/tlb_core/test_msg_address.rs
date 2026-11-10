@@ -75,3 +75,66 @@ fn test_block_tlb_msg_address_none() -> anyhow::Result<()> {
     assert_eq!(parsed_none, msg_addr_none);
     Ok(())
 }
+
+#[test]
+fn validation_preserves_distinct_address_forms() -> anyhow::Result<()> {
+    let addresses = [
+        MsgAddress::NONE,
+        MsgAddressIntStd {
+            anycast: None,
+            workchain: 0,
+            address: TonHash::ZERO,
+        }
+        .into(),
+        MsgAddress::Ext(MsgAddressExt::new(vec![0xa0], 3)),
+        MsgAddressIntVar {
+            anycast: None,
+            addr_bits_len: 3,
+            workchain: 256,
+            address: vec![0xa0],
+        }
+        .into(),
+        MsgAddressIntStd {
+            anycast: Some(Anycast::new(3, vec![0xa0])),
+            workchain: 0,
+            address: TonHash::ZERO,
+        }
+        .into(),
+    ];
+    for address in addresses {
+        let before = address.to_cell()?;
+        address.validate()?;
+        assert_eq!(address.to_cell()?, before);
+        assert_eq!(MsgAddress::from_cell(&before)?, address);
+    }
+    Ok(())
+}
+
+#[test]
+fn validation_rejects_malformed_anycast_and_unencodable_fields() {
+    for depth in [0, 31] {
+        for address in [
+            MsgAddress::from(MsgAddressIntStd {
+                anycast: Some(Anycast::new(depth, vec![0; 4])),
+                workchain: 0,
+                address: TonHash::ZERO,
+            }),
+            MsgAddress::from(MsgAddressIntVar {
+                anycast: Some(Anycast::new(depth, vec![0; 4])),
+                addr_bits_len: 256,
+                workchain: 0,
+                address: vec![0; 32],
+            }),
+        ] {
+            assert!(address.validate().is_err());
+        }
+    }
+    let oversized: MsgAddress = MsgAddressIntVar {
+        anycast: None,
+        addr_bits_len: 512,
+        workchain: 0,
+        address: vec![0; 64],
+    }
+    .into();
+    assert!(oversized.validate().is_err());
+}
