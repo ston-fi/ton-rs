@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.3...ton_ledger-v0.1.4) - 2026-11-16
+
+### Added
+
+- *(ton)* expose raw TVM execution and add named program wrappers ([#253](https://github.com/ston-fi/ton-rs/pull/253))
+
 ## [0.1.3](https://github.com/ston-fi/ton-rs/compare/ton_ledger-v0.1.2...ton_ledger-v0.1.3) - 2026-10-28
 
 ### Other
