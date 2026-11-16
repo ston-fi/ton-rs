@@ -15,6 +15,7 @@ pub mod lite_client;
 pub mod net_config;
 pub mod tlb_adapters;
 pub mod ton_wallet;
+pub mod tvm_methods;
 
 #[cfg(feature = "tonlibjson")]
 pub mod emulators;

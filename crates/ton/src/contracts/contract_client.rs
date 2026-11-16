@@ -44,7 +44,8 @@ impl ContractClient {
         self.inner.cache.get_or_load_contract(address, tx_id).await
     }
 
-    pub(super) async fn emulate_get_method(
+    /// Executes a raw get-method request through the configured provider.
+    pub async fn emulate_get_method(
         &self,
         mut request: EmulatorGetMethodRequest,
     ) -> TonResult<EmulatorGetMethodSuccess> {
@@ -96,3 +97,7 @@ struct Inner {
     emulation_timeout: Duration,
     cache: Arc<ContractClientCache>,
 }
+
+#[cfg(test)]
+#[path = "../tests/contracts/test_contract_client.rs"]
+mod tests;

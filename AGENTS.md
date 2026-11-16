@@ -28,6 +28,7 @@ work should run the consuming project's checks and deterministic wire fixtures.
 | Maybe, referenced or either payloads, coin/variable lengths | `Option<T>`, `TLBRef`, `TLBEither`, `TLBEitherRef`, `TLBCoins`, `VarLenBits`/`VarLenBytes` | [Core recipes](crates/ton_core/AGENTS.md) |
 | TON dictionaries in Rust maps | `TLBHashMapE`/`TLBHashMap` with existing key/value adapters | [Dictionary recipe](crates/ton/AGENTS.md) |
 | Typed TVM results and get methods | `FromTVMStack`, `ton_methods`, `ton_contract!` | [Macro options](crates/ton_macros/AGENTS.md), [contract helpers](crates/ton/AGENTS.md) |
+| Raw get-method execution and named TVM programs | `ContractClient::emulate_get_method`, `tvm_methods::calculate_forward_fee` | [ton guide](crates/ton/AGENTS.md) |
 | Standard messages, Jetton/NFT/SBT contracts, metadata | `block_tlb`, `contracts::tep`, `SnakeData`, `MetaLoader` | [ton guide](crates/ton/AGENTS.md) |
 | Provider integration without native tonlib | `StateProvider`, `EmulationProvider`, `ContractClient::builder(...)` | [ton guide](crates/ton/AGENTS.md) |
 | Software or hardware wallet signing | `TonWallet` or `TonLedgerWallet::builder(...)` | [Wallet guide](crates/ton/src/ton_wallet/AGENTS.md), [Ledger guide](crates/ton_ledger/AGENTS.md) |

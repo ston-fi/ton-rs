@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Expose `ContractClient::emulate_get_method` for raw address-based and supplied-state get-method execution through the configured provider.
+- Add `tvm_methods::calculate_forward_fee`, a typed TVM program wrapper returning total forwarding cost from caller-supplied billable statistics.
+
 ## [0.4.12](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.11...ton-v0.4.12) - 2026-10-29
 
 ### Other
