@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.13](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.12...ton-v0.4.13) - 2026-11-16
+
+### Added
+
+- *(ton)* expose raw TVM execution and add named program wrappers ([#253](https://github.com/ston-fi/ton-rs/pull/253))
+
 ### Added
 
 - Expose `ContractClient::emulate_get_method` for raw address-based and supplied-state get-method execution through the configured provider.
