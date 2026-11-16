@@ -12,7 +12,7 @@ use ton_core::traits::tlb::TLB;
 
 // 13th element of c7 register
 // https://docs.ton.org/v3/documentation/tvm/changelog/tvm-upgrade-2023-07#opcodes-to-work-with-new-c7-values
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct C7PrevBlocksInfo {
     pub last_mc_blocks: Arc<Vec<BlockIdExt>>,
     pub prev_key_block: BlockIdExt,

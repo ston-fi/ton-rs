@@ -37,7 +37,7 @@ pub(super) fn validate_msgs_count(msgs: &[TonCell], msgs_modes: &[u8], max_cnt: 
 
 // V5 support
 // https://github.com/ton-blockchain/wallet-contract-v5/blob/88557ebc33047a95207f6e47ac8aadb102dff744/types.tlb#L26
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct InnerRequest {
     out_actions: Option<OutList>, // there is Option<TLBRef<OutList>>, but we don't support such description in TLBDerive
                                   // other_actions: Option<()> unsupported

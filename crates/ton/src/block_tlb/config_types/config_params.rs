@@ -49,6 +49,8 @@ impl PartialEq for ConfigParams {
     }
 }
 
+impl Eq for ConfigParams {}
+
 impl Clone for ConfigParams {
     fn clone(&self) -> Self {
         Self {

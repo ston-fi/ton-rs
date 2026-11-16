@@ -6,7 +6,7 @@ use ton_core::types::tlb_core::TLBRef;
 use ton_core::{TLB, bail_ton_core};
 
 /// Wallet v4 data.
-#[derive(Debug, PartialEq, Clone, TLB)]
+#[derive(Debug, PartialEq, Eq, Clone, TLB)]
 pub struct WalletV4Data {
     pub seqno: u32,
     pub wallet_id: i32,
@@ -29,7 +29,7 @@ impl WalletV4Data {
 /// Unsigned wallet v4 external-message body.
 ///
 /// Schema: <https://docs.ton.org/participate/wallets/contracts#wallet-v4>
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WalletV4ExtMsgBody {
     pub subwallet_id: i32,
     pub valid_until: u32,

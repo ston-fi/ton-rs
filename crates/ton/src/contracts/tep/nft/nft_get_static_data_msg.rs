@@ -7,7 +7,7 @@ use ton_core::TLB;
 ///   query_id:uint64
 /// = InternalMsgBody;
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x2fcb26a2, bits_len = 32, ensure_empty = true)]
 pub struct NFTGetStaticDataMsg {
     pub query_id: u64,

@@ -7,7 +7,7 @@ use ton_core::types::tlb_core::TLBRef;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L353
 /// TON transaction description.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum TxDescr {
     Ord(TxDescrOrd),
@@ -33,7 +33,7 @@ impl TxDescr {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq, TLB)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0000, bits_len = 4)]
 pub struct TxDescrOrd {
     pub credit_first: bool,
@@ -46,13 +46,13 @@ pub struct TxDescrOrd {
     pub destroyed: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0001, bits_len = 4)]
 pub struct TxDescrStorage {
     pub storage_phase: TrStoragePhase,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b001, bits_len = 3)]
 pub struct TxDescrTickTock {
     pub is_tock: bool,
@@ -63,7 +63,7 @@ pub struct TxDescrTickTock {
     pub destroyed: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0100, bits_len = 4)]
 pub struct TxDescrSplitPrepare {
     pub split_info: SplitMergeInfo,
@@ -74,7 +74,7 @@ pub struct TxDescrSplitPrepare {
     pub destroyed: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0101, bits_len = 4)]
 pub struct TxDescrSplitInstall {
     pub split_info: SplitMergeInfo,
@@ -82,7 +82,7 @@ pub struct TxDescrSplitInstall {
     pub installed: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0110, bits_len = 4)]
 pub struct TxDescrMergePrepare {
     pub split_info: SplitMergeInfo,
@@ -90,7 +90,7 @@ pub struct TxDescrMergePrepare {
     pub aborted: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0111, bits_len = 4)]
 pub struct TxDescrMergeInstall {
     pub split_info: SplitMergeInfo,
@@ -103,7 +103,7 @@ pub struct TxDescrMergeInstall {
     pub destroyed: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct SplitMergeInfo {
     #[tlb(bits_len = 6)]
     pub cur_shard_pfx_len: u8,

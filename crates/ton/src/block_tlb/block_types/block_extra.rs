@@ -4,7 +4,7 @@ use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBRef;
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L467
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x4a33f6fd, bits_len = 32)]
 pub struct BlockExtra {
     pub in_msg_descr: TLBRef<TonCell>,   // TODO

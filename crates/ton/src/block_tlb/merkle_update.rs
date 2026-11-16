@@ -3,7 +3,7 @@ use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L290-L291
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MerkleUpdate<T: TLB> {
     pub old_hash: TonHash,
     pub new_hash: TonHash,

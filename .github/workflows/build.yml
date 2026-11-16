@@ -47,6 +47,7 @@ jobs:
           changes=$(git diff --name-only --no-renames "$BASE" "$HEAD" -- \
             .cargo .github/workflows \
             crates/ton/src/lib.rs \
+            crates/ton/src/tvm_methods.rs crates/ton/src/tests/test_tvm_methods.rs \
             crates/ton/src/emulators.rs crates/ton/src/emulators \
             crates/ton/src/sys_utils.rs crates/ton/src/sys_utils \
             crates/ton/src/test_utils.rs crates/ton/src/test_utils \

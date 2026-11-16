@@ -3,14 +3,14 @@ use ton_core::TLB;
 use ton_core::types::tlb_core::TLBRef;
 
 /// Previous-block reference layout.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum PrevBlockInfo {
     Regular(ExtBlockRef),
     AfterMerge(BlockPrevInfoAfterMerge), // is not tested
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct BlockPrevInfoAfterMerge {
     pub prev1: TLBRef<ExtBlockRef>,
     pub prev2: TLBRef<ExtBlockRef>,

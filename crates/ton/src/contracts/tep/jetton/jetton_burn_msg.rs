@@ -12,7 +12,7 @@ use ton_core::types::tlb_core::{MsgAddress, TLBRef};
 /// custom_payload:(Maybe ^Cell)
 /// = InternalMsgBody;
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x595f07bc, bits_len = 32, ensure_empty = true)]
 pub struct JettonBurnMsg<CustomPayloadT: TLB = TonCell> {
     pub query_id: u64,            // arbitrary request number

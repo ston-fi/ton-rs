@@ -6,13 +6,13 @@ use crate::traits::tlb::TLB;
 /// Either X ^X
 ///
 /// <https://github.com/ton-blockchain/ton/blame/cac968f77dfa5a14e63db40190bda549f0eaf746/crypto/block/block.tlb#L10>
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct TLBEitherRef<T> {
     pub value: T,
     pub layout: EitherRefLayout,
 }
 
-#[derive(Clone, Debug, Copy, PartialEq)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum EitherRefLayout {
     ToCell,
     ToRef,

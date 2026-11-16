@@ -8,7 +8,7 @@ use ton_core::errors::TonCoreError;
 use ton_core::types::tlb_core::TLBRef;
 
 /// Contains dict (TLBHashMap), no 'present' marker in root cell
-#[derive(Debug, Clone, PartialEq, Default, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, TLB)]
 pub struct LibsDict {
     #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]
     data: HashMap<TonHash, TLBRef<TonCell>>,

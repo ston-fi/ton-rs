@@ -8,7 +8,7 @@ use crate::contracts::tep::nft::nft_transfer_msg::NFTTransferMsg;
 use ton_core::TLB;
 
 /// Supported NFT message body.
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum NFTMsgBody {
     Excesses(ExcessesMsg),

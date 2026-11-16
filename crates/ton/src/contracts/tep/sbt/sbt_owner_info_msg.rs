@@ -17,7 +17,7 @@ use ton_core::types::tlb_core::{MsgAddress, TLBRef};
 ///   content:(Maybe ^Cell)
 /// = InternalMsgBody;
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x0dd607e3, bits_len = 32, ensure_empty = true)]
 pub struct SbtOwnerInfoMsg {
     pub query_id: u64,

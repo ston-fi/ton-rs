@@ -3,7 +3,7 @@ use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBRef;
 
 /// Highload v2r2 wallet data.
-#[derive(Clone, Debug, TLB)]
+#[derive(Clone, Debug, TLB, PartialEq, Eq)]
 pub struct WalletHLV2R2Data {
     pub wallet_id: i32,
     pub last_cleaned_time: u64,

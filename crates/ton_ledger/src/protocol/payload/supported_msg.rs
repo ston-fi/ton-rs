@@ -9,7 +9,7 @@ use ton::{
     ton_core::TLB,
 };
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 pub(super) enum LedgerSupportedMsg {
     Comment(Comment),
     JettonTransfer(JettonTransferMsg),

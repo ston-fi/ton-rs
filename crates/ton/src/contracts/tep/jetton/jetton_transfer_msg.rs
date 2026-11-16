@@ -13,7 +13,7 @@ use ton_core::types::tlb_core::{MsgAddress, MsgAddressInt, TLBEitherRef, TLBRef}
 /// = InternalMsgBody;
 /// ```
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0xf8a7ea5, bits_len = 32)]
 pub struct JettonTransferMsg<CustomPayloadT: TLB = TonCell, ForwardPayloadT: TLB = TonCell> {
     pub query_id: u64,                                  // arbitrary number to identify the transfer

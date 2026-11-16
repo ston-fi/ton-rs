@@ -6,14 +6,14 @@ use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L474-L497
 /// Block value-flow layout.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum ValueFlow {
     V1(ValueFlowV1),
     V2(ValueFlowV2),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValueFlowV1 {
     pub from_prev_blk: CurrencyCollection,
     pub to_next_blk: CurrencyCollection,
@@ -26,7 +26,7 @@ pub struct ValueFlowV1 {
     pub minted: CurrencyCollection,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValueFlowV2 {
     pub from_prev_blk: CurrencyCollection,
     pub to_next_blk: CurrencyCollection,

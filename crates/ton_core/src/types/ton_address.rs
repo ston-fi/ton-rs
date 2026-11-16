@@ -125,6 +125,62 @@ impl TryFrom<&str> for TonAddress {
     }
 }
 
+impl TryFrom<MsgAddress> for TonAddress {
+    type Error = TonCoreError;
+    fn try_from(value: MsgAddress) -> Result<Self, Self::Error> {
+        Self::from_msg_address(value)
+    }
+}
+
+impl TryFrom<MsgAddressInt> for TonAddress {
+    type Error = TonCoreError;
+    fn try_from(value: MsgAddressInt) -> Result<Self, Self::Error> {
+        Self::from_msg_address(value)
+    }
+}
+
+impl TryFrom<MsgAddressExt> for TonAddress {
+    type Error = TonCoreError;
+    fn try_from(value: MsgAddressExt) -> Result<Self, Self::Error> {
+        Self::from_msg_address(value)
+    }
+}
+
+impl TryFrom<MsgAddressNone> for TonAddress {
+    type Error = TonCoreError;
+    fn try_from(value: MsgAddressNone) -> Result<Self, Self::Error> {
+        Self::from_msg_address(value)
+    }
+}
+
+impl TryFrom<TonAddress> for MsgAddress {
+    type Error = TonCoreError;
+    fn try_from(value: TonAddress) -> Result<Self, Self::Error> {
+        Ok(value.to_msg_address())
+    }
+}
+
+impl TryFrom<TonAddress> for MsgAddressInt {
+    type Error = TonCoreError;
+    fn try_from(value: TonAddress) -> Result<Self, Self::Error> {
+        Ok(value.to_msg_address_int())
+    }
+}
+
+impl TryFrom<TonAddress> for MsgAddressExt {
+    type Error = TonCoreError;
+    fn try_from(value: TonAddress) -> Result<Self, Self::Error> {
+        value.to_msg_address_none().map(Self::None)
+    }
+}
+
+impl TryFrom<TonAddress> for MsgAddressNone {
+    type Error = TonCoreError;
+    fn try_from(value: TonAddress) -> Result<Self, Self::Error> {
+        value.to_msg_address_none()
+    }
+}
+
 impl Display for TonAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.to_base64(true, true, true))

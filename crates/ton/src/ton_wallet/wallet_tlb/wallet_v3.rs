@@ -5,7 +5,7 @@ use ton_core::errors::TonCoreError;
 use ton_core::traits::tlb::TLB;
 
 /// Wallet v3 data.
-#[derive(Debug, PartialEq, Clone, TLB)]
+#[derive(Debug, PartialEq, Eq, Clone, TLB)]
 pub struct WalletV3Data {
     pub seqno: u32,
     pub wallet_id: i32,
@@ -26,7 +26,7 @@ impl WalletV3Data {
 /// Unsigned wallet v3 external-message body.
 ///
 /// Schema: <https://docs.ton.org/participate/wallets/contracts#wallet-v3>
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WalletV3ExtMsgBody {
     pub subwallet_id: i32,
     pub valid_until: u32,

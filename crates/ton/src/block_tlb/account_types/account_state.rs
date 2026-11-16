@@ -3,7 +3,7 @@ use ton_core::TLB;
 use ton_core::cell::TonHash;
 
 /// TON account state.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum AccountState {
     Uninit(AccountStateUninit),
@@ -11,17 +11,17 @@ pub enum AccountState {
     Active(AccountStateActive),
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b00, bits_len = 2)]
 pub struct AccountStateUninit;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b01, bits_len = 2)]
 pub struct AccountStateFrozen {
     pub state_hash: TonHash,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b1, bits_len = 1)]
 pub struct AccountStateActive {
     pub state_init: StateInit,

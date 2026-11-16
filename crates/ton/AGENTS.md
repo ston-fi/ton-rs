@@ -10,6 +10,7 @@ Use `rust-library-review` for every non-trivial change.
 
 - `block_tlb`: protocol wire types. Preserve prefixes, order, and layout.
 - `contracts`: provider-neutral wrappers and TEP-specific modules.
+- `tvm_methods`: named operations implemented as small TVM programs through `ContractClient`.
 - `ton_wallet`: keys, wallet data, code, signing, and external messages.
 - `lite_client`: enabled by `lite-client`.
 - `tl_client` and `emulators`: enabled by `tonlibjson`.
