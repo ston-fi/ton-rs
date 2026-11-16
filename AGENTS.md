@@ -47,15 +47,6 @@ Example filenames and Cargo target names start with the crate they demonstrate:
 `ton_ledger_`, `ton_core_`, or `ton_`. External comparison examples use their
 actual crate prefix, such as `tonlib_core_`.
 
-Use the [rust-library-review workflow](https://git.stonfi.net/ston-fi/research/agent-skills/-/blob/main/plugins/rust-library-review/skills/rust-library-review/SKILL.md)
-for public API, dependency, feature, serialization, documentation, or release
-changes. If it is not installed locally, read it and its relevant references
-from `ston-fi/research/agent-skills` using authenticated glab:
-
-```bash
-glab api --hostname git.stonfi.net 'projects/ston-fi%2Fresearch%2Fagent-skills/repository/files/plugins%2Frust-library-review%2Fskills%2Frust-library-review%2FSKILL.md/raw?ref=main'
-```
-
 Unit tests live under each crate's `src/tests/`, mirroring the source directories
 with `test_*.rs` filenames. Use `#[cfg(test)]` and `#[path = "..."]` in the owning
 module to preserve private access and feature gates. Crate-level `tests/` remains

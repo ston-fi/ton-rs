@@ -4,10 +4,6 @@
 wrappers, wallet message construction, lite-client networking, and optional
 tonlib emulation.
 
-Use [rust-library-review](https://git.stonfi.net/ston-fi/research/agent-skills/-/blob/main/plugins/rust-library-review/skills/rust-library-review/SKILL.md)
-for every non-trivial change. The root guide gives the authenticated glab loading
-command when the skill is not installed locally.
-
 ## Public paths
 
 - `block_tlb`: protocol wire types. Preserve prefixes, order, and layout.
