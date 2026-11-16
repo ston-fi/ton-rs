@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add provider-neutral total forward-fee quotes through `contracts::fees::calculate_forward_fee`, using caller-supplied billable statistics and existing get-method emulation.
+
 ## [0.4.12](https://github.com/ston-fi/ton-rs/compare/ton-v0.4.11...ton-v0.4.12) - 2026-10-29
 
 ### Other

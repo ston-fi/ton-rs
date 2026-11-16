@@ -4,8 +4,6 @@
 addresses, TLB serialization, and contract state/emulation traits. It must not
 depend on network clients, Tokio runtime behavior, or native tonlib.
 
-Use `rust-library-review` for every non-trivial change.
-
 Preserve cell limits, TLB prefixes, field order, reference layout, address
 encoding, and BOC compatibility. Prefer `TonCoreError` and checked builders over
 panics.

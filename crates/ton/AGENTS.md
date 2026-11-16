@@ -4,8 +4,6 @@
 wrappers, wallet message construction, lite-client networking, and optional
 tonlib emulation.
 
-Use `rust-library-review` for every non-trivial change.
-
 ## Public paths
 
 - `block_tlb`: protocol wire types. Preserve prefixes, order, and layout.
@@ -162,3 +160,14 @@ raw nullable addresses and the absent/present owner reference. Strict reply
 parsing must validate that reference without changing global TLBRef semantics.
 Do not place master discovery requests in the wallet message enum or equate
 wire parsing with source authentication or request correlation.
+
+## Forwarding fees
+
+Use `contracts::fees::calculate_forward_fee(client, cells, bits, is_masterchain)`
+for a total fee quote through the existing emulation provider. Statistics exclude
+the message root; callers own counting and message layout. The result includes
+the lump price before the action-fee split, unlike a delivered message's residual
+`fwd_fee`. The helper performs no account read or deployment and needs no native
+feature. Configuration selection/freshness and timeouts follow the configured
+provider/client. Do not add a provider accessor or a configuration parser for
+this quote, or treat it as a full transaction budget.
