@@ -7,44 +7,44 @@ use ton::ton_core::{
     traits::tlb::{TLB, TLBPrefix},
     types::tlb_core::{MsgAddress, TLBCoins, TLBRef, adapters::ConstLen},
 };
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x7258a69b, bits_len = 32, ensure_empty = true)]
 pub(super) struct Whitelist {
     pub query: u64,
     pub address: MsgAddress,
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x1001, bits_len = 32, ensure_empty = true)]
 pub(super) struct Validator {
     pub query: u64,
     pub address: MsgAddress,
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x1000, bits_len = 32, ensure_empty = true)]
 pub(super) struct Withdraw {
     pub query: u64,
     pub amount: TLBCoins,
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 8, bits_len = 32, ensure_empty = true)]
 pub(super) struct Swap {
     pub query: u64,
     pub id: TonHash,
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x7bcd1fef, bits_len = 32, ensure_empty = true)]
 pub(super) struct WhalesDeposit {
     pub query: u64,
     pub gas: TLBCoins,
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0xda803efd, bits_len = 32, ensure_empty = true)]
 pub(super) struct WhalesWithdraw {
     pub query: u64,
     pub gas: TLBCoins,
     pub amount: TLBCoins,
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0xa7733acd, bits_len = 32, ensure_empty = true)]
 pub(super) struct Vesting {
     pub query: u64,
@@ -52,7 +52,7 @@ pub(super) struct Vesting {
     pub message: TLBRef<TonCell>,
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x69fb306c, bits_len = 32, ensure_empty = true)]
 pub(super) struct Vote {
     pub query: u64,
@@ -65,6 +65,7 @@ pub(super) struct Vote {
 
 // This optional field has no presence bit on-chain; it occupies the remaining
 // 64 bits when present. Ordinary Option<T> would change its wire format.
+#[derive(PartialEq, Eq)]
 pub(super) struct TrailingAppId(pub Option<u64>);
 impl TLB for TrailingAppId {
     fn read_definition(parser: &mut CellParser) -> TonCoreResult<Self> {
@@ -83,20 +84,20 @@ impl TLB for TrailingAppId {
         Ok(())
     }
 }
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x47d54391, bits_len = 32, ensure_empty = true)]
 pub(super) struct TonstakersDeposit {
     pub query: u64,
     pub app: TrailingAppId,
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0, bits_len = 32, ensure_empty = true)]
 pub(super) struct Comment {
     pub content: TonCell,
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x4eb1f0f9, bits_len = 32, ensure_empty = true)]
 pub(super) struct DnsChangeRecord {
     pub query_id: u64,
@@ -105,6 +106,7 @@ pub(super) struct DnsChangeRecord {
 }
 
 // DNS uses an optional trailing reference without a presence bit.
+#[derive(PartialEq, Eq)]
 pub(super) struct TrailingRecordRef(pub Option<TonCell>);
 impl TLB for TrailingRecordRef {
     fn read_definition(parser: &mut CellParser) -> TonCoreResult<Self> {
@@ -123,7 +125,7 @@ impl TLB for TrailingRecordRef {
     }
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x9fd3, bits_len = 16, ensure_empty = true)]
 pub(super) struct DnsWalletRecord {
     pub address: MsgAddress,
@@ -131,35 +133,36 @@ pub(super) struct DnsWalletRecord {
 }
 
 // Firmware accepts no list, an empty list, or one wallet capability.
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 pub(super) enum DnsCapabilities {
     Absent(NoDnsCapabilities),
     Present(DnsCapabilityList),
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0, bits_len = 8)]
 pub(super) struct NoDnsCapabilities;
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 1, bits_len = 8)]
 pub(super) struct DnsCapabilityList {
     pub wallet: Option<DnsWalletCapability>,
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x2177, bits_len = 16)]
 pub(super) struct DnsWalletCapability {
     pub end: DnsCapabilityEnd,
 }
 
-#[derive(TLB)]
+#[derive(TLB, PartialEq, Eq)]
 #[tlb(prefix = 0, bits_len = 1)]
 pub(super) struct DnsCapabilityEnd;
 
 // NFTTransferMsg stores TonAddress, whose TLB writer normalizes zero to
 // addr_none. This private adapter preserves the standard addresses reconstructed
 // by firmware while retaining the existing message type and fields.
+#[derive(PartialEq, Eq)]
 pub(super) struct NftTransfer(pub NFTTransferMsg);
 impl TLB for NftTransfer {
     const PREFIX: TLBPrefix = NFTTransferMsg::PREFIX;

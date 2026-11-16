@@ -11,7 +11,7 @@ use ton_core::types::tlb_core::TLBCoins;
 /// = InternalMsgBody;
 /// ```
 // TODO is not tested
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x7bdd97de, bits_len = 32, ensure_empty = true)]
 pub struct JettonBurnNotification {
     pub query_id: u64,

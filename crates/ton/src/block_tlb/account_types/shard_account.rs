@@ -4,7 +4,7 @@ use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{MsgAddressInt, TLBRef};
 
-#[derive(Default, Debug, Clone, PartialEq, TLB)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, TLB)]
 pub struct ShardAccount {
     pub account: TLBRef<MaybeAccount>,
     pub last_tx_hash: TonHash,
@@ -14,18 +14,18 @@ pub struct ShardAccount {
 // https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L259
 // intentionally implemented as enum - Account can't be used directly
 /// Optional account value in a shard state.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum MaybeAccount {
     None(AccountNone),
     Account(Box<Account>),
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0, bits_len = 1)]
 pub struct AccountNone;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b1, bits_len = 1)]
 pub struct Account {
     pub addr: MsgAddressInt,

@@ -12,7 +12,7 @@ use ton_core::types::tlb_core::{MsgAddress, TLBRef};
 ///   with_content:Bool
 /// = InternalMsgBody;
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x04ded148, bits_len = 32, ensure_empty = true)]
 pub struct SbtProveOwnershipMsg {
     pub query_id: u64,

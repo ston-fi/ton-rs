@@ -4,13 +4,13 @@ use ton_core::cell::TonHash;
 use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::VarLenBytes;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct StorageUsed {
     pub cells: VarLenBytes<u64, 3>,
     pub bits: VarLenBytes<u64, 3>,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct StorageInfo {
     pub used: StorageUsed,
     pub storage_extra: MaybeStorageExtraInfo,
@@ -18,7 +18,7 @@ pub struct StorageInfo {
     pub due_payment: Option<TLBCoins>,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct AccountStorage {
     pub last_tx_lt: u64,
     pub balance: CurrencyCollection,
@@ -26,18 +26,18 @@ pub struct AccountStorage {
 }
 
 /// Optional account storage extension.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum MaybeStorageExtraInfo {
     None(StorageExtraInfoNone),
     Info(StorageExtraInfo),
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b000, bits_len = 3)]
 pub struct StorageExtraInfoNone;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b001, bits_len = 3)]
 pub struct StorageExtraInfo {
     pub dict_hash: TonHash,

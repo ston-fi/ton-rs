@@ -15,7 +15,7 @@ const GEN_SOFTWARE_EXISTS_FLAG: u8 = 1;
 /// For example, set is_master == false and master_ref != None
 /// Just don't do it.
 // https://github.com/ton-blockchain/ton/blob/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L457
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct BlockInfo {
     pub version: u32,
     pub not_master: bool,
@@ -43,7 +43,7 @@ pub struct BlockInfo {
     pub prev_vert_ref: Option<ExtBlockRef>,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct ExtBlockRef {
     pub end_lt: u64,
     pub seqno: u32,

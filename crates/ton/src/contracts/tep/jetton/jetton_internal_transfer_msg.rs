@@ -14,7 +14,7 @@ use ton_core::types::tlb_core::{MsgAddress, TLBEitherRef};
 /// forward_payload:(Either Cell ^Cell)
 /// = InternalMsgBody;
 /// ```
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x178d4519, bits_len = 32, ensure_empty = true)]
 pub struct JettonInternalTransferMsg<ForwardPayloadT: TLB = TonCell> {
     pub query_id: u64,

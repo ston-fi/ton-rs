@@ -9,7 +9,7 @@ use ton_core::types::tlb_core::TLBRef;
 use ton_core::{TLB, bail_ton_core_data};
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L291
-#[derive(Default, Clone, Debug, PartialEq, TLB)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0111, bits_len = 4)]
 pub struct Tx {
     pub account_addr: TonHash,
@@ -27,7 +27,7 @@ pub struct Tx {
     pub descr: TLBRef<TxDescr>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct TxMsgs {
     pub in_msg: Option<Msg>,
     pub out_msgs: Vec<Msg>,

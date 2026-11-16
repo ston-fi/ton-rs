@@ -7,7 +7,7 @@ use ton_core::{TLB, types::tlb_core::MsgAddress};
 /// This fixed wire record is exhaustive for direct construction. Parsing does not
 /// authenticate the recipient, enforce its gas rule, or prove that a reply exists.
 /// A recipient-specific prefix parser may allow data its classified contract ignores.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x2c76b973, bits_len = 32)]
 pub struct JettonProvideWalletAddressMsg {
     pub query_id: u64,

@@ -9,13 +9,13 @@ use ton_core::TLB;
 use ton_core::types::TonAddress;
 use ton_core::types::tlb_core::TLBCoins;
 // TODO not tested
-#[derive(Clone, Debug, TLB)]
+#[derive(Clone, Debug, TLB, PartialEq, Eq)]
 pub struct MintlessAirdropDict {
     #[tlb(adapter = "TLBHashMap::<DictKeyAdapterTonAddress, DictValAdapterTLB<_>>::new(267)")]
     pub data: HashMap<TonAddress, MintlessAirdropData>,
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 pub struct MintlessAirdropData {
     pub amount: TLBCoins,
     #[tlb(bits_len = 48)]

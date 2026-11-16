@@ -8,7 +8,7 @@ use ton_core::types::tlb_core::*;
 
 // https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L157
 // Use TonAddress::from_msg_address / TonAddress::to_msg_address to operate with User-friendly addresses
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct Msg<Body: TLB = TonCell> {
     pub info: CommonMsgInfo,
     pub init: Option<TLBEitherRef<StateInit>>,

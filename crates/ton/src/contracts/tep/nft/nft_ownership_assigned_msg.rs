@@ -12,7 +12,7 @@ use ton_core::types::tlb_core::TLBEitherRef;
 ///   forward_payload:(Either Cell ^Cell)
 /// = InternalMsgBody;
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x05138d91, bits_len = 32, ensure_empty = true)]
 pub struct NFTOwnershipAssignedMsg {
     pub query_id: u64,

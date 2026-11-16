@@ -12,7 +12,7 @@ use ton_core::types::TonAddress;
 ///   collection:MsgAddress
 /// = InternalMsgBody
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x8b771735, bits_len = 32, ensure_empty = true)]
 pub struct NFTReportStaticDataMsg {
     pub query_id: u64,

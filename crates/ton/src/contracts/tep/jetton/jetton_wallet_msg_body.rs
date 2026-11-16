@@ -8,7 +8,7 @@ use super::jetton_transfer_notification_msg::JettonTransferNotificationMsg;
 use ton_core::TLB;
 
 /// Supported jetton-wallet message body.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum JettonWalletMsgBody {
     Burn(JettonBurnMsg),

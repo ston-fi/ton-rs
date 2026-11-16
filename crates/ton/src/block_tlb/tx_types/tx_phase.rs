@@ -4,7 +4,7 @@ use ton_core::cell::TonHash;
 use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::{TLBRef, VarLenBytes};
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 pub struct TrStoragePhase {
     pub storage_fees_collected: TLBCoins,
     pub storage_fees_due: Option<TLBCoins>,
@@ -12,7 +12,7 @@ pub struct TrStoragePhase {
 }
 
 /// Transaction compute phase.
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum TrComputePhase {
     Skipped(TrComputePhaseSkipped),
@@ -27,7 +27,7 @@ impl Default for TrComputePhase {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 pub struct TrActionPhase {
     pub success: bool,
     pub valid: bool,
@@ -46,7 +46,7 @@ pub struct TrActionPhase {
 }
 
 /// Transaction bounce phase.
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum TrBouncePhase {
     NegFunds(TrBouncePhaseNegFunds),
@@ -54,19 +54,19 @@ pub enum TrBouncePhase {
     Ok(TrBouncePhaseOk),
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 pub struct StorageUsedShort {
     pub cells: VarLenBytes<u64, 3>,
     pub bits: VarLenBytes<u64, 3>,
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0, bits_len = 1)]
 pub struct TrComputePhaseSkipped {
     pub reason: TxComputeSkipReason,
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b1, bits_len = 1)]
 pub struct TrComputePhaseVM {
     pub success: bool,
@@ -76,7 +76,7 @@ pub struct TrComputePhaseVM {
     pub compute_phase_vm_info: TLBRef<ComputePhaseVMInfo>,
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 pub struct ComputePhaseVMInfo {
     pub gas_used: VarLenBytes<u64, 3>,
     pub gas_limit: VarLenBytes<u64, 3>,
@@ -90,7 +90,7 @@ pub struct ComputePhaseVMInfo {
 }
 
 /// Account status change caused by a transaction.
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum AccStatusChange {
     Unchanged(AccStatusChangeUnchanged), // x -> x
@@ -98,36 +98,36 @@ pub enum AccStatusChange {
     Deleted(AccStatusChangeDeleted),     // frozen -> deleted
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0, bits_len = 1)]
 pub struct AccStatusChangeUnchanged;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b10, bits_len = 2)]
 pub struct AccStatusChangeFrozen;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b11, bits_len = 2)]
 pub struct AccStatusChangeDeleted;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 pub struct TrCreditPhase {
     pub due_fees_collected: Option<TLBCoins>,
     pub credit: CurrencyCollection,
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b00, bits_len = 2)]
 pub struct TrBouncePhaseNegFunds;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b01, bits_len = 2)]
 pub struct TrBouncePhaseNoFunds {
     pub msg_size: StorageUsedShort,
     pub req_fwd_fee: TLBCoins,
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b1, bits_len = 1)]
 pub struct TrBouncePhaseOk {
     pub msg_size: StorageUsedShort,
@@ -136,7 +136,7 @@ pub struct TrBouncePhaseOk {
 }
 
 /// Reason the TVM compute phase was skipped.
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum TxComputeSkipReason {
     NoState(TxComputeSkipReasonNoState),
@@ -145,18 +145,18 @@ pub enum TxComputeSkipReason {
     Suspended(TxComputeSkipReasonSuspended),
 }
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b00, bits_len = 2)]
 pub struct TxComputeSkipReasonNoState;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b01, bits_len = 2)]
 pub struct TxComputeSkipReasonBadState;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b10, bits_len = 2)]
 pub struct TxComputeSkipReasonNoGas;
 
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b110, bits_len = 3)]
 pub struct TxComputeSkipReasonSuspended;

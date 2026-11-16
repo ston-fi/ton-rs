@@ -14,7 +14,7 @@ use ton_core::types::tlb_core::TLBCoins;
 use ton_core::types::tlb_core::VarLenBytes;
 
 /// <https://github.com/ton-blockchain/ton/blob/050a984163a53df16fb03f66cc445c34bfed48ed/crypto/block/block.tlb#L124>
-#[derive(Default, Clone, Debug, PartialEq, TLB)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, TLB)]
 pub struct CurrencyCollection {
     pub coins: TLBCoins,
     #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32)")]

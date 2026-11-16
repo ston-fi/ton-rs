@@ -18,7 +18,7 @@ use ton_core::types::tlb_core::{TLBEitherRef, TLBRef};
 ///   forward_payload:(Either Cell ^Cell)
 /// = InternalMsgBody;
 /// ```
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0x5fcc3d14, bits_len = 32, ensure_empty = true)]
 pub struct NFTTransferMsg {
     pub query_id: u64,

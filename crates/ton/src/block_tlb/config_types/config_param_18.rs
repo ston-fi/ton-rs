@@ -6,7 +6,7 @@ use ton_core::errors::TonCoreError;
 use ton_core::{TLB, bail_ton_core_data};
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L698
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct ConfigParam18 {
     #[tlb(adapter = "TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(32)")]
     pub storage_prices: HashMap<u32, StoragePrices>,
@@ -21,7 +21,7 @@ impl ConfigParam18 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0xcc, bits_len = 8)]
 pub struct StoragePrices {
     pub utime_since: u32,

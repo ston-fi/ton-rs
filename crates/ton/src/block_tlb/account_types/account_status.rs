@@ -2,7 +2,7 @@ use ton_core::TLB;
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L271
 /// TON account status.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum AccountStatus {
     Uninit(AccountStatusUninit),
@@ -11,19 +11,19 @@ pub enum AccountStatus {
     NonExist(AccountStatusNotExist),
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b00, bits_len = 2)]
 pub struct AccountStatusUninit;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b01, bits_len = 2)]
 pub struct AccountStatusFrozen;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b10, bits_len = 2)]
 pub struct AccountStatusActive;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b11, bits_len = 2)]
 pub struct AccountStatusNotExist;
 

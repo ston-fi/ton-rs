@@ -6,7 +6,7 @@ use crate::traits::tlb::TLB;
 /// Either X Y
 ///
 /// <https://github.com/ton-blockchain/ton/blame/cac968f77dfa5a14e63db40190bda549f0eaf746/crypto/block/block.tlb#L10>
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TLBEither<L, R> {
     Left(L),
     Right(R),

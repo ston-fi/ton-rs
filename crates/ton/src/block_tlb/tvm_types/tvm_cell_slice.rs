@@ -4,7 +4,7 @@ use ton_core::traits::tlb::{TLB, TLBPrefix};
 
 // https://github.com/ton-blockchain/ton/blob/ed4682066978f69ffa38dd98912ca77d4f660f66/crypto/block/block.tlb#L873
 // really tricky to implement with current design,
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TVMCellSlice {
     pub value: TonCell,
     pub borders: CellBorders, // relative to value.borders

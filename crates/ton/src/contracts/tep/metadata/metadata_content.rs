@@ -17,7 +17,7 @@ use ton_core::types::tlb_core::TLBRef;
 pub type MetadataDict = HashMap<TonHash, TLBRef<SnakeData>>;
 
 /// Parsed TEP-64 metadata content.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 #[non_exhaustive]
 pub enum MetadataContent {
     Internal(MetadataInternal),
@@ -25,7 +25,7 @@ pub enum MetadataContent {
     Unsupported(MetadataUnsupported),
 }
 
-#[derive(PartialEq, Debug, Clone, TLB)]
+#[derive(PartialEq, Eq, Debug, Clone, TLB)]
 #[tlb(prefix = 0x0, bits_len = 8)]
 pub struct MetadataInternal {
     #[tlb(adapter = "TLBHashMapE::<DictKeyAdapterTonHash, DictValAdapterTLB<_>>::new(256)")]

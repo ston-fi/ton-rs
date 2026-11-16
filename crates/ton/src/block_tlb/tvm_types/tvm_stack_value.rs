@@ -13,7 +13,7 @@ use ton_core::cell::{TonCell, TonHash};
 use ton_core::types::tlb_core::TLBRef;
 
 /// Value stored on the TVM stack.
-#[derive(Clone, TLB, PartialEq)]
+#[derive(Clone, TLB, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TVMStackValue {
     Null(TVMNull),
@@ -28,41 +28,41 @@ pub enum TVMStackValue {
 }
 
 /// TVM continuation value.
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x00, bits_len = 8)]
 pub struct TVMNull;
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x01, bits_len = 8)]
 pub struct TVMTinyInt {
     pub value: i64,
 }
 
 // vm_stk_int#0201_ value:int257 = VmStackValue; means 0x0201 without latest bit ==> 0000001000000000
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x0100, bits_len = 15)]
 pub struct TVMInt {
     #[tlb(bits_len = 257)]
     pub value: I512,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x02ff, bits_len = 16)]
 pub struct TVMNan;
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x03, bits_len = 8)]
 pub struct TVMCell {
     pub value: TLBRef<TonCell>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x05, bits_len = 8)]
 pub struct TVMBuilder {
     pub cell: TLBRef<TonCell>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x06, bits_len = 8)]
 #[non_exhaustive]
 pub enum TVMCont {
@@ -78,7 +78,7 @@ pub enum TVMCont {
     PushInt(VMContPushInt),
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 pub struct VMControlData {
     #[tlb(bits_len = 13)]
     pub nargs: Option<u16>,
@@ -87,37 +87,37 @@ pub struct VMControlData {
     pub cp: Option<i16>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 pub struct VMSaveList {
     #[tlb(adapter = "TLBHashMap::<DictKeyAdapterUint<_>, DictValAdapterTLB<_>>::new(4)")]
     pub cregs: HashMap<u8, TVMStackValue>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x00, bits_len = 8)]
 pub struct VMContStd {
     pub data: Arc<VMControlData>,
     pub code: Arc<TVMCellSlice>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x01, bits_len = 8)]
 pub struct TVMContEnvelope {
     pub data: VMControlData,
     pub next: Arc<TLBRef<TVMCont>>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x1000, bits_len = 16)]
 pub struct VMContQuit {
     pub exit_code: i32,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x1001, bits_len = 16)]
 pub struct TVMContQuitExc {}
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x10100, bits_len = 20)]
 pub struct VMContRepeat {
     #[tlb(bits_len = 63)]
@@ -126,20 +126,20 @@ pub struct VMContRepeat {
     pub after: Arc<TLBRef<TVMCont>>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x110000, bits_len = 24)]
 pub struct VMContUntil {
     pub body: Arc<TLBRef<TVMCont>>,
     pub after: Arc<TLBRef<TVMCont>>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x110001, bits_len = 24)]
 pub struct VMContAgain {
     pub body: Arc<TLBRef<TVMCont>>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x110010, bits_len = 24)]
 pub struct VMContWhileCond {
     pub cond: Arc<TLBRef<TVMCont>>,
@@ -147,7 +147,7 @@ pub struct VMContWhileCond {
     pub after: Arc<TLBRef<TVMCont>>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x110011, bits_len = 24)]
 pub struct VMContWhileBody {
     pub cond: Arc<TLBRef<TVMCont>>,
@@ -155,7 +155,7 @@ pub struct VMContWhileBody {
     pub after: Arc<TLBRef<TVMCont>>,
 }
 
-#[derive(Debug, Clone, TLB, PartialEq)]
+#[derive(Debug, Clone, TLB, PartialEq, Eq)]
 #[tlb(prefix = 0x1111, bits_len = 16)]
 pub struct VMContPushInt {
     pub value: i32,

@@ -8,7 +8,7 @@ use ton_core::types::tlb_core::TLBRef;
 /// Wallet v5r1 data.
 ///
 /// Schema: <https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb#L29>
-#[derive(Debug, PartialEq, Clone, TLB)]
+#[derive(Debug, PartialEq, Eq, Clone, TLB)]
 pub struct WalletV5Data {
     pub sign_allowed: bool,
     pub seqno: u32,
@@ -33,7 +33,7 @@ impl WalletV5Data {
 /// Unsigned wallet v5r1 external-message body.
 ///
 /// Schema: <https://github.com/ton-blockchain/wallet-contract-v5/blob/main/types.tlb>
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WalletV5ExtMsgBody {
     pub wallet_id: i32,
     pub valid_until: u32,

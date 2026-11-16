@@ -11,7 +11,7 @@ use ton_core::types::tlb_core::TLBRef;
 use ton_core::{TLB, bail_ton_core_data};
 
 // https://github.com/ton-blockchain/ton/blame/6f745c04daf8861bb1791cffce6edb1beec62204/crypto/block/block.tlb#L593
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MCBlockExtra {
     pub key_block: bool,
     pub shard_hashes: HashMap<i32, HashMap<ShardPfx, ShardDescr>>, // wc_id -> shard_pfx -> ShardDescr
@@ -39,7 +39,7 @@ impl MCBlockExtra {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 pub struct ShardFeesCreated {
     pub fees: CurrencyCollection,
     pub create: CurrencyCollection,

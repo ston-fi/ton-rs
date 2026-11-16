@@ -25,7 +25,7 @@ use ton_core::{
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0xd1735400, bits_len = 32)]
 pub struct JettonTakeWalletAddressMsg {
     pub query_id: u64,

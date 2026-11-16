@@ -9,7 +9,7 @@ use crate::contracts::tep::sbt::sbt_revoke_msg::SbtRevokeMsg;
 use ton_core::TLB;
 
 /// Supported soulbound-token message body.
-#[derive(Clone, Debug, PartialEq, TLB)]
+#[derive(Clone, Debug, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum SbtMsgBody {
     Destroy(SbtDestroyMsg),

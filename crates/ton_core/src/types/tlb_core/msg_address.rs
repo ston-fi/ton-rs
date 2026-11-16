@@ -10,7 +10,7 @@ use ton_macros::TLB;
 /// TON message address.
 ///
 /// Schema: <https://github.com/ton-blockchain/ton/blob/59a8cf0ae5c3062d14ec4c89a04fee80b5fd05c1/crypto/block/block.tlb#L100>
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum MsgAddress {
     Int(MsgAddressInt),
@@ -18,18 +18,18 @@ pub enum MsgAddress {
 }
 
 /// External TON message address.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum MsgAddressExt {
     None(MsgAddressNone),
     Extern(MsgAddressExtern),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, TLB)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b00, bits_len = 2)]
 pub struct MsgAddressNone;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b01, bits_len = 2)]
 pub struct MsgAddressExtern {
     pub address: VarLenBits<Vec<u8>, 9>,

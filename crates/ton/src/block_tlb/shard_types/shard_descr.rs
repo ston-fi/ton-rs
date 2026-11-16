@@ -5,7 +5,7 @@ use ton_core::traits::tlb::TLB;
 use ton_core::{TLB, bail_ton_core_data};
 
 /// Shard descriptor encoding version.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ShardDescrTag {
     Old,
@@ -13,7 +13,7 @@ pub enum ShardDescrTag {
 }
 
 // https://github.com/ton-blockchain/ton/blame/26761a1d139402ef343081810677d2582c3eff51/crypto/block/block.tlb#L509
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShardDescr {
     pub prefix: ShardDescrTag, // in fact it's TLBPrefix
     pub seqno: u32,
@@ -142,7 +142,7 @@ impl TLB for ShardDescr {
 }
 
 /// Planned shard split or merge.
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[non_exhaustive]
 pub enum FutureSplitMerge {
     None(FutureSplitMergeNone),
@@ -150,18 +150,18 @@ pub enum FutureSplitMerge {
     Merge(FutureSplitMergeMerge),
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b0, bits_len = 1)]
 pub struct FutureSplitMergeNone;
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b10, bits_len = 2)]
 pub struct FutureSplitMergeSplit {
     pub split_utime: u32,
     pub interval: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, TLB)]
+#[derive(Debug, Clone, PartialEq, Eq, TLB)]
 #[tlb(prefix = 0b11, bits_len = 2)]
 pub struct FutureSplitMergeMerge {
     pub merge_utime: u32,
